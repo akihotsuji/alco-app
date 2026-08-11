@@ -1,0 +1,66 @@
+---
+description: Webアプリとしてのセキュリティ規約（認可・入力検証・XSS・シークレット・アップロード）
+alwaysApply: true
+---
+
+# セキュリティ規約
+
+公開Webアプリとして、以下を実装時に必ず守る。違反はレビューでブロック対象。
+
+## 認可（最重要）
+
+- 全APIエンドポイントは認証ミドルウェアを通す。公開エンドポイントを作る場合は仕様書に明記し、オーナーの承認を得る
+- リソースへのアクセスは必ずセッション由来の `userId` でスコープする（IDOR対策）。リクエストボディやURLの userId を信用しない
+
+```typescript
+// ❌ BAD: クライアントから渡されたuserIdを信用
+const logs = await db.select().from(drinkLogs)
+  .where(eq(drinkLogs.userId, body.userId));
+
+// ✅ GOOD: セッションから取得したuserIdのみ使用
+const user = c.get("user");
+const logs = await db.select().from(drinkLogs)
+  .where(eq(drinkLogs.userId, user.id));
+```
+
+- 更新・削除は「対象IDの存在確認」ではなく「対象ID＋userIdの一致」を条件にする
+
+## 入力検証・インジェクション
+
+- 外部入力（ボディ・クエリ・パスパラメータ・ヘッダー）は全て `@hono/zod-validator` で検証してから使う。検証前の値をDBやレスポンスに渡さない
+- SQLはDrizzleのクエリビルダーのみ使用。文字列結合による生SQLは禁止（`sql` テンプレートを使う場合も値は必ずプレースホルダで渡す）
+- 数値・列挙値はZodで範囲・候補を制限する（例: 度数は0〜100、種類はenum）
+
+## XSS・フロントエンド
+
+- `dangerouslySetInnerHTML` は原則禁止。ユーザー入力（メモ・銘柄名等）は必ずテキストとしてレンダリングする
+- ユーザー入力をURL・`href` に埋め込む場合はスキームを検証する（`javascript:` 対策）
+- `hono/secure-headers` でセキュリティヘッダー（CSP・X-Content-Type-Options等）を全レスポンスに付与する
+
+## 認証・セッション
+
+- 認証はBetter Authの標準機能を使い、独自のトークン・パスワード処理を自作しない
+- セッションCookieは httpOnly / secure / sameSite を必ず有効にする
+- ログイン試行への総当たり対策（Better Authのレート制限機能）を有効にする
+
+## シークレット・設定
+
+- シークレットは `wrangler secret` と GitHub Secrets のみで管理。コード・`wrangler.jsonc`・specに書かない
+- `.dev.vars` は `.gitignore` に含め、絶対にコミットしない
+- ログにパスワード・セッショントークン・Cookieを出力しない
+
+## ファイルアップロード（R2）
+
+- サーバー側でContent-Type（画像のみ許可）とサイズ上限を検証する。クライアント側の検証は信用しない
+- 保存キーはサーバーが生成する（ランダムID）。ユーザー入力のファイル名をキーやパスに使わない
+- R2バケットは非公開とし、配信は認可チェックを通した署名付きURLまたはAPI経由のみ
+
+## エラー・情報漏えい
+
+- エラーレスポンスにスタックトレース・SQL・内部パスを含めない。クライアントには汎用メッセージ、詳細はサーバーログのみ
+- 存在しないリソースと権限のないリソースは同じレスポンス（404）にし、他ユーザーのデータの存在を推測させない
+
+## 依存関係
+
+- 依存パッケージは最小限にする。追加時は必要性をPRに明記する
+- `pnpm audit` をCIで実行し、High以上の脆弱性があればマージしない

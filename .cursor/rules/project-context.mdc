@@ -1,0 +1,36 @@
+---
+description: alco-appのプロダクト概要・技術スタック・ディレクトリ構成
+alwaysApply: true
+---
+
+# プロジェクト概要: alco-app
+
+お酒の記録に特化したスマートフォン向けWebアプリ（PWA）。コア機能は「飲酒記録（グラス単位）」「セラー管理」「テイスティングノート」の3つ。まず個人用として構築し、将来の一般公開を視野に入れる。
+
+詳細は `spec/` を参照:
+- `spec/00-overview.md` — 前提条件・スコープ
+- `spec/01-requirements.md` — 要件定義
+- `spec/02-tech-stack.md` — 技術選定
+- `spec/03-roadmap.md` — ロードマップ
+
+## 技術スタック
+
+- TypeScript (strict) / Hono / Vite + React SPA / React Router / TanStack Query + Hono RPC
+- Tailwind CSS + shadcn/ui / Zod / Drizzle ORM
+- Cloudflare Workers + D1 (SQLite) + R2、無料枠内で運用
+- Biome (lint/format) / Vitest / Playwright / GitHub Actions
+
+## ディレクトリ構成
+
+- `src/client/` — React SPA（画面・コンポーネント・hooks）
+- `src/server/` — Hono API（routes・services・middleware）
+- `src/db/` — Drizzleスキーマ・マイグレーション
+- `src/shared/` — クライアント/サーバー共有（Zodスキーマ・型・定数）
+- `spec/` — 仕様・設計ドキュメント
+- `e2e/` — Playwright E2Eテスト
+
+## 重要な前提
+
+- AIエージェント主導の開発。オーナーはレビューと意思決定のみを行うため、保守性・テスト・ドキュメント同期を最優先する
+- モバイルファースト。UIは常にスマートフォン幅を基準に実装する
+- 全データはユーザーIDにスコープする（マルチテナント設計）。APIでは必ず認可チェックを行う

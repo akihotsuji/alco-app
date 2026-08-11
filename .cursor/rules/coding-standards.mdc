@@ -1,0 +1,44 @@
+---
+description: TypeScript・API・テストのコーディング規約
+globs: **/*.ts,**/*.tsx
+alwaysApply: false
+---
+
+# コーディング規約
+
+## TypeScript
+
+- strictモード前提。`any` と `as` による型のごまかしは禁止（外部境界では `unknown` から Zod でパースする）
+- 外部からの入力（APIリクエスト・フォーム）は必ず `src/shared/` のZodスキーマで検証する
+- クライアント/サーバーで共有する型・スキーマ・定数は `src/shared/` に置き、重複定義しない
+
+## API (Hono)
+
+- 全エンドポイントで認証ミドルウェアを通し、リソースアクセス時は必ず `userId` でスコープする
+
+```typescript
+// ❌ BAD: 他ユーザーのデータが取れてしまう
+const bottle = await db.select().from(bottles).where(eq(bottles.id, id));
+
+// ✅ GOOD: 必ずuserIdでスコープする
+const bottle = await db.select().from(bottles)
+  .where(and(eq(bottles.id, id), eq(bottles.userId, user.id)));
+```
+
+- エラーは握りつぶさない。ハンドリングできないエラーは共通エラーハンドラに委ねる
+
+## React
+
+- 関数コンポーネントのみ。再利用ロジックはカスタムhooksに切り出す
+- データ取得はTanStack Query + Hono RPCクライアント経由。コンポーネント内で直接 `fetch` しない
+- スタイルはTailwindのデザイントークンを使う。マジックナンバーの色・サイズ直書きを避ける
+
+## テスト
+
+- 計算ロジック（純アルコール量など）は単体テスト必須
+- APIテストには「他ユーザーのデータにアクセスできないこと」の認可ケースを含める
+- テストファイルは対象と同じディレクトリに `*.test.ts` で配置する
+
+## コメント
+
+- コードの動作をなぞるだけのコメントは書かない。書くのは「なぜそうしたか」の意図・制約のみ
