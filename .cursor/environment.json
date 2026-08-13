@@ -1,0 +1,15 @@
+{
+  "name": "alco-app",
+  "user": "ubuntu",
+  "install": "if [ ! -f package.json ]; then echo 'alco-app: package.json がまだ無いためインストールをスキップします (greenfield)'; elif [ -f pnpm-lock.yaml ]; then corepack pnpm install --frozen-lockfile; else corepack pnpm install; fi",
+  "ports": [
+    {
+      "name": "Vite dev server",
+      "port": 5173
+    },
+    {
+      "name": "wrangler dev (Workers)",
+      "port": 8787
+    }
+  ]
+}
