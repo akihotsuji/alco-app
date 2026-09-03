@@ -1,0 +1,34 @@
+{
+  "name": "alco-app",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:wrangler": "wrangler dev --env dev",
+    "test": "node --experimental-strip-types --test src/server/index.test.ts"
+  },
+  "dependencies": {
+    "hono": "^4.11.1",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.52.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0",
+    "wrangler": "^4.127.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "workerd"]
+  }
+}

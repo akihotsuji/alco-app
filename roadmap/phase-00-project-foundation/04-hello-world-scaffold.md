@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **未着手**（`src/`・`package.json`・`wrangler.jsonc` なし） |
+| ステータス | **完了**（2026-09-03。`pnpm dev` / `wrangler dev --env dev` で Hello World） |
 | 要件 | [spec/02-tech-stack.md](../../spec/02-tech-stack.md) の全体像 |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
@@ -14,7 +14,7 @@
 ## 2. 前提条件
 
 - 0-01、0-02 完了
-- 0-03 の D1/R2 は後から `wrangler.jsonc` に足せる。Hello World だけなら D1 なしでも可だが、最終的にはバインディングを書く
+- 0-03 完了。D1/R2 は `wrangler.jsonc` の **`env.dev`** に書く（トップレベルに置かない）。Hello World だけなら D1 なしでも起動は可だが、本タスクでバインディングまで書く
 - 既存の `spec/` と `.cursor/` を消さない（テンプレート生成物で上書きしない）
 
 ## 3. スコープ
@@ -26,7 +26,7 @@
 - `src/client/` Hello World SPA
 - `src/server/` Hono の `/api/health` 程度
 - Vite ビルドが Worker の assets になる配線
-- `.gitignore`（`.dev.vars`、`node_modules`、`dist`、`.wrangler`）
+- `.gitignore`（**作成済み**。本タスクでは上書きせず、`.dev.vars*` / `node_modules` / `dist` / `.wrangler` が残っていることを確認する）
 
 **対象外**
 
@@ -57,26 +57,17 @@ package.json
 ## 5. 細分化タスク
 
 1. 既存ファイルを残したまま、Hono + Vite + Workers の公式に近いテンプレを調査する（上書き防止）
-2. `.gitignore` を先に追加する
+2. `.gitignore` は作成済み。内容を確認し、不足があれば追記する（ゼロから作り直さない）
 3. ディレクトリと Hello World を実装する
-4. `wrangler.jsonc` で Worker エントリと assets を繋ぐ
-5. `pnpm install` → `pnpm exec wrangler dev` で SPA と `/api/health` を確認する
+4. `wrangler.jsonc` で Worker エントリと assets を繋ぎ、`env.dev` に D1 `DB` / R2 `PHOTOS` を書く（形は [03-cloudflare-dev-resources.md](03-cloudflare-dev-resources.md)）
+5. `pnpm install` → `pnpm exec wrangler dev --env dev` で SPA と `/api/health` を確認する
 6. ルート README に起動手順を書く
 
 ## 6. 手順
 
 1. **調査**: Cloudflare Workers + Vite（assets）+ Hono の現行推奨を公式ドキュメントで確認する。テンプレを使う場合は一時ディレクトリに生成し、必要なファイルだけコピーする。`spec/` を消さない。
 
-2. `.gitignore` 最低限:
-
-```
-node_modules
-dist
-.wrangler
-.dev.vars
-*.local
-.DS_Store
-```
+2. `.gitignore` はルートに作成済み。0-04 時点の最低限（`node_modules` / `dist` / `.wrangler` / `.dev.vars*` / `*.local` / `.DS_Store`）を満たしている。不足があれば追記する。
 
 3. 依存の目安（バージョンは作成時の最新安定。追加理由を PR に書く）:
 
@@ -91,13 +82,13 @@ dist
 - `/api/health` は認証なしでよい（公開。オーナー承認対象として spec か本ファイルに残す）
 - それ以外の `/api/*` は後で認証 MW
 
-5. クライアント: `src/client/main.tsx` が `#root` に「alco-app」と出す。React Router は Phase 2 でも可。**要確認**: 0-04 で Router まで入れるか。
+5. クライアント: `src/client/main.tsx` が `#root` に「alco-app」と出す。React Router は **入れない**（Phase 2）。
 
 6. 起動:
 
 ```powershell
 pnpm install
-pnpm exec wrangler dev
+pnpm exec wrangler dev --env dev
 ```
 
 ブラウザで `/` と `/api/health` を確認する。
@@ -122,19 +113,25 @@ pnpm exec wrangler dev
 
 SPA のクライアントルーティングは後で React Router。Worker 側は未知パスを `index.html` にフォールバックする必要がある（設定方法は Vite/assets の現行 API に従う）。
 
-**要確認**
+**FIX（0-04）**
 
-- 開発時に Vite と wrangler を同時起動するか、wrangler だけにするか
-- Worker の `name`（例: `alco-app-dev`）
+- 日常開発は `pnpm dev`（Vite + `@cloudflare/vite-plugin`）。プラグインが workerd を内蔵するため、Vite と wrangler の同時起動はしない
+- React Router は 0-04 では入れない（Phase 2）
+- 公開 `GET /api/health` の仕様: [spec/features/health.md](../../spec/features/health.md)
+
+**FIX（0-03）**
+
+- wrangler は `env.dev`。Worker 名は `alco-app-dev`
+- 起動は `wrangler dev --env dev`
 
 ## 8. 受け入れ条件
 
-- [ ] `wrangler dev` で Hello World が表示される（Phase 0 DoD）
-- [ ] `/api/health` が JSON を返す（スタックトレースなし）
-- [ ] `.gitignore` に `.dev.vars` がある
-- [ ] `spec/` と `.cursor/` が残っている
-- [ ] `pnpm-lock.yaml` がある
-- [ ] ディレクトリが tech-stack の予定と一致する
+- [x] `wrangler dev --env dev` で Hello World が表示される（Phase 0 DoD）
+- [x] `/api/health` が JSON を返す（スタックトレースなし）
+- [x] `.gitignore` に `.dev.vars` がある（`.dev.vars*` + `!.dev.vars.example`）
+- [x] `spec/` と `.cursor/` が残っている
+- [x] `pnpm-lock.yaml` がある
+- [x] ディレクトリが tech-stack の予定と一致する
 
 ## 9. セキュリティ観点
 

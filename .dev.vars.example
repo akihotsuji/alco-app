@@ -1,0 +1,2 @@
+# ローカル用シークレットのひな形。コピーして .dev.vars を作る（.dev.vars はコミットしない）
+# BETTER_AUTH_SECRET=

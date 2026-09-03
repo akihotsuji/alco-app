@@ -1,0 +1,21 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 1.5rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
