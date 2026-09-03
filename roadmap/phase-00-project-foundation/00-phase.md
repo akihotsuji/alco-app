@@ -28,7 +28,7 @@
 | 02 | [ローカル環境](02-local-env-setup.md) | 未着手 |
 | 03 | [Cloudflare D1/R2（dev）](03-cloudflare-dev-resources.md) | 完了 |
 | 04 | [空プロジェクト（Hello World）](04-hello-world-scaffold.md) | 完了 |
-| 05 | [TypeScript strict / Biome](05-typescript-biome.md) | 未着手 |
+| 05 | [TypeScript strict / Biome](05-typescript-biome.md) | 完了 |
 | 06 | [Vitest](06-vitest.md) | 未着手 |
 | 07 | [GitHub Actions CI](07-github-actions-ci.md) | 未着手 |
 | 08 | [main ブランチ保護](08-branch-protection.md) | 未着手 |
@@ -49,7 +49,7 @@ Phase 1 の設計ドキュメント作成に入れる。実装（Phase 2）は P
 
 ## 現状メモ
 
-- `package.json`・`src/`・`wrangler.jsonc` は 0-04 で作成済み。`.github/` は未着手。`.gitignore` は作成済み
+- `package.json`・`src/`・`wrangler.jsonc` は 0-04 で作成済み。TypeScript strict / Biome（`pnpm typecheck` / `pnpm lint` / `pnpm format`）は 0-05 で完了。`.github/` は未着手。`.gitignore` は作成済み
 - Cloudflare dev: D1 `alco-app-dev`、R2 `alco-app-photos-dev`（非公開）。binding `DB` / `PHOTOS`。`env.dev` で分ける（**FIX**）
 - GitHub リポジトリはプライベート
 - classic branch protection API は GitHub Free プライベートで 403。08 で代替手段を決める

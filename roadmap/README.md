@@ -76,7 +76,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 0-02 | Node.js / pnpm / wrangler のローカル環境セットアップ | [02-local-env-setup.md](phase-00-project-foundation/02-local-env-setup.md) | 未着手 |
 | 0-03 | Cloudflareアカウント作成、D1・R2作成（dev用） | [03-cloudflare-dev-resources.md](phase-00-project-foundation/03-cloudflare-dev-resources.md) | 完了 |
 | 0-04 | Vite + React + Hono + Workers の空プロジェクト | [04-hello-world-scaffold.md](phase-00-project-foundation/04-hello-world-scaffold.md) | 完了 |
-| 0-05 | TypeScript strict、Biome導入 | [05-typescript-biome.md](phase-00-project-foundation/05-typescript-biome.md) | 未着手 |
+| 0-05 | TypeScript strict、Biome導入 | [05-typescript-biome.md](phase-00-project-foundation/05-typescript-biome.md) | 完了 |
 | 0-06 | Vitest導入 | [06-vitest.md](phase-00-project-foundation/06-vitest.md) | 未着手 |
 | 0-07 | GitHub Actions CI（lint / typecheck / test / audit） | [07-github-actions-ci.md](phase-00-project-foundation/07-github-actions-ci.md) | 未着手 |
 | 0-08 | mainブランチ保護 | [08-branch-protection.md](phase-00-project-foundation/08-branch-protection.md) | 未着手 |
