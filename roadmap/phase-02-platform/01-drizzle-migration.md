@@ -64,8 +64,8 @@ pnpm add -D drizzle-kit
 ローカル適用（データベース名は 0-03 で決めたもの）:
 
 ```powershell
-pnpm exec wrangler d1 migrations apply alco-app-dev --local
-pnpm exec wrangler d1 execute alco-app-dev --local --command "SELECT name FROM sqlite_master WHERE type='table';"
+pnpm exec wrangler d1 migrations apply alco-app-dev --local --env dev
+pnpm exec wrangler d1 execute alco-app-dev --local --env dev --command "SELECT name FROM sqlite_master WHERE type='table';"
 ```
 
 リモート apply は本タスクでは原則やらない（dev リモートは Phase 3-07）。

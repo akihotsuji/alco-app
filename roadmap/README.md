@@ -7,19 +7,15 @@
 
 リポジトリ直下の `roadmap/`（既存の空フォルダを使用）。`spec/roadmap/` は存在しない。
 
-## 現状サマリー（2026-08-13 時点のリポジトリ確認）
-
-ロードマップ上のチェックボックスはすべて未チェック。実体との差分は次のとおり。
+## 現状サマリー（2026-09-03）
 
 | 判定 | 内容 |
 |---|---|
-| **完了（コード確認済み）** | Git 初期化、GitHub プライベートリポジトリ `akihotsuji/alco-app`、Phase 0 記載の `.cursor/rules/` 4件と skills 2件 |
-| **未着手** | `.github/` / 設計3点セット（design-system / data-model / api-design）はなし。`.gitignore` と Hello World スキャフォールド（`package.json` / `src/` / `wrangler.jsonc`）は作成済み |
+| **完了** | 0-01〜0-05、0-09。GitHub プライベート、`.gitignore`、Hello World、TypeScript strict / Biome、Cloudflare dev D1/R2、rules/skills |
+| **未着手** | 0-06 Vitest、0-07 CI（`.github/` なし）、0-08 ブランチ保護、Phase 1 以降の設計3点セット |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **要確認（残）** | ブランチ保護（GitHub Free のプライベートでは classic protection が 403） |
-
-詳細は各タスクファイルの「現状」を参照。完了扱いにしたものも、ロードマップのチェック更新は別途行う。
 
 ## オーナー決定（2026-08-13 FIX）
 
@@ -73,7 +69,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
 | 0-01 | Gitリポジトリ初期化、GitHubプライベートリポジトリ作成 | [01-git-github-init.md](phase-00-project-foundation/01-git-github-init.md) | 完了 |
-| 0-02 | Node.js / pnpm / wrangler のローカル環境セットアップ | [02-local-env-setup.md](phase-00-project-foundation/02-local-env-setup.md) | 未着手 |
+| 0-02 | Node.js / pnpm / wrangler のローカル環境セットアップ | [02-local-env-setup.md](phase-00-project-foundation/02-local-env-setup.md) | 完了 |
 | 0-03 | Cloudflareアカウント作成、D1・R2作成（dev用） | [03-cloudflare-dev-resources.md](phase-00-project-foundation/03-cloudflare-dev-resources.md) | 完了 |
 | 0-04 | Vite + React + Hono + Workers の空プロジェクト | [04-hello-world-scaffold.md](phase-00-project-foundation/04-hello-world-scaffold.md) | 完了 |
 | 0-05 | TypeScript strict、Biome導入 | [05-typescript-biome.md](phase-00-project-foundation/05-typescript-biome.md) | 完了 |

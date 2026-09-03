@@ -1,11 +1,11 @@
 # 0-02 Node.js / pnpm / wrangler のローカル環境セットアップ
 
-| 項目 | 内容 |
-|---|---|
-| フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **未着手**（`package.json` なし。ツールのグローバル導入有無はマシン依存で未検証） |
-| 要件 | 保守性、Cloudflare 上での開発（[spec/02-tech-stack.md](../../spec/02-tech-stack.md)） |
-| ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
+| 項目       | 内容                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------- |
+| フェーズ   | Phase 0 プロジェクト基盤                                                              |
+| ステータス | **完了**（2026-09-03。Node 22 / pnpm 10 / ローカル wrangler。README と `.node-version` あり） |
+| 要件       | 保守性、Cloudflare 上での開発（[spec/02-tech-stack.md](../../spec/02-tech-stack.md)） |
+| ソース     | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0                                |
 
 ## 1. 概要
 
@@ -71,12 +71,11 @@ pnpm dlx wrangler --version
 ```
 
 4. Cloudflare ログインは 0-03 で行う（本タスクではアカウント作成まで求めない）。
-
 5. ルート README に以下を追記する（値の例はプレースホルダ）:
 
 - 必要ツール: Node xx、pnpm、Git
 - インストール: `pnpm install`（0-04 後）
-- 開発: `pnpm dev` または `pnpm wrangler dev`（0-04 で scripts 名を確定）
+- 開発: `pnpm dev` または `pnpm exec wrangler dev --env dev`（0-04 で scripts 名を確定。env は 0-03 FIX）
 
 ## 7. 仕様詳細
 
@@ -86,9 +85,9 @@ pnpm dlx wrangler --version
 - ローカル開発: **wrangler dev**（D1/R2 をエミュレート）
 - 単一パッケージ。pnpm workspaces は使わない
 
-**要確認**
+**FIX（0-04 で確定）**
 
-- Node 20 vs 22。Workers のサポート対象に合わせる
+- Node **22**（`.node-version` / `engines`）。pnpm は `packageManager`: `pnpm@10.11.0`
 - エディタは Cursor。VS Code 用 workspace `alco-app.code-workspace` は既にある
 
 Windows 固有:
@@ -97,11 +96,11 @@ Windows 固有:
 
 ## 8. 受け入れ条件
 
-- [ ] README に必要ツールと確認コマンドがある
-- [ ] オーナーマシンで `node -v` と `pnpm -v` が通る
-- [ ] wrangler をグローバル必須にしない方針が書いてある
-- [ ] Node バージョンがドキュメントまたは `.node-version` で固定されている
-- [ ] シークレットを書いていない
+- [x] README に必要ツールと確認コマンドがある
+- [x] オーナーマシンで `node -v` と `pnpm -v` が通る
+- [x] wrangler をグローバル必須にしない方針が書いてある
+- [x] Node バージョンがドキュメントまたは `.node-version` で固定されている
+- [x] シークレットを書いていない
 
 lint/test はプロジェクト未生成なら N/A。0-04 以降に CI と揃える。
 
@@ -119,5 +118,5 @@ lint/test はプロジェクト未生成なら N/A。0-04 以降に CI と揃え
 ## 11. リスク・注意点
 
 - Node バージョンを決めずに 0-04 へ進むと、CI とローカルが割れる
-- チーム（将来）で npm と pnpm が混在すると `package-lock.json` が生える。`.gitignore` で npm lock を無視するか、PR で弾く
-- 本タスク完了だけでは `wrangler dev` はまだ動かない（0-04 待ち）
+- チーム（将来）で npm と pnpm が混在すると `package-lock.json` が生える。`.gitignore` で npm / yarn / bun の lock を無視する（正本は `pnpm-lock.yaml`）
+- 起動は 0-04 以降。日常は `pnpm dev`、確認は `wrangler dev --env dev`

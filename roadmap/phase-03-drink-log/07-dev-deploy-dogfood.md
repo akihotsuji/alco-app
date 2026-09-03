@@ -45,7 +45,7 @@
 
 1. リモート migrate
 2. secret 投入（オーナー操作）
-3. `pnpm exec wrangler deploy`（dev 設定）
+3. `pnpm exec wrangler deploy --env dev`
 4. 実機でサインアップ〜記録〜サマリー
 5. 失敗時のログの見方を 1 段落書く（秘密はログらない）
 6. 日常利用開始の宣言（オーナー）
@@ -53,12 +53,12 @@
 ## 6. 手順
 
 ```powershell
-pnpm exec wrangler d1 migrations apply alco-app-dev --remote
-pnpm exec wrangler secret put BETTER_AUTH_SECRET
-pnpm exec wrangler deploy
+pnpm exec wrangler d1 migrations apply alco-app-dev --remote --env dev
+pnpm exec wrangler secret put BETTER_AUTH_SECRET --env dev
+pnpm exec wrangler deploy --env dev
 ```
 
-環境の切り方は 0-03 の **要確認** に従う。`--env` があるなら明示。
+環境は 0-03 FIX どおり `env.dev`。コマンドは `--env dev` を明示する。
 
 デプロイ後:
 

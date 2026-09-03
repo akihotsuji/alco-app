@@ -1,11 +1,11 @@
 # 0-01 Gitリポジトリ初期化、GitHubプライベートリポジトリ作成
 
-| 項目 | 内容 |
-|---|---|
-| フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **完了**（2026-08-13 確認） |
-| 要件 | 保守性（CI・ブランチ運用の前提） |
-| ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
+| 項目       | 内容                                                   |
+| ---------- | ------------------------------------------------------ |
+| フェーズ   | Phase 0 プロジェクト基盤                               |
+| ステータス | **完了**（2026-08-13 確認）                            |
+| 要件       | 保守性（CI・ブランチ運用の前提）                       |
+| ソース     | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
 ## 1. 概要
 
@@ -31,13 +31,14 @@ alco-app の履歴とリモートを確立する。以降の全作業は GitHub 
 
 - ブランチ保護（[08-branch-protection.md](08-branch-protection.md)）
 - CI（[07-github-actions-ci.md](07-github-actions-ci.md)）
-- `.gitignore` の完成（スキャフォールド 0-04 とセットで必須）
+- スキャフォールド本体（[04-hello-world-scaffold.md](04-hello-world-scaffold.md)）。`.gitignore` は先行作成済み
 
 ## 4. 成果物
 
 - ローカル Git リポジトリ
 - `https://github.com/akihotsuji/alco-app`（private）
 - デフォルトブランチ `main`
+- `.gitignore`（シークレット・ビルド成果物・他パッケージマネージャの lockfile を除外）
 
 ## 5. 細分化タスク
 
@@ -73,7 +74,7 @@ gh repo view akihotsuji/alco-app --json name,isPrivate,url,defaultBranchRef
 - 公開範囲は個人用でも **リポジトリは private**（ソース・spec・将来の運用メモを守る）
 - デフォルトブランチは `main`
 - 作業ブランチ命名: `feature/<内容>` / `fix/<内容>`
-- シークレットをコミットしない。本タスク時点では `.gitignore` が未作成なので、0-04 完了まで `.dev.vars` や鍵ファイルを置かない
+- シークレットをコミットしない。`.dev.vars` / `.env*` / 鍵ファイルはルートの `.gitignore` で除外する（テンプレの `.dev.vars.example` / `.env.example` は追跡する）
 
 確認済みの初期履歴（参考）:
 
@@ -85,10 +86,10 @@ gh repo view akihotsuji/alco-app --json name,isPrivate,url,defaultBranchRef
 
 - [x] リモートが存在し private である
 - [x] デフォルトブランチが `main`
-- [ ] `spec/03-roadmap.md` の当該チェックが `[x]`（**未更新。ドキュメント同期で直す**）
-- [ ] `.gitignore` がある（0-04 の受け入れ。本タスク単体では未達でも可）
+- [x] `spec/03-roadmap.md` の当該チェックが `[x]`
+- [x] `.gitignore` がある（0-04 でも上書きせず内容確認する）
 
-DoD 共通: 本タスクはインフラ作業のためアプリテストは不要。spec のチェック更新だけ残っている。
+DoD 共通: 本タスクはインフラ作業のためアプリテストは不要。
 
 ## 9. セキュリティ観点
 
@@ -100,6 +101,7 @@ DoD 共通: 本タスクはインフラ作業のためアプリテストは不�
 
 - [spec/03-roadmap.md](../../spec/03-roadmap.md)
 - [spec/00-overview.md](../../spec/00-overview.md)
+- [.gitignore](../../.gitignore)
 - [.cursor/rules/development-workflow.mdc](../../.cursor/rules/development-workflow.mdc)
 - 次: [02-local-env-setup.md](02-local-env-setup.md)
 

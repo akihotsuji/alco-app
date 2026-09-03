@@ -15,7 +15,8 @@ wrangler の env で本番 Worker / D1 / R2 を dev と分ける。データを�
 
 - Phase 6 完了相当のアプリ
 - Cloudflare アカウント
-- 命名規則（例: `alco-app` と `alco-app-dev`）**要確認**
+- 0-03 で `env.dev` を採用済み。本タスクは **`env.production` を追加**する
+- 命名: 本番 Worker / D1 は `alco-app-prod`、R2 は `alco-app-photos-prod`（0-03 の予定名）
 
 ## 3. スコープ
 
@@ -53,7 +54,7 @@ pnpm exec wrangler d1 create alco-app-prod
 pnpm exec wrangler r2 bucket create alco-app-photos-prod
 ```
 
-`wrangler.jsonc` に env を足す。トップレベルを dev のままにするか、明示 `--env` 必須にするか。**推奨: 本番デプロイは `--env production` 必須で、デフォルトは dev。**
+`wrangler.jsonc` に `env.production` を足す。トップレベルを dev 扱いにしない（0-03 FIX）。dev は `--env dev`、本番は `--env production` を必須にする。無引数の `wrangler deploy` が本番を向かないこと。
 
 本番 migrate は 7-02 または初回リリース時。本タスクで apply するなら **prod と分かったうえで**。
 

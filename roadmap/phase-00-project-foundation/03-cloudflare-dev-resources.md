@@ -1,11 +1,11 @@
 # 0-03 Cloudflareアカウント作成、D1・R2作成（dev用）
 
-| 項目 | 内容 |
-|---|---|
-| フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **未着手**（`wrangler.jsonc` なし。リソースの有無はダッシュボード未確認） |
-| 要件 | コスト無料枠、D1/R2（[spec/02-tech-stack.md](../../spec/02-tech-stack.md)） |
-| ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
+| 項目       | 内容                                                                        |
+| ---------- | --------------------------------------------------------------------------- |
+| フェーズ   | Phase 0 プロジェクト基盤                                                    |
+| ステータス | **完了**（2026-08-15。dev D1/R2 作成済み。`wrangler.jsonc` への転記は 0-04） |
+| 要件       | コスト無料枠、D1/R2（[spec/02-tech-stack.md](../../spec/02-tech-stack.md)） |
+| ソース     | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0                      |
 
 ## 1. 概要
 
@@ -34,10 +34,12 @@ dev 用の Cloudflare リソースを用意する。本番用は Phase 7。無�
 
 ## 4. 成果物
 
-- Cloudflare 上の dev D1（名前案: `alco-app-dev`。**要確認**）
-- Cloudflare 上の dev R2（名前案: `alco-app-photos-dev`。**要確認**）
-- `wrangler.jsonc` の `d1_databases` / `r2_buckets` バインディング（database_id は秘密ではないが、本手順書には実 ID を書かない）
-- `.dev.vars` はまだ空でもよい。ファイルを作るなら **必ず gitignore**（0-04 と同時）
+- Cloudflare 上の dev D1: `alco-app-dev`（**FIX**）
+- Cloudflare 上の dev R2: `alco-app-photos-dev`（非公開。**FIX**）
+- バインディングと env 方針（**FIX**。設定ファイル本体は 0-04）:
+  - D1 binding: `DB` / R2 binding: `PHOTOS`
+  - wrangler は最初から `env.dev` で分ける。トップレベルを dev 扱いにしない
+- `.dev.vars` はまだ空でもよい。ルート `.gitignore` が `.dev.vars*` を除外済み（`.dev.vars.example` は追跡可）
 
 ## 5. 細分化タスク
 
@@ -62,20 +64,7 @@ pnpm exec wrangler whoami
 pnpm exec wrangler d1 create alco-app-dev
 ```
 
-出力の `database_id` を `wrangler.jsonc` に貼る例（値はダミー）:
-
-```jsonc
-{
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "alco-app-dev",
-      "database_id": "<dashboard-or-cli-output>",
-      "migrations_dir": "src/db/migrations"
-    }
-  ]
-}
-```
+出力の `database_id` は 0-04 で `wrangler.jsonc` の `env.dev` に書く（本手順書には実 ID を書かない）。
 
 `migrations_dir` は Phase 2 で使う。空ディレクトリを 0-04 で作っておいてもよい。
 
@@ -85,20 +74,37 @@ pnpm exec wrangler d1 create alco-app-dev
 pnpm exec wrangler r2 bucket create alco-app-photos-dev
 ```
 
+0-04 で書く `wrangler.jsonc` の形（値はダミー。トップレベルに D1/R2 を置かない）:
+
 ```jsonc
 {
-  "r2_buckets": [
-    {
-      "binding": "PHOTOS",
-      "bucket_name": "alco-app-photos-dev"
+  "name": "alco-app",
+  "env": {
+    "dev": {
+      "name": "alco-app-dev",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "alco-app-dev",
+          "database_id": "<dashboard-or-cli-output>",
+          "migrations_dir": "src/db/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "PHOTOS",
+          "bucket_name": "alco-app-photos-dev"
+        }
+      ]
     }
-  ]
+  }
 }
 ```
 
-4. 公開アクセスを有効にしない。Workers からのバインディングのみ。
+ローカル起動・デプロイは `wrangler dev --env dev` / `wrangler deploy --env dev`。Phase 7 で `env.production` を追加する。
 
-5. ローカル確認は 0-04 後:
+4. 公開アクセスを有効にしない。Workers からのバインディングのみ。
+5. 作成確認:
 
 ```powershell
 pnpm exec wrangler d1 list
@@ -113,23 +119,23 @@ pnpm exec wrangler r2 bucket list
 - D1: ユーザー・記録データ
 - R2: 写真。無料枠 10GB、リサイズ済み想定
 
-バインディング名の提案（**要確認**、以降のコードと揃える）:
+バインディング名（**FIX**、以降のコードと揃える）:
 
-| リソース | binding | 用途 |
-|---|---|---|
-| D1 | `DB` | Drizzle / Better Auth |
-| R2 | `PHOTOS` | ボトル・ノート写真 |
+| リソース | binding  | 用途                  |
+| -------- | -------- | --------------------- |
+| D1       | `DB`     | Drizzle / Better Auth |
+| R2       | `PHOTOS` | ボトル・ノート写真    |
 
-環境名: wrangler の `env.dev` を Phase 0 で切るか、デフォルトを dev 扱いにするか。**要確認**。Phase 7 で `env.production` を追加する前提なら、最初から `env` を分けた方が移行が楽。
+環境名（**FIX**）: Phase 0 から wrangler の `env.dev` を使う。トップレベル（デフォルト env）を dev 扱いにしない。Phase 7 で `env.production` を追加する。コマンドは `--env dev` を明示する。
 
 ## 8. 受け入れ条件
 
-- [ ] Cloudflare にログインできる
-- [ ] dev D1 が存在する
-- [ ] dev R2 が存在し、パブリックアクセスがオフ
-- [ ] バインディング名がドキュメントか wrangler 設定に書かれている
-- [ ] シークレット・API トークンが git に含まれない
-- [ ] 本番リソースを誤って作っていない（名前に `prod` を付けない）
+- [x] Cloudflare にログインできる
+- [x] dev D1 が存在する
+- [x] dev R2 が存在し、パブリックアクセスがオフ
+- [x] バインディング名がドキュメントか wrangler 設定に書かれている
+- [x] シークレット・API トークンが git に含まれない
+- [x] 本番リソースを誤って作っていない（名前に `prod` を付けない）
 
 ## 9. セキュリティ観点
 

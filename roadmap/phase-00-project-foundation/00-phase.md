@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 目安 | 2〜3日 |
-| 状態 | 部分完了（GitHub、rules/skills、Cloudflare dev リソース） |
+| 状態 | 部分完了（01〜05・09 済。残り 06 Vitest / 07 CI / 08 ブランチ保護） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
 ## 目的
@@ -25,7 +25,7 @@
 | # | ファイル | 状態 |
 |---|---|---|
 | 01 | [Git / GitHub](01-git-github-init.md) | 完了 |
-| 02 | [ローカル環境](02-local-env-setup.md) | 未着手 |
+| 02 | [ローカル環境](02-local-env-setup.md) | 完了 |
 | 03 | [Cloudflare D1/R2（dev）](03-cloudflare-dev-resources.md) | 完了 |
 | 04 | [空プロジェクト（Hello World）](04-hello-world-scaffold.md) | 完了 |
 | 05 | [TypeScript strict / Biome](05-typescript-biome.md) | 完了 |
@@ -34,7 +34,7 @@
 | 08 | [main ブランチ保護](08-branch-protection.md) | 未着手 |
 | 09 | [Cursor rules / skills](09-cursor-rules-skills.md) | 完了 |
 
-推奨順: 01（済）→ 02 → 03（済）→ 04（済）→ 05 → 06 → 07 → 08。09 は済。
+推奨順: 01〜05・09 済。残り 06 → 07 → 08。
 
 ## このフェーズで整備する rules / skills
 
@@ -49,7 +49,7 @@ Phase 1 の設計ドキュメント作成に入れる。実装（Phase 2）は P
 
 ## 現状メモ
 
-- `package.json`・`src/`・`wrangler.jsonc` は 0-04 で作成済み。TypeScript strict / Biome（`pnpm typecheck` / `pnpm lint` / `pnpm format`）は 0-05 で完了。`.github/` は未着手。`.gitignore` は作成済み
+- ローカルツールチェーン（Node 22 / pnpm 10 / ローカル wrangler）は 0-02 で完了。`package.json`・`src/`・`wrangler.jsonc` は 0-04、TypeScript / Biome は 0-05。`.github/` は未着手。`.gitignore` は作成済み
 - Cloudflare dev: D1 `alco-app-dev`、R2 `alco-app-photos-dev`（非公開）。binding `DB` / `PHOTOS`。`env.dev` で分ける（**FIX**）
 - GitHub リポジトリはプライベート
 - classic branch protection API は GitHub Free プライベートで 403。08 で代替手段を決める
