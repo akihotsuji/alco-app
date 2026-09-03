@@ -36,7 +36,7 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 | Lint / Format | Biome | ESLint+Prettierの2本立てを避け、1ツールで完結。高速で設定が少ない |
 | テスト | Vitest (+ Testing Library) / Playwright | 単体・コンポーネントテストはVitest。主要導線のE2EスモークはPlaywright |
 | CI/CD | GitHub Actions + wrangler | PRでlint/型チェック/テスト、mainマージで自動デプロイ |
-| ローカル開発 | wrangler dev (+ Vite) | D1/R2をローカルエミュレートして本番同等の開発ができる |
+| ローカル開発 | Vite + `@cloudflare/vite-plugin`（日常） / `wrangler dev --env dev`（ビルド後） | プラグインが workerd 上で Worker と SPA を同時に動かす。Vite と wrangler の二重起動はしない |
 
 ## 却下した選択肢
 
@@ -63,6 +63,21 @@ alco-app/
 ├─ wrangler.jsonc       # Cloudflare Workers設定
 └─ vite.config.ts
 ```
+
+## 環境（Cloudflare）
+
+正本。ID・アカウント情報はここに書かない。`database_id` は 0-04 以降の `wrangler.jsonc` のみ。
+
+| 項目 | 決定 |
+|---|---|
+| wrangler env | Phase 0 から **`env.dev`**。トップレベル（デフォルト env）を dev 扱いにしない。Phase 7 で `env.production` を追加 |
+| コマンド | 日常は `pnpm dev`（内部で `CLOUDFLARE_ENV=dev`）。確認・デプロイは `wrangler dev --env dev` / `wrangler deploy --env dev`。本番は `--env production` |
+| Worker 名（dev） | `alco-app-dev`（`env.dev.name`） |
+| D1（dev） | 名前 `alco-app-dev`、binding **`DB`** |
+| R2（dev） | 名前 `alco-app-photos-dev`、binding **`PHOTOS`**、非公開 |
+| 本番リソース | Phase 7。名前は `alco-app-prod` / `alco-app-photos-prod` を予定 |
+
+コードからは `env.DB` / `env.PHOTOS` で参照する。
 
 ## ランニングコスト見積り
 

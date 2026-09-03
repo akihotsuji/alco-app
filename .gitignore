@@ -1,0 +1,104 @@
+# alco-app
+# Vite + React + Hono + Cloudflare Workers (D1 / R2) / pnpm / Vitest / Playwright / Biome
+
+# --- 依存関係 ---
+node_modules/
+.pnpm-store/
+.pnp
+.pnp.*
+
+# パッケージマネージャは pnpm のみ（0-02）。他ツールの lock が混入しないようにする
+package-lock.json
+yarn.lock
+npm-shrinkwrap.json
+bun.lock
+bun.lockb
+
+# --- ビルド成果物 ---
+dist/
+dist-ssr/
+build/
+.output/
+*.tsbuildinfo
+.vite/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# vite-plugin-pwa の開発用生成物（Phase 6）
+dev-dist/
+
+# --- Cloudflare / Wrangler（公式推奨） ---
+.wrangler/
+.mf/
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+!.env.*.example
+
+# ローカル上書き（Vite の *.local 含む）
+*.local
+
+# --- テスト / カバレッジ ---
+coverage/
+*.lcov
+.nyc_output/
+.vitest/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+playwright/.auth/
+
+# --- ローカル DB / バックアップ ---
+# drizzle のマイグレーション .sql はコミットする。ダンプとローカル DB のみ除外
+*.sql.bak
+*.sqlite
+*.sqlite3
+*.db
+/backup.sql
+/backups/
+
+# --- ログ ---
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# --- エディタ ---
+.idea/
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# --- シークレット / 鍵 ---
+*.pem
+*.key
+*.p12
+*.pfx
+
+# --- キャッシュ ---
+.cache/
+.turbo/
+.eslintcache
+.stylelintcache
+.npm
+*.tgz
+.node_repl_history

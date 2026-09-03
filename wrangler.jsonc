@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // トップレベルは共通設定のみ。dev リソースは env.dev に置く（トップレベルを dev 扱いにしない）
+  "name": "alco-app",
+  "main": "./src/server/index.ts",
+  "compatibility_date": "2026-09-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    // Vite プラグイン利用時はビルド出力が自動で繋がる。wrangler dev --env dev 用に directory も残す
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "env": {
+    "dev": {
+      "name": "alco-app-dev",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "alco-app-dev",
+          "database_id": "2a585f35-d56d-4420-8d90-d29d5b30e6a1",
+          "migrations_dir": "src/db/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "PHOTOS",
+          "bucket_name": "alco-app-photos-dev"
+        }
+      ]
+    }
+  }
+}

@@ -14,8 +14,9 @@
 | 判定 | 内容 |
 |---|---|
 | **完了（コード確認済み）** | Git 初期化、GitHub プライベートリポジトリ `akihotsuji/alco-app`、Phase 0 記載の `.cursor/rules/` 4件と skills 2件 |
-| **未着手** | `package.json` / `src/` / `wrangler.jsonc` / `.gitignore` / `.github/` / `spec/features/` / 設計3点セット（design-system / data-model / api-design）いずれもなし |
+| **未着手** | `.github/` / 設計3点セット（design-system / data-model / api-design）はなし。`.gitignore` と Hello World スキャフォールド（`package.json` / `src/` / `wrangler.jsonc`）は作成済み |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
+| **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **要確認（残）** | ブランチ保護（GitHub Free のプライベートでは classic protection が 403） |
 
 詳細は各タスクファイルの「現状」を参照。完了扱いにしたものも、ロードマップのチェック更新は別途行う。
@@ -30,6 +31,16 @@
 | UIテーマ | **端末・OSの外観設定に追従**（ライト／ダーク両方。アプリ内切替は持たない） |
 | グラスプリセット | 種類ごとの一般的な量・度数をデフォルト投入し、**記録ごとに修正できる**。数値は要件 1.2 の表 |
 | 日付境界 | **Asia/Tokyo**。保存は UTC、表示・日次集計・休肝日は JST カレンダー日 |
+
+## オーナー決定（2026-08-15 FIX）
+
+Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tech-stack.md) の「環境」。
+
+| 項目 | 決定 |
+|---|---|
+| D1 / R2（dev） | `alco-app-dev` / `alco-app-photos-dev`（R2 は非公開） |
+| binding | D1 = `DB`、R2 = `PHOTOS` |
+| wrangler env | **`env.dev` で分ける**。トップレベルを dev 扱いにしない。コマンドは `--env dev`。Phase 7 で `env.production` を追加 |
 
 ## 凡例
 
@@ -63,8 +74,8 @@
 |---|---|---|---|
 | 0-01 | Gitリポジトリ初期化、GitHubプライベートリポジトリ作成 | [01-git-github-init.md](phase-00-project-foundation/01-git-github-init.md) | 完了 |
 | 0-02 | Node.js / pnpm / wrangler のローカル環境セットアップ | [02-local-env-setup.md](phase-00-project-foundation/02-local-env-setup.md) | 未着手 |
-| 0-03 | Cloudflareアカウント作成、D1・R2作成（dev用） | [03-cloudflare-dev-resources.md](phase-00-project-foundation/03-cloudflare-dev-resources.md) | 未着手 |
-| 0-04 | Vite + React + Hono + Workers の空プロジェクト | [04-hello-world-scaffold.md](phase-00-project-foundation/04-hello-world-scaffold.md) | 未着手 |
+| 0-03 | Cloudflareアカウント作成、D1・R2作成（dev用） | [03-cloudflare-dev-resources.md](phase-00-project-foundation/03-cloudflare-dev-resources.md) | 完了 |
+| 0-04 | Vite + React + Hono + Workers の空プロジェクト | [04-hello-world-scaffold.md](phase-00-project-foundation/04-hello-world-scaffold.md) | 完了 |
 | 0-05 | TypeScript strict、Biome導入 | [05-typescript-biome.md](phase-00-project-foundation/05-typescript-biome.md) | 未着手 |
 | 0-06 | Vitest導入 | [06-vitest.md](phase-00-project-foundation/06-vitest.md) | 未着手 |
 | 0-07 | GitHub Actions CI（lint / typecheck / test / audit） | [07-github-actions-ci.md](phase-00-project-foundation/07-github-actions-ci.md) | 未着手 |
