@@ -79,6 +79,21 @@ alco-app/
 | フォーマット | インデント 2 スペース、二重引用符、セミコロンあり、行長 100、`organizeImports` 有効 |
 | scripts | `pnpm typecheck`（`tsc --noEmit`）/ `pnpm lint`（`biome check .`）/ `pnpm format`（`biome check --write .`） |
 
+## ブランチ運用（0-08 FIX）
+
+正本は [roadmap/phase-00-project-foundation/08-branch-protection.md](../roadmap/phase-00-project-foundation/08-branch-protection.md)。
+
+| 項目 | 決定 |
+|---|---|
+| 手段 | Repository ruleset `protect-main`（classic protection は使わない） |
+| 定義 | [`.github/rulesets/protect-main.json`](../.github/rulesets/protect-main.json) |
+| 対象 | デフォルトブランチ `main` |
+| 禁止 | 直接 push、force push、`main` 削除 |
+| PR | 必須。承認 0 人。マージは squash のみ |
+| 必須チェック | `lint / typecheck / test / audit`（0-07） |
+| bypass | なし |
+| 適用 | オーナーが Administration で作成。エージェントトークンでは 403 |
+
 ## 環境（Cloudflare）
 
 正本。ID・アカウント情報はここに書かない。`database_id` は 0-04 以降の `wrangler.jsonc` のみ。
