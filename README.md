@@ -57,10 +57,12 @@ pnpm exec wrangler dev --env dev
 pnpm typecheck
 pnpm lint
 pnpm format
+pnpm test
 ```
 
 - `typecheck` … TypeScript strict（`tsc --noEmit`）
 - `lint` … Biome の lint / format チェック（書き込みなし）
 - `format` … Biome で整形してから再チェック
+- `test` … Vitest を非インタラクティブ実行（`vitest run`。CI 向け）。監視は `pnpm test:watch`
 
 Workers の `Env` 型は `worker-configuration.d.ts`（`wrangler types --env dev`）。`wrangler.jsonc` を変えたら `pnpm cf-typegen` を再実行してコミットする。
