@@ -7,6 +7,7 @@
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "noEmit": true,
     "isolatedModules": true,
@@ -15,7 +16,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vite/client"]
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "types": ["./worker-configuration.d.ts", "vite/client", "node"]
   },
   "include": ["src", "vite.config.ts"]
 }

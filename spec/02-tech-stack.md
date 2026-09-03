@@ -64,6 +64,21 @@ alco-app/
 └─ vite.config.ts
 ```
 
+## TypeScript / Biome（0-05 FIX）
+
+| 項目 | 決定 |
+|---|---|
+| tsconfig | **単一**。client / worker の型衝突が出たら分割する |
+| strict | `strict: true`。`noUncheckedIndexedAccess` も **true**（後から入れると差分が大きい） |
+| `skipLibCheck` | ライブラリ型のため許可 |
+| パスエイリアス | `@/` → `src/`。`tsconfig.json` の `paths` と `vite.config.ts` の `resolve.alias` の両方に書く |
+| Workers 型 | `wrangler types --env dev` が生成する `worker-configuration.d.ts` を `compilerOptions.types` に入れる。`@cloudflare/workers-types` は使わない |
+| 型の再生成 | `wrangler.jsonc` 変更後は `pnpm cf-typegen`。生成ファイルはコミットする（中身は binding 名と runtime 型のみ。秘密は含めない） |
+| Lint / Format | **Biome のみ**（ESLint / Prettier は入れない） |
+| 対象 / 除外 | 対象は `src/` とルートの設定ファイル。`spec/`・`roadmap/`・`dist`・`.wrangler`・生成型ファイルは対象外 |
+| フォーマット | インデント 2 スペース、二重引用符、セミコロンあり、行長 100、`organizeImports` 有効 |
+| scripts | `pnpm typecheck`（`tsc --noEmit`）/ `pnpm lint`（`biome check .`）/ `pnpm format`（`biome check --write .`） |
+
 ## 環境（Cloudflare）
 
 正本。ID・アカウント情報はここに書かない。`database_id` は 0-04 以降の `wrangler.jsonc` のみ。

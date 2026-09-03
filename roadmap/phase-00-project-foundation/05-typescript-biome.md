@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-03。`pnpm typecheck` / `pnpm lint` がパス） |
 | 要件 | 保守性: TypeScript strict、自動 lint（[spec/01-requirements.md](../../spec/01-requirements.md)、[spec/02-tech-stack.md](../../spec/02-tech-stack.md)） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
@@ -33,8 +33,9 @@
 
 ## 4. 成果物
 
-- `tsconfig.json`（必要なら `tsconfig.client.json` / `tsconfig.server.json` の references。**要確認**: 単一 tsconfig で始める）
+- `tsconfig.json`（単一。`tsconfig.client.json` / `tsconfig.server.json` は作らない）
 - `biome.json`
+- `worker-configuration.d.ts`（`wrangler types --env dev`）
 - package.json scripts
 - 初回 `pnpm biome check --write .` 適用済みのソース
 
@@ -92,12 +93,12 @@ React の `react-jsx`、Workers の型（`@cloudflare/workers-types`）を `comp
 
 ## 8. 受け入れ条件
 
-- [ ] `strict: true` が有効
-- [ ] `pnpm typecheck` がパス
-- [ ] `pnpm lint` がパス
-- [ ] format 用 script がある
-- [ ] ESLint/Prettier を追加していない
-- [ ] 関連 spec / 本手順とディレクトリが一致
+- [x] `strict: true` が有効
+- [x] `pnpm typecheck` がパス
+- [x] `pnpm lint` がパス
+- [x] format 用 script がある
+- [x] ESLint/Prettier を追加していない
+- [x] 関連 spec / 本手順とディレクトリが一致
 
 セキュリティ監査: 設定のみなら Critical なしを確認。シークレットを tsconfig に書かない。
 
@@ -117,3 +118,18 @@ React の `react-jsx`、Workers の型（`@cloudflare/workers-types`）を `comp
 - client と worker で `lib` / `types` が衝突する。必要なら tsconfig を分割する
 - Biome と Tailwind クラスの長い行で wrap が荒れうる。1 行長の上限は現実的な値にする
 - 後から `noUncheckedIndexedAccess` を入れると差分が大きい。今入れる
+
+## 12. FIX（0-05）
+
+正本は [spec/02-tech-stack.md](../../spec/02-tech-stack.md) の「TypeScript / Biome」。
+
+| 項目 | 決定 |
+|---|---|
+| tsconfig | **単一**で開始。0-05 時点では DOM + Workers 型の衝突なし |
+| `noUncheckedIndexedAccess` | **true** |
+| パスエイリアス | `@/` → `src/`（tsconfig `paths` と Vite `resolve.alias`） |
+| Workers 型 | `worker-configuration.d.ts`（`pnpm cf-typegen` = `wrangler types --env dev`）。`@cloudflare/workers-types` は入れない |
+| Biome | `@biomejs/biome` 2.x。対象は `src/` とルート設定。`spec/` / `roadmap/` / `dist` / `.wrangler` / 生成型は除外 |
+| フォーマット | 2 スペース、二重引用符、セミコロンあり、行長 100、`organizeImports` on |
+| scripts | `typecheck` / `lint` / `format` / `cf-typegen` |
+| エディタ | `biome.json` のみ（`.vscode` は作らない） |

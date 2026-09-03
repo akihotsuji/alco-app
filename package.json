@@ -11,6 +11,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "dev:wrangler": "wrangler dev --env dev",
+    "cf-typegen": "wrangler types --env dev",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
     "test": "node --experimental-strip-types --test src/server/index.test.ts"
   },
   "dependencies": {
@@ -19,6 +23,7 @@
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
     "@cloudflare/vite-plugin": "^1.52.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
@@ -29,6 +34,9 @@
     "wrangler": "^4.127.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "workerd"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
   }
 }
