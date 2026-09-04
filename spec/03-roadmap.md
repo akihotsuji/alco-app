@@ -64,8 +64,8 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 
 **デザイン**
 - [x] 画面一覧とナビゲーション構造の決定（下部タブ: ホーム/記録/セラー/ノート/設定。正本は [screens.md](screens.md)）
-- [ ] 主要画面のワイヤーフレーム（ホーム、飲酒記録入力、セラー一覧/詳細、ノート一覧/詳細/作成）
-- [ ] デザインシステム定義: 配色（大人向けの落ち着いたトーン、**ライト／ダークはOS設定に追従**）、タイポグラフィ、余白、コンポーネント方針 → `spec/design-system.md`
+- [x] 主要画面のワイヤーフレーム（ホーム、飲酒記録入力、セラー一覧/詳細、ノート一覧/詳細/作成。正本は [wireframes.md](wireframes.md)）
+- [x] デザインシステム定義: **ニューモーフィズム**、**ライト／ダークはOS設定に追従**、タイポグラフィ・余白・コンポーネント方針 → [design-system.md](design-system.md)
 
 **データ・API設計**
 - [ ] ER図とDrizzleスキーマ設計（users / drink_logs / my_drinks / bottles / tasting_notes / photos）→ `spec/data-model.md`
@@ -75,7 +75,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 ### rules / skills
 
 - rule: `database`（src/db/**）— スキーマ変更は必ずマイグレーション経由、命名規約
-- rule: `ui-design`（src/client/**）— デザイントークンの使用、モバイルファースト、コンポーネント分割方針
+- rule: `ui-design`（src/client/**）— 追加済み。デザイントークン、モバイルファースト、ニューモーフィズム、コンポーネント分割
 
 ### 完了条件（DoD）
 

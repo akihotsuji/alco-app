@@ -1,0 +1,78 @@
+/* alco-app design tokens. Phase 2-06 copies these names into Tailwind.
+   Preview toggles html.dark. Production uses prefers-color-scheme only. */
+:root {
+  --background: #e6e0d6;
+  --surface: #e6e0d6;
+  --foreground: #2b261f;
+  --muted: #5c564c;
+  --primary: #7a3538;
+  --primary-fg: #fff8f4;
+  --danger: #8b1e1e;
+  --danger-fg: #fff8f4;
+  --rest: #2f5d3e;
+  --score: #7a3538;
+  --ring: #7a3538;
+  --neu-light: #ffffff;
+  --neu-dark: #c9c2b6;
+  --shadow-outset: 8px 8px 16px #c9c2b6, -8px -8px 16px #ffffff;
+  --shadow-inset: inset 6px 6px 12px #c9c2b6, inset -6px -6px 12px #f7f3ec;
+  --shadow-primary: 6px 10px 18px rgba(122, 53, 56, 0.28);
+  --text-caption: 12px;
+  --text-body: 16px;
+  --text-title: 20px;
+  --text-score: 40px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+  --tap-min: 44px;
+  --radius: 16px;
+  --radius-card: 24px;
+  --radius-pill: 999px;
+  --header-h: 56px;
+  --tab-h: 64px;
+}
+
+html.dark {
+  --background: #2c2926;
+  --surface: #2c2926;
+  --foreground: #f4ede4;
+  --muted: #c9bdb0;
+  --primary: #c47878;
+  --primary-fg: #2a1818;
+  --danger: #e07070;
+  --danger-fg: #2a1818;
+  --rest: #8fcb9e;
+  --score: #c47878;
+  --ring: #c47878;
+  --neu-light: #3a3632;
+  --neu-dark: #1a1816;
+  --shadow-outset: 8px 8px 16px #1a1816, -6px -6px 14px #3a3632;
+  --shadow-inset: inset 6px 6px 12px #1a1816, inset -4px -4px 10px #3a3632;
+  --shadow-primary: 6px 10px 18px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-preview]) {
+    --background: #2c2926;
+    --surface: #2c2926;
+    --foreground: #f4ede4;
+    --muted: #c9bdb0;
+    --primary: #c47878;
+    --primary-fg: #2a1818;
+    --danger: #e07070;
+    --danger-fg: #2a1818;
+    --rest: #8fcb9e;
+    --score: #c47878;
+    --ring: #c47878;
+    --neu-light: #3a3632;
+    --neu-dark: #1a1816;
+    --shadow-outset: 8px 8px 16px #1a1816, -6px -6px 14px #3a3632;
+    --shadow-inset: inset 6px 6px 12px #1a1816, inset -4px -4px 10px #3a3632;
+    --shadow-primary: 6px 10px 18px rgba(0, 0, 0, 0.45);
+  }
+}

@@ -39,4 +39,6 @@
 - [02-tech-stack.md](02-tech-stack.md) — 技術選定と理由
 - [03-roadmap.md](03-roadmap.md) — 開発ロードマップ
 - [screens.md](screens.md) — 画面一覧とナビゲーション構造
+- [wireframes.md](wireframes.md) — 主要画面のワイヤーフレーム
+- [design-system.md](design-system.md) — デザインシステム（見た目の正本）
 - [../roadmap/README.md](../roadmap/README.md) — フェーズ・タスクごとの仕様書・手順書

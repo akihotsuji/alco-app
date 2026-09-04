@@ -11,12 +11,12 @@
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-07、0-09、1-01。`.gitignore`、Hello World、TypeScript strict / Biome、Vitest、Cloudflare dev D1/R2、CI（lint / typecheck / test / audit）、rules/skills、画面一覧とナビ（5 タブ。正本 `spec/screens.md`） |
+| **完了** | 0-01〜0-07、0-09、1-01〜1-03。`.gitignore`、Hello World、TypeScript strict / Biome、Vitest、Cloudflare dev D1/R2、CI（lint / typecheck / test / audit）、rules/skills、画面一覧とナビ、ワイヤー、デザインシステム（ニューモーフィズム） |
 | **部分完了** | 0-08 ブランチ保護（ruleset 方針と JSON は済み。GitHub 未適用） |
-| **未着手** | Phase 1 の 1-02 以降 |
+| **未着手** | Phase 1 の 1-04 以降 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
-| **FIX（2026-09-04）** | 下部タブは一旦 5 つ（ホーム / 記録 / セラー / ノート / 設定） |
+| **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**（Win98 方針は破棄）。ゲーミフィケーションはスコア・押下・トーストまで |
 | **要確認（残）** | 0-08 の ruleset 適用（オーナー）。リポジトリ可視性（0-01 は private、現状 public） |
 
 ## オーナー決定（2026-08-13 FIX）
@@ -35,6 +35,7 @@
 | 項目 | 決定 |
 |---|---|
 | 下部タブ | **一旦 5 つ**（ホーム / 記録 / セラー / ノート / 設定）。正本は [spec/screens.md](../spec/screens.md) |
+| 見た目 | **ニューモーフィズム**。主アクションはワイン系の塗り。Win98 / ヴェイパーは不採用。ゲーミフィケーションはスコア・押下・短いトーストまで |
 
 ## オーナー決定（2026-08-15 FIX）
 
@@ -91,8 +92,8 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
 | 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | 完了 |
-| 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 未着手 |
-| 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 未着手 |
+| 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 完了 |
+| 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 完了 |
 | 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 未着手 |
 | 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 未着手 |
 | 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | 未着手 |
