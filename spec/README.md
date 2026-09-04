@@ -18,6 +18,6 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [api-design.md](api-design.md) | APIエンドポイント一覧・認可ルール | 作成済み（1-05） |
 | features/ | 機能ごとの詳細仕様（画面項目・バリデーション） | 各実装フェーズで作成 |
 | [features/health.md](features/health.md) | 公開 `GET /api/health`（認証なし） | 作成済み（0-04） |
-| [features/alcohol-calculation.md](features/alcohol-calculation.md) | 純アルコール量計算・グラスプリセット・休肝日 | 作成済み（1-06。本 PR で承認） |
+| [features/alcohol-calculation.md](features/alcohol-calculation.md) | 純アルコール量計算・グラスプリセット・休肝日 | 承認済み（1-06。2026-09-04） |
 | release-checklist.md | リリース前チェックリスト | Phase 7で作成 |
 | operations.md | 運用手順（バックアップ復元・障害対応） | Phase 7で作成 |

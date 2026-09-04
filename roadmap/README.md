@@ -11,14 +11,13 @@
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-07、0-09、1-01〜1-05。`.gitignore`、Hello World、TypeScript strict / Biome、Vitest、Cloudflare dev D1/R2、CI（lint / typecheck / test / audit）、rules/skills、画面一覧とナビ、ワイヤー、デザインシステム（ニューモーフィズム）、データモデル、API設計 |
-| **レビュー待ち** | 1-06 計算・プリセット（`spec/features/alcohol-calculation.md`。本 PR） |
-| **部分完了** | 0-08 ブランチ保護（ruleset 方針と JSON は済み。GitHub 未適用） |
+| **完了** | 0-01〜0-07、0-09、1-01〜1-06。設計ドキュメントは 2026-09-04 オーナー承認 |
+| **部分完了** | 0-08 ブランチ保護（JSON 済み。GitHub 未適用。エージェントは 403） |
 | **未着手** | Phase 2 以降 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
-| **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**（Win98 方針は破棄）。ゲーミフィケーションはスコア・押下・トーストまで |
-| **要確認（残）** | 0-08 の ruleset 適用（オーナー）。リポジトリ可視性（0-01 は private、現状 public） |
+| **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
+| **要確認（残）** | 0-08 の ruleset 適用と private 化（オーナー作業。コマンドは 08 と README） |
 
 ## オーナー決定（2026-08-13 FIX）
 
@@ -36,7 +35,20 @@
 | 項目 | 決定 |
 |---|---|
 | 下部タブ | **一旦 5 つ**（ホーム / 記録 / セラー / ノート / 設定）。正本は [spec/screens.md](../spec/screens.md) |
+| 画面ナビ | タブ順・ルート・FAB なし・undo 5 秒で当面進める。細部は実装時に直してよい |
+| ワイヤー | 骨格は承認。各画面の細部は後からいじる |
 | 見た目 | **ニューモーフィズム**。主アクションはワイン系の塗り。Win98 / ヴェイパーは不採用。ゲーミフィケーションはスコア・押下・短いトーストまで |
+| セラー背景 | 撮影写真を加工してセラー風に並べる見せ方は **将来**（MVP では作らない） |
+| データモデル | 当面このまま |
+| 公開 API | アプリ独自は `GET /api/health` のみ。`/api/auth/*` は Better Auth |
+| 表示丸め | 純アルコール量は小数第 1 位 |
+| `volume_ml` | 整数 1〜5000 |
+| `abv_percent` | **0〜100**、小数第 1 位。**0% 可**。0g の記録は休肝日にしない |
+| 記録単位 | 原則グラス。ボトル丸ごとも量チップ（375 / 750 / 1500）と手入力で記録できる |
+| `drunk_at` 未来 | 時計ズレ **+15 分**まで |
+| API 方針 | 1-05 どおり（400 フィールドエラー、cursor、写真は Worker GET） |
+| リポジトリ | **private に戻す**。Cloud Agent は private で使える |
+| main 保護 | ruleset。必須チェックなし。マージは merge / squash / rebase。承認 0 人。適用はオーナー |
 
 ## オーナー決定（2026-08-15 FIX）
 
@@ -60,8 +72,8 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 
 | フェーズ | フォルダ | 目的 | 状態 |
 |---|---|---|---|
-| Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 部分完了 |
-| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API | 進行中（残り 1-06 レビュー待ち） |
+| Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 部分完了（0-08 未適用） |
+| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API | 完了（2026-09-04 承認） |
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有 | 未着手 |
 | Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・マイドリンク・サマリー） | 未着手 |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | 在庫CRUD・写真（R2） | 未着手 |
@@ -97,7 +109,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 完了 |
 | 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 完了 |
 | 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 完了 |
-| 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | レビュー待ち |
+| 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | 完了 |
 
 ### Phase 2（7タスク）
 

@@ -19,7 +19,7 @@ Phase 1-05 の成果物。Hono が公開する HTTP API の契約。実装は Ph
 |---|---|---|
 | プレフィックス | アプリ API は `/api`。Hono の `basePath` は使わず、各ルートに `/api` を書く | 既存 `GET /api/health` と一致。RPC の型を浅く保つ |
 | Auth マウント | Better Auth `basePath` 既定の **`/api/auth`**。`app.all("/api/auth/*", (c) => auth.handler(c.req.raw))` | [公式 Hono 統合](https://www.better-auth.com/docs/integrations/hono)。独自トークンは作らない |
-| 公開エンドポイント | **`GET /api/health`** と **`/api/auth/*` のみ** | ログイン前に必要。追加は仕様更新＋オーナー承認 |
+| 公開エンドポイント | **`GET /api/health`** と **`/api/auth/*` のみ** | 2026-09-04 オーナー承認。追加は仕様更新＋再承認 |
 | バリデーションエラー | **400** でフィールドエラーを返す。内部パス・Zod コードパスは出さない | フォーム UX。情報漏えい防止 |
 | 存在 / 権限 | 存在しない ID と他人の ID は **同じ 404・同じ本文** | IDOR・存在推測防止（security.mdc） |
 | ページング | **`limit`（既定 50、最大 100）+ 不透明 `cursor`**。offset は使わない | 個人利用で十分。日付降順と相性が良い |
@@ -351,7 +351,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | drunkAt | 任意 | 省略時はサーバーの現在時刻。未来は **15 分まで**（時計ズレ）。それ以上は 400。過去は制限なし |
 | drinkType | 必須 | 7 種 |
 | volumeMl | 必須 | 整数 1〜5000 |
-| abvPercent | 必須 | 0.1〜100、小数第 1 位。**0 は不可** |
+| abvPercent | 必須 | 0〜100、小数第 1 位。**0 は可** |
 | memo | 任意 | 空は null |
 | myDrinkId | 任意 | 自分の ID のみ。他人・不明は 404。量・度数・種類はリクエストが正。`drinkName` はプリセット名をコピーする。量をサーバーに上書きさせない 1 タップは 4.4 |
 
@@ -383,7 +383,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 #### POST /api/my-drinks
 
-`name`（1〜40）, `drinkType`, `volumeMl`（1〜5000）, `abvPercent`（0.1〜100）, 任意 `sortOrder`（省略時は末尾）。量・度数の範囲は記録と同じ（[alcohol-calculation.md](features/alcohol-calculation.md)）。
+`name`（1〜40）, `drinkType`, `volumeMl`（1〜5000）, `abvPercent`（0〜100）, 任意 `sortOrder`（省略時は末尾）。量・度数の範囲は記録と同じ（[alcohol-calculation.md](features/alcohol-calculation.md)）。
 
 ユーザーあたり **30 件**を超える作成は 400 `validation_error`（`name` ではなくルートレベルの `fields` キー `""` または `name` 以外の `count`）。キーは `count` とする。
 

@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 目安 | 2〜3日 |
-| 状態 | 部分完了（01〜07・09 済。08 は方針と JSON 済み。残りは GitHub への ruleset 適用） |
+| 状態 | 部分完了（01〜07・09 済。08 は JSON 済み。残りは GitHub への ruleset 適用と private 化） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
 ## 目的
@@ -51,5 +51,5 @@ Phase 1 の設計ドキュメント作成に入れる。実装（Phase 2）は P
 
 - ローカルツールチェーン（Node 22 / pnpm 10 / ローカル wrangler）は 0-02 で完了。`package.json`・`src/`・`wrangler.jsonc` は 0-04、TypeScript / Biome は 0-05、Vitest は 0-06。CI は `.github/workflows/ci.yml`（0-07）。`.gitignore` は作成済み
 - Cloudflare dev: D1 `alco-app-dev`、R2 `alco-app-photos-dev`（非公開）。binding `DB` / `PHOTOS`。`env.dev` で分ける（**FIX**）
-- GitHub リポジトリはプライベート
-- 可視性は 2026-09-03 時点で public。`main` は未保護。08 は ruleset `protect-main` を採用（適用はオーナー。エージェントは 403）
+- GitHub リポジトリは 0-01 では private。2026-09-03 時点で public。2026-09-04 に **private へ戻す**と決定（Cloud Agent は private で使える）。変更はオーナー作業
+- `main` は未保護。08 は ruleset `protect-main`（必須チェックなし、全マージ方式）。適用はオーナー。エージェントは 403

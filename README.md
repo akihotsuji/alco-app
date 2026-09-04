@@ -86,13 +86,14 @@ lockfile が `package.json` と食い違うと `--frozen-lockfile` で失敗す�
 
 ## ブランチ運用
 
-`main` へは直接 push しない。作業ブランチは切る直前に `git fetch origin main` し、`git checkout -b feature/<内容> origin/main`（または `fix/`）で **リモートの最新 `main` 先端から切る**。PR し、CI（`lint / typecheck / test / audit`）がグリーンになってから **squash merge** する。
+`main` へは直接 push しない。作業ブランチは切る直前に `git fetch origin main` し、`git checkout -b feature/<内容> origin/main`（または `fix/`）で **リモートの最新 `main` 先端から切る**。PR 経由でのみマージする。マージ方式は merge / squash / rebase いずれも可。CI は回すが、ruleset の必須チェックにはしない。
 
 保護は GitHub の Repository ruleset `protect-main`（[`.github/rulesets/protect-main.json`](.github/rulesets/protect-main.json)）。bypass なし。force push と `main` の削除を禁止する。classic branch protection は使わない。
 
-適用はリポジトリ管理者が行う（エージェントのトークンでは 403）。0-07 の CI は `main` に入済み。適用コマンド:
+適用と private 化はリポジトリ管理者が行う（エージェントのトークンでは 403）。
 
 ```powershell
+gh repo edit akihotsuji/alco-app --visibility private --accept-visibility-change-consequences
 gh api --method POST repos/akihotsuji/alco-app/rulesets --input .github/rulesets/protect-main.json
 ```
 

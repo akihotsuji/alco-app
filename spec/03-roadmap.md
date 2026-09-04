@@ -36,7 +36,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] TypeScript strict設定、Biome導入（lint / format）
 - [x] Vitest導入（サンプルテスト1件がパスする）
 - [x] GitHub Actions: PR時に lint / typecheck / test / `pnpm audit`（依存脆弱性チェック）を実行するCI
-- [ ] mainブランチ保護（CIパス必須、直接pushの禁止）
+- [ ] mainブランチ保護（直接pushの禁止。必須チェックなし。適用はオーナー）
 - [x] `.cursor/rules/` の整備（下記）
 
 ### rules / skills
