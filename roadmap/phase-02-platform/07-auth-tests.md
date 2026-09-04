@@ -49,7 +49,7 @@
 
 テストから本物の Cloudflare アカウントを叩かない。local D1 または Vitest でスキーマ apply。
 
-方針は 0-06 で決めたハーネスに従う。未決なら:
+方針は 0-06 FIX（Hono の `app.request()` を Node / Vitest で使う。Workers ハーネスは使わない）に従う。手順の目安:
 
 1. テスト開始時に migrate local
 2. `app.request("/api/auth/sign-up/email", { method: "POST", body, headers })` は Better Auth の実際のパスに合わせる（公式に従う。本手順書に推測パスを正と書かない。実装時にドキュメント確認）

@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 1 設計 |
-| ステータス | **レビュー待ち**（成果物: [spec/design-system.md](../../spec/design-system.md)） |
+| ステータス | **完了**（成果物: [spec/design-system.md](../../spec/design-system.md)） |
 | 要件 | ニューモーフィズム、モバイル、PWA、OS追従 |
 | ソース | Phase 1「デザインシステム定義 → spec/design-system.md」 |
 
