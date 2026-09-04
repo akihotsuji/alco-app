@@ -110,6 +110,21 @@ alco-app/
 | 禁止 | デプロイ、`CLOUDFLARE_API_TOKEN`、Better Auth secret の参照 |
 | ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェックにこの名前を指定する） |
 
+## ブランチ運用（0-08 FIX）
+
+正本は [roadmap/phase-00-project-foundation/08-branch-protection.md](../roadmap/phase-00-project-foundation/08-branch-protection.md)。
+
+| 項目 | 決定 |
+|---|---|
+| 手段 | Repository ruleset `protect-main`（classic protection は使わない） |
+| 定義 | [`.github/rulesets/protect-main.json`](../.github/rulesets/protect-main.json) |
+| 対象 | デフォルトブランチ `main` |
+| 禁止 | 直接 push、force push、`main` 削除 |
+| PR | 必須。承認 0 人。マージは squash のみ |
+| 必須チェック | `lint / typecheck / test / audit`（0-07） |
+| bypass | なし |
+| 適用 | オーナーが Administration で作成。エージェントトークンでは 403 |
+
 ## 環境（Cloudflare）
 
 正本。ID・アカウント情報はここに書かない。`database_id` は 0-04 以降の `wrangler.jsonc` のみ。

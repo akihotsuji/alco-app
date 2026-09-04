@@ -82,3 +82,17 @@ pnpm audit --audit-level=high
 ```
 
 lockfile が `package.json` と食い違うと `--frozen-lockfile` で失敗する。Cloudflare トークン等のシークレットは参照しない。
+
+## ブランチ運用
+
+`main` へは直接 push しない。`feature/<内容>` または `fix/<内容>` で PR し、CI（`lint / typecheck / test / audit`）がグリーンになってから **squash merge** する。
+
+保護は GitHub の Repository ruleset `protect-main`（[`.github/rulesets/protect-main.json`](.github/rulesets/protect-main.json)）。bypass なし。force push と `main` の削除を禁止する。classic branch protection は使わない。
+
+適用はリポジトリ管理者が行う（エージェントのトークンでは 403）。0-07 の CI は `main` に入済み。適用コマンド:
+
+```powershell
+gh api --method POST repos/akihotsuji/alco-app/rulesets --input .github/rulesets/protect-main.json
+```
+
+詳細は [roadmap/phase-00-project-foundation/08-branch-protection.md](roadmap/phase-00-project-foundation/08-branch-protection.md)。
