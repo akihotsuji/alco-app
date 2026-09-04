@@ -58,11 +58,27 @@ pnpm typecheck
 pnpm lint
 pnpm format
 pnpm test
+pnpm audit --audit-level=high
 ```
 
 - `typecheck` … TypeScript strict（`tsc --noEmit`）
 - `lint` … Biome の lint / format チェック（書き込みなし）
 - `format` … Biome で整形してから再チェック
-- `test` … Vitest を非インタラクティブ実行（`vitest run`。CI 向け）。監視は `pnpm test:watch`
+- `test` … Vitest を非インタラクティブ実行（`vitest run`。CI もこれを呼ぶ）。監視は `pnpm test:watch`
+- `audit` … 依存の既知脆弱性。High 以上で失敗
 
 Workers の `Env` 型は `worker-configuration.d.ts`（`wrangler types --env dev`）。`wrangler.jsonc` を変えたら `pnpm cf-typegen` を再実行してコミットする。
+
+## CI
+
+PR と `main` への push で GitHub Actions（`.github/workflows/ci.yml`）が次を実行する。デプロイはしない。
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm audit --audit-level=high
+```
+
+lockfile が `package.json` と食い違うと `--frozen-lockfile` で失敗する。Cloudflare トークン等のシークレットは参照しない。

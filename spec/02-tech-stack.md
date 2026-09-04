@@ -92,6 +92,24 @@ alco-app/
 | scripts | `pnpm test` = `vitest run`（CI 向け・非インタラクティブ）。`pnpm test:watch` = `vitest`（監視。CI には書かない） |
 | globals | 使わない。`import { describe, expect, it } from "vitest"` |
 
+## CI（0-07 FIX）
+
+検証のみ。デプロイは Phase 7-02。正本は [roadmap/phase-00-project-foundation/07-github-actions-ci.md](../roadmap/phase-00-project-foundation/07-github-actions-ci.md)。
+
+| 項目 | 決定 |
+|---|---|
+| ワークフロー | `.github/workflows/ci.yml`（1 ファイル） |
+| 起動 | `pull_request` と `push` to `main` |
+| Node | `.node-version`（22）。`actions/setup-node` の `node-version-file` |
+| pnpm | `package.json` の `packageManager`（`pnpm@10.11.0`）。`pnpm/action-setup@v6`（pnpm 10 向け。`pnpm/setup` は v11+） |
+| cache | `actions/setup-node` の `cache: pnpm` |
+| install | `pnpm install --frozen-lockfile`（lockfile 不一致は失敗） |
+| コマンド | `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm audit --audit-level=high` |
+| audit | High 以上の脆弱性で失敗。例外を黙って無視しない |
+| 権限 | `permissions.contents: read` のみ。`pull_request_target` は使わない |
+| 禁止 | デプロイ、`CLOUDFLARE_API_TOKEN`、Better Auth secret の参照 |
+| ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェックにこの名前を指定する） |
+
 ## 環境（Cloudflare）
 
 正本。ID・アカウント情報はここに書かない。`database_id` は 0-04 以降の `wrangler.jsonc` のみ。

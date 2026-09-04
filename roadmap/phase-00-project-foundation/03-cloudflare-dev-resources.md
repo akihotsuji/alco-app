@@ -141,7 +141,7 @@ pnpm exec wrangler r2 bucket list
 
 - R2 は非公開。公開バケット + 推測可能なキーは禁止（[.cursor/rules/security.mdc](../../.cursor/rules/security.mdc)）
 - `wrangler.jsonc` に secret を書かない。`BETTER_AUTH_SECRET` 等は `wrangler secret` / `.dev.vars`
-- アカウント API トークンをリポジトリに置かない。CI 用は GitHub Secrets（0-07 / Phase 7）
+- アカウント API トークンをリポジトリに置かない。CI 検証（0-07）では不要。デプロイ用は GitHub Secrets（Phase 7）
 
 ## 10. 関連ファイル / 関連spec
 
