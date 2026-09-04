@@ -24,14 +24,16 @@ Phase 1-01 の成果物。アプリに存在する画面、下部タブ、認証
 |---|---|---|
 | タブ順 | ホーム → 記録 → セラー → ノート → 設定 | ロードマップ案どおり。左を日常、右を在庫・設定 |
 | 記録タブを中央にする案 | 不採用 | ホームに「記録する」とマイドリンク 1 タップを置く（1-02 草案）。タブ順は機能グループ優先 |
-| 記録入力のルート | 独立パス `/logs/new` | ディープリンクと戻りが明確。フル画面かボトムシートかは 1-02 |
+| 記録入力のルート | 独立パス `/logs/new`。**フルスクリーン**（シートにしない） | 1-02 確定。ディープリンクと戻りが明確 |
 | マイドリンク | 記録タブ配下 | 記録のプリセットであり、設定に置くと遠い |
-| 週 / 月サマリー | ホーム配下 | ホームの週次バーから詳細へ進む（1-02 草案） |
+| 週 / 月サマリー | ホーム配下 | ホームの 7 マスから週サマリーへ（1-02） |
 | 表示名 | 設定画面の任意項目。独立画面は作らない | Better Auth の name を出す想定。未設定でも使える |
-| 作成・編集中のタブバー | 隠す | 入力領域と保存ボタンを優先。キーボードとの重なりは 1-02 で注記 |
+| 作成・編集中のタブバー | 隠す | 入力領域と保存ボタンを優先。キーボード時も保存バーは残す（1-02） |
 | ボトルのノート一覧 | 独立画面は作らない | ボトル詳細内のセクション。必要なら `/notes?bottleId=` へ |
+| FAB | 置かない | 1-02。主アクションは画面内ボタン |
+| 1 タップ記録の undo | トースト 5 秒 | 1-02 |
 
-タブアイコン（絵文字禁止、SVG）は 1-03。FAB の有無は 1-02。
+タブアイコン（絵文字禁止、SVG）は 1-03。配置の正本は [wireframes.md](wireframes.md)。
 
 ---
 
@@ -237,5 +239,6 @@ OAuth（Google 等）は独立画面にせず、`auth-login` / `auth-signup` 上
 - [01-requirements.md](01-requirements.md)
 - [00-overview.md](00-overview.md)
 - 手順: [roadmap/phase-01-design/01-screens-navigation.md](../roadmap/phase-01-design/01-screens-navigation.md)
+- 配置: [wireframes.md](wireframes.md)
 - 次: [roadmap/phase-01-design/02-wireframes.md](../roadmap/phase-01-design/02-wireframes.md)
 - 実装: [roadmap/phase-02-platform/05-common-layout.md](../roadmap/phase-02-platform/05-common-layout.md)
