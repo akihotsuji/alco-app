@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 3 飲酒記録 |
-| ステータス | **未着手**（`spec/features/` 空） |
+| ステータス | **未着手**（`spec/features/drink-log.md` なし。計算の正本は [alcohol-calculation.md](../../spec/features/alcohol-calculation.md)） |
 | 要件 | 1.2 飲酒記録 MVP |
 | ソース | Phase 3 先頭タスク。feature-dev Step 1 |
 
@@ -50,7 +50,7 @@
 - 用語（グラス、休肝日、マイドリンク）
 - 画面項目
 - バリデーション
-- 計算（1-06 へのリンク + 差分なしの宣言）
+- 計算（[alcohol-calculation.md](../../spec/features/alcohol-calculation.md) へのリンク + 差分なしの宣言）
 - API
 - エッジケース
 - 未決（要確認）を残さない。残すならリスト化して承認ブロックにする
@@ -93,6 +93,7 @@
 ## 10. 関連ファイル / 関連spec
 
 - [spec/01-requirements.md](../../spec/01-requirements.md)
+- [../../spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md)
 - [../phase-01-design/06-alcohol-calc-presets.md](../phase-01-design/06-alcohol-calc-presets.md)
 - [.cursor/skills/feature-dev/SKILL.md](../../.cursor/skills/feature-dev/SKILL.md)
 

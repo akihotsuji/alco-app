@@ -13,7 +13,7 @@
 
 ## 2. 前提条件
 
-- 1-06 の丸め・範囲が承認済み
+- [spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md) の丸め・範囲が承認済み
 - Vitest が動く
 
 ## 3. スコープ
@@ -31,16 +31,16 @@
 
 ## 4. 成果物
 
-- `src/shared/alcohol.ts`（名前は任意）
-- `src/shared/alcohol.test.ts`
+- `src/shared/alcohol.ts`（名前は任意。定数・プリセット表も含む）
+- `src/shared/alcohol.test.ts`（[alcohol-calculation.md](../../spec/features/alcohol-calculation.md) 8 節の例題）
 - drink-log spec からのリンク確認
 
 ## 5. 細分化タスク
 
 1. 関数と JSDoc（式をコメントせず spec へリンク。意図だけ）
-2. 1-06 の例題をテストにする
-3. 境界: 0、上限、小数
-4. 不正入力は throw せず、呼び元 Zod に任せるか、関数内ガードか。**推奨: Zod 済みの number だけ受け、関数は純粋計算**
+2. 1-06 の例題をテストにする（保存丸め後の値を厳密比較）
+3. 境界: 下限 1ml × 0.1%、上限 5000ml × 100%、小数
+4. 不正入力は throw せず、呼び元 Zod に任せる。**推奨: Zod 済みの number だけ受け、関数は純粋計算**
 
 ## 6. 手順
 
@@ -51,14 +51,16 @@ pnpm test
 
 3-02 より先にマージすると入力画面が楽。
 
-例題（1-06 と同じ。丸め仕様に合わせて expect を書く）:
+例題の期待値は [alcohol-calculation.md](../../spec/features/alcohol-calculation.md) 8 節（保存は小数第 2 位）。
 
-- 125, 12 → 12
-- 350, 5 → 14
-- 30, 40 → 9.6
-- 180, 15 → 21.6
-- 60, 25 → 12
-- 120, 15 → 14.4
+- 125, 12 → 12.00
+- 350, 5 → 14.00
+- 30, 40 → 9.60
+- 180, 15 → 21.60
+- 60, 25 → 12.00
+- 120, 15 → 14.40
+- 123, 7 → 6.89
+- 1, 0.1 → 0.00
 
 ## 7. 仕様詳細
 
@@ -84,10 +86,12 @@ alcohol_g = volume_ml * abv_percent / 100 * 0.8
 
 ## 10. 関連ファイル / 関連spec
 
+- [../../spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md)
 - [../phase-01-design/06-alcohol-calc-presets.md](../phase-01-design/06-alcohol-calc-presets.md)
 - [.cursor/rules/coding-standards.mdc](../../.cursor/rules/coding-standards.mdc)
 
 ## 11. リスク・注意点
 
-- IEEE 小数で 9.6000000001。テストは `toBeCloseTo`
+- IEEE 小数で 9.6000000001 になりうる。保存丸め後の期待値は厳密比較し、生計算だけ `toBeCloseTo` でよい
 - 整数 ml × 整数% でも 0.8 で小数になる
+- 0% は Zod が拒否する。計算関数に 0 を渡すテストは必須ではない
