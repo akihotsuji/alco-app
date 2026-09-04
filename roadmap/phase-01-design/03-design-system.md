@@ -3,8 +3,8 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 1 設計 |
-| ステータス | **未着手**（`spec/design-system.md` なし） |
-| 要件 | 大人向けの落ち着いたトーン、モバイル、PWA |
+| ステータス | **レビュー待ち**（成果物: [spec/design-system.md](../../spec/design-system.md)） |
+| 要件 | Win98 essences の部分適用、モバイル、PWA、OS追従 |
 | ソース | Phase 1「デザインシステム定義 → spec/design-system.md」 |
 
 ## 1. 概要
@@ -39,7 +39,7 @@
 
 ## 5. 細分化タスク
 
-1. トーンのキーワードを決める（例: 暗いワイン、紙、夜のバー。**要確認**）
+1. トーンのキーワードを決める（2026-09-04: **Win98 essences の部分適用**。全面スキンはしない）
 2. ライト／ダーク両方の色トークン（background / surface / primary / danger / muted / border）を定義する（OS追従は 2026-08-13 確定）
 3. 本文と背景のコントラスト 4.5:1 をライト・ダーク両方で満たす
 4. タイプスケール（見出し、本文、キャプション）
@@ -52,7 +52,7 @@
 
 - 原則（モバイル幅、落ち着いたトーン、コントラスト）
 - カラー（ライト／ダーク。HEX または OKLCH。WCAG コントラストを表で示す）
-- タイポグラフィ（システムフォントで始めるか、1 ウェフォントか。**要確認**。PWA 初回 3 秒制約あり）
+- タイポグラフィ（**システムフォントのみ**。PWA 初回 3 秒制約）
 - Spacing（4px グリッド推奨）
 - コンポーネント（shadcn をベースに、どの variant を使うか）
 - アイコン（lucide 等。追加依存は PR に理由）
@@ -70,11 +70,13 @@
 
 **確定（2026-08-13）**: テーマは **端末・OSの外観設定に追従**する。ライト／ダーク両方のパレットを定義する。アプリ内のテーマ切替は持たない（`prefers-color-scheme` のみ）。
 
-**提案（トークンの色味。残 要確認）**
+**確定（2026-09-04）**
 
-- primary は赤紫・ワイン系ではなく、彩度を抑えたゴールド or オリーブも候補。最終はオーナー
+- primary / chrome は **ティール**（`#0A6B6B` ライト）。ワイン赤は使わない
 - danger は削除確認にだけ使う
 - 本文は 16px 以上（iOS ズーム防止）
+- フォントはシステムスタック
+- shadcn は **Default + Stone**
 
 アクセシビリティ:
 
@@ -83,16 +85,16 @@
 
 shadcn:
 
-- New York か Default か。**要確認**
-- ベースを Neutral / Stone / Zinc のどれにするか。**要確認**
+- Default（確定）
+- ベースは Stone（確定）
 
 ## 8. 受け入れ条件
 
-- [ ] `spec/design-system.md` がレビュー・承認済み（Phase 1 DoD）
-- [ ] トークン名が実装時にコピーできる
-- [ ] ライト／ダーク両方のパレットが定義され、OS追従であることが書いてある
-- [ ] ui-design ルールがある、または本タスクに「Phase 2 開始前に追加」と明記
-- [ ] フォントライセンスを無視していない（Google Fonts 等の利用条件）
+- [x] `spec/design-system.md` がある（オーナー承認は PR。Phase 1 DoD）
+- [x] トークン名が実装時にコピーできる
+- [x] ライト／ダーク両方のパレットが定義され、OS追従であることが書いてある
+- [x] ui-design ルールがある（`.cursor/rules/ui-design.mdc`）
+- [x] フォントライセンスを無視していない（システムフォントのみ）
 
 ## 9. セキュリティ観点
 
@@ -101,6 +103,7 @@ shadcn:
 
 ## 10. 関連ファイル / 関連spec
 
+- 正本: [spec/design-system.md](../../spec/design-system.md)
 - [spec/02-tech-stack.md](../../spec/02-tech-stack.md) Tailwind + shadcn
 - 実装: [../phase-02-platform/06-design-tokens-shadcn.md](../phase-02-platform/06-design-tokens-shadcn.md)
 

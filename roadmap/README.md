@@ -12,8 +12,8 @@
 | 判定 | 内容 |
 |---|---|
 | **完了** | 0-01〜0-05、0-09。GitHub プライベート、`.gitignore`、Hello World、TypeScript strict / Biome、Cloudflare dev D1/R2、rules/skills |
-| **未着手** | 0-06 Vitest、0-07 CI（`.github/` なし）、0-08 ブランチ保護、Phase 1 の 1-03 以降 |
-| **レビュー待ち** | 1-01 画面一覧とナビ。1-02 ワイヤーフレーム（`spec/wireframes.md`） |
+| **未着手** | 0-06 Vitest、0-07 CI（`.github/` なし）、0-08 ブランチ保護、Phase 1 の 1-04 以降 |
+| **レビュー待ち** | 1-01 ナビ、1-02 ワイヤー、1-03 デザインシステム（Win98 essences） |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ（ホーム / 記録 / セラー / ノート / 設定） |
@@ -35,6 +35,7 @@
 | 項目 | 決定 |
 |---|---|
 | 下部タブ | **一旦 5 つ**（ホーム / 記録 / セラー / ノート / 設定）。正本は [spec/screens.md](../spec/screens.md) |
+| 見た目 | **Win98 寄りの essences を部分適用**。全面スキンにしない。ゲーミフィケーションはスコア・押下・短いトーストまで。使いやすさ最優先 |
 
 ## オーナー決定（2026-08-15 FIX）
 
@@ -92,7 +93,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 |---|---|---|---|
 | 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | レビュー待ち |
 | 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | レビュー待ち |
-| 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 未着手 |
+| 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | レビュー待ち |
 | 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 未着手 |
 | 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 未着手 |
 | 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | 未着手 |
