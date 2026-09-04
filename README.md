@@ -85,7 +85,7 @@ lockfile が `package.json` と食い違うと `--frozen-lockfile` で失敗す�
 
 ## ブランチ運用
 
-`main` へは直接 push しない。`feature/<内容>` または `fix/<内容>` で PR し、CI（`lint / typecheck / test / audit`）がグリーンになってから **squash merge** する。
+`main` へは直接 push しない。作業ブランチは切る直前に `git fetch origin main` し、`git checkout -b feature/<内容> origin/main`（または `fix/`）で **リモートの最新 `main` 先端から切る**。PR し、CI（`lint / typecheck / test / audit`）がグリーンになってから **squash merge** する。
 
 保護は GitHub の Repository ruleset `protect-main`（[`.github/rulesets/protect-main.json`](.github/rulesets/protect-main.json)）。bypass なし。force push と `main` の削除を禁止する。classic branch protection は使わない。
 

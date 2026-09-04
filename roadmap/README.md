@@ -182,7 +182,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 ## 共通ルール（全タスク）
 
 1. 機能実装の前に `spec/features/` を書き、オーナー承認を得る（Phase 3〜5）。
-2. 作業ブランチは `feature/<内容>` または `fix/<内容>`。`main` へ直接 push しない。
+2. 作業ブランチは切る直前に `git fetch origin main` し、`git checkout -b feature/<内容> origin/main`（または `fix/`）。`main` へ直接 push しない。
 3. コミット・PR は日本語、`種別: 要約`。
 4. シークレットをコード・`wrangler.jsonc`・spec・本フォルダに書かない。
 5. 公開エンドポイントを新設する場合は仕様書に明記し、オーナー承認を得る。
