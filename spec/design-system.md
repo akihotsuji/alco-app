@@ -1,20 +1,23 @@
 # デザインシステム
 
-Phase 1-03 の成果物。配色・型・余白・部品方針の正本。Phase 2-06（Tailwind トークン + shadcn）はこのファイルを写す。配置は [wireframes.md](wireframes.md)。
+Phase 1-03 の成果物（2026-09-04 改訂）。配色・型・余白・部品方針の正本。Phase 2-06（Tailwind トークン + shadcn）はこのファイルを写す。配置は [wireframes.md](wireframes.md)。
 
-実装コードは本タスクの対象外。トークン名はそのまま CSS 変数にできる形にする。
+**全体方針はニューモーフィズム。** 先に置いた Win98 寄りの essences は破棄する。
+
+アプリ本体（`src/client`）は本タスクでは実装しない。質感確認用の実装参照は [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css) と [wireframes/mocks/preview.html](wireframes/mocks/preview.html)。モックはトークンと同じ CSS 変数で描いている。
 
 ---
 
 ## 原則
 
 1. **使いやすさ最優先**。最短タップ、本文 16px 以上、タップ領域 44px 以上、本文コントラスト 4.5:1 以上（ライト／ダーク）。
-2. **Win98 は essences だけ**。外観の引用であり、OS スキンの再現ではない。話題性と愛着は、枠・押下・一覧のメタファーで出す。
-3. **ゲーミフィケーションは薄く**。ホームのスコア数字、休肝の点灯、ボタンが凹む、短いトースト。経験値・レベル・ガチャは置かない。
-4. **テーマは OS 追従**。ライト／ダーク両方を定義する。アプリ内切替は持たない（`prefers-color-scheme` のみ。2026-08-13 確定）。
-5. **色と影はトークン経由だけ**。`bg-[#123]` や適当な `shadow` 直書きは禁止（`ui-design` ルール）。
+2. **面はニューモーフィズムで統一する。** カード・チップ・入力・タブは、地と同じ色に柔らかい外光／内陰を置く。1px のハードべベルや OS スキンは使わない。
+3. **主アクションだけ色を置く。** 灰色の凹凸だけでは「記録する」が埋もれる。primary はワイン系の塗り。選択状態は影だけでなく色または字重でも示す。
+4. **ゲーミフィケーションは薄く。** 大きなスコア、休肝ピル、押して凹む、短いトースト。経験値・レベル・ガチャは置かない。
+5. **テーマは OS 追従。** ライト／ダーク両方。アプリ内切替は持たない（`prefers-color-scheme`。2026-08-13 確定）。
+6. **色と影はトークン経由だけ。** `bg-[#123]` やその場の `shadow` 直書きは禁止（`ui-design`）。
 
-オーナー方針（2026-09-04）: Win98 寄りでドーパミンをくすぐりたい。過度な適用ではなく、デザインの外観だけ部分的に採用する。Windows のファイル配置の essences（一覧・プロパティ）は 1-02 のワイヤーに書いた。
+オーナー訂正（2026-09-04）: 全体デザイン方針を **ニューモーフィズム** にする。Win98 / ヴェイパーウェーブは採用しない。
 
 ---
 
@@ -22,165 +25,164 @@ Phase 1-03 の成果物。配色・型・余白・部品方針の正本。Phase 
 
 | 採用 | 捨てる |
 |---|---|
-| ティールのタイトルバー、銀グレーの面 | 全面壁紙デスクトップ、アイコン散らし |
-| 1px ハイライト／シャドウのべベル | ニューモーフィズムの厚いぼかし、ネオン全面 |
-| エクスプローラ行、プロパティの縦並び | スタートメニュー、重ねウィンドウ、ファイルツリーナビ |
-| 押すと凹むボタン、短い成功トースト | 紙吹雪、毎回の効果音、XP ゲージ |
-| 大人の記録アプリの可読性 | ピクセルフォント本文、点滅、純正 Win98 256 色 |
+| 地と同色の柔らかい浮き／沈み | 1px ハードべベル、Win98 タイトルバー |
+| 角の大きい面、余白多め | 罫線だらけの表、デスクトップ壁紙 |
+| ワインの主ボタン、大きなスコア | 全面ネオン、XP ゲージ、紙吹雪 |
+| 本文は pen のように濃い | 薄いグレー文字、フォーカスリング削除 |
+| 押下は inset に切り替わる | Material の長い影、ガラスのぼかし全面 |
 
-ロードマップ原文の「大人向けの落ち着いたトーン」は、**面と本文は落ち着ける / クロームだけ Win98** と読み替える。
+ロードマップの「大人向けの落ち着いたトーン」は、**暖色の紙地 + ワインの一点アクセント** と読む。
 
 ---
 
 ## カラー
 
-値は sRGB HEX。実装時は同じ色を OKLCH または HSL の CSS 変数に落としてよい。コントラストは WCAG 2.2 相対輝度で計算し、本文は **4.5:1**、大きいスコア数字は **3:1** 以上。
+値は sRGB HEX。影のハイライト／シェードは下表の RGBA。コントラストは WCAG 2.2、本文 **4.5:1**。
+
+ニューモーフィズムでは **`--surface` は `--background` と同じ**（浮きは影だけで出す）。白い別面を重ねない。
 
 ### ライト
 
-| トークン | HEX | 用途 |
+| トークン | 値 | 用途 |
 |---|---|---|
-| `--background` | `#D4D0C8` | アプリ地（クラシックの button face） |
-| `--surface` | `#FFFFFF` | ウィンドウ内面、リスト |
-| `--foreground` | `#1A1A1A` | 本文 |
-| `--muted` | `#4A4A4A` | 補助テキスト |
-| `--border` | `#808080` | 外枠・区切り |
-| `--highlight` | `#FFFFFF` | べベルの明るい辺 |
-| `--shade` | `#404040` | べベルの暗い辺 |
-| `--chrome` | `#0A6B6B` | タイトルバー |
-| `--chrome-fg` | `#FFFFFF` | タイトルバー上の文字 |
-| `--primary` | `#0A6B6B` | 主ボタン塗り、リンク |
-| `--primary-fg` | `#FFFFFF` | 主ボタン上の文字 |
-| `--danger` | `#8B1E1E` | 削除確認の危険ボタンのみ |
-| `--danger-fg` | `#FFFFFF` | 危険ボタン上の文字 |
-| `--score` | `#0A6B6B` | スコア数字（surface 上では primary テキスト） |
-| `--rest` | `#1F6B3A` | 休肝バッジの文字または枠 |
+| `--background` | `#E6E0D6` | 地・カード・行・タブ |
+| `--surface` | `#E6E0D6` | background と同じ |
+| `--foreground` | `#2B261F` | 本文 |
+| `--muted` | `#5C564C` | 補助テキスト |
+| `--primary` | `#7A3538` | 主ボタン、スコア、選択、リンク |
+| `--primary-fg` | `#FFF8F4` | 主ボタン上の文字 |
+| `--danger` | `#8B1E1E` | 削除確認のみ |
+| `--danger-fg` | `#FFF8F4` | 危険ボタン上の文字 |
+| `--rest` | `#2F5D3E` | 休肝ピルの文字 |
+| `--score` | `#7A3538` | 杯数・g |
+| `--ring` | `#7A3538` | フォーカス |
+| `--neu-light` | `#FFFFFF` | 外光 |
+| `--neu-dark` | `#C9C2B6` | 外陰 |
 
 ### ダーク
 
-| トークン | HEX | 用途 |
+| トークン | 値 | 用途 |
 |---|---|---|
-| `--background` | `#1A2222` | 地 |
-| `--surface` | `#2C2C2C` | ウィンドウ内面 |
-| `--foreground` | `#F4F1EA` | 本文 |
-| `--muted` | `#C4C0B8` | 補助テキスト |
-| `--border` | `#6A6A6A` | 外枠 |
-| `--highlight` | `#5A5A5A` | べベルの明るい辺（暗面では弱く） |
-| `--shade` | `#0A0A0A` | べベルの暗い辺 |
-| `--chrome` | `#0E5C56` | タイトルバー（本文白が 4.5:1 を満たす濃さ） |
-| `--chrome-fg` | `#F4F1EA` | タイトルバー上の文字 |
-| `--primary` | `#2A9A90` | 主ボタン塗り |
-| `--primary-fg` | `#0A1212` | 主ボタン上の文字（明るいティールの上は暗い字） |
-| `--danger` | `#C94C4C` | 危険ボタン |
-| `--danger-fg` | `#FFFFFF` | 危険ボタン上の文字 |
-| `--score` | `#2A9A90` | スコア数字 |
-| `--rest` | `#7BC98A` | 休肝バッジ |
+| `--background` | `#2C2926` | 地・カード・行・タブ |
+| `--surface` | `#2C2926` | background と同じ |
+| `--foreground` | `#F4EDE4` | 本文 |
+| `--muted` | `#C9BDB0` | 補助 |
+| `--primary` | `#C47878` | 主ボタン塗り |
+| `--primary-fg` | `#2A1818` | 主ボタン上の文字 |
+| `--danger` | `#E07070` | 削除 |
+| `--danger-fg` | `#2A1818` | 危険ボタン上 |
+| `--rest` | `#8FCB9E` | 休肝 |
+| `--score` | `#C47878` | スコア |
+| `--ring` | `#C47878` | フォーカス |
+| `--neu-light` | `#3A3632` | 外光（暗い面のハイライト） |
+| `--neu-dark` | `#1A1816` | 外陰 |
 
-OS がダークならダークパレット。`html` に `.dark` を固定しない。
+実装では `:root` にライト、`@media (prefers-color-scheme: dark)` にダーク。`html` に `.dark` を固定しない。質感モックだけクラス切替を使う。
 
 ### コントラスト（検証済み）
 
 | 前景 | 背景 | 比 | 用途 |
 |---|---|---|---|
-| `#1A1A1A` | `#FFFFFF` | 17.40 | ライト本文 / surface |
-| `#1A1A1A` | `#D4D0C8` | 11.32 | ライト本文 / background |
-| `#4A4A4A` | `#FFFFFF` | 8.86 | ライト muted / surface |
-| `#4A4A4A` | `#D4D0C8` | 5.76 | ライト muted / background |
-| `#FFFFFF` | `#0A6B6B` | 6.31 | ライト chrome / primary ボタン |
-| `#0A6B6B` | `#FFFFFF` | 6.31 | ライト primary テキスト / surface |
-| `#FFFFFF` | `#8B1E1E` | 9.12 | ライト danger |
-| `#F4F1EA` | `#1A2222` | 14.37 | ダーク本文 / background |
-| `#F4F1EA` | `#2C2C2C` | 12.38 | ダーク本文 / surface |
-| `#C4C0B8` | `#1A2222` | 8.94 | ダーク muted / background |
-| `#C4C0B8` | `#2C2C2C` | 7.70 | ダーク muted / surface |
-| `#F4F1EA` | `#0E5C56` | 6.94 | ダーク chrome |
-| `#0A1212` | `#2A9A90` | 5.53 | ダーク primary ボタン |
-| `#FFFFFF` | `#C94C4C` | 4.54 | ダーク danger |
+| `#2B261F` | `#E6E0D6` | 11.43 | ライト本文 |
+| `#5C564C` | `#E6E0D6` | 5.53 | ライト muted |
+| `#FFF8F4` | `#7A3538` | 8.35 | ライト主ボタン |
+| `#7A3538` | `#E6E0D6` | 6.68 | ライト primary テキスト |
+| `#2F5D3E` | `#E6E0D6` | 5.80 | ライト休肝 |
+| `#FFF8F4` | `#8B1E1E` | 8.68 | ライト danger |
+| `#F4EDE4` | `#2C2926` | 12.45 | ダーク本文 |
+| `#C9BDB0` | `#2C2926` | 7.84 | ダーク muted |
+| `#2A1818` | `#C47878` | 5.08 | ダーク主ボタン |
+| `#2A1818` | `#E07070` | 5.41 | ダーク danger |
+| `#8FCB9E` | `#2C2926` | 7.71 | ダーク休肝 |
 
-**使わない組み合わせ**: ライトで `--primary` `#0A6B6B` を `--background` `#D4D0C8` の上に小さく置かない（比 4.10。ボタン塗りか surface 上のテキストに限る）。
+フォーカスリングは消さない。`2px solid var(--ring)`、オフセット 2px。
 
-フォーカスリングは消さない。色は `--primary`、幅 2px、オフセット 2px。
+**禁止**: 影だけを手がかりにした選択。`--muted` を本文に使わない。カードを白 `#FFF` にして地と切らない。
 
 ---
 
 ## タイポグラフィ
 
-**MVP はシステムフォントのみ。** Web フォントを入れない（PWA 初回 3 秒、CSP、ライセンスを増やさない）。
+**MVP はシステムフォントのみ。** Web フォント CDN は使わない。
 
 ```text
-font-family: system-ui, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
-  "Noto Sans JP", sans-serif;
+font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+  "Segoe UI", "Noto Sans JP", sans-serif;
 ```
-
-ピクセルフォント・MS 社の資産を同梱しない。Win98 感はべベルと字間で出す。
 
 | トークン | サイズ | 行間 | 用途 |
 |---|---|---|---|
-| `--text-caption` | 12px | 1.3 | タブラベル、バッジ。本文には使わない |
-| `--text-body` | 16px | 1.5 | 本文・入力。**これ未満の本文禁止**（iOS ズーム防止） |
-| `--text-title` | 18px | 1.3 | タイトルバー、セクション |
-| `--text-score` | 32px | 1.1 | ホームの杯数・g だけ |
+| `--text-caption` | 12px | 1.3 | タブラベルのみ。本文禁止 |
+| `--text-body` | 16px | 1.5 | 本文・入力・チップ |
+| `--text-title` | 20px | 1.3 | 画面タイトル |
+| `--text-score` | 40px | 1.0 | 杯数・g のみ |
 
-字重: 本文 400、タイトル 600、スコア 700。イタリックは使わない。
+字重: 本文 400、タイトル 600、スコア 650。イタリックなし。字間は広げすぎない。
 
 ---
 
 ## スペーシング・半径・影
 
-4px グリッド。
+4px グリッド。角は大きめ（ニューモーフィズムの前提）。
 
 | トークン | 値 | 用途 |
 |---|---|---|
 | `--space-1` … `--space-8` | 4 / 8 / 12 / 16 / 24 / 32 / 40 / 48 px | 余白 |
-| `--tap-min` | 44px | ボタン・タブ・行の最小高さ |
-| `--radius` | 2px | 入力・小さなチップ |
-| `--radius-window` | 0px | タイトルバー、ウィンドウ外枠 |
-| `--header-h` | 48px | タイトルバー |
-| `--tab-h` | 56px | 下部タブ（safe-area は別途足す） |
+| `--tap-min` | 44px | 最小タップ |
+| `--radius` | 16px | ボタン、入力、行 |
+| `--radius-card` | 24px | スコアカード、ログインカード |
+| `--radius-pill` | 999px | チップ、休肝 |
+| `--header-h` | 56px | ヘッダー |
+| `--tab-h` | 64px | 下部タブ＋余白 |
 
-べベル（Material のぼかし影は使わない）:
+影（値をそのまま `box-shadow` に入れる）:
 
-| トークン | イメージ |
-|---|---|
-| `--shadow-outset` | 上左 `--highlight`、下右 `--shade` の 1px inset 相当 |
-| `--shadow-inset` | 押下時・入力欄。`--shadow-outset` の反転 |
-| `--shadow-window` | ウィンドウ外枠 1px `--border` + ごく薄い `--shade` |
+| トークン | ライト | ダーク |
+|---|---|---|
+| `--shadow-outset` | `8px 8px 16px #C9C2B6, -8px -8px 16px #FFFFFF` | `8px 8px 16px #1A1816, -6px -6px 14px #3A3632` |
+| `--shadow-inset` | `inset 6px 6px 12px #C9C2B6, inset -6px -6px 12px #F7F3EC` | `inset 6px 6px 12px #1A1816, inset -4px -4px 10px #3A3632` |
+| `--shadow-primary` | `6px 10px 18px rgba(122, 53, 56, 0.28)` | `6px 10px 18px rgba(0, 0, 0, 0.45)` |
 
-実装は `box-shadow` をトークン化した utility（例: `shadow-outset`）に閉じる。値のマジックナンバー直書きは禁止。
+押下・選択中のチップ／週マスは `--shadow-inset`。入力も inset。カード・行・非選択チップは `--shadow-outset`。主ボタンは塗り + `--shadow-primary`。押下で `--shadow-inset` かつ少し暗くする。
+
+Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベルは使わない。
 
 ---
 
-## モーション（ドーパミン）
+## モーション
 
 | 対象 | 時間 | 内容 |
 |---|---|---|
-| ボタン押下 | 80–120ms | `--shadow-inset` に切り替え。移動や拡大はしない |
-| スコア更新 | 150ms 以内 | 数字が変わるだけ。カウントアップ演出は任意・1 回短い |
-| トースト | 表示 5 秒（1-02） | 下から出す。自動で消える |
-| それ以外 | 原則なし | 紙吹雪、バウンスループ、ページめくり禁止 |
+| 押下 | 120ms ease | outset → inset。拡大しない |
+| スコア | 150ms 以内 | 数字が変わる |
+| トースト | 5 秒（1-02） | 下から。自動で消える |
+| それ以外 | なし | 紙吹雪、ループ、パララックス禁止 |
 
-効果音・バイブは MVP では入れない（端末差と「毎日うるさい」を避ける）。
+効果音・バイブは MVP では入れない。
 
 ---
 
 ## コンポーネント方針（shadcn）
 
-- スタイル: **Default**（New York よりタップ領域を取りやすい）
-- ベースカラー: **Stone**（銀グレー・暖色。Zinc の冷たいフラットを避ける）
-- 生成物を土台に、上記トークンとべベルで上書きする。独自のコンポーネントライブラリは作らない
+- スタイル: **Default**
+- ベース: **Stone**（暖色。Zinc は冷たいので使わない）
+- 生成物をトークンで上書きする。`border` はほぼ透明。見た目の境界は影
 
 | 部品 | 方針 |
 |---|---|
-| Button | 主は `--primary` 塗り + `--shadow-outset`。押下で inset。高さ `--tap-min` |
-| Input / Label | 面は `--surface`、枠は inset。ラベルは 16px |
-| Card | ウィンドウ。上に `--chrome` 帯を付けてよい（ホームの「今日」、ログイン）。角 `--radius-window` |
-| Tabs | 下部タブは shadcn Tabs を見た目だけ借りるか、独自バー。クラシックな上タブにはしない |
-| Dialog | 削除確認など。中央の小さいウィンドウ。タイトルバーあり。ボタンは はい / キャンセル |
-| Sheet | 使わない（1-02 で入力はフルスクリーン） |
-| Toast | 成功・失敗の短文。undo アクション可。生の例外文は出さない |
-| 行（リスト） | エクスプローラ。左アイコンまたはサムネ 48px、中央タイトル、右メタ。高さ 56px 以上 |
+| Button 主 | `--primary` 塗り、角 `--radius`、高さ 52px、`--shadow-primary` |
+| Button 副 | 地色 + `--shadow-outset`。押下 inset |
+| Input | 地色 + `--shadow-inset`。枠線なし。ラベル 16px |
+| Card | 地色 + `--shadow-outset`、角 `--radius-card`。色帯ヘッダーは置かない |
+| Tabs | 下部。アクティブは inset + primary 色のアイコン |
+| Dialog | 地色カード。タイトルはテキストのみ |
+| Sheet | 使わない |
+| Toast | 地色 + outset。undo は primary テキスト |
+| 行 | 地色 + outset。左 48px サムネ、高さ 64px 以上 |
 
-アイコン: **lucide-react**（shadcn 標準）。絵文字禁止。ピクセルアイコンセットは追加しない（依存を増やさない）。フォルダ／ファイルの意味は **配置** で出す。ストロークは 2。
+アイコン: **lucide-react**、ストローク 2、絵文字禁止。
+
+ヘッダーは色帯にしない。戻るは円形の outset ボタン。
 
 ---
 
@@ -188,19 +190,19 @@ font-family: system-ui, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN"
 
 **Do**
 
-- 一覧は行、詳細はプロパティの縦積み
-- 主アクションは画面内の大きな outset ボタン
-- ライトとダークで同じ部品・同じ階層（色だけ変える）
-- ユーザーが付けた銘柄名はテキストとして出す
+- 地と部品を同色にし、影で階層を出す
+- 本文は濃い色。選択は inset + 色
+- ライトとダークで同じ部品構造
+- 銘柄名はテキストとして出す
 
 **Don't**
 
-- デスクトップ壁紙にショートカットを散らす、スタートボタンを置く
-- 本文を 12px やピクセルフォントにする
-- コントラスト不足のグレー文字、フォーカスリング削除
-- 他ユーザーのボトルや「発見」
-- 画面ごとのトーン分断（ホームだけヴェイパー、設定だけフラット、など）
-- `dangerouslySetInnerHTML` で装飾 HTML を足す
+- Win98 タイトルバー、スタート、1px べベル
+- 白いカードを紙地の上に乗せる（ニューモルが壊れる）
+- 薄いグレー本文、フォーカス削除
+- 他ユーザーの発見 UI
+- 画面ごとに別トーン
+- `dangerouslySetInnerHTML`
 
 ---
 
@@ -208,37 +210,38 @@ font-family: system-ui, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN"
 
 ```text
 --background --surface --foreground --muted
---border --highlight --shade
---chrome --chrome-fg
---primary --primary-fg
---danger --danger-fg
---score --rest
+--primary --primary-fg --danger --danger-fg
+--rest --score --ring
+--neu-light --neu-dark
 --text-caption --text-body --text-title --text-score
---space-1 --space-2 --space-3 --space-4 --space-5 --space-6 --space-7 --space-8
---tap-min --radius --radius-window --header-h --tab-h
---shadow-outset --shadow-inset --shadow-window
+--space-1 … --space-8 --tap-min
+--radius --radius-card --radius-pill --header-h --tab-h
+--shadow-outset --shadow-inset --shadow-primary
 ```
 
-shadcn 標準名との対応: `background`→`--background`、`card`→`--surface`、`primary`→`--primary`、`destructive`→`--danger`、`muted-foreground`→`--muted`、`border`→`--border`、`radius`→`--radius`。`--chrome` とべベルは標準に無いので追加変数にする。
+shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`destructive` → `--danger`、`muted-foreground` → `--muted`、`radius` → `--radius`。`border` は `transparent` 相当。
+
+参照実装: [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css)
 
 ---
 
 ## セキュリティ・フォント
 
-- 外部フォント CDN は使わない（CSP と供給元依存を増やさない）
+- 外部フォント CDN は使わない
 - ユーザー指定色は無い
-- エラー文は汎用。トークン名をユーザーに見せない
+- エラー文は汎用
 
 ---
 
 ## 受け入れ（1-03）
 
-- [x] 本ファイルがある。トークン名がコピーできる
-- [x] ライト／ダーク両方と OS 追従を書いた
-- [x] 本文コントラスト 4.5:1 を表で示した
-- [x] `ui-design` ルールを追加する（同 PR）
-- [x] フォントはシステムスタック（追加ライセンスなし）
-- [ ] オーナー承認（Phase 1 DoD。この PR で取る）
+- [x] 本ファイルがある。方針はニューモーフィズム
+- [x] トークン名がコピーできる
+- [x] ライト／ダークと OS 追従
+- [x] 本文 4.5:1 を表で示した
+- [x] `ui-design` を方針に合わせて更新
+- [x] フォントはシステムスタック
+- [ ] オーナー承認（この見直しの PR）
 
 ---
 

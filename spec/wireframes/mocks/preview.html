@@ -1,43 +1,11 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-preview>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=390, initial-scale=1" />
-  <title>alco-app 質感モック</title>
+  <meta name="viewport" content="width=390" />
+  <title>alco-app neu mock</title>
+  <link rel="stylesheet" href="./tokens.css" />
   <style>
-    :root {
-      --background: #d4d0c8;
-      --surface: #ffffff;
-      --foreground: #1a1a1a;
-      --muted: #4a4a4a;
-      --border: #808080;
-      --highlight: #ffffff;
-      --shade: #404040;
-      --chrome: #0a6b6b;
-      --chrome-fg: #ffffff;
-      --primary: #0a6b6b;
-      --primary-fg: #ffffff;
-      --danger: #8b1e1e;
-      --rest: #1f6b3a;
-      --score: #0a6b6b;
-      --tap: 44px;
-    }
-    html.dark {
-      --background: #1a2222;
-      --surface: #2c2c2c;
-      --foreground: #f4f1ea;
-      --muted: #c4c0b8;
-      --border: #6a6a6a;
-      --highlight: #5a5a5a;
-      --shade: #0a0a0a;
-      --chrome: #0e5c56;
-      --chrome-fg: #f4f1ea;
-      --primary: #2a9a90;
-      --primary-fg: #0a1212;
-      --danger: #c94c4c;
-      --rest: #7bc98a;
-      --score: #2a9a90;
-    }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
@@ -46,202 +14,222 @@
       overflow: hidden;
       background: var(--background);
       color: var(--foreground);
-      font-family: "WenQuanYi Micro Hei", "Droid Sans Fallback", system-ui, sans-serif;
-      font-size: 16px;
-      line-height: 1.45;
+      font-family: system-ui, "WenQuanYi Micro Hei", "Droid Sans Fallback", "Hiragino Sans", sans-serif;
+      font-size: var(--text-body);
+      line-height: 1.5;
     }
+    button { font: inherit; color: inherit; border: 0; background: none; padding: 0; }
     .screen { display: none; width: 390px; height: 844px; flex-direction: column; }
     .screen.on { display: flex; }
-    .outset {
-      box-shadow: inset 1px 1px 0 var(--highlight), inset -1px -1px 0 var(--shade);
-    }
-    .inset {
-      box-shadow: inset 1px 1px 0 var(--shade), inset -1px -1px 0 var(--highlight);
-    }
-    .win {
-      border: 1px solid var(--border);
-      background: var(--surface);
-      box-shadow: inset 1px 1px 0 var(--highlight), 1px 1px 0 var(--shade);
-    }
-    .titlebar {
-      height: 48px;
+    .neu-out { background: var(--background); box-shadow: var(--shadow-outset); }
+    .neu-in { background: var(--background); box-shadow: var(--shadow-inset); }
+    .header {
+      height: var(--header-h);
       flex: none;
-      background: var(--chrome);
-      color: var(--chrome-fg);
       display: flex;
       align-items: center;
-      padding: 0 12px;
-      font-weight: 700;
-      font-size: 18px;
-      letter-spacing: 0.02em;
+      padding: 0 16px;
+      gap: 12px;
     }
-    .titlebar .side { width: 56px; font-size: 16px; font-weight: 400; }
-    .titlebar .side.r { text-align: right; }
-    .titlebar .mid { flex: 1; text-align: center; }
-    .body { flex: 1; overflow: hidden; padding: 12px; }
+    .header h1 {
+      flex: 1;
+      margin: 0;
+      font-size: var(--text-title);
+      font-weight: 600;
+      text-align: center;
+    }
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      box-shadow: var(--shadow-outset);
+      flex: none;
+    }
+    .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .body { flex: 1; overflow: hidden; padding: 8px 20px 16px; }
     .tabs {
-      height: 56px;
+      height: var(--tab-h);
       flex: none;
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      background: var(--background);
-      border-top: 1px solid var(--border);
-      box-shadow: inset 0 1px 0 var(--highlight);
+      padding: 8px 12px 12px;
+      align-items: center;
     }
     .tab {
+      height: 48px;
+      border-radius: var(--radius);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 2px;
-      font-size: 11px;
+      font-size: var(--text-caption);
       color: var(--muted);
     }
-    .tab.on { color: var(--foreground); background: color-mix(in srgb, var(--surface) 70%, var(--background)); }
+    .tab.on {
+      color: var(--primary);
+      box-shadow: var(--shadow-inset);
+    }
     .tab svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
     .btn {
-      min-height: var(--tap);
-      border: 1px solid var(--border);
-      background: var(--background);
-      color: var(--foreground);
+      width: 100%;
+      min-height: 52px;
+      border-radius: var(--radius);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      font-weight: 700;
+      font-weight: 600;
     }
-    .btn.primary {
+    .btn-primary {
       background: var(--primary);
       color: var(--primary-fg);
-      border-color: #064848;
+      box-shadow: var(--shadow-primary);
+    }
+    .card {
+      border-radius: var(--radius-card);
+      padding: 20px;
+      box-shadow: var(--shadow-outset);
     }
     .chip {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 36px;
-      padding: 0 12px;
-      border: 1px solid var(--border);
-      background: var(--surface);
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: var(--radius-pill);
       font-size: 14px;
-      margin: 0 6px 6px 0;
+      margin: 0 8px 8px 0;
+      box-shadow: var(--shadow-outset);
     }
-    .chip.on { background: var(--background); }
+    .chip.on {
+      box-shadow: var(--shadow-inset);
+      color: var(--primary);
+      font-weight: 600;
+    }
     .row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      min-height: 56px;
-      padding: 8px 10px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      margin-bottom: 8px;
+      gap: 14px;
+      min-height: 64px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-outset);
+      margin-bottom: 12px;
     }
-    .row .meta { margin-left: auto; color: var(--muted); font-size: 13px; white-space: nowrap; }
+    .row .meta { margin-left: auto; color: var(--muted); font-size: 13px; }
     .row .sub { color: var(--muted); font-size: 13px; }
     .thumb {
       width: 48px;
       height: 48px;
+      border-radius: 14px;
       flex: none;
-      border: 1px solid var(--border);
     }
     .field {
       width: 100%;
-      min-height: 44px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      padding: 8px 10px;
+      min-height: 48px;
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      box-shadow: var(--shadow-inset);
     }
-    .label { color: var(--muted); font-size: 13px; margin: 10px 0 4px; }
-    .score {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--score);
-      line-height: 1.1;
-    }
-    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; text-align: center; }
-    .week .d { font-size: 11px; color: var(--muted); }
+    .label { color: var(--muted); font-size: 13px; margin: 14px 0 8px; font-weight: 600; }
+    .score { font-size: var(--text-score); font-weight: 650; color: var(--score); line-height: 1; letter-spacing: -0.03em; }
+    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 16px; text-align: center; }
+    .week .d { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
     .cell {
-      height: 22px;
-      border: 1px solid var(--border);
-      background: var(--background);
+      height: 28px;
+      border-radius: 8px;
+      box-shadow: var(--shadow-outset);
     }
-    .cell.fill { background: var(--primary); border-color: #064848; }
-    .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 1px solid var(--border); }
-    .seg > div { min-height: 40px; display: flex; align-items: center; justify-content: center; font-size: 13px; border-right: 1px solid var(--border); }
-    .seg > div:last-child { border-right: 0; }
-    .seg > .on { background: var(--primary); color: var(--primary-fg); }
-    .prop { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, var(--surface)); }
-    .prop span:last-child { font-weight: 700; }
-    .photo {
-      height: 160px;
-      border: 1px solid var(--border);
-      background:
-        linear-gradient(180deg, #4a1020 0%, #7a1830 40%, #2a0c14 100%);
+    .cell.fill {
+      background: var(--primary);
+      box-shadow: var(--shadow-inset);
     }
-    .photo.malt {
-      background: linear-gradient(180deg, #5a3a18 0%, #c4a46a 45%, #3a2410 100%);
+    .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .seg > div {
+      min-height: 44px;
+      border-radius: var(--radius-pill);
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      box-shadow: var(--shadow-outset);
     }
+    .seg > .on { color: var(--primary); font-weight: 700; box-shadow: var(--shadow-inset); }
+    .prop { display: flex; justify-content: space-between; padding: 14px 0; }
+    .prop + .prop { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--muted) 20%, transparent); }
+    .photo { height: 168px; border-radius: 20px; box-shadow: var(--shadow-inset); }
+    .wine { background: linear-gradient(165deg, #6a2030, #3a1018); }
+    .malt { background: linear-gradient(165deg, #8a6230, #3a2410); }
     .muted { color: var(--muted); }
     .tiny { font-size: 13px; }
-    .grow { flex: 1; }
-    .foot {
-      flex: none;
-      padding: 10px 12px 16px;
-      background: var(--background);
-      border-top: 1px solid var(--border);
-    }
+    .foot { flex: none; padding: 8px 20px 20px; }
     .toast {
       position: absolute;
-      left: 16px;
-      right: 16px;
-      bottom: 72px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 10px 12px;
+      left: 20px;
+      right: 20px;
+      bottom: 80px;
+      border-radius: var(--radius);
+      padding: 14px 16px;
       display: flex;
       justify-content: space-between;
-      font-size: 14px;
+      align-items: center;
+      box-shadow: var(--shadow-outset);
+      background: var(--background);
     }
     .wrap { position: relative; }
-    h2 { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--muted); }
+    .eyebrow { margin: 0 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: var(--radius-pill);
+      color: var(--rest);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-inset);
+    }
+    .spacer { width: 40px; }
+    .grow { flex: 1; min-width: 0; }
   </style>
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
     <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4z"/><path d="M9 20v-6h6v6"/></symbol>
-    <symbol id="i-log" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></symbol>
-    <symbol id="i-cellar" viewBox="0 0 24 24"><path d="M4 8h16v12H4z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></symbol>
+    <symbol id="i-log" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4.5" cy="6" r=".5"/><circle cx="4.5" cy="12" r=".5"/><circle cx="4.5" cy="18" r=".5"/></symbol>
+    <symbol id="i-cellar" viewBox="0 0 24 24"><path d="M8 3h8l2 6v12H6V9z"/><path d="M9 14h6"/></symbol>
     <symbol id="i-note" viewBox="0 0 24 24"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h6"/></symbol>
-    <symbol id="i-set" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></symbol>
+    <symbol id="i-set" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6 9 12l6 6"/></symbol>
   </svg>
 
-  <!-- HOME -->
   <section class="screen" id="home">
-    <div class="titlebar"><div class="side"></div><div class="mid">ホーム</div><div class="side r"></div></div>
+    <header class="header"><div class="spacer"></div><h1>ホーム</h1><div class="spacer"></div></header>
     <div class="body">
-      <div class="win" style="padding:14px">
-        <div class="titlebar" style="height:32px;margin:-14px -14px 12px;font-size:14px">今日</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end">
-          <div><div class="score">2</div><div class="tiny muted">杯</div></div>
-          <div style="text-align:right"><div class="score">28</div><div class="tiny muted">g 純アルコール</div></div>
+      <p class="eyebrow">9月4日 金曜</p>
+      <div class="card neu-out">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="tiny muted">今日</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
+          <div><div class="score">2</div><div class="tiny muted" style="margin-top:6px">杯</div></div>
+          <div style="text-align:right"><div class="score">28</div><div class="tiny muted" style="margin-top:6px">g 純アルコール</div></div>
         </div>
         <div class="week">
-          <div><div class="d">月</div><div class="cell fill inset"></div></div>
-          <div><div class="d">火</div><div class="cell fill inset"></div></div>
-          <div><div class="d">水</div><div class="cell outset"></div></div>
-          <div><div class="d">木</div><div class="cell fill inset"></div></div>
-          <div><div class="d">金</div><div class="cell outset"></div></div>
-          <div><div class="d">土</div><div class="cell outset"></div></div>
-          <div><div class="d">日</div><div class="cell outset"></div></div>
+          <div><div class="d">月</div><div class="cell fill"></div></div>
+          <div><div class="d">火</div><div class="cell fill"></div></div>
+          <div><div class="d">水</div><div class="cell"></div></div>
+          <div><div class="d">木</div><div class="cell fill"></div></div>
+          <div><div class="d">金</div><div class="cell"></div></div>
+          <div><div class="d">土</div><div class="cell"></div></div>
+          <div><div class="d">日</div><div class="cell"></div></div>
         </div>
       </div>
-      <div class="btn primary outset" style="margin:16px 0">記録する</div>
-      <h2>マイドリンク</h2>
-      <div>
-        <span class="chip outset">赤ラベル 125ml</span>
-        <span class="chip outset">ハイボール</span>
-      </div>
+      <button class="btn btn-primary" style="margin:24px 0 20px">記録する</button>
+      <div class="tiny muted" style="margin-bottom:10px;font-weight:600">マイドリンク</div>
+      <span class="chip neu-out">赤ラベル 125ml</span>
+      <span class="chip neu-out">ハイボール</span>
       <div class="tiny muted" style="margin-top:8px">管理</div>
     </div>
     <nav class="tabs">
@@ -253,32 +241,32 @@
     </nav>
   </section>
 
-  <!-- HOME REST + TOAST -->
   <section class="screen wrap" id="home-toast">
-    <div class="titlebar"><div class="side"></div><div class="mid">ホーム</div><div class="side r"></div></div>
+    <header class="header"><div class="spacer"></div><h1>ホーム</h1><div class="spacer"></div></header>
     <div class="body">
-      <div class="win" style="padding:14px">
-        <div class="titlebar" style="height:32px;margin:-14px -14px 12px;font-size:14px">今日</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end">
-          <div><div class="score">3</div><div class="tiny muted">杯</div></div>
-          <div style="text-align:right"><div class="score">40</div><div class="tiny muted">g 純アルコール</div></div>
+      <p class="eyebrow">9月4日 金曜</p>
+      <div class="card neu-out">
+        <div class="tiny muted">今日</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
+          <div><div class="score">3</div><div class="tiny muted" style="margin-top:6px">杯</div></div>
+          <div style="text-align:right"><div class="score">40</div><div class="tiny muted" style="margin-top:6px">g 純アルコール</div></div>
         </div>
         <div class="week">
-          <div><div class="d">月</div><div class="cell fill inset"></div></div>
-          <div><div class="d">火</div><div class="cell fill inset"></div></div>
-          <div><div class="d">水</div><div class="cell outset"></div></div>
-          <div><div class="d">木</div><div class="cell fill inset"></div></div>
-          <div><div class="d">金</div><div class="cell fill inset"></div></div>
-          <div><div class="d">土</div><div class="cell outset"></div></div>
-          <div><div class="d">日</div><div class="cell outset"></div></div>
+          <div><div class="d">月</div><div class="cell fill"></div></div>
+          <div><div class="d">火</div><div class="cell fill"></div></div>
+          <div><div class="d">水</div><div class="cell"></div></div>
+          <div><div class="d">木</div><div class="cell fill"></div></div>
+          <div><div class="d">金</div><div class="cell fill"></div></div>
+          <div><div class="d">土</div><div class="cell"></div></div>
+          <div><div class="d">日</div><div class="cell"></div></div>
         </div>
       </div>
-      <div class="btn primary outset" style="margin:16px 0">記録する</div>
-      <h2>マイドリンク</h2>
-      <span class="chip inset">赤ラベル 125ml</span>
-      <span class="chip outset">ハイボール</span>
+      <button class="btn btn-primary" style="margin:24px 0 20px">記録する</button>
+      <div class="tiny muted" style="margin-bottom:10px;font-weight:600">マイドリンク</div>
+      <span class="chip on">赤ラベル 125ml</span>
+      <span class="chip neu-out">ハイボール</span>
     </div>
-    <div class="toast outset"><span>記録しました</span><span style="color:var(--primary);font-weight:700">取り消す</span></div>
+    <div class="toast"><span>記録しました</span><span style="color:var(--primary);font-weight:700">取り消す</span></div>
     <nav class="tabs">
       <div class="tab on"><svg><use href="#i-home"/></svg>ホーム</div>
       <div class="tab"><svg><use href="#i-log"/></svg>記録</div>
@@ -288,50 +276,47 @@
     </nav>
   </section>
 
-  <!-- LOG NEW -->
   <section class="screen" id="log-new">
-    <div class="titlebar"><div class="side">←</div><div class="mid">記録する</div><div class="side r"></div></div>
+    <header class="header">
+      <button class="icon-btn" aria-label="戻る"><svg><use href="#i-back"/></svg></button>
+      <h1>記録する</h1>
+      <div class="spacer"></div>
+    </header>
     <div class="body">
       <div class="label">種類</div>
-      <div>
-        <span class="chip on inset">ワイン</span>
-        <span class="chip outset">ビール</span>
-        <span class="chip outset">ウイスキー</span>
-        <span class="chip outset">日本酒</span>
-        <span class="chip outset">焼酎</span>
-        <span class="chip outset">カクテル</span>
-        <span class="chip outset">その他</span>
-      </div>
+      <span class="chip on">ワイン</span>
+      <span class="chip neu-out">ビール</span>
+      <span class="chip neu-out">ウイスキー</span>
+      <span class="chip neu-out">日本酒</span>
+      <span class="chip neu-out">焼酎</span>
+      <span class="chip neu-out">カクテル</span>
+      <span class="chip neu-out">その他</span>
       <div class="label">量</div>
-      <div class="score">125 <span style="font-size:16px">ml</span></div>
-      <div style="margin-top:8px">
-        <span class="chip on inset">125</span>
-        <span class="chip outset">175</span>
-        <span class="chip outset">375</span>
-        <span class="chip outset">手入力</span>
+      <div class="score">125 <span style="font-size:16px;font-weight:600">ml</span></div>
+      <div style="margin-top:12px">
+        <span class="chip on">125</span>
+        <span class="chip neu-out">175</span>
+        <span class="chip neu-out">375</span>
+        <span class="chip neu-out">手入力</span>
       </div>
       <div class="label">度数</div>
-      <div class="score">12 <span style="font-size:16px">%</span></div>
+      <div class="score">12 <span style="font-size:16px;font-weight:600">%</span></div>
       <div class="label">日時</div>
-      <div class="field inset">2026-09-04 13:05</div>
-      <div class="label">メモ　任意 ▼</div>
+      <div class="field">2026-09-04 13:05</div>
     </div>
-    <div class="foot"><div class="btn primary outset">保存する</div></div>
+    <div class="foot"><button class="btn btn-primary">保存する</button></div>
   </section>
 
-  <!-- LOG DAY -->
   <section class="screen" id="log-day">
-    <div class="titlebar"><div class="side">‹</div><div class="mid">9月4日</div><div class="side r">追加</div></div>
+    <header class="header">
+      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
+      <h1>9月4日</h1>
+      <button class="icon-btn" style="font-size:20px;font-weight:600">+</button>
+    </header>
     <div class="body">
-      <div class="tiny muted" style="margin-bottom:10px">2 杯 ・ 28 g</div>
-      <div class="row outset">
-        <div><div>ワイン 125ml</div><div class="sub">13:05 ・ 12%</div></div>
-        <div class="meta">12g ›</div>
-      </div>
-      <div class="row outset">
-        <div><div>ハイボール 120ml</div><div class="sub">21:10 ・ 15%</div></div>
-        <div class="meta">14g ›</div>
-      </div>
+      <p class="eyebrow">2 杯 ・ 28 g</p>
+      <div class="row"><div><div>ワイン 125ml</div><div class="sub">13:05 ・ 12%</div></div><div class="meta">12g</div></div>
+      <div class="row"><div><div>ハイボール 120ml</div><div class="sub">21:10 ・ 15%</div></div><div class="meta">14g</div></div>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
@@ -342,22 +327,20 @@
     </nav>
   </section>
 
-  <!-- CELLAR LIST -->
   <section class="screen" id="cellar-list">
-    <div class="titlebar"><div class="side"></div><div class="mid">セラー</div><div class="side r">追加</div></div>
+    <header class="header"><div class="spacer"></div><h1>セラー</h1><button class="icon-btn" style="font-size:20px;font-weight:600">+</button></header>
     <div class="body">
-      <div class="field inset" style="margin-bottom:8px">名前・生産者で検索</div>
-      <div style="margin-bottom:10px">
-        <span class="chip outset">種類 ▼</span>
-        <span class="chip outset">状態 ▼</span>
-      </div>
-      <div class="row outset">
-        <div class="thumb photo"></div>
+      <div class="field" style="margin-bottom:12px;color:var(--muted)">名前・生産者で検索</div>
+      <span class="chip neu-out">種類</span>
+      <span class="chip neu-out">状態</span>
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="thumb wine"></div>
         <div class="grow"><div>サンプル赤</div><div class="sub">2020 ・ フランス</div></div>
         <div class="meta">未開栓</div>
       </div>
-      <div class="row outset">
-        <div class="thumb photo malt"></div>
+      <div class="row">
+        <div class="thumb malt"></div>
         <div class="grow"><div>サンプルモルト</div><div class="sub">2012 ・ スコットランド</div></div>
         <div class="meta">開栓済</div>
       </div>
@@ -371,19 +354,22 @@
     </nav>
   </section>
 
-  <!-- CELLAR DETAIL -->
   <section class="screen" id="cellar-detail">
-    <div class="titlebar"><div class="side">←</div><div class="mid">サンプル赤</div><div class="side r">編集</div></div>
+    <header class="header">
+      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
+      <h1>サンプル赤</h1>
+      <div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div>
+    </header>
     <div class="body">
-      <div class="photo outset" style="margin-bottom:12px"></div>
+      <div class="photo wine" style="margin-bottom:16px"></div>
       <div class="label">ステータス</div>
-      <div class="seg outset"><div class="on">未開栓</div><div>開栓済</div><div>飲み切</div></div>
-      <div class="prop"><span class="muted">種類</span><span>ワイン</span></div>
-      <div class="prop"><span class="muted">生産者</span><span>サンプル生産者</span></div>
-      <div class="prop"><span class="muted">産地</span><span>フランス</span></div>
-      <div class="prop"><span class="muted">年</span><span>2020</span></div>
-      <h2 style="margin-top:14px">ノート</h2>
-      <div class="row outset"><div>2026-08-01</div><div class="meta">4.5 ›</div></div>
+      <div class="seg"><div class="on">未開栓</div><div>開栓済</div><div>飲み切</div></div>
+      <div class="prop"><span class="muted">種類</span><span style="font-weight:600">ワイン</span></div>
+      <div class="prop"><span class="muted">生産者</span><span style="font-weight:600">サンプル生産者</span></div>
+      <div class="prop"><span class="muted">産地</span><span style="font-weight:600">フランス</span></div>
+      <div class="prop"><span class="muted">年</span><span style="font-weight:600">2020</span></div>
+      <div class="label">ノート</div>
+      <div class="row"><div>2026-08-01</div><div class="meta">4.5</div></div>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
@@ -394,23 +380,15 @@
     </nav>
   </section>
 
-  <!-- NOTE LIST -->
   <section class="screen" id="note-list">
-    <div class="titlebar"><div class="side"></div><div class="mid">ノート</div><div class="side r">作成</div></div>
+    <header class="header"><div class="spacer"></div><h1>ノート</h1><button class="icon-btn" style="font-size:20px;font-weight:600">+</button></header>
     <div class="body">
-      <div class="field inset" style="margin-bottom:8px">銘柄で検索</div>
-      <div style="margin-bottom:10px">
-        <span class="chip outset">種類 ▼</span>
-        <span class="chip outset">評価 ▼</span>
-      </div>
-      <div class="row outset">
-        <div class="grow"><div>サンプル赤</div><div class="sub">外観は澄んだルビー</div></div>
-        <div class="meta">4.5 ・ 8/1 ›</div>
-      </div>
-      <div class="row outset">
-        <div class="grow"><div>サンプルモルト</div><div class="sub">香りは蜂蜜とオーク</div></div>
-        <div class="meta">4.0 ・ 7/20 ›</div>
-      </div>
+      <div class="field" style="margin-bottom:12px;color:var(--muted)">銘柄で検索</div>
+      <span class="chip neu-out">種類</span>
+      <span class="chip neu-out">評価</span>
+      <div style="height:8px"></div>
+      <div class="row"><div class="grow"><div>サンプル赤</div><div class="sub">澄んだルビー</div></div><div class="meta">4.5</div></div>
+      <div class="row"><div class="grow"><div>サンプルモルト</div><div class="sub">蜂蜜とオーク</div></div><div class="meta">4.0</div></div>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
@@ -421,20 +399,25 @@
     </nav>
   </section>
 
-  <!-- NOTE DETAIL -->
   <section class="screen" id="note-detail">
-    <div class="titlebar"><div class="side">←</div><div class="mid">サンプル赤</div><div class="side r">編集</div></div>
+    <header class="header">
+      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
+      <h1>サンプル赤</h1>
+      <div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div>
+    </header>
     <div class="body">
-      <div class="tiny muted">2026-08-01　評価 4.5</div>
-      <div class="label">外観</div>
-      <div>澄んだルビー。粘性は中程度。</div>
-      <div class="label">香り</div>
-      <div>赤系果実とわずかなスパイス。</div>
-      <div class="label">味わい</div>
-      <div>酸がきれいで、タンニンは細かい。</div>
-      <div class="label">余韻</div>
-      <div>短め。食事向き。</div>
-      <div class="photo outset" style="height:100px;margin-top:12px"></div>
+      <p class="eyebrow">2026-08-01　評価 4.5</p>
+      <div class="card" style="margin-bottom:12px">
+        <div class="tiny muted">外観</div>
+        <div>澄んだルビー。粘性は中程度。</div>
+        <div class="tiny muted" style="margin-top:12px">香り</div>
+        <div>赤系果実とわずかなスパイス。</div>
+        <div class="tiny muted" style="margin-top:12px">味わい</div>
+        <div>酸がきれいで、タンニンは細かい。</div>
+        <div class="tiny muted" style="margin-top:12px">余韻</div>
+        <div>短め。食事向き。</div>
+      </div>
+      <div class="photo wine" style="height:96px"></div>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
@@ -445,49 +428,47 @@
     </nav>
   </section>
 
-  <!-- NOTE NEW -->
   <section class="screen" id="note-new">
-    <div class="titlebar"><div class="side">←</div><div class="mid">ノートを作成</div><div class="side r"></div></div>
+    <header class="header">
+      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
+      <h1>ノートを作成</h1>
+      <div class="spacer"></div>
+    </header>
     <div class="body">
       <div class="label">ボトル</div>
-      <div class="field inset">サンプル赤 ›</div>
+      <div class="field">サンプル赤</div>
       <div class="label">飲んだ日</div>
-      <div class="field inset">今日</div>
+      <div class="field">今日</div>
       <div class="label">評価</div>
-      <div style="font-size:22px;font-weight:700">★★★★☆　4.5</div>
+      <div style="font-size:22px;font-weight:700;color:var(--primary)">4.5</div>
       <div class="label">外観</div>
-      <div class="field inset" style="min-height:56px"></div>
-      <div class="label">香り / 味わい / 余韻</div>
-      <div class="tiny muted">本文はあとからでも書けます</div>
+      <div class="field" style="min-height:72px;color:var(--muted)">あとからでも書けます</div>
     </div>
-    <div class="foot"><div class="btn primary outset">保存する</div></div>
+    <div class="foot"><button class="btn btn-primary">保存する</button></div>
   </section>
 
-  <!-- LOGIN -->
   <section class="screen" id="login">
-    <div class="body" style="display:flex;align-items:center">
-      <div class="win" style="width:100%;padding:0 0 16px">
-        <div class="titlebar" style="margin-bottom:16px">ログイン</div>
-        <div style="padding:0 16px">
-          <div class="label">メール</div>
-          <div class="field inset">user@example.com</div>
-          <div class="label">パスワード</div>
-          <div class="field inset">••••••••</div>
-          <div class="btn primary outset" style="margin-top:20px">ログイン</div>
-          <div class="tiny" style="text-align:center;margin-top:12px;color:var(--primary)">アカウントを作成</div>
-        </div>
+    <div class="body" style="display:flex;align-items:center;padding:28px">
+      <div class="card" style="width:100%">
+        <p class="eyebrow">alco</p>
+        <h1 style="margin:0 0 20px;font-size:24px">ログイン</h1>
+        <div class="label" style="margin-top:0">メール</div>
+        <div class="field">user@example.com</div>
+        <div class="label">パスワード</div>
+        <div class="field">••••••••</div>
+        <button class="btn btn-primary" style="margin-top:24px">ログイン</button>
+        <div class="tiny" style="text-align:center;margin-top:16px;color:var(--primary);font-weight:600">アカウントを作成</div>
       </div>
     </div>
   </section>
 
-  <!-- SETTINGS -->
   <section class="screen" id="settings">
-    <div class="titlebar"><div class="side"></div><div class="mid">設定</div><div class="side r"></div></div>
+    <header class="header"><div class="spacer"></div><h1>設定</h1><div class="spacer"></div></header>
     <div class="body">
-      <div class="row outset"><div>表示名</div><div class="meta">オーナー</div></div>
-      <div class="row outset"><div>メール</div><div class="meta">user@example.com</div></div>
-      <div class="row outset" style="margin-top:16px"><div style="color:var(--danger)">ログアウト</div></div>
-      <p class="tiny muted" style="margin-top:16px">テーマは端末の外観設定に追従します。ここには切替がありません。</p>
+      <div class="row"><div>表示名</div><div class="meta">オーナー</div></div>
+      <div class="row"><div>メール</div><div class="meta">user@example.com</div></div>
+      <div class="row" style="margin-top:8px"><div style="color:var(--danger);font-weight:600">ログアウト</div></div>
+      <p class="tiny muted" style="margin-top:20px;padding:0 4px">テーマは端末の外観設定に追従します。ここには切替がありません。</p>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
@@ -503,8 +484,7 @@
     const id = params.get("s") || "home";
     if (params.get("theme") === "dark") document.documentElement.classList.add("dark");
     const el = document.getElementById(id);
-    if (el) el.classList.add("on");
-    else document.getElementById("home").classList.add("on");
+    (el || document.getElementById("home")).classList.add("on");
   </script>
 </body>
 </html>
