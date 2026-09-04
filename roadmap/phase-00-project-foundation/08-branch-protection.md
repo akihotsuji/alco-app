@@ -14,7 +14,7 @@
 ## 2. 前提条件
 
 - 0-01 完了
-- 0-07 の CI ワークフロー名が確定している（必須チェックに指定するため）。チェック名は **`lint / typecheck / test / audit`**（`.github/workflows/ci.yml` の job `check`）。0-07 が `main` に入ってから ruleset を有効化すると、必須チェックが pending のまま固まらない
+- 0-07 の CI ワークフロー名が確定している（必須チェックに指定するため）。チェック名は **`lint / typecheck / test / audit`**（`.github/workflows/ci.yml` の job `check`）。0-07 は `main` 済み
 - オーナーが GitHub リポジトリ管理者である（ruleset 作成に Administration 権限が必要）
 
 ## 3. スコープ

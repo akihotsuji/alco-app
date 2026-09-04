@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-03。`pnpm test` がパス） |
 | 要件 | 保守性（自動テスト）、計算ロジックの単体テスト前提 |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
@@ -85,16 +85,14 @@ CI では watch せず `vitest run` を使う（0-07）。
 - API テストに認可ケースを含める（Phase 2 以降）
 - 配置: `*.test.ts` をソース隣
 
-Workers 実行コンテキストが必要なテストは、後で `cloudflare:test` や Miniflare を検討。**要確認**: Phase 2 の API テストを Node 上の Hono で `app.request` するか、Workers テストハーネスにするか。本タスクでは決め、Phase 2-07 で踏襲する。
-
-推奨（シンプル）: Hono の `app.request()` を Node/Vitest で使う。D1 は後でモックまたは local D1。
+**FIX（0-06）**: Phase 2 の API テストは Node 上の Hono `app.request()` を使う。Workers ハーネス（`cloudflare:test` / Miniflare / `@cloudflare/vitest-pool-workers`）は使わない。D1 は後でモックまたは local D1。詳細は「12. FIX」。
 
 ## 8. 受け入れ条件
 
-- [ ] サンプルテスト 1 件以上が `pnpm test` でパス（Phase 0 DoD の一部）
-- [ ] CI から呼べる非インタラクティブ script がある
-- [ ] テストがソース隣の `*.test.ts` である
-- [ ] 本物のシークレットや本番 URL をテストに書いていない
+- [x] サンプルテスト 1 件以上が `pnpm test` でパス（Phase 0 DoD の一部）
+- [x] CI から呼べる非インタラクティブ script がある
+- [x] テストがソース隣の `*.test.ts` である
+- [x] 本物のシークレットや本番 URL をテストに書いていない
 
 ## 9. セキュリティ観点
 
@@ -111,3 +109,20 @@ Workers 実行コンテキストが必要なテストは、後で `cloudflare:te
 
 - Vite と Vitest のメジャー不一致で設定が壊れる。導入時の peer を確認する
 - `vitest`（watch）を CI に書くとジョブが終わらない。必ず `run`
+
+## 12. FIX（0-06）
+
+正本は [spec/02-tech-stack.md](../../spec/02-tech-stack.md) の「テスト（0-06 FIX）」。
+
+| 項目 | 決定 |
+|---|---|
+| ランナー | **Vitest 5.x**（導入時安定版。Vite 7 peer を満たす。実行には Node >= 22.12） |
+| 設定 | `vitest.config.ts` を Vite と分離（Cloudflare プラグインをテスト時に読まない） |
+| パスエイリアス | `@/` → `src/`。`vite.alias.ts` で Vite と共有 |
+| 実行環境 | Node。`environment: "node"` |
+| 配置 | `src/**/*.test.ts`（ソース隣） |
+| API テスト方針 | Hono の `app.request()` を Node / Vitest で使う。Workers ハーネスは使わない。D1 は後でモックまたは local D1（Phase 2-07 で踏襲） |
+| scripts | `test` = `vitest run`、`test:watch` = `vitest` |
+| Testing Library / jsdom | 本タスクでは入れない |
+| globals | 使わない。`import { describe, expect, it } from "vitest"` |
+| サンプル | `src/server/index.test.ts`（`GET /api/health` と未定義 `/api` の 404。0-04 の node:test から移行） |

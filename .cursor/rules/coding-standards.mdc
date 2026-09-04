@@ -14,7 +14,7 @@ alwaysApply: false
 
 ## API (Hono)
 
-- 全エンドポイントで認証ミドルウェアを通し、リソースアクセス時は必ず `userId` でスコープする
+- 全エンドポイントで認証ミドルウェアを通し、リソースアクセス時は必ず `userId` でスコープする。公開例外は `security` ルールと `spec/features/` に明記したものだけ（現状は `GET /api/health`）
 
 ```typescript
 // ❌ BAD: 他ユーザーのデータが取れてしまう

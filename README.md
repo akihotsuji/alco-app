@@ -57,13 +57,31 @@ pnpm exec wrangler dev --env dev
 pnpm typecheck
 pnpm lint
 pnpm format
+pnpm test
+pnpm audit --audit-level=high
 ```
 
 - `typecheck` … TypeScript strict（`tsc --noEmit`）
 - `lint` … Biome の lint / format チェック（書き込みなし）
 - `format` … Biome で整形してから再チェック
+- `test` … Vitest を非インタラクティブ実行（`vitest run`。CI もこれを呼ぶ）。監視は `pnpm test:watch`
+- `audit` … 依存の既知脆弱性。High 以上で失敗
 
 Workers の `Env` 型は `worker-configuration.d.ts`（`wrangler types --env dev`）。`wrangler.jsonc` を変えたら `pnpm cf-typegen` を再実行してコミットする。
+
+## CI
+
+PR と `main` への push で GitHub Actions（`.github/workflows/ci.yml`）が次を実行する。デプロイはしない。
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm audit --audit-level=high
+```
+
+lockfile が `package.json` と食い違うと `--frozen-lockfile` で失敗する。Cloudflare トークン等のシークレットは参照しない。
 
 ## ブランチ運用
 
@@ -71,7 +89,7 @@ Workers の `Env` 型は `worker-configuration.d.ts`（`wrangler types --env dev
 
 保護は GitHub の Repository ruleset `protect-main`（[`.github/rulesets/protect-main.json`](.github/rulesets/protect-main.json)）。bypass なし。force push と `main` の削除を禁止する。classic branch protection は使わない。
 
-適用はリポジトリ管理者が行う（エージェントのトークンでは 403）。0-07 の CI を `main` に入れたあと:
+適用はリポジトリ管理者が行う（エージェントのトークンでは 403）。0-07 の CI は `main` に入済み。適用コマンド:
 
 ```powershell
 gh api --method POST repos/akihotsuji/alco-app/rulesets --input .github/rulesets/protect-main.json
