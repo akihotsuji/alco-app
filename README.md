@@ -64,7 +64,7 @@ pnpm audit --audit-level=high
 - `typecheck` … TypeScript strict（`tsc --noEmit`）
 - `lint` … Biome の lint / format チェック（書き込みなし）
 - `format` … Biome で整形してから再チェック
-- `test` … `package.json` の `test` script（CI もこれを呼ぶ）
+- `test` … Vitest を非インタラクティブ実行（`vitest run`。CI もこれを呼ぶ）。監視は `pnpm test:watch`
 - `audit` … 依存の既知脆弱性。High 以上で失敗
 
 Workers の `Env` 型は `worker-configuration.d.ts`（`wrangler types --env dev`）。`wrangler.jsonc` を変えたら `pnpm cf-typegen` を再実行してコミットする。

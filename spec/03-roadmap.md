@@ -34,7 +34,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] Cloudflareアカウント作成、D1データベース・R2バケット作成（dev用）
 - [x] Vite + React + Hono + Cloudflare Workers の空プロジェクト作成（Hello Worldが `wrangler dev` で動く）
 - [x] TypeScript strict設定、Biome導入（lint / format）
-- [ ] Vitest導入（サンプルテスト1件がパスする）
+- [x] Vitest導入（サンプルテスト1件がパスする）
 - [x] GitHub Actions: PR時に lint / typecheck / test / `pnpm audit`（依存脆弱性チェック）を実行するCI
 - [ ] mainブランチ保護（CIパス必須、直接pushの禁止）
 - [x] `.cursor/rules/` の整備（下記）

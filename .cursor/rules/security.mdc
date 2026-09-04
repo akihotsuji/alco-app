@@ -10,6 +10,7 @@ alwaysApply: true
 ## 認可（最重要）
 
 - 全APIエンドポイントは認証ミドルウェアを通す。公開エンドポイントを作る場合は仕様書に明記し、オーナーの承認を得る
+- 公開例外（明記済み）: `GET /api/health`（`spec/features/health.md`）。Better Auth の `/api/auth/*` は Phase 2 で仕様に書いてから足す
 - リソースへのアクセスは必ずセッション由来の `userId` でスコープする（IDOR対策）。リクエストボディやURLの userId を信用しない
 
 ```typescript
