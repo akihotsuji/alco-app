@@ -7,14 +7,16 @@
 
 リポジトリ直下の `roadmap/`（既存の空フォルダを使用）。`spec/roadmap/` は存在しない。
 
-## 現状サマリー（2026-09-03）
+## 現状サマリー（2026-09-04）
 
 | 判定 | 内容 |
 |---|---|
 | **完了** | 0-01〜0-05、0-09。GitHub プライベート、`.gitignore`、Hello World、TypeScript strict / Biome、Cloudflare dev D1/R2、rules/skills |
-| **未着手** | 0-06 Vitest、0-07 CI（`.github/` なし）、0-08 ブランチ保護、Phase 1 以降の設計3点セット |
+| **未着手** | 0-06 Vitest、0-07 CI（`.github/` なし）、0-08 ブランチ保護、Phase 1 の 1-02 以降 |
+| **レビュー待ち** | 1-01 画面一覧とナビ（5 タブ確定。正本 `spec/screens.md`） |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
+| **FIX（2026-09-04）** | 下部タブは一旦 5 つ（ホーム / 記録 / セラー / ノート / 設定） |
 | **要確認（残）** | ブランチ保護（GitHub Free のプライベートでは classic protection が 403） |
 
 ## オーナー決定（2026-08-13 FIX）
@@ -27,6 +29,12 @@
 | UIテーマ | **端末・OSの外観設定に追従**（ライト／ダーク両方。アプリ内切替は持たない） |
 | グラスプリセット | 種類ごとの一般的な量・度数をデフォルト投入し、**記録ごとに修正できる**。数値は要件 1.2 の表 |
 | 日付境界 | **Asia/Tokyo**。保存は UTC、表示・日次集計・休肝日は JST カレンダー日 |
+
+## オーナー決定（2026-09-04 FIX）
+
+| 項目 | 決定 |
+|---|---|
+| 下部タブ | **一旦 5 つ**（ホーム / 記録 / セラー / ノート / 設定）。正本は [spec/screens.md](../spec/screens.md) |
 
 ## オーナー決定（2026-08-15 FIX）
 
@@ -51,7 +59,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | フェーズ | フォルダ | 目的 | 状態 |
 |---|---|---|---|
 | Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 部分完了 |
-| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API | 未着手 |
+| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API | 進行中 |
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有 | 未着手 |
 | Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・マイドリンク・サマリー） | 未着手 |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | 在庫CRUD・写真（R2） | 未着手 |
@@ -82,7 +90,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | 未着手 |
+| 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | レビュー待ち |
 | 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 未着手 |
 | 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 未着手 |
 | 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 未着手 |
