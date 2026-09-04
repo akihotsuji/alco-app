@@ -12,6 +12,7 @@ alwaysApply: true
 - `spec/01-requirements.md` — 要件定義
 - `spec/02-tech-stack.md` — 技術選定
 - `spec/03-roadmap.md` — ロードマップ
+- `spec/data-model.md` — ER・Drizzleスキーマ（アプリテーブルはすべて user_id スコープ）
 
 ## 技術スタック
 

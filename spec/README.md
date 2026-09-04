@@ -12,7 +12,7 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [02-tech-stack.md](02-tech-stack.md) | 技術選定と理由・リポジトリ構成・TypeScript/Biome・Cloudflare 環境・コスト見積り | 作成済み |
 | [03-roadmap.md](03-roadmap.md) | Phase 0〜8 の開発ロードマップ | 作成済み |
 | design-system.md | 配色・タイポグラフィ・コンポーネント方針 | Phase 1で作成 |
-| data-model.md | ER図・Drizzleスキーマ設計 | Phase 1で作成 |
+| [data-model.md](data-model.md) | ER図・Drizzleスキーマ設計 | 作成済み（1-04。承認は PR） |
 | api-design.md | APIエンドポイント一覧・認可ルール | Phase 1で作成 |
 | features/ | 機能ごとの詳細仕様（画面項目・バリデーション） | 各実装フェーズで作成 |
 | [features/health.md](features/health.md) | 公開 `GET /api/health`（認証なし） | 作成済み（0-04） |

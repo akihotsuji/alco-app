@@ -31,7 +31,7 @@
 
 **対象外（後続フェーズで追加）**
 
-- `database` / `ui-design`（Phase 1）
+- `database`（Phase 1-04 で作成済み） / `ui-design`（Phase 1-03）
 - `db-migration` / `api-conventions`（Phase 2）
 - `e2e-testing`（Phase 6）
 - `release`（Phase 7）

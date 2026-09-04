@@ -1,0 +1,56 @@
+---
+description: Drizzleスキーマ・マイグレーション・命名規約（D1）
+globs: src/db/**
+alwaysApply: false
+---
+
+# データベース規約
+
+正本は [spec/data-model.md](../../spec/data-model.md)。本ルールは `src/db/**` の実装制約。
+
+## マイグレーション
+
+- スキーマ変更は **drizzle-kit でマイグレーションを生成してから適用**する。共有 D1 への手書き `CREATE` / `ALTER` は禁止
+- 生成された SQL と `meta/_journal.json` は必ずコミットする
+- 適用済みマイグレーションを書き換えて履歴を改ざんしない。修正は新しい forward migration
+- down（ロールバック SQL）は使わない。D1 は新しい migration で直す
+- リモート本番 apply は Phase 7 まで行わない（2-01 はローカル D1 のみ）
+
+## 命名
+
+- DB のテーブル・列は **snake_case**
+- TypeScript / Drizzle のプロパティは **camelCase**（列名を明示マッピングする）
+- アプリテーブルは複数形（`drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`）
+- Better Auth のテーブル名はライブラリ既定（`user` 等）に合わせる。`usePlural: true` で Auth とアプリを無理に揃えない
+
+## 所有と外部キー
+
+- アプリ所有テーブルは必ず `user_id` を持つ。FK は Auth の `user.id`、`ON DELETE CASCADE`
+- クエリはセッション由来の `userId` でスコープする。ボディや URL の userId を信用しない
+- 更新・削除は `id` だけでなく `id + user_id` を条件にする
+- 削除時の子の扱いは data-model の表に従う（ログの `my_drink_id` / ノートの `bottle_id` は SET NULL、写真は CASCADE）
+
+## Better Auth
+
+- `user` / `session` / `account` / `verification` を手で再定義したり列を削ったりしない。CLI 生成物を正とする
+- アプリ用の `users` テーブルは作らない（二重管理禁止）
+- `account.password` をアプリの SELECT やログに出さない
+- 追加プロフィール列が必要なら Better Auth の `additionalFields` を使い、勝手に `user` を ALTER しない
+
+## SQL
+
+- クエリは Drizzle のビルダーのみ。文字列結合の生 SQL は禁止
+- `sql` テンプレートを使う場合、値は必ずプレースホルダで渡す
+- SQLite に CHECK を増やしすぎない。enum と写真の排他（bottle / note）以外の範囲・文字数は Zod を正とする
+
+## 型と enum
+
+- 瞬間時刻は `integer` + `{ mode: "timestamp_ms" }`（UTC ミリ秒）
+- カレンダー日は `text` の `YYYY-MM-DD`（Asia/Tokyo）。UTC 日付にしない
+- `drink_type` / `bottle status` の値は data-model と `src/shared` の Zod を一致させる
+
+## 禁止
+
+- マイグレーションやシードにパスワード・API キーを埋め込まない
+- ユーザー入力のファイル名を R2 キーやパスに使わない（`photos.r2_key` はサーバー生成）
+- `wrangler d1 execute` にユーザー入力を渡すスクリプトを置かない
