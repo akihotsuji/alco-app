@@ -13,7 +13,7 @@
 
 ## 2. 前提条件
 
-- 1-01 承認済みのタブ構成
+- 1-01 承認済みのタブ構成（正本: [spec/screens.md](../../spec/screens.md)）
 - 2-02 認証、2-04 Query（loading/error に接続）
 - 2-06 と順序: トークンがあると見た目が正しい。並行するなら未トークンの Tailwind でも可
 
@@ -54,7 +54,7 @@
 pnpm add react-router
 ```
 
-ルート案は 1-01 の表に従う。未決なら `/` `/logs` `/cellar` `/notes` `/settings`。
+ルートは [spec/screens.md](../../spec/screens.md) の表に従う（`/` `/logs` `/cellar` `/notes` `/settings` および配下）。
 
 Worker の SPA フォールバックが無いと `/logs` リロードが 404。0-04 の設定を確認して直す。
 
@@ -64,7 +64,7 @@ safe-area: `pb-safe` 相当をタブに足し、iPhone ホームバーと重な�
 
 ## 7. 仕様詳細
 
-- タブは常時表示（キーボードで入力画面が開いたときは **要確認**: 隠すか）
+- タブは一覧・詳細では常時表示。作成・編集画面では隠す（[spec/screens.md](../../spec/screens.md)）
 - 主アクションは画面内。FAB を足すかは 1-02 に従う
 - エラー文は汎用。「Failed to fetch」生出しを避ける
 - 設定タブにログアウト（2-02）を置く
@@ -85,6 +85,7 @@ safe-area: `pb-safe` 相当をタブに足し、iPhone ホームバーと重な�
 
 ## 10. 関連ファイル / 関連spec
 
+- 正本: [spec/screens.md](../../spec/screens.md)
 - [../phase-01-design/01-screens-navigation.md](../phase-01-design/01-screens-navigation.md)
 - [06-design-tokens-shadcn.md](06-design-tokens-shadcn.md)
 
