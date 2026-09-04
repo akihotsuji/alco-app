@@ -104,6 +104,16 @@ erDiagram
         integer updatedAt
     }
 
+    session {
+        text id PK
+        text userId FK
+    }
+
+    account {
+        text id PK
+        text userId FK
+    }
+
     drink_logs {
         text id PK
         text user_id FK
