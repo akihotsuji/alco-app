@@ -16,7 +16,7 @@
 | **レビュー待ち** | 1-01 ナビ、1-02 ワイヤー、1-03 デザインシステム（Win98 essences） |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
-| **FIX（2026-09-04）** | 下部タブは一旦 5 つ（ホーム / 記録 / セラー / ノート / 設定） |
+| **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は Win98 essences の部分適用（全面スキン禁止）。ゲーミフィケーションはスコア・押下・トーストまで |
 | **要確認（残）** | ブランチ保護（GitHub Free のプライベートでは classic protection が 403） |
 
 ## オーナー決定（2026-08-13 FIX）
