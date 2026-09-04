@@ -2,7 +2,26 @@
 
 Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何がどの順で並ぶか**を決める。色・フォント・影の数値は [design-system.md](design-system.md)（1-03）。ルートとタブは [screens.md](screens.md)。
 
-ツールは **Markdown の箱図**（Figma / 手描きは使わない）。ステータスバーは描かない。ダミー文言は架空（実データ・実名を載せない）。
+ツールは **Markdown の箱図**（配置の正本）と、質感確認用の静止画（[mocks/](wireframes/mocks/)）。ステータスバーは描かない。ダミー文言は架空（実データ・実名を載せない）。
+
+## 質感モック
+
+デザインシステムの HEX・べベルを HTML に落とし、390×844 で書き出したプレビュー。実装のピクセル指定ではない。ソースは [mocks/preview.html](wireframes/mocks/preview.html)。
+
+| 画面 | ファイル |
+|---|---|
+| ホーム（ライト） | [mocks/home.png](wireframes/mocks/home.png) |
+| ホーム（ダーク） | [mocks/home-dark.png](wireframes/mocks/home-dark.png) |
+| ホーム（1 タップ後トースト） | [mocks/home-toast.png](wireframes/mocks/home-toast.png) |
+| 記録入力 | [mocks/log-new.png](wireframes/mocks/log-new.png) |
+| 日別記録 | [mocks/log-day.png](wireframes/mocks/log-day.png) |
+| セラー一覧 | [mocks/cellar-list.png](wireframes/mocks/cellar-list.png) |
+| セラー詳細 | [mocks/cellar-detail.png](wireframes/mocks/cellar-detail.png) |
+| ノート一覧 | [mocks/note-list.png](wireframes/mocks/note-list.png) |
+| ノート詳細 | [mocks/note-detail.png](wireframes/mocks/note-detail.png) |
+| ノート作成 | [mocks/note-new.png](wireframes/mocks/note-new.png) |
+| ログイン | [mocks/login.png](wireframes/mocks/login.png) |
+| 設定 | [mocks/settings.png](wireframes/mocks/settings.png) |
 
 **Phase 2 以降の画面実装は、配置と優先順位についてこのファイルを正本にする。**
 
