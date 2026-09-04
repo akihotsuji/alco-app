@@ -64,4 +64,4 @@ const logs = await db.select().from(drinkLogs)
 ## 依存関係
 
 - 依存パッケージは最小限にする。追加時は必要性をPRに明記する
-- `pnpm audit` をCIで実行し、High以上の脆弱性があればマージしない
+- CI で lockfile の既知脆弱性を検査し（OSV-Scanner。npm の audit API は使わない）、検出があればマージしない。ローカル確認は `pnpm audit --audit-level=high` でもよい

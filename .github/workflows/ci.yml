@@ -43,5 +43,15 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # npm の /-/npm/v1/security/audits はソケットタイムアウトが多発する。
+      # OSV-Scanner は lockfile を OSV API に問い合わせ、既知脆弱性があれば非ゼロ終了する。
       - name: Audit dependencies
-        run: pnpm audit --audit-level=high
+        env:
+          OSV_SCANNER_VERSION: "2.5.1"
+          OSV_SCANNER_SHA256: "f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be"
+        run: |
+          curl -fsSL "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
+            -o /tmp/osv-scanner
+          echo "${OSV_SCANNER_SHA256}  /tmp/osv-scanner" | sha256sum -c -
+          chmod +x /tmp/osv-scanner
+          /tmp/osv-scanner scan source --lockfile=./pnpm-lock.yaml --format table

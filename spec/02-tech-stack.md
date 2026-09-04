@@ -104,8 +104,8 @@ alco-app/
 | pnpm | `package.json` の `packageManager`（`pnpm@10.11.0`）。`pnpm/action-setup@v6`（pnpm 10 向け。`pnpm/setup` は v11+） |
 | cache | `actions/setup-node` の `cache: pnpm` |
 | install | `pnpm install --frozen-lockfile`（lockfile 不一致は失敗） |
-| コマンド | `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm audit --audit-level=high` |
-| audit | High 以上の脆弱性で失敗。例外を黙って無視しない |
+| コマンド | `pnpm lint` / `pnpm typecheck` / `pnpm test` / OSV-Scanner（`pnpm-lock.yaml`） |
+| audit | lockfile の既知脆弱性があれば失敗。npm の `/-/npm/v1/security/audits` は使わない（ソケットタイムアウトが多発するため）。例外を黙って無視しない |
 | 権限 | `permissions.contents: read` のみ。`pull_request_target` は使わない |
 | 禁止 | デプロイ、`CLOUDFLARE_API_TOKEN`、Better Auth secret の参照 |
 | ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェックにこの名前を指定する） |

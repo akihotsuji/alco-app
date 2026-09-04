@@ -9,7 +9,7 @@
 
 ## 1. 概要
 
-PR ごとに lint / typecheck / test / `pnpm audit` を走らせ、壊れたコードを `main` に入れない。デプロイは Phase 7-02。本タスクは **検証のみ**。
+PR ごとに lint / typecheck / test / 依存監査（OSV-Scanner）を走らせ、壊れたコードを `main` に入れない。デプロイは Phase 7-02。本タスクは **検証のみ**。
 
 ## 2. 前提条件
 
@@ -129,8 +129,8 @@ permissions: デフォルトの `contents: read` で足りる。`pull-requests: 
 | pnpm 10 | `pnpm/action-setup` を使う（`pnpm/setup` は pnpm 11+）。version 入力は省略し `packageManager` を正とする |
 | Node | `.node-version`（22）。`cache: pnpm` は setup-node 側 |
 | install | `pnpm install --frozen-lockfile` |
-| 実行順 | `lint` → `typecheck` → `test` → `audit --audit-level=high` |
-| audit | pnpm 10.11 の `--audit-level=high`。High 以上で非ゼロ終了。黙って `--no-audit` しない |
+| 実行順 | `lint` → `typecheck` → `test` → OSV-Scanner（lockfile） |
+| audit | CI は **OSV-Scanner v2.5.1**（SHA256 固定）で `pnpm-lock.yaml` を検査。既知脆弱性があれば非ゼロ終了。npm の `/-/npm/v1/security/audits` は使わない（ソケットタイムアウトが多発）。黙って監査を外さない。ローカルは `pnpm audit --audit-level=high` でも可 |
 | 権限 | `contents: read`。`pull_request_target` 不使用。シークレット・デプロイなし |
 | ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェック名） |
 | 前提の緩和 | 0-06（Vitest）未マージでも、既存の `pnpm test` を CI が呼ぶ。ランナー差し替え後も script 名は変えない |
