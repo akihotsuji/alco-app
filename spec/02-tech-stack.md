@@ -71,13 +71,59 @@ alco-app/
 | tsconfig | **単一**。client / worker の型衝突が出たら分割する |
 | strict | `strict: true`。`noUncheckedIndexedAccess` も **true**（後から入れると差分が大きい） |
 | `skipLibCheck` | ライブラリ型のため許可 |
-| パスエイリアス | `@/` → `src/`。`tsconfig.json` の `paths` と `vite.config.ts` の `resolve.alias` の両方に書く |
+| パスエイリアス | `@/` → `src/`。`tsconfig.json` の `paths` と `vite.alias.ts`（Vite / Vitest で共有。0-06） |
 | Workers 型 | `wrangler types --env dev` が生成する `worker-configuration.d.ts` を `compilerOptions.types` に入れる。`@cloudflare/workers-types` は使わない |
 | 型の再生成 | `wrangler.jsonc` 変更後は `pnpm cf-typegen`。生成ファイルはコミットする（中身は binding 名と runtime 型のみ。秘密は含めない） |
 | Lint / Format | **Biome のみ**（ESLint / Prettier は入れない） |
 | 対象 / 除外 | 対象は `src/` とルートの設定ファイル。`spec/`・`roadmap/`・`dist`・`.wrangler`・生成型ファイルは対象外 |
 | フォーマット | インデント 2 スペース、二重引用符、セミコロンあり、行長 100、`organizeImports` 有効 |
 | scripts | `pnpm typecheck`（`tsc --noEmit`）/ `pnpm lint`（`biome check .`）/ `pnpm format`（`biome check --write .`） |
+
+## テスト（0-06 FIX）
+
+| 項目 | 決定 |
+|---|---|
+| ランナー | **Vitest 5.x**（導入時の安定版。Vite 7 の peer を満たす。実行には Node >= 22.12。Testing Library / jsdom は入れない） |
+| 設定 | `vitest.config.ts` を **Vite 設定と分離**。`@cloudflare/vite-plugin` をテスト時に読まない |
+| パスエイリアス | `@/` → `src/`。`vite.alias.ts` の `srcAlias` を Vite と Vitest で共有。`tsconfig.json` の `paths` も同じ |
+| 実行環境 | **Node**（`environment: "node"`）。Workers ハーネスは使わない |
+| 配置 | `src/**/*.test.ts`（ソース隣。coding-standards どおり） |
+| API テスト方針 | Hono の **`app.request()` を Node / Vitest で使う**。`cloudflare:test` / Miniflare / `@cloudflare/vitest-pool-workers` は使わない。D1 が必要になったらモックまたは local D1（Phase 2-07 で踏襲） |
+| scripts | `pnpm test` = `vitest run`（CI 向け・非インタラクティブ）。`pnpm test:watch` = `vitest`（監視。CI には書かない） |
+| globals | 使わない。`import { describe, expect, it } from "vitest"` |
+
+## CI（0-07 FIX）
+
+検証のみ。デプロイは Phase 7-02。正本は [roadmap/phase-00-project-foundation/07-github-actions-ci.md](../roadmap/phase-00-project-foundation/07-github-actions-ci.md)。
+
+| 項目 | 決定 |
+|---|---|
+| ワークフロー | `.github/workflows/ci.yml`（1 ファイル） |
+| 起動 | `pull_request` と `push` to `main` |
+| Node | `.node-version`（22）。`actions/setup-node` の `node-version-file` |
+| pnpm | `package.json` の `packageManager`（`pnpm@10.11.0`）。`pnpm/action-setup@v6`（pnpm 10 向け。`pnpm/setup` は v11+） |
+| cache | `actions/setup-node` の `cache: pnpm` |
+| install | `pnpm install --frozen-lockfile`（lockfile 不一致は失敗） |
+| コマンド | `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm audit --audit-level=high` |
+| audit | High 以上の脆弱性で失敗。例外を黙って無視しない |
+| 権限 | `permissions.contents: read` のみ。`pull_request_target` は使わない |
+| 禁止 | デプロイ、`CLOUDFLARE_API_TOKEN`、Better Auth secret の参照 |
+| ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェックにこの名前を指定する） |
+
+## ブランチ運用（0-08 FIX）
+
+正本は [roadmap/phase-00-project-foundation/08-branch-protection.md](../roadmap/phase-00-project-foundation/08-branch-protection.md)。
+
+| 項目 | 決定 |
+|---|---|
+| 手段 | Repository ruleset `protect-main`（classic protection は使わない） |
+| 定義 | [`.github/rulesets/protect-main.json`](../.github/rulesets/protect-main.json) |
+| 対象 | デフォルトブランチ `main` |
+| 禁止 | 直接 push、force push、`main` 削除 |
+| PR | 必須。承認 0 人。マージは squash のみ |
+| 必須チェック | `lint / typecheck / test / audit`（0-07） |
+| bypass | なし |
+| 適用 | オーナーが Administration で作成。エージェントトークンでは 403 |
 
 ## 環境（Cloudflare）
 

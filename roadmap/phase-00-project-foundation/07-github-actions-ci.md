@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **未着手**（`.github/` なし） |
+| ステータス | **完了**（2026-09-03。`.github/workflows/ci.yml`） |
 | 要件 | 保守性、依存脆弱性（security.mdc の `pnpm audit`） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
@@ -13,7 +13,7 @@ PR ごとに lint / typecheck / test / `pnpm audit` を走らせ、壊れたコ�
 
 ## 2. 前提条件
 
-- 0-04〜0-06 完了（scripts が存在する）
+- 0-04〜0-05 完了。`pnpm lint` / `pnpm typecheck` / `pnpm test` が存在する（0-06 の Vitest 移行前でも `pnpm test` があれば可）
 - 0-01 の GitHub リポジトリ
 - pnpm lockfile がある（`pnpm install --frozen-lockfile` のため）
 
@@ -35,13 +35,13 @@ PR ごとに lint / typecheck / test / `pnpm audit` を走らせ、壊れたコ�
 
 - `.github/workflows/ci.yml`
 - README に「CI が見ているコマンド」を列挙
-- （任意）PR テンプレート。必須ではない
+- （任意）PR テンプレート。必須ではない → 作らない
 
 ## 5. 細分化タスク
 
 1. pnpm の公式 Action 手順で cache 付き install を書く
 2. `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm audit` を順に実行する
-3. audit の終了コード方針を決める（High 以上で失敗。**要確認**: `--audit-level high`）
+3. audit の終了コード方針を決める（High 以上で失敗。`--audit-level=high`）
 4. feature ブランチでダミー PR を作り、グリーンを確認する
 5. ロードマップチェックを更新する
 
@@ -91,11 +91,11 @@ permissions: デフォルトの `contents: read` で足りる。`pull-requests: 
 
 ## 8. 受け入れ条件
 
-- [ ] PR で CI が走る（Phase 0 DoD）
-- [ ] lint / typecheck / test がパスする
-- [ ] `pnpm audit` がワークフローに含まれる
-- [ ] lockfile なし install（`--frozen-lockfile` 違反）が CI で失敗する
-- [ ] デプロイやシークレット参照がない
+- [x] PR で CI が走る（Phase 0 DoD）
+- [x] lint / typecheck / test がパスする
+- [x] `pnpm audit` がワークフローに含まれる
+- [x] lockfile なし install（`--frozen-lockfile` 違反）が CI で失敗する
+- [x] デプロイやシークレット参照がない
 
 ## 9. セキュリティ観点
 
@@ -105,6 +105,8 @@ permissions: デフォルトの `contents: read` で足りる。`pull-requests: 
 
 ## 10. 関連ファイル / 関連spec
 
+- [.github/workflows/ci.yml](../../.github/workflows/ci.yml)
+- [spec/02-tech-stack.md](../../spec/02-tech-stack.md)（CI 0-07 FIX）
 - [.cursor/rules/security.mdc](../../.cursor/rules/security.mdc)
 - [.cursor/rules/development-workflow.mdc](../../.cursor/rules/development-workflow.mdc)
 - 次: [08-branch-protection.md](08-branch-protection.md)
@@ -114,3 +116,21 @@ permissions: デフォルトの `contents: read` で足りる。`pull-requests: 
 - Windows ローカルと `ubuntu-latest` の差。パス区切りに依存しない
 - 無料 Actions 分を Playwright まで同時に走らせると後で逼迫する。本タスクでは軽量ジョブに留める
 - `main` 直 push がまだ可能な間は CI の意味が半減する → すぐ 0-08
+
+## 12. FIX（0-07）
+
+正本は [spec/02-tech-stack.md](../../spec/02-tech-stack.md) の「CI」。
+
+| 項目 | 決定 |
+|---|---|
+| ファイル | `.github/workflows/ci.yml` のみ。PR テンプレートは作らない |
+| 起動 | `pull_request` と `push` to `main`。`concurrency` で同一 ref の古い run をキャンセル |
+| Actions | `actions/checkout@v7` / `pnpm/action-setup@v6` / `actions/setup-node@v7` |
+| pnpm 10 | `pnpm/action-setup` を使う（`pnpm/setup` は pnpm 11+）。version 入力は省略し `packageManager` を正とする |
+| Node | `.node-version`（22）。`cache: pnpm` は setup-node 側 |
+| install | `pnpm install --frozen-lockfile` |
+| 実行順 | `lint` → `typecheck` → `test` → `audit --audit-level=high` |
+| audit | pnpm 10.11 の `--audit-level=high`。High 以上で非ゼロ終了。黙って `--no-audit` しない |
+| 権限 | `contents: read`。`pull_request_target` 不使用。シークレット・デプロイなし |
+| ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェック名） |
+| 前提の緩和 | 0-06（Vitest）未マージでも、既存の `pnpm test` を CI が呼ぶ。ランナー差し替え後も script 名は変えない |

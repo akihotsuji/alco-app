@@ -11,13 +11,13 @@
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-05、0-09。GitHub プライベート、`.gitignore`、Hello World、TypeScript strict / Biome、Cloudflare dev D1/R2、rules/skills |
-| **未着手** | 0-06 Vitest、0-07 CI（`.github/` なし）、0-08 ブランチ保護、Phase 1 の 1-02 以降 |
-| **レビュー待ち** | 1-01 画面一覧とナビ（5 タブ確定。正本 `spec/screens.md`） |
+| **完了** | 0-01〜0-07、0-09、1-01。`.gitignore`、Hello World、TypeScript strict / Biome、Vitest、Cloudflare dev D1/R2、CI（lint / typecheck / test / audit）、rules/skills、画面一覧とナビ（5 タブ。正本 `spec/screens.md`） |
+| **部分完了** | 0-08 ブランチ保護（ruleset 方針と JSON は済み。GitHub 未適用） |
+| **未着手** | Phase 1 の 1-02 以降 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ（ホーム / 記録 / セラー / ノート / 設定） |
-| **要確認（残）** | ブランチ保護（GitHub Free のプライベートでは classic protection が 403） |
+| **要確認（残）** | 0-08 の ruleset 適用（オーナー）。リポジトリ可視性（0-01 は private、現状 public） |
 
 ## オーナー決定（2026-08-13 FIX）
 
@@ -81,16 +81,16 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 0-03 | Cloudflareアカウント作成、D1・R2作成（dev用） | [03-cloudflare-dev-resources.md](phase-00-project-foundation/03-cloudflare-dev-resources.md) | 完了 |
 | 0-04 | Vite + React + Hono + Workers の空プロジェクト | [04-hello-world-scaffold.md](phase-00-project-foundation/04-hello-world-scaffold.md) | 完了 |
 | 0-05 | TypeScript strict、Biome導入 | [05-typescript-biome.md](phase-00-project-foundation/05-typescript-biome.md) | 完了 |
-| 0-06 | Vitest導入 | [06-vitest.md](phase-00-project-foundation/06-vitest.md) | 未着手 |
-| 0-07 | GitHub Actions CI（lint / typecheck / test / audit） | [07-github-actions-ci.md](phase-00-project-foundation/07-github-actions-ci.md) | 未着手 |
-| 0-08 | mainブランチ保護 | [08-branch-protection.md](phase-00-project-foundation/08-branch-protection.md) | 未着手 |
+| 0-06 | Vitest導入 | [06-vitest.md](phase-00-project-foundation/06-vitest.md) | 完了 |
+| 0-07 | GitHub Actions CI（lint / typecheck / test / audit） | [07-github-actions-ci.md](phase-00-project-foundation/07-github-actions-ci.md) | 完了 |
+| 0-08 | mainブランチ保護 | [08-branch-protection.md](phase-00-project-foundation/08-branch-protection.md) | 部分完了 |
 | 0-09 | `.cursor/rules/` の整備 | [09-cursor-rules-skills.md](phase-00-project-foundation/09-cursor-rules-skills.md) | 完了 |
 
 ### Phase 1（6タスク）
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | レビュー待ち |
+| 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | 完了 |
 | 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 未着手 |
 | 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 未着手 |
 | 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 未着手 |

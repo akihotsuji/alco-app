@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 1 設計 |
-| ステータス | **レビュー待ち**（成果物: [spec/screens.md](../../spec/screens.md)） |
+| ステータス | **完了**（成果物: [spec/screens.md](../../spec/screens.md)） |
 | 要件 | モバイルファースト、下部タブ想定（[spec/03-roadmap.md](../../spec/03-roadmap.md)、[spec/00-overview.md](../../spec/00-overview.md)） |
 | ソース | Phase 1 デザイン「画面一覧とナビゲーション構造の決定」 |
 

@@ -9,7 +9,7 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 |---|---|---|
 | [00-overview.md](00-overview.md) | プロダクト概要・確定した前提条件・スコープ | 作成済み |
 | [01-requirements.md](01-requirements.md) | 機能要件（MVP / v1.x）・非機能要件 | 作成済み |
-| [02-tech-stack.md](02-tech-stack.md) | 技術選定と理由・リポジトリ構成・TypeScript/Biome・Cloudflare 環境・コスト見積り | 作成済み |
+| [02-tech-stack.md](02-tech-stack.md) | 技術選定と理由・リポジトリ構成・TypeScript/Biome・テスト・CI・ブランチ運用・Cloudflare 環境・コスト見積り | 作成済み |
 | [03-roadmap.md](03-roadmap.md) | Phase 0〜8 の開発ロードマップ | 作成済み |
 | [screens.md](screens.md) | 画面一覧・下部タブ・認証境界・入場経路（Phase 2-05 の正本） | 作成済み（1-01） |
 | design-system.md | 配色・タイポグラフィ・コンポーネント方針 | Phase 1で作成 |
