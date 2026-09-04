@@ -7,16 +7,17 @@
 
 リポジトリ直下の `roadmap/`（既存の空フォルダを使用）。`spec/roadmap/` は存在しない。
 
-## 現状サマリー（2026-09-03）
+## 現状サマリー（2026-09-04）
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-05、0-09。GitHub プライベート、`.gitignore`、Hello World、TypeScript strict / Biome、Cloudflare dev D1/R2、rules/skills |
-| **未着手** | 0-06 Vitest、0-07 CI（`.github/` なし）、0-08 ブランチ保護、Phase 1 の 1-01〜1-03 / 1-05 / 1-06 |
-| **レビュー待ち** | 1-04 ER / Drizzle（`spec/data-model.md`、`database` ルール） |
+| **完了** | 0-01〜0-07、0-09、1-01〜1-04。`.gitignore`、Hello World、TypeScript strict / Biome、Vitest、Cloudflare dev D1/R2、CI（lint / typecheck / test / audit）、rules/skills、画面一覧とナビ、ワイヤー、デザインシステム（ニューモーフィズム）、データモデル（`spec/data-model.md`、`database` ルール） |
+| **部分完了** | 0-08 ブランチ保護（ruleset 方針と JSON は済み。GitHub 未適用） |
+| **未着手** | Phase 1 の 1-05 / 1-06 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
-| **要確認（残）** | ブランチ保護（GitHub Free のプライベートでは classic protection が 403） |
+| **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**（Win98 方針は破棄）。ゲーミフィケーションはスコア・押下・トーストまで |
+| **要確認（残）** | 0-08 の ruleset 適用（オーナー）。リポジトリ可視性（0-01 は private、現状 public） |
 
 ## オーナー決定（2026-08-13 FIX）
 
@@ -28,6 +29,13 @@
 | UIテーマ | **端末・OSの外観設定に追従**（ライト／ダーク両方。アプリ内切替は持たない） |
 | グラスプリセット | 種類ごとの一般的な量・度数をデフォルト投入し、**記録ごとに修正できる**。数値は要件 1.2 の表 |
 | 日付境界 | **Asia/Tokyo**。保存は UTC、表示・日次集計・休肝日は JST カレンダー日 |
+
+## オーナー決定（2026-09-04 FIX）
+
+| 項目 | 決定 |
+|---|---|
+| 下部タブ | **一旦 5 つ**（ホーム / 記録 / セラー / ノート / 設定）。正本は [spec/screens.md](../spec/screens.md) |
+| 見た目 | **ニューモーフィズム**。主アクションはワイン系の塗り。Win98 / ヴェイパーは不採用。ゲーミフィケーションはスコア・押下・短いトーストまで |
 
 ## オーナー決定（2026-08-15 FIX）
 
@@ -52,7 +60,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | フェーズ | フォルダ | 目的 | 状態 |
 |---|---|---|---|
 | Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 部分完了 |
-| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API | 部分着手（1-04 レビュー待ち） |
+| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API | 進行中（1-01〜1-04 完了） |
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有 | 未着手 |
 | Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・マイドリンク・サマリー） | 未着手 |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | 在庫CRUD・写真（R2） | 未着手 |
@@ -74,19 +82,19 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 0-03 | Cloudflareアカウント作成、D1・R2作成（dev用） | [03-cloudflare-dev-resources.md](phase-00-project-foundation/03-cloudflare-dev-resources.md) | 完了 |
 | 0-04 | Vite + React + Hono + Workers の空プロジェクト | [04-hello-world-scaffold.md](phase-00-project-foundation/04-hello-world-scaffold.md) | 完了 |
 | 0-05 | TypeScript strict、Biome導入 | [05-typescript-biome.md](phase-00-project-foundation/05-typescript-biome.md) | 完了 |
-| 0-06 | Vitest導入 | [06-vitest.md](phase-00-project-foundation/06-vitest.md) | 未着手 |
-| 0-07 | GitHub Actions CI（lint / typecheck / test / audit） | [07-github-actions-ci.md](phase-00-project-foundation/07-github-actions-ci.md) | 未着手 |
-| 0-08 | mainブランチ保護 | [08-branch-protection.md](phase-00-project-foundation/08-branch-protection.md) | 未着手 |
+| 0-06 | Vitest導入 | [06-vitest.md](phase-00-project-foundation/06-vitest.md) | 完了 |
+| 0-07 | GitHub Actions CI（lint / typecheck / test / audit） | [07-github-actions-ci.md](phase-00-project-foundation/07-github-actions-ci.md) | 完了 |
+| 0-08 | mainブランチ保護 | [08-branch-protection.md](phase-00-project-foundation/08-branch-protection.md) | 部分完了 |
 | 0-09 | `.cursor/rules/` の整備 | [09-cursor-rules-skills.md](phase-00-project-foundation/09-cursor-rules-skills.md) | 完了 |
 
 ### Phase 1（6タスク）
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | 未着手 |
-| 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 未着手 |
-| 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 未着手 |
-| 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | レビュー待ち |
+| 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | 完了 |
+| 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 完了 |
+| 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 完了 |
+| 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 完了 |
 | 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 未着手 |
 | 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | 未着手 |
 

@@ -2,7 +2,7 @@
 
 Phase 1-04 の成果物。Phase 2-01（Drizzle 実装・マイグレーション）の正本。
 
-- 状態: **レビュー待ち**（本ドキュメントのマージをもってオーナー承認とする）
+- 状態: **承認済み**（main マージ）
 - ソース: [spec/01-requirements.md](01-requirements.md)、[roadmap/phase-01-design/04-er-drizzle-schema.md](../roadmap/phase-01-design/04-er-drizzle-schema.md)
 - 実装ルール: [`.cursor/rules/database.mdc`](../.cursor/rules/database.mdc)
 

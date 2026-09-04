@@ -18,7 +18,7 @@ alwaysApply: true
 
 - TypeScript (strict) / Hono / Vite + React SPA / React Router / TanStack Query + Hono RPC
 - Tailwind CSS + shadcn/ui / Zod / Drizzle ORM
-- Cloudflare Workers + D1 (SQLite) + R2、無料枠内で運用
+- Cloudflare Workers + D1 (SQLite) + R2、無料枠内で運用。開発は wrangler の `env.dev`（`--env dev`）
 - Biome (lint/format) / Vitest / Playwright / GitHub Actions
 
 ## ディレクトリ構成

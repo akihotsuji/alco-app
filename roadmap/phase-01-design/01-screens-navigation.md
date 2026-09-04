@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 1 設計 |
-| ステータス | **未着手** |
+| ステータス | **完了**（成果物: [spec/screens.md](../../spec/screens.md)） |
 | 要件 | モバイルファースト、下部タブ想定（[spec/03-roadmap.md](../../spec/03-roadmap.md)、[spec/00-overview.md](../../spec/00-overview.md)） |
 | ソース | Phase 1 デザイン「画面一覧とナビゲーション構造の決定」 |
 
@@ -34,7 +34,7 @@
 
 ## 4. 成果物
 
-- `spec/features/navigation.md` または `spec/screens.md`（**要確認**: ファイル名。未指定なら `spec/screens.md` を推奨）
+- [spec/screens.md](../../spec/screens.md)（ファイル名は推奨どおり確定）
 - 画面 ID 一覧（後の API・テストで参照できる短い slug）
 
 ## 5. 細分化タスク
@@ -74,9 +74,9 @@
 | notes | ノート | `/notes` | ノート一覧 |
 | settings | 設定 | `/settings` | ログアウト、アカウント |
 
-**要確認**
+**確定（2026-09-04）**
 
-- ホームと記録を分けるか。毎日使うなら「記録」を中央の主タブにする案
+- 5 タブを維持。ホームと記録は分ける。記録タブ中央案は不採用（詳細は [spec/screens.md](../../spec/screens.md)）
 - タブアイコン（絵文字禁止で SVG にする等）は 1-03
 
 ### サブ画面
@@ -86,10 +86,11 @@
 | log-day | 日別記録 | 記録 |
 | log-new | 記録入力 | 記録 |
 | log-edit | 記録編集 | 記録 |
-| mydrink-list | マイドリンク一覧 | 記録 or 設定 |
-| mydrink-new | マイドリンク登録 | |
-| summary-week | 週サマリー | ホーム or 記録 |
-| summary-month | 月サマリー | ホーム or 記録 |
+| mydrink-list | マイドリンク一覧 | 記録 |
+| mydrink-new | マイドリンク登録 | 記録 |
+| mydrink-edit | マイドリンク編集 | 記録 |
+| summary-week | 週サマリー | ホーム |
+| summary-month | 月サマリー | ホーム |
 | bottle-list | ボトル一覧 | セラー |
 | bottle-detail | ボトル詳細 | セラー |
 | bottle-new / bottle-edit | 登録・編集 | セラー |
@@ -102,16 +103,16 @@
 ### 設定に含める MVP
 
 - ログアウト
-- （任意）表示名。**要確認**
+- 表示名（任意項目。独立画面は作らない）
 - 招待コード入力は置かない（招待制は採用しない）
 
 ## 8. 受け入れ条件
 
-- [ ] 画面一覧がファイルになっている
-- [ ] タブ構成がオーナー承認済み
-- [ ] MVP と v1.x が混線していない
-- [ ] 未ログイン時の遷移が書いてある
-- [ ] security: 画面があっても API はサーバー認可が正（ナビは隠蔽に使わない）
+- [x] 画面一覧がファイルになっている（[spec/screens.md](../../spec/screens.md)）
+- [x] タブ構成がオーナー承認済み（2026-09-04: 5 タブ）
+- [x] MVP と v1.x が混線していない
+- [x] 未ログイン時の遷移が書いてある
+- [x] security: 画面があっても API はサーバー認可が正（ナビは隠蔽に使わない）
 
 ## 9. セキュリティ観点
 
@@ -120,6 +121,7 @@
 
 ## 10. 関連ファイル / 関連spec
 
+- 正本: [spec/screens.md](../../spec/screens.md)（Phase 2-05 もこれを正とする）
 - [spec/01-requirements.md](../../spec/01-requirements.md)
 - 次: [02-wireframes.md](02-wireframes.md)
 - 実装: [../phase-02-platform/05-common-layout.md](../phase-02-platform/05-common-layout.md)

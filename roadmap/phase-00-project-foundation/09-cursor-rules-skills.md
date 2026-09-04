@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **完了**（記載分はリポジトリにコミット済み。ロードマップのチェックは未更新） |
+| ステータス | **完了**（2026-09-03 再確認。4 rules + 2 skills。ロードマップチェック済み） |
 | 要件 | AI エージェント主導（[spec/00-overview.md](../../spec/00-overview.md)） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 rules / skills |
 
@@ -31,7 +31,8 @@
 
 **対象外（後続フェーズで追加）**
 
-- `database`（Phase 1-04 で作成済み） / `ui-design`（Phase 1-03）
+- `database`（Phase 1-04 で作成済み: `.cursor/rules/database.mdc`）
+- `ui-design`（Phase 1-03 で追加済み: `.cursor/rules/ui-design.mdc`）
 - `db-migration` / `api-conventions`（Phase 2）
 - `e2e-testing`（Phase 6）
 - `release`（Phase 7）
@@ -77,7 +78,7 @@ rules はエージェントへの強制力、spec はプロダクトの正本。
 ## 8. 受け入れ条件
 
 - [x] Phase 0 記載の 4 rules + 2 skills がコミットされている（Phase 0 DoD）
-- [ ] `spec/03-roadmap.md` のチェック更新
+- [x] `spec/03-roadmap.md` のチェック更新
 - [x] `coding-standards` に globs がある
 - [x] security-audit が PR 前必須と DoD に書かれている
 
@@ -98,3 +99,18 @@ rules はエージェントへの強制力、spec はプロダクトの正本。
 - ルールが長すぎるとエージェントが一部を落とす。追加はフェーズごとに最小限
 - `alwaysApply: true` を増やしすぎない。`database` は `src/db/**` に globs する
 - 完了済みでも、後続フェーズで rules と spec が矛盾したら同じ変更で直す
+
+## 12. FIX（0-09）
+
+2026-09-03 再確認。後続フェーズ用の空ルールは増やさない。
+
+| ファイル | alwaysApply / globs | 確認 |
+|---|---|---|
+| `project-context.mdc` | alwaysApply | 3 コア、Hono/Vite/D1/R2、`src/client\|server\|db\|shared`。`env.dev` を追記 |
+| `development-workflow.mdc` | alwaysApply | 仕様駆動、ブランチ、日本語コミット、DoD 5 項 |
+| `security.mdc` | alwaysApply | userId スコープ、Zod、R2 非公開、シークレット。公開例外に `GET /api/health` を明記 |
+| `coding-standards.mdc` | globs `**/*.ts,**/*.tsx` | テストは隣の `*.test.ts`。公開例外は security / spec に従う |
+| `feature-dev/SKILL.md` | — | shared → db → server → client |
+| `security-audit/SKILL.md` | — | Critical でマージ不可、報告フォーマット。攻撃 PoC を書かない |
+
+`spec/03-roadmap.md` の「`.cursor/rules/` の整備」は `[x]`。

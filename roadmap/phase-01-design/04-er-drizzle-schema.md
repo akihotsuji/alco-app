@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 1 設計 |
-| ステータス | **レビュー待ち**（`spec/data-model.md` 作成済み。マージをもって承認） |
+| ステータス | **完了**（`spec/data-model.md` 承認済み） |
 | 要件 | 全データ user_id スコープ、テーブル候補はロードマップ記載 |
 | ソース | Phase 1「users / drink_logs / my_drinks / bottles / tasting_notes / photos」 |
 
@@ -121,7 +121,7 @@ Workers で `crypto.randomUUID()` が使える。**推奨 UUID v4。要確認**�
 
 ## 8. 受け入れ条件
 
-- [x] `spec/data-model.md` 作成済み（承認は PR）
+- [x] `spec/data-model.md` 承認済み
 - [x] 全アプリテーブルに user_id（Auth はライブラリ管理と明記）
 - [x] enum 値が要件の種類・ステータスと一致
 - [x] 写真の所有者が user_id で辿れる

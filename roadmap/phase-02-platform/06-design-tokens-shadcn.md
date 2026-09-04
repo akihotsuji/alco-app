@@ -66,7 +66,8 @@ OS の外観設定に追従する（2026-08-13 確定）。`:root` にライト�
 
 - 色は CSS 変数経由。`bg-[#123]` 禁止（ui-design）
 - 角丸・余白はトークン
-- フォントは 1-03 の決定に従う。未決ならシステムスタック
+- フォントは 1-03 確定のシステムスタック。Web フォント CDN は足さない
+- shadcn は Default + Stone。ニューモーフィズムの `--shadow-outset` / `--shadow-inset` / `--shadow-primary` で上書きする。色帯ヘッダーは置かない
 
 **要確認**: Tailwind v4 の `@theme` と shadcn の互換。導入時点のドキュメントを正とする。
 
