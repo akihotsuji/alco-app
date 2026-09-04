@@ -17,7 +17,7 @@ jobs:
   check:
     name: lint / typecheck / test / audit
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -43,18 +43,15 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # npm の /-/npm/v1/security/audits はソケットタイムアウトが多発する。
+      # OSV-Scanner は lockfile を OSV API に問い合わせ、既知脆弱性があれば非ゼロ終了する。
       - name: Audit dependencies
+        env:
+          OSV_SCANNER_VERSION: "2.5.1"
+          OSV_SCANNER_SHA256: "f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be"
         run: |
-          # npm の audit API がソケットタイムアウトすることがある（pnpm 内部リトライでも不足）。
-          # 脆弱性検知自体は落とさず、通信失敗時だけワークフロー側で再試行する。
-          for attempt in 1 2 3; do
-            if pnpm audit --audit-level=high; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "pnpm audit failed after 3 attempts"
-              exit 1
-            fi
-            echo "pnpm audit failed (attempt ${attempt}/3). Retrying..."
-            sleep 30
-          done
+          curl -fsSL "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
+            -o /tmp/osv-scanner
+          echo "${OSV_SCANNER_SHA256}  /tmp/osv-scanner" | sha256sum -c -
+          chmod +x /tmp/osv-scanner
+          /tmp/osv-scanner scan source --lockfile=./pnpm-lock.yaml --format table
