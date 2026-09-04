@@ -14,7 +14,7 @@
 ## 2. 前提条件
 
 - 3-02 の作成 API
-- 1-06 の日付境界（**Asia/Tokyo**。2026-08-13 確定）
+- [alcohol-calculation.md](../../spec/features/alcohol-calculation.md) の日付境界（**Asia/Tokyo**。2026-08-13 確定）
 - 共通レイアウトの記録タブ
 
 ## 3. スコープ

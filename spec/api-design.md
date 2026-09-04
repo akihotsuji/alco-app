@@ -2,7 +2,7 @@
 
 Phase 1-05 の成果物。Hono が公開する HTTP API の契約。実装は Phase 2 以降。クライアントは Hono RPC（2-04）で同じ型を使う。
 
-- 状態: **レビュー待ち**（本 PR のマージをもって承認とする）
+- 状態: **承認済み**（#12 マージ）。範囲・丸めの数値は [features/alcohol-calculation.md](features/alcohol-calculation.md) を正とする
 - 列・enum・削除方針の正本: [data-model.md](data-model.md)
 - セキュリティ正本: [`.cursor/rules/security.mdc`](../.cursor/rules/security.mdc)
 - 公開 `GET /api/health` の個別契約: [features/health.md](features/health.md)
@@ -178,7 +178,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 - **クライアントの `alcoholG` は受け取らない**（作成・更新スキーマに含めない）
 - サーバーが `src/shared` の同一関数で再計算して保存する
-- レスポンスの `alcoholG` はその保存値。表示丸めは 1-06
+- レスポンスの `alcoholG` はその保存値（小数第 2 位）。表示は保存値を第 1 位に丸める（[alcohol-calculation.md](features/alcohol-calculation.md)）
 - クライアントが表示用に同じ関数を呼ぶのは可（信頼境界はサーバー）
 
 ### 2.10 CORS・セキュリティヘッダー
@@ -192,7 +192,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 - ボディ・クエリ・パスはすべて `@hono/zod-validator` + `src/shared` の Zod
 - 検証前の値を DB・レスポンス・R2 キーに使わない
 - SQL は Drizzle のみ。`LIKE` の検索語もプレースホルダ。ユーザー入力をパターンに連結するときは `%` / `_` をエスケープ
-- enum・範囲は data-model 5.3〜5.6。1-06 で数値が変わったら shared Zod と data-model を同じ変更で直す
+- enum・範囲は data-model 5.3〜5.6 と [alcohol-calculation.md](features/alcohol-calculation.md)。数値が変わったら shared Zod と data-model を同じ変更で直す
 
 ---
 
@@ -296,7 +296,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 }
 ```
 
-`totalCount` / `totalAlcoholG` は**フィルタ全体**（ページ内ではない）。`totalCount` は杯数（行数）。`totalAlcoholG` は各行の保存値を丸めず合算（表示丸めは 1-06）。
+`totalCount` / `totalAlcoholG` は**フィルタ全体**（ページ内ではない）。`totalCount` は杯数（行数）。`totalAlcoholG` は各行の保存値（第 2 位）を合算したあと第 2 位。表示は第 1 位（[alcohol-calculation.md](features/alcohol-calculation.md)）。
 
 #### GET /api/drink-logs/summary
 
@@ -328,7 +328,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 | 規則 | 内容 |
 |---|---|
-| 休肝日 | その JST 日の記録が 0 件。0g の記録がある日は休肝にしない（data-model 9） |
+| 休肝日 | その JST 日の記録が 0 件。0g の記録がある日は休肝にしない（[alcohol-calculation.md](features/alcohol-calculation.md)） |
 | `dryDayCount` | `isDryDay === true` の日数。`isFuture` の日は含めない |
 | `isFuture` | その JST 日が「今日」より後 |
 | スコープ | 自分の行だけ。`userId` クエリは無い |
@@ -350,8 +350,8 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 |---|---|---|
 | drunkAt | 任意 | 省略時はサーバーの現在時刻。未来は **15 分まで**（時計ズレ）。それ以上は 400。過去は制限なし |
 | drinkType | 必須 | 7 種 |
-| volumeMl | 必須 | 1-06 確定までは data-model の提案（1〜5000） |
-| abvPercent | 必須 | 0〜100（0% 許容は 1-06） |
+| volumeMl | 必須 | 整数 1〜5000 |
+| abvPercent | 必須 | 0.1〜100、小数第 1 位。**0 は不可** |
 | memo | 任意 | 空は null |
 | myDrinkId | 任意 | 自分の ID のみ。他人・不明は 404。量・度数・種類はリクエストが正。`drinkName` はプリセット名をコピーする。量をサーバーに上書きさせない 1 タップは 4.4 |
 
@@ -383,7 +383,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 #### POST /api/my-drinks
 
-`name`（1〜40）, `drinkType`, `volumeMl`, `abvPercent`, 任意 `sortOrder`（省略時は末尾）。
+`name`（1〜40）, `drinkType`, `volumeMl`（1〜5000）, `abvPercent`（0.1〜100）, 任意 `sortOrder`（省略時は末尾）。量・度数の範囲は記録と同じ（[alcohol-calculation.md](features/alcohol-calculation.md)）。
 
 ユーザーあたり **30 件**を超える作成は 400 `validation_error`（`name` ではなくルートレベルの `fields` キー `""` または `name` 以外の `count`）。キーは `count` とする。
 
@@ -657,6 +657,7 @@ Auth を MW で保護するとログイン不能になる。catch-all より前�
 - [data-model.md](data-model.md)
 - [screens.md](screens.md)
 - [features/health.md](features/health.md)
+- [features/alcohol-calculation.md](features/alcohol-calculation.md)（計算・範囲・休肝日）
 - [01-requirements.md](01-requirements.md) 1.1〜1.4
 - [roadmap/phase-01-design/05-api-design.md](../roadmap/phase-01-design/05-api-design.md)
 - 実装: [roadmap/phase-02-platform/03-hono-api-structure.md](../roadmap/phase-02-platform/03-hono-api-structure.md)

@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 目安 | 3〜5日 |
-| 状態 | 進行中（1-01〜1-05。残り 1-06） |
+| 状態 | 進行中（1-01〜1-05 完了。1-06 はレビュー待ち） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 1 |
 
 ## 目的
@@ -30,7 +30,7 @@
 | 03 | [デザインシステム](03-design-system.md) | `spec/design-system.md` |
 | 04 | [ER / Drizzle](04-er-drizzle-schema.md) | `spec/data-model.md` |
 | 05 | [API設計](05-api-design.md) | `spec/api-design.md` |
-| 06 | [計算・プリセット](06-alcohol-calc-presets.md) | 計算仕様（06 または data-model へ統合） |
+| 06 | [計算・プリセット](06-alcohol-calc-presets.md) | [spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md) |
 
 推奨順: 01 → 02 と 03 は並行可。04 と 06 を固めてから 05（API はデータモデルに依存）。
 
@@ -57,7 +57,8 @@ Phase 2 のスキーマ実装・認証・レイアウトに着手できる。
 - **下部タブは一旦 5 つ**（ホーム / 記録 / セラー / ノート / 設定）。正本は [spec/screens.md](../../spec/screens.md)
 - **配置メタファー**（1-02）: エクスプローラ一覧＋ウィンドウ。記録入力はフルスクリーン。FAB なし。1 タップ undo は 5 秒。正本は [spec/wireframes.md](../../spec/wireframes.md)
 - **トーン方針**（1-03）: **ニューモーフィズム**。主ボタンはワイン系。Win98 方針は破棄。ゲーミフィケーションはスコアと押下まで
+- **計算・プリセット**（1-06）: 保存は小数第 2 位、表示は第 1 位。量 1〜5000ml、度数 0.1〜100%。0% 不可。正本は [spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md)
 
 ## 要確認（フェーズ横断・残）
 
-- なし（タブ数は上記で一旦確定。SE 幅の折り返しは 2-05 で検証。API 契約の承認は 1-05 PR）
+- なし（タブ数は上記で一旦確定。SE 幅の折り返しは 2-05 で検証。1-06 の数値は本 PR で承認）

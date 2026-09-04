@@ -6,7 +6,7 @@ Phase 1-04 の成果物。Phase 2-01（Drizzle 実装・マイグレーション
 - ソース: [spec/01-requirements.md](01-requirements.md)、[roadmap/phase-01-design/04-er-drizzle-schema.md](../roadmap/phase-01-design/04-er-drizzle-schema.md)
 - 実装ルール: [`.cursor/rules/database.mdc`](../.cursor/rules/database.mdc)
 
-計算式・グラスプリセットの数値は [01-requirements.md](01-requirements.md) 1.2 を正とする。丸め・入力上限の確定は 1-06（`spec/features/alcohol-calculation.md`）に委譲する。
+計算式・グラスプリセットの数値は [01-requirements.md](01-requirements.md) 1.2 を正とする。丸め・入力上限・休肝日の定義は [features/alcohol-calculation.md](features/alcohol-calculation.md)（1-06）。
 
 ---
 
@@ -22,7 +22,7 @@ Phase 1-04 の成果物。Phase 2-01（Drizzle 実装・マイグレーション
 | 日時（瞬間） | **INTEGER（Unix ミリ秒、UTC）** | 範囲検索が容易。表示・集計は Asia/Tokyo |
 | 日付のみ | **TEXT `YYYY-MM-DD`（Asia/Tokyo のカレンダー日）** | 購入日・飲んだ日・開栓日。UTC 日付に変換しない |
 | 日次集計キー | `drink_logs.drunk_on` をサーバーが `drunk_at` から算出して保存 | D1/SQLite の TZ 関数に頼らない |
-| 純アルコール量 | **`alcohol_g` を保存**。クライアント値は信じず、サーバーが再計算 | サマリー負荷と改ざん防止。式の正は要件 1.2 / 1-06 |
+| 純アルコール量 | **`alcohol_g` を保存**。クライアント値は信じず、サーバーが再計算 | サマリー負荷と改ざん防止。式の正は要件 1.2 / [alcohol-calculation.md](features/alcohol-calculation.md) |
 | 記録メモ上限 | 500 文字 | モバイルの短メモ |
 | マイドリンク名上限 | 40 文字 | 1 タップ表示 |
 | 評価 | 整数 `rating_x10`（10〜50、5 刻み）。1.0〜5.0 の 0.5 刻み | float 比較を避ける |
@@ -256,13 +256,13 @@ erDiagram
 
 ### 5.6 文字数・数値範囲（アプリ制約。Zod の正）
 
-1-06 で入力上限が変わったら、同じ変更で本表を更新する。
+範囲の正本は [features/alcohol-calculation.md](features/alcohol-calculation.md)。変わったら同じ変更で本表を更新する。
 
 | 対象 | 範囲 |
 |---|---|
-| `volume_ml` | 整数 1〜5000（提案。1-06 で確定） |
-| `abv_percent` | 0〜100。小数 1 桁まで（0% 許容は 1-06） |
-| `alcohol_g` | サーバー計算。保存は小数第 2 位までの提案（1-06） |
+| `volume_ml` | 整数 1〜5000 |
+| `abv_percent` | 0.1〜100。小数 1 桁まで。**0% は不可** |
+| `alcohol_g` | サーバー計算。保存は小数第 2 位（四捨五入） |
 | `drink_logs.memo` | 0〜500 |
 | `my_drinks.name` | 1〜40 |
 | `bottles.name` / `tasting_notes.drink_name` | 1〜100 |
@@ -292,9 +292,9 @@ erDiagram
 | drunkOn | drunk_on | text | NO | | JST 日付。サーバー算出 |
 | drinkType | drink_type | text | NO | CHECK enum | 7 種 |
 | drinkName | drink_name | text | YES | ≦40 | マイドリンク名のスナップショット |
-| volumeMl | volume_ml | integer | NO | > 0 | ml |
-| abvPercent | abv_percent | real | NO | 0〜100 | % |
-| alcoholG | alcohol_g | real | NO | | サーバー再計算 |
+| volumeMl | volume_ml | integer | NO | 1〜5000 | ml |
+| abvPercent | abv_percent | real | NO | 0.1〜100 | %。0 は不可 |
+| alcoholG | alcohol_g | real | NO | 小数第 2 位 | サーバー再計算 |
 | memo | memo | text | YES | ≦500 | 任意メモ |
 | myDrinkId | my_drink_id | text | YES | FK → my_drinks.id SET NULL | 参照は任意。値の正はスナップショット列 |
 | createdAt | created_at | integer | NO | | UTC ms |
@@ -312,8 +312,8 @@ erDiagram
 | userId | user_id | text | NO | FK → user.id CASCADE | |
 | name | name | text | NO | 1〜40 | 表示名 |
 | drinkType | drink_type | text | NO | CHECK enum | 7 種 |
-| volumeMl | volume_ml | integer | NO | > 0 | プリセット量 |
-| abvPercent | abv_percent | real | NO | 0〜100 | プリセット度数 |
+| volumeMl | volume_ml | integer | NO | 1〜5000 | プリセット量 |
+| abvPercent | abv_percent | real | NO | 0.1〜100 | プリセット度数。0 は不可 |
 | sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。DnD は後回し |
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
@@ -465,9 +465,9 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 - 式と密度 0.8 は要件 1.2 を変更しない
 - **API はクライアントの `alcohol_g` を採用しない**。`volume_ml` と `abv_percent` からサーバー（`src/shared` の同一関数）で再計算して保存する
 - 表示用にクライアントで同じ関数を使ってよい
-- 丸め（保存小数第 2 位 / 表示第 1 位 / 合計は行を丸めず合算）は 1-06 で確定し、確定後に本節へ結果を1行追記する
+- **丸め（1-06 確定）:** 保存は小数第 2 位（四捨五入）、表示は第 1 位、合計は各行の保存値を合算してから表示丸め。正本は [features/alcohol-calculation.md](features/alcohol-calculation.md)
 
-例題（1-06 転記。テストの種）:
+例題（[alcohol-calculation.md](features/alcohol-calculation.md) 転記。テストの種）:
 
 | 入力 | alcohol_g |
 |---|---|
@@ -478,7 +478,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | 焼酎 60ml 25% | 12.0 |
 | カクテル 120ml 15% | 14.4 |
 
-休肝日: その JST 日の `drink_logs` が 0 件。0g の記録がある日は休肝日にしない（1-06）。
+休肝日: その JST 日の `drink_logs` が 0 件。0g の記録がある日は休肝日にしない。未来日は休肝に数えない（1-05 / 1-06）。
 
 ---
 
@@ -698,6 +698,7 @@ Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHEC
 - [02-tech-stack.md](02-tech-stack.md)（D1 / R2 / Drizzle）
 - [roadmap/phase-01-design/04-er-drizzle-schema.md](../roadmap/phase-01-design/04-er-drizzle-schema.md)
 - [api-design.md](api-design.md)（1-05。HTTP 契約）
+- [features/alcohol-calculation.md](features/alcohol-calculation.md)（1-06）
 - [roadmap/phase-01-design/06-alcohol-calc-presets.md](../roadmap/phase-01-design/06-alcohol-calc-presets.md)（1-06）
 - [roadmap/phase-02-platform/01-drizzle-migration.md](../roadmap/phase-02-platform/01-drizzle-migration.md)
 - Better Auth: [Database](https://www.better-auth.com/docs/concepts/database)、[Drizzle adapter](https://www.better-auth.com/docs/adapters/drizzle)

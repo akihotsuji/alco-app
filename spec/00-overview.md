@@ -20,7 +20,7 @@
 - **招待制**: 採用しない。メール＋パスワードでサインアップできる。個人利用フェーズではアプリURLを公開しない運用でカバーする。
 - **UIテーマ**: 端末・OSの外観設定（`prefers-color-scheme`）に追従する。ライト／ダークの両方を用意し、アプリ内のテーマ切替は持たない。
 - **日付境界**: Asia/Tokyo。保存はUTC、表示・日次集計・休肝日判定はJSTのカレンダー日。
-- **グラスプリセット**: 種類ごとの一般的な量・度数をデフォルト投入し、記録ごとに修正できる。数値は [01-requirements.md](01-requirements.md) 1.2 を正とする。
+- **グラスプリセット**: 種類ごとの一般的な量・度数をデフォルト投入し、記録ごとに修正できる。数値は [01-requirements.md](01-requirements.md) 1.2、丸め・範囲は [features/alcohol-calculation.md](features/alcohol-calculation.md) を正とする。
 - **予算**: インフラは無料枠での運用を基本とする（0円〜数百円/月）。
 - **銘柄データ**: 手入力＋写真で管理。バーコードスキャンや外部DB連携は行わない（自分のマスターデータを育てる方針）。
 - **開発体制**: AIエージェント主導の開発。オーナー（ユーザー）はほとんど実装せず、レビューと意思決定を担う。そのため保守性・一貫性・ドキュメント整備を特に重視する。
@@ -43,4 +43,5 @@
 - [design-system.md](design-system.md) — デザインシステム（見た目の正本）
 - [data-model.md](data-model.md) — ER図・Drizzleスキーマ設計
 - [api-design.md](api-design.md) — APIエンドポイント・認可ルール
+- [features/alcohol-calculation.md](features/alcohol-calculation.md) — 純アルコール量計算・グラスプリセット
 - [../roadmap/README.md](../roadmap/README.md) — フェーズ・タスクごとの仕様書・手順書

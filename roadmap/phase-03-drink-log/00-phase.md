@@ -13,7 +13,7 @@
 ## 依存
 
 - Phase 2 完了（認証済みユーザー、空ホーム、Hono RPC、共通レイアウト）
-- Phase 1 の計算・プリセット仕様は [spec/01-requirements.md](../../spec/01-requirements.md) 1.2 で数値まで確定済み（2026-08-13）。日付境界は Asia/Tokyo
+- Phase 1 の計算・プリセット仕様は [spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md) が正本（要件 1.2 の式とデフォルト表は 2026-08-13 確定）。日付境界は Asia/Tokyo
 - 実装前に本フェーズ最初のタスクで `spec/features/drink-log.md` を書き、オーナー承認を得る
 
 ## ゴール（フェーズ DoD）

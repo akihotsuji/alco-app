@@ -70,7 +70,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 **データ・API設計**
 - [x] ER図とDrizzleスキーマ設計（Auth の `user` / drink_logs / my_drinks / bottles / tasting_notes / photos）→ `spec/data-model.md`
 - [x] API設計: リソース単位のエンドポイント一覧、認可ルール（全データ user_id スコープ）→ [api-design.md](api-design.md)
-- [ ] 純アルコール量計算・標準グラス量プリセットの仕様確定
+- [x] 純アルコール量計算・標準グラス量プリセットの仕様確定 → [features/alcohol-calculation.md](features/alcohol-calculation.md)
 
 ### rules / skills
 
@@ -79,7 +79,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 
 ### 完了条件（DoD）
 
-- `spec/design-system.md` / `spec/data-model.md` / `spec/api-design.md` がレビュー・承認済み
+- `spec/design-system.md` / `spec/data-model.md` / `spec/api-design.md` / `spec/features/alcohol-calculation.md` がレビュー・承認済み
 - ワイヤーフレームについてオーナーの合意が取れている
 
 ---
