@@ -28,7 +28,14 @@ alco-appで機能を実装・変更するときは、必ずこの手順に従う
 
 ## Step 2: ブランチ作成
 
-`feature/<内容>` または `fix/<内容>` ブランチを作成する。mainでは作業しない。
+`main` では作業しない。**切る直前に必ず `git fetch origin main` し、リモート先端から切る。** ローカル `main` や未フェッチの `origin/main` から切らない。
+
+```bash
+git fetch origin main
+git checkout -b feature/<内容> origin/main
+```
+
+`fix/<内容>` も同じ。`git status` の "up to date with origin/main" はローカル記憶との比較であり、リモート最新を保証しない。
 
 ## Step 3: 実装
 

@@ -120,6 +120,7 @@ alco-app/
 | 定義 | [`.github/rulesets/protect-main.json`](../.github/rulesets/protect-main.json) |
 | 対象 | デフォルトブランチ `main` |
 | 禁止 | 直接 push、force push、`main` 削除 |
+| 作業ブランチ | 切る直前に `git fetch origin main`。`git checkout -b feature/<内容> origin/main`（または `fix/`）。ローカル main / 未フェッチの origin から切らない |
 | PR | 必須。承認 0 人。マージは squash のみ |
 | 必須チェック | `lint / typecheck / test / audit`（0-07） |
 | bypass | なし |

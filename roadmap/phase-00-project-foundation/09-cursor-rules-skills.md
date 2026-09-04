@@ -61,7 +61,7 @@ Get-ChildItem -Recurse .cursor\rules, .cursor\skills | Select-Object FullName
 内容レビュー観点:
 
 - `project-context`: 3 コア機能、Hono/Vite/D1/R2、`src/client|server|db|shared`
-- `development-workflow`: 仕様駆動、ブランチ、日本語コミット、DoD 5 項
+- `development-workflow`: 仕様駆動、ブランチ（最新 main 先端から切る）、日本語コミット、DoD 5 項
 - `security`: セッションの userId、Zod、R2 非公開、シークレット管理
 - `coding-standards`: `*.ts, *.tsx` に globs、テストは隣の `*.test.ts`
 - `feature-dev`: shared → db → server → client
@@ -107,7 +107,7 @@ rules はエージェントへの強制力、spec はプロダクトの正本。
 | ファイル | alwaysApply / globs | 確認 |
 |---|---|---|
 | `project-context.mdc` | alwaysApply | 3 コア、Hono/Vite/D1/R2、`src/client\|server\|db\|shared`。`env.dev` を追記 |
-| `development-workflow.mdc` | alwaysApply | 仕様駆動、ブランチ、日本語コミット、DoD 5 項 |
+| `development-workflow.mdc` | alwaysApply | 仕様駆動、ブランチ（最新 main 先端から切る）、日本語コミット、DoD 5 項 |
 | `security.mdc` | alwaysApply | userId スコープ、Zod、R2 非公開、シークレット。公開例外に `GET /api/health` を明記 |
 | `coding-standards.mdc` | globs `**/*.ts,**/*.tsx` | テストは隣の `*.test.ts`。公開例外は security / spec に従う |
 | `feature-dev/SKILL.md` | — | shared → db → server → client |

@@ -144,6 +144,7 @@ git checkout -b tmp/protect-main-probe
 | 対象 | デフォルトブランチ（`~DEFAULT_BRANCH` = `main`） |
 | 強制 | `active`。bypass なし |
 | 禁止 | force push（`non_fast_forward`）、ブランチ削除（`deletion`）、`main` 直 push |
+| 作業ブランチ | 切る直前に `git fetch origin main`。`git checkout -b feature/<内容> origin/main`（または `fix/`）。ローカル main / 未フェッチの origin から切らない |
 | PR | 必須。承認人数 0。CODEOWNERS なし |
 | マージ | **squash のみ**（履歴を単純にする） |
 | 必須チェック | `lint / typecheck / test / audit`。strict（base 最新必須）はオフ |

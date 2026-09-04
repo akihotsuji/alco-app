@@ -14,6 +14,8 @@ alwaysApply: true
 ## ブランチ・PR運用
 
 - mainへの直接pushは禁止。作業は `feature/<内容>` / `fix/<内容>` ブランチで行いPRを作る
+- **作業ブランチは必ずリモートの最新 `main` 先端から切る。** 切る直前に `git fetch origin main` する。ローカル `main` や、フェッチしていない `origin/main` から切らない（スナップショットや未取得の origin は遅れている）
+- 作成コマンド: `git fetch origin main` のあと `git checkout -b feature/<内容> origin/main`（`fix/` も同様）
 - 1PR = 1つの関心事。機能実装とリファクタリングを混ぜない
 - CIがグリーンでないPRはマージしない
 
