@@ -13,9 +13,10 @@
 | GET | `/api/health` | なし | `{ "ok": true }` |
 
 - スタックトレース、アカウント ID、シークレット、バインディング内部名は返さない
-- 未定義の `/api/*` は `{ "ok": false }` の 404（存在推測を避けるため詳細は出さない）
+- 未定義の `/api/*` は、Phase 0 実装では `{ "ok": false }` の 404。**Phase 2-03 で共通エラー形式 `{ "error": "not_found" }` に揃える**（存在推測を避けるため詳細は出さない）
+- 成功契約 `{ "ok": true }` は変えない
 
-契約は `src/server/index.test.ts` で Hono の `app.request()` により固定する（0-06）。
+契約は `src/server/index.test.ts` で Hono の `app.request()` により固定する（0-06）。公開エンドポイントの一覧と認可の正本は [api-design.md](../api-design.md)。
 
 ## 対象外
 

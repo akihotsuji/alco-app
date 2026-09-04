@@ -32,7 +32,7 @@
 ## 4. 成果物
 
 - `/api/my-drinks` CRUD
-- （任意）`POST /api/my-drinks/:id/log`
+- `POST /api/my-drinks/:id/log`（1-05 で必須。サーバーがプリセットをコピー）
 - UI: 管理画面とホームのショートカット
 - テスト: 1 タップが自分のログになる、他人の my_drink id で 404
 

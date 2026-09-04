@@ -39,7 +39,7 @@ Phase 1-01 の成果物。アプリに存在する画面、下部タブ、認証
 
 ## 認証境界
 
-クライアントのルートガードは UX 用。認可の正はサーバー API（[security.mdc](../.cursor/rules/security.mdc)）。ナビや非表示はアクセス制御に使わない。
+クライアントのルートガードは UX 用。認可の正はサーバー API（[security.mdc](../.cursor/rules/security.mdc)、[api-design.md](api-design.md)）。ナビや非表示はアクセス制御に使わない。
 
 | 区分 | 対象 | 未ログイン時 | ログイン済みで当該 URL に来たとき |
 |---|---|---|---|

@@ -37,7 +37,7 @@
 
 - 上記ソース
 - `.cursor/rules/api-conventions.mdc`
-- `GET /api/me` が `{ id, email }` 程度を返す（出しすぎない）
+- `GET /api/me` が `{ id, email, name }` を返す（出しすぎない。image は返さない）
 
 ## 5. 細分化タスク
 
@@ -84,7 +84,7 @@ api-conventions に書くこと:
 - 入力は shared Zod
 - レスポンスは明示的な型（RPC 用に AppType を export）
 
-`/api/me` はメールを返すか **要確認**（設定画面用）。最小は id のみ。
+`/api/me` は `{ id, email, name }`（[spec/api-design.md](../../spec/api-design.md) で確定）。表示名更新は Better Auth クライアント。独自 PATCH は置かない。
 
 ## 8. 受け入れ条件
 

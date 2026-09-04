@@ -60,7 +60,7 @@ pnpm typecheck
 | B の bottle を A が PATCH | 404 |
 | status=evil | 400 |
 | content-type: text/html アップロード | 400 |
-| A の署名 URL を B の Cookie で取り直し | 404 |
+| A の写真 content を B の Cookie で GET | 404 |
 
 ## 7. 仕様詳細
 

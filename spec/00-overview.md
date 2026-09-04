@@ -42,4 +42,5 @@
 - [wireframes.md](wireframes.md) — 主要画面のワイヤーフレーム
 - [design-system.md](design-system.md) — デザインシステム（見た目の正本）
 - [data-model.md](data-model.md) — ER図・Drizzleスキーマ設計
+- [api-design.md](api-design.md) — APIエンドポイント・認可ルール
 - [../roadmap/README.md](../roadmap/README.md) — フェーズ・タスクごとの仕様書・手順書

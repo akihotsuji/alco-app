@@ -661,7 +661,7 @@ Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHEC
 |---|---|
 | user_id の付与 | INSERT 時にセッションの `user.id` をサーバーが入れる |
 | 読み書き | `WHERE id = :id AND user_id = :sessionUserId` |
-| 写真 | 行の `user_id` で辿れる。R2 キーを知っていても API / 署名 URL の認可が必要 |
+| 写真 | 行の `user_id` で辿れる。R2 キーを知っていても API（`GET /api/photos/:id/content`）の認可が必要 |
 | ファイル名 | どの列にもオリジナルファイル名を持たない |
 | Auth | `account.password` を SELECT して API に出さない。ログに出さない |
 | 存在秘匿 | 他人の id 指定は 404（モデルは行を返さない） |
@@ -697,7 +697,7 @@ Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHEC
 - [01-requirements.md](01-requirements.md)
 - [02-tech-stack.md](02-tech-stack.md)（D1 / R2 / Drizzle）
 - [roadmap/phase-01-design/04-er-drizzle-schema.md](../roadmap/phase-01-design/04-er-drizzle-schema.md)
-- [roadmap/phase-01-design/05-api-design.md](../roadmap/phase-01-design/05-api-design.md)（1-05）
+- [api-design.md](api-design.md)（1-05。HTTP 契約）
 - [roadmap/phase-01-design/06-alcohol-calc-presets.md](../roadmap/phase-01-design/06-alcohol-calc-presets.md)（1-06）
 - [roadmap/phase-02-platform/01-drizzle-migration.md](../roadmap/phase-02-platform/01-drizzle-migration.md)
 - Better Auth: [Database](https://www.better-auth.com/docs/concepts/database)、[Drizzle adapter](https://www.better-auth.com/docs/adapters/drizzle)
