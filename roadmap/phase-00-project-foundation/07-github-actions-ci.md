@@ -130,7 +130,7 @@ permissions: デフォルトの `contents: read` で足りる。`pull-requests: 
 | Node | `.node-version`（22）。`cache: pnpm` は setup-node 側 |
 | install | `pnpm install --frozen-lockfile` |
 | 実行順 | `lint` → `typecheck` → `test` → `audit --audit-level=high` |
-| audit | pnpm 10.11 の `--audit-level=high`。High 以上で非ゼロ終了。黙って `--no-audit` しない |
+| audit | pnpm 10.11 の `--audit-level=high`。High 以上で非ゼロ終了。黙って `--no-audit` しない。npm audit API のソケットタイムアウト時はワークフローで最大 3 回再試行する |
 | 権限 | `contents: read`。`pull_request_target` 不使用。シークレット・デプロイなし |
 | ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェック名） |
 | 前提の緩和 | 0-06（Vitest）未マージでも、既存の `pnpm test` を CI が呼ぶ。ランナー差し替え後も script 名は変えない |

@@ -17,7 +17,7 @@ jobs:
   check:
     name: lint / typecheck / test / audit
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -44,4 +44,17 @@ jobs:
         run: pnpm test
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level=high
+        run: |
+          # npm の audit API がソケットタイムアウトすることがある（pnpm 内部リトライでも不足）。
+          # 脆弱性検知自体は落とさず、通信失敗時だけワークフロー側で再試行する。
+          for attempt in 1 2 3; do
+            if pnpm audit --audit-level=high; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "pnpm audit failed after 3 attempts"
+              exit 1
+            fi
+            echo "pnpm audit failed (attempt ${attempt}/3). Retrying..."
+            sleep 30
+          done
