@@ -38,7 +38,7 @@
 - `src/db/` 配下のスキーマと `migrations/`
 - `drizzle.config.ts`
 - `.cursor/skills/db-migration/SKILL.md`
-- `.cursor/rules/database.mdc`（Phase 1 で未作成ならここで）
+- `.cursor/rules/database.mdc`（1-04 で作成済み。実装手順の追加があれば更新）
 - package.json scripts: `db:generate` / `db:migrate:local`
 
 ## 5. 細分化タスク

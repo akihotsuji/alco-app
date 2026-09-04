@@ -68,7 +68,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] デザインシステム定義: **ニューモーフィズム**、**ライト／ダークはOS設定に追従**、タイポグラフィ・余白・コンポーネント方針 → [design-system.md](design-system.md)
 
 **データ・API設計**
-- [ ] ER図とDrizzleスキーマ設計（users / drink_logs / my_drinks / bottles / tasting_notes / photos）→ `spec/data-model.md`
+- [x] ER図とDrizzleスキーマ設計（Auth の `user` / drink_logs / my_drinks / bottles / tasting_notes / photos）→ `spec/data-model.md`
 - [ ] API設計: リソース単位のエンドポイント一覧、認可ルール（全データ user_id スコープ）→ `spec/api-design.md`
 - [ ] 純アルコール量計算・標準グラス量プリセットの仕様確定
 

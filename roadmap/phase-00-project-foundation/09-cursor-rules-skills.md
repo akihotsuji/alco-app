@@ -31,7 +31,7 @@
 
 **対象外（後続フェーズで追加）**
 
-- `database`（Phase 1-04）
+- `database`（Phase 1-04 で作成済み: `.cursor/rules/database.mdc`）
 - `ui-design`（Phase 1-03 で追加済み: `.cursor/rules/ui-design.mdc`）
 - `db-migration` / `api-conventions`（Phase 2）
 - `e2e-testing`（Phase 6）

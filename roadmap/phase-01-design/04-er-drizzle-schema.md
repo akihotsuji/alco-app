@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 1 設計 |
-| ステータス | **未着手**（`spec/data-model.md` なし） |
+| ステータス | **完了**（`spec/data-model.md` 承認済み） |
 | 要件 | 全データ user_id スコープ、テーブル候補はロードマップ記載 |
 | ソース | Phase 1「users / drink_logs / my_drinks / bottles / tasting_notes / photos」 |
 
@@ -65,7 +65,7 @@
 - アプリ所有テーブルはすべて `user_id` を持ち、FK は Auth の user を参照
 - 他ユーザー行を JOIN で混ぜない
 
-### 草案（要確認多数。承認まで仮）
+### 草案（要確認は `spec/data-model.md` の「決定事項」で確定）
 
 **drink_logs**
 
@@ -121,11 +121,11 @@ Workers で `crypto.randomUUID()` が使える。**推奨 UUID v4。要確認**�
 
 ## 8. 受け入れ条件
 
-- [ ] `spec/data-model.md` 承認済み
-- [ ] 全アプリテーブルに user_id（または Auth 所有物である旨）がある
-- [ ] enum 値が要件の種類・ステータスと一致
-- [ ] 写真の所有者が user_id で辿れる
-- [ ] database ルールがあるか、追加時期が書いてある
+- [x] `spec/data-model.md` 承認済み
+- [x] 全アプリテーブルに user_id（Auth はライブラリ管理と明記）
+- [x] enum 値が要件の種類・ステータスと一致
+- [x] 写真の所有者が user_id で辿れる
+- [x] database ルール（`.cursor/rules/database.mdc`）を同梱
 
 ## 9. セキュリティ観点
 
