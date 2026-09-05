@@ -15,7 +15,7 @@ importers:
         specifier: ^0.9.1
         version: 0.9.1(hono@4.13.5)(zod@4.5.4)
       '@tanstack/react-query':
-        specifier: 5.102.8
+        specifier: ^5.102.8
         version: 5.102.8(react@19.2.8)
       better-auth:
         specifier: ^1.7.2
