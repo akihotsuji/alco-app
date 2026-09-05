@@ -58,6 +58,21 @@ pnpm exec wrangler dev --env dev
 
 デプロイ（dev）は Phase 3。コマンドは `wrangler deploy --env dev`。
 
+## クライアントのデータ取得
+
+画面やコンポーネントで `fetch` を直接書かない。決定の正本は [spec/02-tech-stack.md](spec/02-tech-stack.md) の「クライアントのデータ取得（2-04 FIX）」。
+
+| 置き場 | 内容 |
+|---|---|
+| `src/client/lib/api.ts` | Hono RPC クライアント `api`（`hc<AppType>("/")`。`AppType` は型のみ import）、`unwrap()`、`ApiClientError` |
+| `src/client/lib/query-client.ts` | `createQueryClient()`（staleTime 30s、4xx は再試行しない、401 で `onUnauthorized`） |
+| `src/client/lib/query-provider.tsx` | `QueryClientProvider`。`App` の最外 |
+| `src/client/lib/query-keys.ts` | `queryKeys`（queryKey はここに集約） |
+| `src/client/hooks/` | データ取得 hooks。`use-<resource>.ts` に `xxxQueryOptions()` と `useXxx()` を置く（例 `use-me.ts`） |
+| `src/client/auth/end-session.ts` | `endSession()`。ログアウトと API の 401 が共通で通る。`RequireAuth` がキャッシュを捨てて `/login` へ送る |
+
+新しい API を使うときは `hooks/use-<resource>.ts` を足し、`queryFn` / `mutationFn` を `unwrap(api.api.<resource>.$get())` の形で書く。mutation 成功後は `queryKeys.<resource>` を `invalidateQueries` する。
+
 ## 品質チェック
 
 ```powershell
