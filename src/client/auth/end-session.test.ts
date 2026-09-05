@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSessionExpiryHandler } from "./session-expiry.ts";
+import { createEndSessionHandler } from "./end-session.ts";
 
-describe("createSessionExpiryHandler", () => {
+describe("createEndSessionHandler", () => {
   it("signOut が成功したら store の再取得は signOut 側に任せる", async () => {
     const signOut = vi.fn(async () => ({ error: null }));
     const refreshSession = vi.fn();
-    const expire = createSessionExpiryHandler({ signOut, refreshSession });
+    const endSession = createEndSessionHandler({ signOut, refreshSession });
 
-    await expire();
+    await endSession();
     expect(signOut).toHaveBeenCalledTimes(1);
     expect(refreshSession).not.toHaveBeenCalled();
   });
@@ -15,9 +15,9 @@ describe("createSessionExpiryHandler", () => {
   it("signOut がエラー応答（Cookie 消失など）でもセッション store を再取得させる", async () => {
     const signOut = vi.fn(async () => ({ error: { status: 400 } }));
     const refreshSession = vi.fn();
-    const expire = createSessionExpiryHandler({ signOut, refreshSession });
+    const endSession = createEndSessionHandler({ signOut, refreshSession });
 
-    await expire();
+    await endSession();
     expect(refreshSession).toHaveBeenCalledTimes(1);
   });
 
@@ -26,13 +26,13 @@ describe("createSessionExpiryHandler", () => {
       throw new TypeError("Failed to fetch");
     });
     const refreshSession = vi.fn();
-    const expire = createSessionExpiryHandler({ signOut, refreshSession });
+    const endSession = createEndSessionHandler({ signOut, refreshSession });
 
-    await expect(expire()).resolves.toBeUndefined();
+    await expect(endSession()).resolves.toBeUndefined();
     expect(refreshSession).toHaveBeenCalledTimes(1);
   });
 
-  it("同時に複数の 401 が来ても signOut は 1 回だけ", async () => {
+  it("同時に複数回呼ばれても signOut は 1 回だけ", async () => {
     let resolveSignOut: (value: { error: null }) => void = () => undefined;
     const signOut = vi.fn(async () => ({ error: null }));
     signOut.mockImplementationOnce(
@@ -41,18 +41,18 @@ describe("createSessionExpiryHandler", () => {
           resolveSignOut = resolve;
         }),
     );
-    const expire = createSessionExpiryHandler({ signOut, refreshSession: vi.fn() });
+    const endSession = createEndSessionHandler({ signOut, refreshSession: vi.fn() });
 
-    const first = expire();
-    const second = expire();
+    const first = endSession();
+    const second = endSession();
     expect(first).toBe(second);
     expect(signOut).toHaveBeenCalledTimes(1);
 
     resolveSignOut({ error: null });
     await Promise.all([first, second]);
 
-    // 完了後の 401 は改めて処理する
-    await expire();
+    // 完了後の呼び出しは改めて処理する
+    await endSession();
     expect(signOut).toHaveBeenCalledTimes(2);
   });
 });

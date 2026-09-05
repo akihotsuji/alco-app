@@ -1,15 +1,19 @@
-import { useLogout } from "@/client/hooks/use-logout.ts";
+import { endSession } from "@/client/auth/end-session.ts";
 import { useMe } from "@/client/hooks/use-me.ts";
 
 /** Phase 2 の仮ホーム。2-05 で共通レイアウト、3-03 / 3-06 で screen-designs/02-home.md に置き換える。 */
 export function HomePage() {
-  const logout = useLogout();
-
   return (
     <main className="home-stub">
       <h1>alco-app</h1>
       <Account />
-      <button className="auth-submit home-logout" type="button" onClick={logout}>
+      <button
+        className="auth-submit home-logout"
+        type="button"
+        onClick={() => {
+          void endSession();
+        }}
+      >
         ログアウト
       </button>
     </main>
