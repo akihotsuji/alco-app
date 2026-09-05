@@ -176,6 +176,18 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
+  /* Chrome のオートフィル白塗りでニューモルが壊れないようにする */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--foreground);
+    caret-color: var(--foreground);
+    box-shadow:
+      var(--shadow-inset-sm),
+      inset 0 0 0 1000px var(--background);
+    transition: background-color 99999s ease-out;
+  }
 }
 
 #root {
