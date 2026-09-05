@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 0 プロジェクト基盤 |
-| ステータス | **部分完了**（2026-09-04。方針を再 FIX。JSON は必須チェックなし・全マージ方式。GitHub 上の ruleset は未適用。エージェントは 403） |
+| ステータス | **完了**（2026-09-05。ruleset id `22315799` を適用。必須チェックなし・全マージ方式） |
 | 要件 | development-workflow: `main` へ直接 push 禁止、CI グリーン必須 |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
@@ -110,15 +110,15 @@ git checkout -b tmp/protect-main-probe
 
 ## 8. 受け入れ条件
 
-- [ ] `main` への直接 push が拒否される（**オーナー適用後**）
-- [x] 必須ステータスチェックは ruleset に含めない（2026-09-04）
+- [x] `protect-main` が `active`（id `22315799`。2026-09-05 オーナー適用）
+- [x] 必須ステータスチェックは ruleset に含めない
 - [x] 使った手段が README か spec に書いてある
-- [x] Pro が必要なら、未契約のまま「保護したつもり」になっていない（rulesets は public / private とも Free で使える）
+- [x] Free の private では ruleset 不可。適用時点の可視性は **public**（Pro なし）
 
 ## 9. セキュリティ観点
 
 - 保護を Bypass できるトークンを GitHub Actions に広く渡さない（本 ruleset は bypass なし）
-- 可視性は **private に戻す**（2026-09-04）。ruleset 方針は public / private で変えない
+- Free の private では ruleset を作れない。適用のため可視性は **public**。private に戻すなら GitHub Pro が必要
 - エージェントのトークンで ruleset を作れないことは、誤って保護を外す事故も防げる
 
 ## 10. 関連ファイル / 関連spec
@@ -147,5 +147,5 @@ git checkout -b tmp/protect-main-probe
 | PR | 必須。承認人数 0。CODEOWNERS なし |
 | マージ | **merge / squash / rebase** いずれも可 |
 | 必須チェック | **なし** |
-| 適用者 | オーナー（Administration）。適用コマンドは 6.2 |
-| 可視性 | **private に戻す**（2026-09-04）。Cloud Agent は private でも動作する（[GitHub 連携](https://cursor.com/docs/integrations/github)） |
+| 適用者 | オーナー（Administration）。2026-09-05 に PUT 済み（id `22315799`） |
+| 可視性 | **public**（Free で ruleset を使うため。private にするなら Pro） |

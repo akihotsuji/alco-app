@@ -125,8 +125,8 @@ alco-app/
 | マージ | merge / squash / rebase いずれも可 |
 | 必須チェック | **なし**（2026-09-04）。CI は回すが ruleset では止めない |
 | bypass | なし |
-| 適用 | オーナーが Administration で作成。エージェントトークンでは 403 |
-| 可視性 | **private に戻す**（2026-09-04）。Cloud Agent は private で使える |
+| 適用 | 2026-09-05 済み（id `22315799`）。エージェントトークンでは作成不可 |
+| 可視性 | **public**（Free で ruleset を使う。private にするなら Pro） |
 
 ## 環境（Cloudflare）
 

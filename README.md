@@ -90,11 +90,6 @@ lockfile が `package.json` と食い違うと `--frozen-lockfile` で失敗す�
 
 保護は GitHub の Repository ruleset `protect-main`（[`.github/rulesets/protect-main.json`](.github/rulesets/protect-main.json)）。bypass なし。force push と `main` の削除を禁止する。classic branch protection は使わない。
 
-適用と private 化はリポジトリ管理者が行う（エージェントのトークンでは 403）。
-
-```powershell
-gh repo edit akihotsuji/alco-app --visibility private --accept-visibility-change-consequences
-gh api --method POST repos/akihotsuji/alco-app/rulesets --input .github/rulesets/protect-main.json
-```
+`protect-main`（id `22315799`）は 2026-09-05 に適用済み。可視性は public（Free で ruleset を使うため）。変更はリポジトリ管理者のみ。
 
 詳細は [roadmap/phase-00-project-foundation/08-branch-protection.md](roadmap/phase-00-project-foundation/08-branch-protection.md)。

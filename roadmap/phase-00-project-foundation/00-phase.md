@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 目安 | 2〜3日 |
-| 状態 | 部分完了（01〜07・09 済。08 は JSON 済み。残りは GitHub への ruleset 適用と private 化） |
+| 状態 | 完了（01〜09。0-08 は 2026-09-05 に GitHub 適用） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 0 |
 
 ## 目的
@@ -31,10 +31,10 @@
 | 05 | [TypeScript strict / Biome](05-typescript-biome.md) | 完了 |
 | 06 | [Vitest](06-vitest.md) | 完了 |
 | 07 | [GitHub Actions CI](07-github-actions-ci.md) | 完了 |
-| 08 | [main ブランチ保護](08-branch-protection.md) | 部分完了 |
+| 08 | [main ブランチ保護](08-branch-protection.md) | 完了 |
 | 09 | [Cursor rules / skills](09-cursor-rules-skills.md) | 完了 |
 
-推奨順: 01〜07・09 済。0-07 は `main` 済み。オーナーが 08 の ruleset を適用する。
+推奨順: 01〜09 済。0-08 の ruleset は 2026-09-05 適用済み。
 
 ## このフェーズで整備する rules / skills
 
@@ -51,5 +51,5 @@ Phase 1 の設計ドキュメント作成に入れる。実装（Phase 2）は P
 
 - ローカルツールチェーン（Node 22 / pnpm 10 / ローカル wrangler）は 0-02 で完了。`package.json`・`src/`・`wrangler.jsonc` は 0-04、TypeScript / Biome は 0-05、Vitest は 0-06。CI は `.github/workflows/ci.yml`（0-07）。`.gitignore` は作成済み
 - Cloudflare dev: D1 `alco-app-dev`、R2 `alco-app-photos-dev`（非公開）。binding `DB` / `PHOTOS`。`env.dev` で分ける（**FIX**）
-- GitHub リポジトリは 0-01 では private。2026-09-03 時点で public。2026-09-04 に **private へ戻す**と決定（Cloud Agent は private で使える）。変更はオーナー作業
-- `main` は未保護。08 は ruleset `protect-main`（必須チェックなし、全マージ方式）。適用はオーナー。エージェントは 403
+- GitHub リポジトリは **public**（Free で ruleset を使うため。private にするなら Pro）
+- `main` は ruleset `protect-main`（id `22315799`）で保護済み。必須チェックなし、全マージ方式
