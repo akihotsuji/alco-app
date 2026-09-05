@@ -713,7 +713,7 @@ src/server/
 
 認証 MW は公開ルートを自分で除外するので、登録順に依存せずログインが通る。Auth（Better Auth インスタンス）の組み立ては保護ルートと `/api/auth/*` でだけ行い、`GET /api/health` は D1 に触らない。
 
-`export type AppType = ReturnType<typeof createApp>`（`src/server/index.ts`。2-03 で export 済み。2-04 の `hc<AppType>` が使う）。業務ルートは `createApp` 内の `.route()` チェーンに繋いで型に載せる。
+`export type AppType = ReturnType<typeof createApp>`（`src/server/index.ts`。2-03 で export 済み。2-04 の `hc<AppType>` が `src/client/lib/api.ts` で型のみ import して使う）。業務ルートは `createApp` 内の `.route()` チェーンに繋いで型に載せる。クライアント側の規約（staleTime・retry・401・hooks の置き場）は [02-tech-stack.md](02-tech-stack.md) 「クライアントのデータ取得（2-04 FIX）」。
 
 ---
 

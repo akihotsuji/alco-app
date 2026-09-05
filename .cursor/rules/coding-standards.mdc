@@ -29,8 +29,10 @@ const bottle = await db.select().from(bottles)
 
 ## React
 
-- 関数コンポーネントのみ。再利用ロジックはカスタムhooksに切り出す
-- データ取得はTanStack Query + Hono RPCクライアント経由。コンポーネント内で直接 `fetch` しない
+- 関数コンポーネントのみ。再利用ロジックはカスタムhooksに切り出す。hooks は `src/client/hooks/`（`use-<resource>.ts`）
+- データ取得はTanStack Query + Hono RPCクライアント経由。コンポーネント内で直接 `fetch` しない。RPC クライアントは `src/client/lib/api.ts` の `api` の 1 つだけ（`hc` を他で呼ばない）。`AppType` は `import type`
+- `queryFn` / `mutationFn` は `unwrap(api.api.<resource>.$get())` の形で書き、非 2xx は `ApiClientError`（`code` だけを見る）に任せる。401 はハンドラ側で共通処理するため画面で分岐しない
+- queryKey は `src/client/lib/query-keys.ts` に集約し、mutation 成功後は先頭要素で `invalidateQueries` する。楽観的更新は既定でしない
 - スタイルはTailwindのデザイントークンを使う。マジックナンバーの色・サイズ直書きを避ける
 
 ## テスト

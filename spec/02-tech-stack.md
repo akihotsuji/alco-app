@@ -66,7 +66,7 @@ alco-app/
 │  ├─ rules/            # AIエージェント向けプロジェクトルール
 │  └─ skills/           # 開発ワークフロー用スキル
 ├─ src/
-│  ├─ client/           # React SPA（画面・コンポーネント・hooks）
+│  ├─ client/           # React SPA（画面・コンポーネント。hooks は client/hooks/、RPC は client/lib/api.ts）
 │  ├─ server/           # Hono API（routes・services・middleware）
 │  ├─ db/               # Drizzleスキーマ・マイグレーション
 │  └─ shared/           # クライアント/サーバー共有（Zodスキーマ・型・定数）
@@ -103,6 +103,27 @@ alco-app/
 | API テスト方針 | Hono の **`app.request()` を Node / Vitest で使う**。`cloudflare:test` / Miniflare / `@cloudflare/vitest-pool-workers` は使わない。D1 が必要になったらモックまたは local D1（Phase 2-07 で踏襲） |
 | scripts | `pnpm test` = `vitest run`（CI 向け・非インタラクティブ）。`pnpm test:watch` = `vitest`（監視。CI には書かない） |
 | globals | 使わない。`import { describe, expect, it } from "vitest"` |
+
+## クライアントのデータ取得（2-04 FIX）
+
+正本は本節と [roadmap/phase-02-platform/04-hono-rpc-tanstack-query.md](../roadmap/phase-02-platform/04-hono-rpc-tanstack-query.md)。画面・hooks は裸の `fetch` を書かず、必ずここで決めた 1 箇所を通す。
+
+| 項目 | 決定 |
+|---|---|
+| RPC クライアント | `src/client/lib/api.ts` の `api`（`hc<AppType>("/")`）。**1 箇所**。`AppType` は `src/server/index.ts` から **型だけ** import（`import type`。サーバー実装をバンドルしない） |
+| base URL | 相対 `/`（`api.api.me.$get()` → `/api/me`）。SPA と API は同一 Worker・同一オリジンなので CORS なし |
+| Cookie | `init: { credentials: "include" }`。トークンを localStorage / メモリに持たない（Cookie は httpOnly） |
+| 応答の解き方 | `unwrap(api.api.xxx.$get())`。2xx は JSON（RPC の型）、非 2xx は `ApiClientError { status, code, fields? }`。`code` は `src/shared/api-error.ts` の `API_ERROR_CODES` で `safeParse`。本文が共通形式でないときは 401 → `unauthorized`、それ以外 → `internal_error` |
+| Query Provider | `src/client/lib/query-provider.tsx`（`QueryClientProvider`）。`App` の最外。QueryClient は `createQueryClient()`（`src/client/lib/query-client.ts`） |
+| `staleTime` | **30 秒**（個人アプリ。タブ復帰・再マウントで叩き直さない）。mutation 後は `invalidateQueries` で取り直す |
+| `retry` | 4xx（`ApiClientError.status < 500`）は再試行しない。5xx・ネットワーク断は **1 回**。mutation は再試行しない |
+| 401 | `QueryCache` / `MutationCache` の `onError` → `endSession()`（`src/client/auth/end-session.ts`）→ `authClient.signOut()`（失敗時は `$sessionSignal` を notify）→ セッション store が空 → `RequireAuth` が **`queryClient.clear()`** して `/login?redirect=` へ（`/` のときは `/login`）。画面側で 401 を個別に扱わない |
+| ログアウト | 同じ `endSession()`。`RequireAuth` が同じ経路でキャッシュを捨てて `/login` へ送る（前のユーザーの応答を共有端末に残さない） |
+| hooks の置き場 | **`src/client/hooks/`**。`use-<resource>.ts`（kebab-case）。`queryOptions()` で `xxxQueryOptions(client = api)` を export し、`useXxx()` はそれを `useQuery` に渡すだけにする（テストは `queryClient.fetchQuery(xxxQueryOptions(testClient))` で hook を通さず検証） |
+| queryKey | `src/client/lib/query-keys.ts` の `queryKeys` に集約。先頭がリソース名、以降が条件の配列（例 `["drink-logs", { from, to }]`）。mutation 成功後は先頭要素で invalidate |
+| 楽観的更新 | 既定では **しない**（ホームの 1 タップも「サーバー応答後に更新」。screen-designs/02-home.md）。使う場合は Phase 3 で個別に決める |
+| エラー表示 | `ApiClientError.code` だけを見る。メッセージ本文・スタックを画面に出さない。取得失敗は「読み込めませんでした」+ 再試行、トーストは 2-05 の shadcn 接続後 |
+| テスト | Node / Vitest。`createApiClient({ fetch: (input, init) => app.request(input, init) })` で `createTestApp()` に直結し、本番と同じ相対 URL・Cookie で契約を検証する（jsdom / Testing Library は入れない。0-06 と同じ） |
 
 ## CI（0-07 FIX）
 

@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 2 土台実装 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-05） |
 | 要件 | 型共有、クライアントは直接 fetch しない（coding-standards） |
 | ソース | Phase 2「Hono RPC + TanStack Query のクライアント側データ取得基盤」 |
 
@@ -59,25 +59,36 @@
 
 5. 確認: ログイン後ホームに me が出る。ログアウト後は query が残らないよう `queryClient.clear()`。
 
+### 実装時の確定事項（2026-09-05）
+
+正本は [spec/02-tech-stack.md](../../spec/02-tech-stack.md) 「クライアントのデータ取得（2-04 FIX）」。
+
+| 要確認だった点 | 確定 |
+|---|---|
+| staleTime | **30 秒**。mutation 後は `invalidateQueries` で取り直す |
+| retry | 4xx（`ApiClientError.status < 500`）は再試行しない。5xx・ネットワーク断は 1 回。mutation は再試行しない |
+| エラー toast | 2-05 / 2-06 の shadcn 接続後。今は「読み込めませんでした」+ 再試行のインライン表示のみ |
+| 401 の経路 | `QueryCache` / `MutationCache` の `onError` → `endSession()`（`authClient.signOut()`、失敗時は `$sessionSignal` を notify）→ セッション store が空 → **`RequireAuth` が `queryClient.clear()` して `/login` へ**。画面から `navigate` しない（Better Auth の store が古いまま `/login` に飛ぶと `GuestOnly` が `/` に押し戻す競合があったため、経路を 1 本にした） |
+| ログアウト | 同じ `endSession()`。`useLogout` のような別経路は作らない。`/` から来た未ログインは `/login`（`redirect` なし）にして、ログアウト直後の URL を素に保つ |
+| hooks の形 | `xxxQueryOptions(client = api)` を `queryOptions()` で export し、`useXxx()` は `useQuery` に渡すだけ。テストは hook を通さず `queryClient.fetchQuery(xxxQueryOptions(testClient))` |
+| エラー本文の扱い | `apiErrorBodySchema.safeParse`。未知のコードや非 JSON はサーバー本文を信用せず `internal_error`（401 のみ `unauthorized`） |
+| Cookie と Node テスト | `createApiClient({ fetch: (input, init) => app.request(input, init) })` で `createTestApp()` に直結。`credentials: "include"` と相対 URL `/api/me` が本番と同じ形で流れることをテストで固定 |
+
 ## 7. 仕様詳細
-
-**要確認**
-
-- staleTime（個人アプリなら 30s でも可）
-- エラー toast のライブラリ（shadcn toast を 2-06 後に接続）
 
 Mutation 規約（Phase 3 向け先出し）:
 
-- 成功後に関連 queryKey を invalidate
-- queryKey は `["drink-logs", from, to]` のように配列
+- 成功後に関連 queryKey を invalidate（`queryKeys.<resource>` の先頭要素）
+- queryKey は `["drink-logs", { from, to }]` のように配列。定義は `src/client/lib/query-keys.ts`
+- 楽観的更新は既定でしない（ホームの 1 タップも「サーバー応答後に更新」）
 
 ## 8. 受け入れ条件
 
-- [ ] コンポーネント内に裸の `fetch` が基盤コード以外にない（サンプル画面）
-- [ ] `/api/me` が型付きで呼べる
-- [ ] 401 でログインへ
-- [ ] ログアウトでキャッシュクリア
-- [ ] lint / typecheck / test
+- [x] コンポーネント内に裸の `fetch` が基盤コード以外にない（`rg "\bfetch\(" src/client` に該当なし。`hc` の呼び出しも `api.ts` のみ）
+- [x] `/api/me` が型付きで呼べる（`src/client/lib/api.test.ts` の `expectTypeOf`、`src/client/hooks/use-me.test.ts`）
+- [x] 401 でログインへ（`query-client.test.ts` の `onUnauthorized`、`end-session.test.ts`。ブラウザで `me` 401 → `sign-out` → `/login` を確認）
+- [x] ログアウトでキャッシュクリア（`RequireAuth` の `queryClient.clear()`。ブラウザで再ログイン後に `me` が再取得されることを確認）
+- [x] lint / typecheck / test
 
 ## 9. セキュリティ観点
 

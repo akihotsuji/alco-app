@@ -213,6 +213,47 @@ body {
   font-weight: 600;
 }
 
+.home-account {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  color: var(--muted);
+  font-size: var(--text-body);
+}
+
+.home-account-loading {
+  width: 160px;
+  height: 20px;
+  min-height: 0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.home-retry {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: var(--shadow-inset-sm);
+  cursor: pointer;
+}
+
+.home-retry:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.home-retry:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 .home-logout {
   max-width: 360px;
 }
