@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" width="120" height="160" color="#2B261F" role="img" aria-label="޹����	">
+  <!-- ���: rest��2 0	n���gF��oj��o�X� -->
+  <defs>
+    <clipPath id="bowl"><path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z"/></clipPath>
+  </defs>
+  <!-- z z -->
+  <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M96 22 H106 L96 32 H106"/>
+    <path d="M104 6 H111 L104 13 H111"/>
+  </g>
+  <!-- �� -->
+  <ellipse cx="60" cy="141" rx="30" ry="7" fill="none" stroke="currentColor" stroke-width="3"/>
+  <rect x="57" y="96" width="6" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="3"/>
+  <!-- ��,S -->
+  <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="#FFFFFF" fill-opacity="0.35"/>
+  <!-- ��j�	 -->
+  <g clip-path="url(#bowl)">
+    <path d="M20 78 Q60 74 100 78 V110 H20 Z" fill="#8E2F3C"/>
+    <path d="M20 78 Q60 74 100 78 V81 Q60 77 20 81 Z" fill="#B34A5A"/>
+  </g>
+  <!-- *��Ϥ�� -->
+  <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M26 22 H94" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M34 34 C33 50 36 66 42 78" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="3" stroke-linecap="round"/>
+  <!-- ��XfD�	 -->
+  <circle cx="48" cy="54" r="13" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+  <circle cx="72" cy="52" r="15" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+  <path d="M40 57 Q48 63 56 57" fill="none" stroke="#1F1B17" stroke-width="3" stroke-linecap="round"/>
+  <path d="M63 55 Q72 62 81 55" fill="none" stroke="#1F1B17" stroke-width="3" stroke-linecap="round"/>
+</svg>

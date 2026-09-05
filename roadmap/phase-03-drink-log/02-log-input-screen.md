@@ -21,13 +21,16 @@
 
 **対象**
 
-- 入力 UI、Zod、POST API、自分のログのみ insert
-- 保存後に日別またはホームへ戻り、トースト
+- 入力 UI（[spec/screen-designs/03-log.md](../../spec/screen-designs/03-log.md) `log-new` の要素表どおり）、Zod、POST API、自分のログのみ insert
+- 写真タイル（120px、`surprised` 48px）→ 2-08 の `photo-edit`（4:5、`table`、キャラ合成）。`?camera=1` で自動起動。`photoIds`（最大 1）を POST に含める
+- 量チップにボトル量 375 / 750 / 1500
+- 保存後に対象日の `log-day?highlight=<id>` へ、トースト（`cheer`）
 
 **対象外**
 
 - マイドリンク 1 タップ（3-03）
 - 一覧の編集削除（3-05）。ただし同じ PATCH を先に作ってもよい
+- ボトル行のピッカー（Phase 4-02 で有効化。行は非表示にしてよい）
 
 ## 4. 成果物
 
@@ -73,8 +76,9 @@ API: `POST /api/drink-logs`（api-design どおり）
 
 ## 8. 受け入れ条件
 
-- [ ] 仕様の項目が揃っている
-- [ ] 最短タップ数が仕様どおり
+- [ ] 仕様の項目が揃っている（[03-log.md](../../spec/screen-designs/03-log.md) の受け入れチェックを PR に貼る）
+- [ ] 最短タップ数が仕様どおり（写真なしで保存 1 タップ）
+- [ ] 写真タイル → `photo-edit` → 保存で `drink_log_id` が付く。未保存で戻ると写真が削除される
 - [ ] 単体（計算）と API（認可含む）テスト
 - [ ] lint / typecheck / test
 - [ ] spec 同期

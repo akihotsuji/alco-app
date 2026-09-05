@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 目安 | 3〜5日 |
-| 状態 | 完了（1-01〜1-06。2026-09-04 オーナー承認） |
+| 状態 | 1-01〜1-06 完了（2026-09-04 承認）。**1-07 / 1-08 レビュー待ち**（2026-09-05 追加） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 1 |
 
 ## 目的
@@ -31,8 +31,10 @@
 | 04 | [ER / Drizzle](04-er-drizzle-schema.md) | `spec/data-model.md` |
 | 05 | [API設計](05-api-design.md) | `spec/api-design.md` |
 | 06 | [計算・プリセット](06-alcohol-calc-presets.md) | [spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md) |
+| 07 | [詳細画面設計](07-detailed-screen-design.md) | [spec/screen-designs/](../../spec/screen-designs/README.md)、モック更新、data-model / api の 1-07 改訂 |
+| 08 | [キャラクター](08-character-mascot.md) | [spec/character.md](../../spec/character.md)、[spec/assets/character/](../../spec/assets/character/) |
 
-推奨順: 01 → 02 と 03 は並行可。04 と 06 を固めてから 05（API はデータモデルに依存）。
+推奨順: 01 → 02 と 03 は並行可。04 と 06 を固めてから 05（API はデータモデルに依存）。07 と 08 は 01〜06 の後に並行（同じ PR）。
 
 ## このフェーズで整備する rules
 
@@ -60,6 +62,16 @@ Phase 2 のスキーマ実装・認証・レイアウトに着手できる。
 - **計算・プリセット**（1-06）: 保存は小数第 2 位、表示は第 1 位。量 1〜5000ml、度数 **0〜100%（0% 可）**。ボトル丸ごとも記録可。正本は [spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md)
 - **ワイヤー / デザイン / ナビ / データモデル / API**: 当面このまま。画面細部とセラー風写真背景は後続
 
+## 指示（2026-09-05。1-07 / 1-08。承認待ち）
+
+- **詳細画面設計を正本にし、実装はそのとおりに作る**（[spec/screen-designs/](../../spec/screen-designs/README.md)）
+- 下部タブは **ホーム / セラー / 記録（中央・円形） / ノート / 設定**
+- セラーは **棚（陳列）**。操作は追加と消費。消費で **貯蔵庫** へ移り、その日の記録に 1 杯を追加して日別へ遷移
+- 記録・ノートは **写真を撮って付ける**（任意。最短タップは維持）
+- **キャラクター 1 体**（赤ワイングラス + 目）。写真右下に合成できる
+- 2026-09-04 の「セラー風背景は将来」「中央タブ不採用」「データモデルは当面このまま」は上記で **覆す**
+
 ## 要確認（フェーズ横断・残）
 
-- なし（SE 幅の折り返しは 2-05）
+- 1-07 の要確認（中央タブの着地 / 本数上限 / ノート写真枚数 / キャラの仮称）。既定は [spec/screen-designs/README.md](../../spec/screen-designs/README.md)
+- SE 幅の折り返しは 2-05

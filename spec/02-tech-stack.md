@@ -31,8 +31,14 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 | DB | Cloudflare D1 (SQLite) | 無料枠5GB。個人〜小規模なら十分。SQLiteなのでローカル開発も容易 |
 | ORM/マイグレーション | Drizzle ORM + drizzle-kit | 型安全なクエリとマイグレーション管理。D1公式対応 |
 | 認証 | Better Auth | Hono + D1 + Drizzleで動作する。メール/パスワードから始めてOAuthを後付けできる |
-| 写真ストレージ | Cloudflare R2 | 無料枠10GB・転送料無料。アップロード前にクライアント側でリサイズ |
-| PWA | vite-plugin-pwa | manifest / アイコン / スタンドアロン表示を宣言的に設定 |
+| 写真ストレージ | Cloudflare R2 | 無料枠10GB・転送料無料。アップロード前にクライアント側で切り抜き・リサイズ・色補正・合成まで済ませ、加工後 1 枚だけ保存 |
+| 画像処理 | **ブラウザ Canvas 2D**（`createImageBitmap` + `ctx.filter` + `toBlob`） | Workers で画像処理をしない（CPU 時間・無料枠）。Cloudflare Images / 外部 API は有料または依存増のため不採用。追加パッケージなし（2026-09-05） |
+| 写真取り込み | `<input type="file" accept="image/*" capture>` | iOS / Android の PWA スタンドアロンで最も確実。`getUserMedia` は使わない |
+| キャラクター | インライン SVG の React コンポーネント（`<Mascot />`） | テーマ追従・拡縮自由・追加依存なし。ラスタ画像は持たない（[character.md](character.md)） |
+| 定期処理 | Workers **Cron Triggers**（`scheduled`） | 未紐付け写真の日次 GC、`ai_usage` の掃除。無料枠に含まれる |
+| 背景除去（切り抜き） | ブラウザ WASM（候補 `@imgly/background-removal`。Apache-2.0） | セラーの棚に切り抜きボトルを立てる（2026-09-05 に MVP へ）。端末内処理でサーバー費用ゼロ。初回にモデル数十 MB を DL（Cache API に保存）。失敗時は長方形にフォールバック。追加依存の理由は 4-06 の PR に明記 |
+| ラベル読み取り | **Cloudflare Workers AI**（Vision 対応の指示追従モデル。binding `AI`） | ボトルのラベル写真から銘柄名・生産者・年・種類などの候補を返す（2026-09-05 決定。セラーのみ）。無料枠（日次 Neurons）内。新ベンダー・鍵が不要で、写真が Cloudflare 外へ出ない。`LabelRecognizer` インターフェースで実装し、将来 **Gemini 等の外部 API** に差し替え可能にする（その場合は `wrangler secret` で鍵、外部送信の明記が必要） |
+| PWA | vite-plugin-pwa | manifest / アイコン（キャラクター由来）/ スタンドアロン表示を宣言的に設定 |
 | Lint / Format | Biome | ESLint+Prettierの2本立てを避け、1ツールで完結。高速で設定が少ない |
 | テスト | Vitest (+ Testing Library) / Playwright | 単体・コンポーネントテストはVitest。主要導線のE2EスモークはPlaywright |
 | CI/CD | GitHub Actions + wrangler | PRでlint/型チェック/テスト、mainマージで自動デプロイ |
@@ -44,6 +50,12 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 - **Supabase**: 無料枠プロジェクトが1週間アクセスなしで一時停止する運用上の煩わしさがあり、Cloudflareに寄せた方が構成が単純。
 - **バックエンド別言語（Go等）**: 型共有のメリットを失い、AIエージェントにとってもリポジトリが複雑になるため不採用。
 - **モノレポ（pnpm workspaces等）**: 個人規模では過剰。単一パッケージ構成で始め、必要になったら分割する。
+- **Cloudflare Images / Image Resizing**: 有料。写真は端末内で加工済みなので不要。
+- **サーバー側の画像ライブラリ（sharp 等）**: Workers で動かない・重い。magic bytes と寸法ヘッダの読み取りだけを自前で行う。
+- **remove.bg 等の背景除去 API**: 有料・外部送信。端末内 WASM で足りる。
+- **Gemini / OpenAI Vision を最初から採用**: 精度は高いが鍵管理と外部送信が増える。まず Workers AI で始め、精度不足なら差し替える（設計は差し替え前提）。
+- **端末内 OCR（Tesseract.js）**: ワインラベルの書体・レイアウトに弱い。
+- **`getUserMedia` のカメラ UI**: PWA スタンドアロンでの権限・向き・解像度の差異が大きい。OS のカメラアプリに任せる `input[capture]` の方が確実。
 
 ## リポジトリ構成（予定）
 
@@ -143,14 +155,29 @@ alco-app/
 
 コードからは `env.DB` / `env.PHOTOS` で参照する。
 
+### 1-07 で増えるインフラ（2026-09-05）
+
+新しいサービスは **増やさない**。既存の Workers / D1 / R2 の範囲で次を足す。
+
+| 項目 | 内容 | 実装フェーズ |
+|---|---|---|
+| Cron Trigger | `wrangler.jsonc` の `triggers.crons`（例 `0 18 * * *` = JST 3:00）で `scheduled` ハンドラを日次実行。未紐付け写真の GC（R2 + D1）、`ai_usage` 掃除 | 2-08 |
+| Workers AI binding | `wrangler.jsonc` に `"ai": { "binding": "AI" }`。`env.AI.run(model, input)`。dev / production で同じ binding 名。モデル名は `src/server/services/label-recognizer/` の定数 | 4-07 |
+| R2 の利用量 | 記録にも写真が付くため増える。1 枚 ≦300KB × 1 日 2 枚 → 年 220MB。切り抜き WebP は同程度。無料枠 10GB で 40 年分 | — |
+| Workers CPU | 画像はクライアント加工済み。サーバーは magic bytes / 寸法ヘッダ / R2 put と、AI 呼び出しの待ち（CPU 時間には数えられない） | 2-08 / 4-07 |
+| 背景除去モデル | クライアントが初回に DL。同一オリジン `/models/` に置くか CDN かは 4-06 で決める（CDN なら CSP `connect-src` に追加） | 4-06 |
+| 環境変数 | 追加なし（写真上限・AI 日次上限などは `src/shared` の定数） | — |
+| PWA アイコン | キャラクター SVG からビルド時に PNG 一式を生成（`vite-plugin-pwa` の assets generator） | 6-01 |
+
 ## ランニングコスト見積り
 
 | サービス | 無料枠 | 想定 |
 |---|---|---|
-| Workers | 10万リクエスト/日 | 個人利用では余裕。一般公開後も当面無料枠内 |
+| Workers | 10万リクエスト/日、Cron 含む | 個人利用では余裕。一般公開後も当面無料枠内 |
+| Workers AI | 日次の無料 Neurons 枠（導入時点の値を 4-07 で確認） | ラベル読み取りは 1 本の登録につき 1 回。ユーザー日次上限 30 回で枠を守る。一般公開時は上限を見直す |
 | D1 | 5GB・500万行読取/日 | テキスト中心のデータなので余裕 |
-| R2 | 10GB保存 | リサイズ済み写真(〜300KB/枚)で3万枚以上 |
-| GitHub | Free | プライベートリポジトリ・Actions無料枠 |
+| R2 | 10GB保存 | 加工済み写真(〜300KB/枚)で3万枚以上。記録・ノート・セラーを合わせても個人利用で年 300MB 程度 |
+| GitHub | Free | Actions無料枠 |
 | 独自ドメイン | 約1,000〜2,000円/年（任意） | 当面は無料の `*.workers.dev` でも可 |
 
-**合計: 0円/月**（独自ドメインを取る場合のみ年千円台）
+**合計: 0円/月**（独自ドメインを取る場合のみ年千円台）。画像処理を端末内に置いたことで、写真機能を足しても増えない。

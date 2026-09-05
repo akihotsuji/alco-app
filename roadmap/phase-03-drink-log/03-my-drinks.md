@@ -20,9 +20,10 @@
 
 **対象**
 
-- マイドリンクの作成・一覧・編集・削除
-- 1 タップ記録（現在時刻、コピーした type/volume/abv）
-- 件数上限（**要確認**。例 30）
+- マイドリンクの作成・一覧・編集・削除（[spec/screen-designs/03-log.md](../../spec/screen-designs/03-log.md) `mydrink-*`）
+- 1 タップ記録（現在時刻、コピーした type/volume/abv）。ホームと日別の両方にチップ（最大 4）
+- 件数上限 30（data-model 5.6 で確定）
+- ホームの今日カードとキャラクター（`default` / `rest`、1 タップ後 `cheer` 300ms。[spec/screen-designs/02-home.md](../../spec/screen-designs/02-home.md)）
 
 **対象外**
 

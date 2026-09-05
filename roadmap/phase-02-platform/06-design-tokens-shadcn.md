@@ -22,9 +22,10 @@
 **対象**
 
 - Tailwind CSS v4 または v3（導入時の shadcn 推奨に合わせる。**要確認**）
-- CSS 変数（background, foreground, primary, muted, destructive, border, radius）
-- shadcn: Button, Input, Label, Card, Tabs, Sonner or Toast, Dialog or Sheet, Form（必要なら）
-- ログイン画面をこれらの部品で整える（2-02 の見た目改善でも可）
+- CSS 変数（design-system の全トークン。1-07 / 1-08 追補の `--mascot-*` / `--shelf-*` / `--radius-photo` / `--tab-center-size` を含む）
+- shadcn: Button, Input, Label, Card, Tabs, Sonner or Toast, Dialog, Form（必要なら）。Sheet は使わない
+- **`<Mascot pose size />`**（`src/client/components/mascot/Mascot.tsx`。4 ポーズをインライン SVG、`useId()` で clipPath を一意化、`aria-hidden` 既定）
+- ログイン画面をこれらの部品で整える（キャラ `default` 120px。2-02 の見た目改善でも可）
 
 **対象外**
 
@@ -74,6 +75,7 @@ OS の外観設定に追従する（2026-08-13 確定）。`:root` にライト�
 ## 8. 受け入れ条件
 
 - [ ] Button/Input/Card がストーリーなしでもログイン画面で使われている
+- [ ] `<Mascot />` 4 ポーズがライト／ダークで崩れない（黒目が見える）。SVG は [spec/assets/character/](../../spec/assets/character/) と同一
 - [ ] トークンが design-system と対応（ライト／ダーク両方）
 - [ ] OS のライト／ダーク切替で見た目が追従する（html に `.dark` 固定なし）
 - [ ] モバイル幅で崩れない
@@ -88,7 +90,9 @@ OS の外観設定に追従する（2026-08-13 確定）。`:root` にライト�
 ## 10. 関連ファイル / 関連spec
 
 - [spec/design-system.md](../../spec/design-system.md)
+- [spec/character.md](../../spec/character.md)
 - [../phase-01-design/03-design-system.md](../phase-01-design/03-design-system.md)
+- [../phase-01-design/08-character-mascot.md](../phase-01-design/08-character-mascot.md)
 
 ## 11. リスク・注意点
 

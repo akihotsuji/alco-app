@@ -8,12 +8,12 @@
 
 ## 目的
 
-3 つ目のコア機能を完成させ、セラーとの連携土台を作る。これで MVP の 3 機能が揃う。
+3 つ目のコア機能を完成させ、セラーとの連携土台を作る。これで MVP の 3 機能が揃う。体験は **写真を撮って評価と一言を付ける**（[spec/screen-designs/05-notes.md](../../spec/screen-designs/05-notes.md)）。
 
 ## 依存
 
-- Phase 4 完了（ボトル CRUD と写真基盤）
-- 実装前に `spec/features/tasting-note.md` を承認する
+- Phase 2-08（写真パイプライン）、Phase 4 完了（ボトル・棚。ピッカーは `view=all`）
+- 実装前に `spec/features/tasting-note.md` を承認する（05-notes.md を写す）
 
 ## ゴール（フェーズ DoD）
 
@@ -25,9 +25,9 @@
 | # | ファイル | 要点 |
 |---|---|---|
 | 01 | [機能仕様](01-spec-tasting-note.md) | `spec/features/tasting-note.md` |
-| 02 | [ノート CRUD](02-note-crud.md) | 外観/香り/味わい/余韻、5 段階評価、一覧・検索 |
-| 03 | [写真複数枚](03-multi-photo-attach.md) | Phase 4 基盤の再利用 |
-| 04 | [セラー連携](04-cellar-integration.md) | ボトル詳細のノート一覧、作成時のボトル選択 |
+| 02 | [ノート CRUD](02-note-crud.md) | 撮って評価と一言（4 欄は折りたたみ）、写真グリッド一覧・検索、カルーセル詳細 |
+| 03 | [写真複数枚](03-multi-photo-attach.md) | 2-08 基盤の再利用。最大 6、キャラ合成トグル、先頭化 |
+| 04 | [セラー連携](04-cellar-integration.md) | ボトル詳細のノート節、作成時のボトル選択（貯蔵庫含む） |
 | 05 | [テスト](05-api-component-tests.md) | API・コンポーネント、認可含む |
 
 推奨順: 01 → 02（写真・ボトル ID は任意で保存できる状態）→ 03 → 04 → 05。

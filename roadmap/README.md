@@ -12,7 +12,8 @@
 | 判定 | 内容 |
 |---|---|
 | **完了** | 0-01〜0-09、1-01〜1-06。設計は 2026-09-04 承認。`protect-main` は 2026-09-05 適用（id `22315799`） |
-| **未着手** | Phase 2 以降 |
+| **レビュー待ち** | **1-07 詳細画面設計**（`spec/screen-designs/`）と **1-08 キャラクター**（`spec/character.md`）。data-model / api-design / design-system の 1-07 改訂を含む |
+| **未着手** | Phase 2 以降（2-08 写真パイプラインを追加） |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
@@ -49,6 +50,22 @@
 | リポジトリ | **public**（Free で ruleset を使う。private にするなら Pro） |
 | main 保護 | ruleset `protect-main`（id `22315799`）適用済み。必須チェックなし。merge / squash / rebase。承認 0 人 |
 
+## オーナー指示（2026-09-05。1-07 / 1-08。承認待ち）
+
+2026-09-04 の「セラー背景は将来」「中央タブ不採用」「データモデルは当面このまま」を **覆す**。詳細は [spec/screen-designs/README.md](../spec/screen-designs/README.md)。
+
+| 項目 | 指示 |
+|---|---|
+| 詳細画面設計 | 全画面の機能・要素・状態・遷移をイメージ図付きで確定し、**実装はそのとおりに作る**（rules / skill に転記） |
+| 下部タブ | **ホーム / セラー / 記録（中央・円形） / ノート / 設定**。記録が最頻 |
+| セラー | 撮った写真を **切り抜いて**、**地色の上のガラス風棚板**に陳列（2 回目の指示で確定）。**種類ごと / 1 本ずつ**の表示切替。操作は **追加と消費**。消費で **貯蔵庫** へ移り、その日の記録に 1 杯を追加して日別へ遷移。1 行 = 1 本、`quantity` 廃止、`finished` → `consumed` |
+| ラベル読み取り | **Cloudflare Workers AI の Vision モデル**で、ラベル写真から銘柄名・生産者・産地・年・種類・度数の候補を空欄に入れる。**セラーのみ**。自動保存しない。Gemini 等の外部 API は将来の差し替え候補として念頭に置く（`LabelRecognizer` 差し替え） |
+| 記録・ノート | **写真を撮って記録・コメントを付ける**体験。写真は任意で最短タップは維持。記録は 1 枚、ノートは 6 枚 |
+| キャラクター | **1 体**（赤ワインの入ったグラスに Nani!? 風の目。仮称「グラッピー」）。ホーム・ログイン・空状態・保存トーストに。写真右下に「驚き」ポーズを合成できる |
+| 画像処理 | すべて端末内（Canvas / WASM）。加工後 1 枚だけ R2。切り抜きも端末内（フォールバックあり） |
+| デザイン崩れ | 週マスの薄赤（塗りに inset を重ねていた）とチップの被り（影が大きすぎ）はトークンで修正。影を部品サイズで 2 段階化。実機での微調整は 2-06 |
+| 要確認 | 中央タブの着地（既定: 今日の日別）、本数上限（12）、ノート写真枚数（6）、キャラの名前 |
+
 ## オーナー決定（2026-08-15 FIX）
 
 Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tech-stack.md) の「環境」。
@@ -72,11 +89,11 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | フェーズ | フォルダ | 目的 | 状態 |
 |---|---|---|---|
 | Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 完了 |
-| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API | 完了（2026-09-04 承認） |
-| Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有 | 未着手 |
-| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・マイドリンク・サマリー） | 未着手 |
-| Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | 在庫CRUD・写真（R2） | 未着手 |
-| Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | ノートCRUD・セラー連携 | 未着手 |
+| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 1-01〜06 完了（2026-09-04 承認）。1-07 / 08 レビュー待ち |
+| Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 未着手 |
+| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 未着手 |
+| Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と消費・貯蔵庫・ラベル AI 読み取り | 未着手 |
+| Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 未着手 |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
 | Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 未着手 |
 | Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 未着手 |
@@ -99,18 +116,20 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 0-08 | mainブランチ保護 | [08-branch-protection.md](phase-00-project-foundation/08-branch-protection.md) | 完了 |
 | 0-09 | `.cursor/rules/` の整備 | [09-cursor-rules-skills.md](phase-00-project-foundation/09-cursor-rules-skills.md) | 完了 |
 
-### Phase 1（6タスク）
+### Phase 1（8タスク）
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | 完了 |
-| 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 完了 |
-| 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 完了 |
-| 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 完了 |
-| 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 完了 |
+| 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | 完了（1-07 で改訂） |
+| 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 完了（配置の正本は 1-07 へ） |
+| 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 完了（1-07/08 で追補） |
+| 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 完了（1-07 改訂は承認待ち） |
+| 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 完了（1-07 改訂は承認待ち） |
 | 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | 完了 |
+| 1-07 | 詳細画面設計 → `spec/screen-designs/` | [07-detailed-screen-design.md](phase-01-design/07-detailed-screen-design.md) | レビュー待ち |
+| 1-08 | キャラクター → `spec/character.md` | [08-character-mascot.md](phase-01-design/08-character-mascot.md) | レビュー待ち |
 
-### Phase 2（7タスク）
+### Phase 2（8タスク）
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
@@ -121,6 +140,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 2-05 | 共通レイアウト | [05-common-layout.md](phase-02-platform/05-common-layout.md) | 未着手 |
 | 2-06 | デザイントークンとshadcn/ui | [06-design-tokens-shadcn.md](phase-02-platform/06-design-tokens-shadcn.md) | 未着手 |
 | 2-07 | 認証周りの単体テスト・APIテスト | [07-auth-tests.md](phase-02-platform/07-auth-tests.md) | 未着手 |
+| 2-08 | 写真パイプライン基盤（撮影→編集→合成→R2、未紐付け GC） | [08-photo-pipeline.md](phase-02-platform/08-photo-pipeline.md) | 未着手 |
 
 ### Phase 3（7タスク）
 
@@ -134,15 +154,17 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 3-06 | 週/月サマリー | [06-weekly-monthly-summary.md](phase-03-drink-log/06-weekly-monthly-summary.md) | 未着手 |
 | 3-07 | dev環境デプロイと日常利用開始 | [07-dev-deploy-dogfood.md](phase-03-drink-log/07-dev-deploy-dogfood.md) | 未着手 |
 
-### Phase 4（5タスク）
+### Phase 4（7タスク）
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
 | 4-01 | `spec/features/cellar.md` 作成 | [01-spec-cellar.md](phase-04-cellar/01-spec-cellar.md) | 未着手 |
 | 4-02 | ボトルCRUD | [02-bottle-crud.md](phase-04-cellar/02-bottle-crud.md) | 未着手 |
-| 4-03 | ステータス管理 | [03-status-management.md](phase-04-cellar/03-status-management.md) | 未着手 |
-| 4-04 | 写真アップロード（R2） | [04-photo-upload-r2.md](phase-04-cellar/04-photo-upload-r2.md) | 未着手 |
+| 4-03 | 消費・貯蔵庫・開栓・復元（ステータス管理） | [03-status-management.md](phase-04-cellar/03-status-management.md) | 未着手 |
+| 4-04 | 陳列（ガラス棚。種類ごと / 1 本ずつ。R2 基盤は 2-08 へ） | [04-photo-upload-r2.md](phase-04-cellar/04-photo-upload-r2.md) | 未着手 |
 | 4-05 | APIテスト・コンポーネントテスト | [05-api-component-tests.md](phase-04-cellar/05-api-component-tests.md) | 未着手 |
+| 4-06 | 切り抜き（端末内 背景除去 → 透過 WebP） | [06-background-removal.md](phase-04-cellar/06-background-removal.md) | 未着手 |
+| 4-07 | ラベル読み取り（Workers AI） | [07-label-recognition.md](phase-04-cellar/07-label-recognition.md) | 未着手 |
 
 ### Phase 5（5タスク）
 
@@ -189,16 +211,17 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 8-05 | レート制限・不正利用対策 | [05-rate-limit-abuse.md](phase-08-public-launch/05-rate-limit-abuse.md) | 未着手 |
 | 8-06 | 無料枠の使用量監視 | [06-usage-monitoring.md](phase-08-public-launch/06-usage-monitoring.md) | 未着手 |
 
-**合計: フェーズフォルダ 9、タスクファイル 59、フェーズ概要 9、本インデックス 1。**
+**合計: フェーズフォルダ 9、タスクファイル 64、フェーズ概要 9、本インデックス 1。**
 
 ## 共通ルール（全タスク）
 
 1. 機能実装の前に `spec/features/` を書き、オーナー承認を得る（Phase 3〜5）。
-2. 作業ブランチは切る直前に `git fetch origin main` し、`git checkout -b feature/<内容> origin/main`（または `fix/`）。`main` へ直接 push しない。
-3. コミット・PR は日本語、`種別: 要約`。
-4. シークレットをコード・`wrangler.jsonc`・spec・本フォルダに書かない。
-5. 公開エンドポイントを新設する場合は仕様書に明記し、オーナー承認を得る。
-6. 完了時に `spec/03-roadmap.md` のチェックボックスを更新する。
+2. **画面は [spec/screen-designs/](../spec/screen-designs/README.md) のとおりに実装し、該当ファイルの受け入れチェックを PR に貼る。** 変えたいときは先に設計を直す（2026-09-05）。
+3. 作業ブランチは切る直前に `git fetch origin main` し、`git checkout -b feature/<内容> origin/main`（または `fix/`）。`main` へ直接 push しない。
+4. コミット・PR は日本語、`種別: 要約`。
+5. シークレットをコード・`wrangler.jsonc`・spec・本フォルダに書かない。
+6. 公開エンドポイントを新設する場合は仕様書に明記し、オーナー承認を得る。
+7. 完了時に `spec/03-roadmap.md` のチェックボックスを更新する。
 
 ## 関連spec
 

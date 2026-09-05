@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" width="120" height="160" color="#2B261F" role="img" aria-label="޹���8	">
+  <!-- alco-app mascot: d��L�L�_���k�L�D_��鯿����: default -->
+  <defs>
+    <clipPath id="bowl"><path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z"/></clipPath>
+  </defs>
+  <!-- �� -->
+  <ellipse cx="60" cy="141" rx="30" ry="7" fill="none" stroke="currentColor" stroke-width="3"/>
+  <rect x="57" y="96" width="6" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="3"/>
+  <!-- ��,SJ	 -->
+  <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="#FFFFFF" fill-opacity="0.35"/>
+  <!-- �� -->
+  <g clip-path="url(#bowl)">
+    <path d="M20 60 Q60 52 100 60 V110 H20 Z" fill="#8E2F3C"/>
+    <path d="M20 60 Q60 52 100 60 V64 Q60 57 20 64 Z" fill="#B34A5A"/>
+  </g>
+  <!-- ��*�hϤ�� -->
+  <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M26 22 H94" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M34 34 C33 50 36 66 42 78" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="3" stroke-linecap="round"/>
+  <!-- ���'MOW�m�	 -->
+  <circle cx="48" cy="54" r="13" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+  <circle cx="72" cy="52" r="15" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+  <circle cx="50" cy="56" r="5.5" fill="#1F1B17"/>
+  <circle cx="74" cy="54" r="6" fill="#1F1B17"/>
+  <circle cx="52" cy="54" r="1.6" fill="#FFFFFF"/>
+  <circle cx="76" cy="52" r="1.8" fill="#FFFFFF"/>
+</svg>

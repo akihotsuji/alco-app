@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" width="120" height="160" color="#2B261F" role="img" aria-label="޹���ZM	">
+  <!-- ���: surprised�n�kY�������o�
+��Sn�	 -->
+  <defs>
+    <clipPath id="bowl"><path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z"/></clipPath>
+  </defs>
+  <!-- ZM����
+�;�nNani!?
+n�M	 -->
+  <g stroke="currentColor" stroke-width="3.5" stroke-linecap="round" fill="none">
+    <path d="M10 30 L19 21"/>
+    <path d="M17 9 L22 20"/>
+    <path d="M31 5 L29 17"/>
+  </g>
+  <!-- �� -->
+  <ellipse cx="60" cy="141" rx="30" ry="7" fill="none" stroke="currentColor" stroke-width="3"/>
+  <rect x="57" y="96" width="6" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="3"/>
+  <!-- ��,S -->
+  <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="#FFFFFF" fill-opacity="0.35"/>
+  <!-- ��ZDf�O��m�	 -->
+  <g clip-path="url(#bowl)">
+    <path d="M20 66 Q60 50 100 58 V110 H20 Z" fill="#8E2F3C"/>
+    <path d="M20 66 Q60 50 100 58 V62 Q60 55 20 70 Z" fill="#B34A5A"/>
+  </g>
+  <circle cx="90" cy="40" r="2.5" fill="#8E2F3C"/>
+  <circle cx="84" cy="32" r="1.8" fill="#8E2F3C"/>
+  <!-- *��Ϥ�� -->
+  <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M26 22 H94" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M34 34 C33 50 36 66 42 78" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="3" stroke-linecap="round"/>
+  <!-- �'MO��O�oUO�
+���	 -->
+  <circle cx="47" cy="56" r="15" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+  <circle cx="73" cy="53" r="17" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+  <circle cx="42" cy="51" r="4.5" fill="#1F1B17"/>
+  <circle cx="67" cy="47" r="5" fill="#1F1B17"/>
+  <circle cx="43.5" cy="49.5" r="1.4" fill="#FFFFFF"/>
+  <circle cx="68.5" cy="45.5" r="1.6" fill="#FFFFFF"/>
+</svg>
