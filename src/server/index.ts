@@ -1,50 +1,68 @@
+import "@/shared/zod-locale.ts";
 import { Hono } from "hono";
-import { createMiddleware } from "hono/factory";
 import { secureHeaders } from "hono/secure-headers";
 import type { AppEnv } from "./app-env.ts";
 import { type Auth, createAuthFromEnv } from "./auth.ts";
+import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
+import { errorHandler, notFoundHandler } from "./middleware/error.ts";
+import { healthRoute } from "./routes/health.ts";
 import { meRoute } from "./routes/me.ts";
 
 export type CreateAppOptions = {
   auth?: Auth;
 };
 
+/**
+ * Worker が返すのは `/api/*` の JSON（と写真バイナリ）だけ。SPA の HTML / JS / CSS は
+ * 静的アセット配信（`run_worker_first: ["/api/*"]`）なので、そちらの CSP は `public/_headers`。
+ * API 応答はスクリプトも埋め込みも要らないため全面禁止にする。
+ */
+const apiSecureHeaders = secureHeaders({
+  contentSecurityPolicy: {
+    defaultSrc: ["'none'"],
+    frameAncestors: ["'none'"],
+  },
+  xFrameOptions: "DENY",
+});
+
+/** Better Auth は baseURL 依存なので、リクエストの origin ごとに 1 つ組み立てて再利用する。 */
+function createAuthResolver(options: CreateAppOptions): AuthResolver {
+  const authByOrigin = new Map<string, Auth>();
+  return (c) => {
+    if (options.auth) {
+      return options.auth;
+    }
+    const origin = new URL(c.req.url).origin;
+    let auth = authByOrigin.get(origin);
+    if (!auth) {
+      auth = createAuthFromEnv(c.env, c.req.url);
+      authByOrigin.set(origin, auth);
+    }
+    return auth;
+  };
+}
+
+/**
+ * 登録順（spec/api-design.md 5 章）:
+ * secure-headers → 認証 MW（公開ルートは内部で除外）→ Better Auth → 業務ルート → 404
+ */
 export function createApp(options: CreateAppOptions = {}) {
   const app = new Hono<AppEnv>();
-  const authByOrigin = new Map<string, Auth>();
+  const resolveAuth = createAuthResolver(options);
 
-  app.use(secureHeaders());
+  app.onError(errorHandler);
+  app.notFound(notFoundHandler);
 
-  const attachAuth = createMiddleware<AppEnv>(async (c, next) => {
-    let auth = options.auth;
-    if (!auth) {
-      const origin = new URL(c.req.url).origin;
-      auth = authByOrigin.get(origin);
-      if (!auth) {
-        auth = createAuthFromEnv(c.env, c.req.url);
-        authByOrigin.set(origin, auth);
-      }
-    }
-    c.set("auth", auth);
-    await next();
-  });
+  app.use(apiSecureHeaders);
+  app.use("/api/*", createAuthGuard(resolveAuth));
 
-  app.get("/api/health", (c) => c.json({ ok: true }));
+  app.all("/api/auth/*", (c) => resolveAuth(c).handler(c.req.raw));
 
-  app.all("/api/auth/*", attachAuth, (c) => c.get("auth").handler(c.req.raw));
-
-  app.use("/api/me", attachAuth);
-  app.route("/api/me", meRoute);
-
-  app.all("/api/*", (c) => c.json({ ok: false }, 404));
-
-  app.onError((err, c) => {
-    console.error(err);
-    return c.json({ ok: false }, 500);
-  });
-
-  return app;
+  // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
+  return app.route("/api/health", healthRoute).route("/api/me", meRoute);
 }
+
+export type AppType = ReturnType<typeof createApp>;
 
 export const app = createApp();
 export default app;
