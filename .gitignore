@@ -59,8 +59,8 @@ playwright/.auth/
 /backup.sql
 /backups/
 
-# --- ログ ---
-logs/
+# --- ログ（リポジトリ直下のみ。src/client/pages/logs は画面） ---
+/logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*

@@ -24,7 +24,7 @@
 - Tailwind CSS v4 または v3（導入時の shadcn 推奨に合わせる。**要確認**）
 - CSS 変数（design-system の全トークン。1-07 / 1-08 追補の `--mascot-*` / `--shelf-*` / `--radius-photo` / `--tab-center-size` を含む）
 - shadcn: Button, Input, Label, Card, Tabs, Sonner or Toast, Dialog, Form（必要なら）。Sheet は使わない
-- **`<Mascot pose size />`**（`src/client/components/mascot/Mascot.tsx`。4 ポーズをインライン SVG、`useId()` で clipPath を一意化、`aria-hidden` 既定）
+- **`<Mascot pose size />`**（4 ポーズは 2-05 で `src/client/components/mascot/Mascot.tsx` に実装済み。本タスクは Tailwind / shadcn への載せ替えとトークン同期）
 - ログイン画面をこれらの部品で整える（キャラ `default` 120px。2-02 の見た目改善でも可）
 
 **対象外**
