@@ -28,3 +28,6 @@ export const PHOTO_KINDS = ["photo", "cutout"] as const;
 export type PhotoKind = (typeof PHOTO_KINDS)[number];
 
 export const DEFAULT_PHOTO_KIND: PhotoKind = "photo";
+
+/** 設定画面のバージョン表記。ビルド時定数（spec/screen-designs/06-settings.md S7） */
+export const APP_VERSION = "0.1.0";
