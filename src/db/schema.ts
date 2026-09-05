@@ -35,15 +35,17 @@ const inList = (values: readonly string[]) => {
 const drinkTypeCheck = (tableName: string) =>
   check(`${tableName}_drink_type_check`, sql`drink_type IN (${inList(DRINK_TYPES)})`);
 
+// 列ビルダーはテーブル登録時に config を in-place で書き換える。共有すると uniqueName や
+// 後続の relational / 絞り込みクエリが別テーブルの created_at / updated_at を指す
 const userIdColumn = () =>
   text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" });
 
-const timestampColumns = {
+const timestampColumns = () => ({
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
-};
+});
 
 export const myDrinks = sqliteTable(
   "my_drinks",
@@ -55,7 +57,7 @@ export const myDrinks = sqliteTable(
     volumeMl: integer("volume_ml").notNull(),
     abvPercent: real("abv_percent").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
-    ...timestampColumns,
+    ...timestampColumns(),
   },
   (table) => [
     index("my_drinks_user_sort_idx").on(table.userId, table.sortOrder),
@@ -84,7 +86,7 @@ export const bottles = sqliteTable(
     // consumed のとき必須、それ以外 NULL。consumed_on は consumed_at から JST でサーバー算出
     consumedAt: integer("consumed_at", { mode: "timestamp_ms" }),
     consumedOn: text("consumed_on"),
-    ...timestampColumns,
+    ...timestampColumns(),
   },
   (table) => [
     index("bottles_user_status_idx").on(table.userId, table.status),
@@ -112,7 +114,7 @@ export const drinkLogs = sqliteTable(
     memo: text("memo"),
     myDrinkId: text("my_drink_id").references(() => myDrinks.id, { onDelete: "set null" }),
     bottleId: text("bottle_id").references(() => bottles.id, { onDelete: "set null" }),
-    ...timestampColumns,
+    ...timestampColumns(),
   },
   (table) => [
     index("drink_logs_user_drunk_on_idx").on(table.userId, table.drunkOn),
@@ -139,7 +141,7 @@ export const tastingNotes = sqliteTable(
     finish: text("finish"),
     // 1.0〜5.0 の 0.5 刻みを 10〜50 の整数で保存する（float 比較を避ける）
     ratingX10: integer("rating_x10").notNull(),
-    ...timestampColumns,
+    ...timestampColumns(),
   },
   (table) => [
     index("tasting_notes_user_tasted_on_idx").on(table.userId, table.tastedOn),
@@ -166,7 +168,7 @@ export const photos = sqliteTable(
     drinkLogId: text("drink_log_id").references(() => drinkLogs.id, { onDelete: "cascade" }),
     kind: text("kind", { enum: PHOTO_KINDS }).notNull().default(DEFAULT_PHOTO_KIND),
     sortOrder: integer("sort_order").notNull().default(0),
-    ...timestampColumns,
+    ...timestampColumns(),
   },
   (table) => [
     uniqueIndex("photos_r2_key_uidx").on(table.r2Key),

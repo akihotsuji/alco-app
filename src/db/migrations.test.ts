@@ -166,6 +166,21 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
     db.close();
   });
 
+  it("created_at / updated_at の列ビルダーはテーブルごとに独立している", () => {
+    const timestamped = [
+      schema.myDrinks,
+      schema.bottles,
+      schema.drinkLogs,
+      schema.tastingNotes,
+      schema.photos,
+    ];
+    for (const table of timestamped) {
+      const { name } = getTableConfig(table);
+      expect(table.createdAt.uniqueName, `${name}.createdAt`).toBe(`${name}_created_at_unique`);
+      expect(table.updatedAt.uniqueName, `${name}.updatedAt`).toBe(`${name}_updated_at_unique`);
+    }
+  });
+
   it("全アプリテーブルに user_id があり user.id へ ON DELETE CASCADE の FK を持つ", () => {
     const db = openMigratedDb();
     for (const table of APP_TABLES) {
