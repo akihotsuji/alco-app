@@ -24,7 +24,7 @@ export function parseCalendarDate(value: string): CalendarDate | null {
   const year = Number(matched[1]);
   const month = Number(matched[2]);
   const day = Number(matched[3]);
-  const probe = new Date(Date.UTC(year, month - 1, day));
+  const probe = utcDateFromParts({ year, month, day });
   if (
     probe.getUTCFullYear() !== year ||
     probe.getUTCMonth() !== month - 1 ||
@@ -35,6 +35,18 @@ export function parseCalendarDate(value: string): CalendarDate | null {
   return { year, month, day };
 }
 
+function requireCalendarDate(value: string): CalendarDate {
+  const parsed = parseCalendarDate(value);
+  if (!parsed) {
+    throw new Error(`invalid calendar date: ${value}`);
+  }
+  return parsed;
+}
+
+function utcDateFromParts(parts: CalendarDate): Date {
+  return new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+}
+
 export function formatCalendarDate(parts: CalendarDate): string {
   const month = String(parts.month).padStart(2, "0");
   const day = String(parts.day).padStart(2, "0");
@@ -43,11 +55,12 @@ export function formatCalendarDate(parts: CalendarDate): string {
 
 /** 暦日としての加減。タイムゾーンを持たない YYYY-MM-DD 同士の計算に使う。 */
 export function addCalendarDays(value: string, days: number): string {
-  const parsed = parseCalendarDate(value);
-  if (!parsed) {
-    throw new Error(`invalid calendar date: ${value}`);
-  }
-  const shifted = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day + days));
+  const parsed = requireCalendarDate(value);
+  const shifted = utcDateFromParts({
+    year: parsed.year,
+    month: parsed.month,
+    day: parsed.day + days,
+  });
   return formatCalendarDate({
     year: shifted.getUTCFullYear(),
     month: shifted.getUTCMonth() + 1,
@@ -66,11 +79,7 @@ export function isTokyoToday(value: string, now: Date = new Date()): boolean {
 
 /** ISO 週（月曜始まり）の 7 日。`date` はその週に含まれる YYYY-MM-DD。 */
 export function isoWeekDates(date: string): string[] {
-  const parsed = parseCalendarDate(date);
-  if (!parsed) {
-    throw new Error(`invalid calendar date: ${date}`);
-  }
-  const weekday = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)).getUTCDay();
+  const weekday = utcDateFromParts(requireCalendarDate(date)).getUTCDay();
   const daysFromMonday = weekday === 0 ? 6 : weekday - 1;
   const monday = addCalendarDays(date, -daysFromMonday);
   return [0, 1, 2, 3, 4, 5, 6].map((offset) => addCalendarDays(monday, offset));
@@ -79,19 +88,12 @@ export function isoWeekDates(date: string): string[] {
 const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
 function weekdayIndex(date: string): number {
-  const parsed = parseCalendarDate(date);
-  if (!parsed) {
-    throw new Error(`invalid calendar date: ${date}`);
-  }
-  return new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)).getUTCDay();
+  return utcDateFromParts(requireCalendarDate(date)).getUTCDay();
 }
 
 /** 例: 9月5日 */
 export function formatMonthDay(date: string): string {
-  const parsed = parseCalendarDate(date);
-  if (!parsed) {
-    throw new Error(`invalid calendar date: ${date}`);
-  }
+  const parsed = requireCalendarDate(date);
   return `${parsed.month}月${parsed.day}日`;
 }
 

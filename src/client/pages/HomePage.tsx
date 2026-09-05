@@ -1,10 +1,9 @@
-import { Camera } from "lucide-react";
 import { Link } from "react-router";
+import { LogQuickActions } from "@/client/components/logs/LogQuickActions.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Card } from "@/client/components/ui/card.tsx";
-import { IconButton } from "@/client/components/ui/IconButton.tsx";
-import { cn } from "@/client/lib/utils.ts";
+import { logFormHrefs } from "@/client/lib/app-routes.ts";
 import {
   formatHomeDateLabel,
   isoWeekDates,
@@ -15,6 +14,7 @@ import {
 export function HomePage() {
   const today = tokyoToday();
   const week = isoWeekDates(today);
+  const { newHref, cameraHref } = logFormHrefs();
 
   return (
     <div className="home-page">
@@ -44,16 +44,7 @@ export function HomePage() {
           </span>
         </Link>
       </Card>
-      <div className="home-actions">
-        <Link className={cn(buttonVariants(), "home-log-btn")} to="/logs/new">
-          記録する
-        </Link>
-        <IconButton label="カメラで記録" size="icon-lg" asChild>
-          <Link to="/logs/new?camera=1">
-            <Camera size={22} />
-          </Link>
-        </IconButton>
-      </div>
+      <LogQuickActions newHref={newHref} cameraHref={cameraHref} />
       <div className="home-mydrinks">
         <div className="home-mydrinks-head">
           <h2 className="section-title">マイドリンク</h2>

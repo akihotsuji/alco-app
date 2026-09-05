@@ -2,6 +2,9 @@ import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { API_ERROR_CODES, type ApiErrorCode, type ApiErrorFields } from "@/shared/api-error.ts";
 
+/** JSON 不正・FormData 不正など、詳細をエコーしないときの共通文言。 */
+export const MALFORMED_REQUEST_MESSAGE = "リクエストの形式が正しくありません";
+
 export const API_ERROR_STATUS = {
   validation_error: 400,
   unauthorized: 401,

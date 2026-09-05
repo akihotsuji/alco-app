@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PHOTO_ASPECT, PHOTO_OUTPUT_LONG_EDGE } from "@/shared/constants.ts";
 import {
+  aspectForKind,
   computeCoverCrop,
   computeCutoutPlacement,
   computeMascotLayout,
@@ -92,5 +93,13 @@ describe("computeCutoutPlacement", () => {
     expect(placed.x).toBeCloseTo((853 - placed.width) / 2);
     expect(placed.shadow.rx).toBeCloseTo((853 * 0.8) / 2);
     expect(placed.shadow.ry).toBe(3);
+  });
+});
+
+describe("aspectForKind", () => {
+  it("セラーだけ 2:3、記録とノートは 4:5", () => {
+    expect(aspectForKind("cellar")).toEqual(PHOTO_ASPECT.cellar);
+    expect(aspectForKind("log")).toEqual(PHOTO_ASPECT.log);
+    expect(aspectForKind("note")).toEqual(PHOTO_ASPECT.log);
   });
 });

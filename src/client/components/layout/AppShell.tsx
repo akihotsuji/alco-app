@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 import { AppHeader } from "@/client/components/layout/AppHeader.tsx";
 import { BottomTabBar } from "@/client/components/layout/BottomTabBar.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
-import { PhotoEditOverlay } from "@/client/components/photo/PhotoEditOverlay.tsx";
+import { PhotoEdit } from "@/client/components/photo/PhotoEdit.tsx";
 import { hidesTabBar, resolveAppRoute, type TabDef } from "@/client/lib/app-routes.ts";
 
 export function AppShell() {
@@ -33,7 +33,7 @@ export function AppShell() {
         <Outlet />
       </div>
       {hideTabs ? null : <BottomTabBar activeTab={route.parentTab} onSelect={onSelectTab} />}
-      <PhotoEditOverlay />
+      <PhotoEdit />
     </div>
   );
 }

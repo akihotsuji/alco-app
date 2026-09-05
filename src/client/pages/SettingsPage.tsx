@@ -3,6 +3,7 @@ import { endSession } from "@/client/auth/end-session.ts";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { Switch } from "@/client/components/ui/switch.tsx";
 import { useMe } from "@/client/hooks/use-me.ts";
 import {
   getCellarRecognizePref,
@@ -108,26 +109,5 @@ export function SettingsPage() {
         onClose={() => setConfirmOpen(false)}
       />
     </div>
-  );
-}
-
-function Switch({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-label={label}
-      aria-checked={checked}
-      className={checked ? "switch is-on" : "switch"}
-      onClick={() => onChange(!checked)}
-    />
   );
 }

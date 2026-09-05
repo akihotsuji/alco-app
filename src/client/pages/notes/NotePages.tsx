@@ -1,10 +1,9 @@
-import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import { EmptyState } from "@/client/components/feedback/EmptyState.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
-import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
+import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 
 export function NotesPage() {
@@ -23,17 +22,12 @@ export function NoteDetailPage() {
 }
 
 export function NoteFormPage({ mode }: { mode: "new" | "edit" }) {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { startCapture, attachments, retryUpload, clearAttachment } = usePhotoEdit();
-  const camera = searchParams.get("camera") === "1";
-
-  useEffect(() => {
-    if (mode === "new" && camera) {
-      void startCapture("note");
-    }
-  }, [camera, mode, startCapture]);
+  const { startCapture, attachments, retryUpload, clearAttachment } = useCaptureOnCameraQuery(
+    "note",
+    mode === "new",
+  );
 
   return (
     <div className="form-page">
