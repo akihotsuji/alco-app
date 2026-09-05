@@ -9,6 +9,7 @@
   --danger: #8b1e1e;
   --ring: #7a3538;
   --shadow-outset: 6px 6px 14px #c9c2b6, -6px -6px 14px rgba(255, 255, 255, 0.8);
+  --shadow-outset-sm: 3px 3px 6px #c9c2b6, -3px -3px 6px rgba(255, 255, 255, 0.8);
   --shadow-inset-sm: inset 2px 2px 5px #c9c2b6, inset -2px -2px 5px rgba(255, 255, 255, 0.7);
   --shadow-primary: 6px 10px 18px rgba(122, 53, 56, 0.28);
   --text-caption: 12px;
@@ -44,6 +45,7 @@
     --danger: #e07070;
     --ring: #c47878;
     --shadow-outset: 6px 6px 14px #1a1816, -5px -5px 12px #3a3632;
+    --shadow-outset-sm: 3px 3px 6px #1a1816, -3px -3px 6px #3a3632;
     --shadow-inset-sm: inset 2px 2px 5px #1a1816, inset -2px -2px 5px #3a3632;
     --shadow-primary: 6px 10px 18px rgba(0, 0, 0, 0.45);
   }
@@ -215,4 +217,56 @@ body {
 
 .home-logout {
   max-width: 360px;
+}
+
+.home-me {
+  max-width: 360px;
+  min-height: 72px;
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-inset-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.home-me p {
+  margin: 0;
+}
+
+.home-me-skeleton {
+  opacity: 0.6;
+}
+
+.home-me-name {
+  font-weight: 600;
+}
+
+.home-me-email {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.home-me-error {
+  color: var(--danger);
+}
+
+.home-me-retry {
+  align-self: flex-start;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: var(--shadow-outset-sm);
+  cursor: pointer;
+}
+
+.home-me-retry:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

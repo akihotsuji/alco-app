@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router";
 import { authClient } from "@/client/lib/auth-client.ts";
+import { loginPathFor } from "@/client/lib/auth-redirect.ts";
 
 export function RequireAuth() {
   const { data, isPending } = authClient.useSession();
@@ -9,8 +10,7 @@ export function RequireAuth() {
     return <div className="auth-boot" />;
   }
   if (!data) {
-    const redirect = `${location.pathname}${location.search}`;
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />;
+    return <Navigate to={loginPathFor(location)} replace />;
   }
   return <Outlet />;
 }
