@@ -11,15 +11,21 @@ export type CreateAppOptions = {
 
 export function createApp(options: CreateAppOptions = {}) {
   const app = new Hono<AppEnv>();
-  let cachedAuth: Auth | undefined = options.auth;
+  const authByOrigin = new Map<string, Auth>();
 
   app.use(secureHeaders());
 
   const attachAuth = createMiddleware<AppEnv>(async (c, next) => {
-    if (!cachedAuth) {
-      cachedAuth = createAuthFromEnv(c.env, c.req.url);
+    let auth = options.auth;
+    if (!auth) {
+      const origin = new URL(c.req.url).origin;
+      auth = authByOrigin.get(origin);
+      if (!auth) {
+        auth = createAuthFromEnv(c.env, c.req.url);
+        authByOrigin.set(origin, auth);
+      }
     }
-    c.set("auth", cachedAuth);
+    c.set("auth", auth);
     await next();
   });
 
