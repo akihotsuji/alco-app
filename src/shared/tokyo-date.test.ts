@@ -61,4 +61,10 @@ describe("format labels", () => {
     expect(formatHomeDateLabel("2026-09-05")).toBe("9月5日 土曜");
     expect(formatMonthDay("2026-09-05")).toBe("9月5日");
   });
+
+  it("不正な暦日は投げる", () => {
+    expect(() => isoWeekDates("new")).toThrow("invalid calendar date: new");
+    expect(() => formatMonthDay("2026-09-31")).toThrow("invalid calendar date: 2026-09-31");
+    expect(() => addCalendarDays("2026-13-01", 1)).toThrow("invalid calendar date: 2026-13-01");
+  });
 });

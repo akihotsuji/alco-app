@@ -7,14 +7,15 @@ import {
   logDayHref,
   type ShellHeader,
 } from "@/client/lib/app-routes.ts";
+import { historyIdx } from "@/client/lib/history-state.ts";
 
 type AppHeaderProps = {
   header: ShellHeader;
 };
 
 function goBack(navigate: ReturnType<typeof useNavigate>, fallback: string) {
-  const state = window.history.state as { idx?: number } | null;
-  if (typeof state?.idx === "number" && state.idx > 0) {
+  const idx = historyIdx(window.history.state);
+  if (typeof idx === "number" && idx > 0) {
     navigate(-1);
     return;
   }

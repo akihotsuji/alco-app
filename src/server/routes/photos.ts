@@ -4,7 +4,7 @@ import type { AppSqliteDb } from "@/db/index.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { photoIdParamSchema, photoPatchSchema, photoUploadFieldsSchema } from "@/shared/photos.ts";
 import type { AppEnv } from "../app-env.ts";
-import { ApiError } from "../errors.ts";
+import { ApiError, MALFORMED_REQUEST_MESSAGE } from "../errors.ts";
 import {
   createPhoto,
   deletePhoto,
@@ -30,7 +30,7 @@ export function createPhotosRoute(deps: PhotoRouteDeps) {
         form = await c.req.formData();
       } catch {
         throw new ApiError("validation_error", {
-          fields: { "": ["リクエストの形式が正しくありません"] },
+          fields: { "": [MALFORMED_REQUEST_MESSAGE] },
         });
       }
 

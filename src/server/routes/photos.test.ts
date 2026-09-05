@@ -5,18 +5,15 @@ import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { makeGif, makeHeic, makeJpeg, makeSvg, makeWebpVp8x } from "../image-fixtures.ts";
-import { cookieHeaderFrom, createTestApp, signUp } from "../test-helpers.ts";
+import { createTestApp, createTestUser } from "../test-helpers.ts";
 
 async function session(app: Awaited<ReturnType<typeof createTestApp>>["app"], email: string) {
-  const res = await signUp(app, {
+  const user = await createTestUser(app, {
     name: email.split("@")[0] ?? "user",
     email,
     password: "password1",
   });
-  expect(res.status).toBe(200);
-  const me = await app.request("/api/me", { headers: { Cookie: cookieHeaderFrom(res) } });
-  const body = (await me.json()) as { id: string };
-  return { cookie: cookieHeaderFrom(res), userId: body.id };
+  return { cookie: user.cookie, userId: user.id };
 }
 
 function postPhoto(

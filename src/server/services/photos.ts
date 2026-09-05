@@ -7,7 +7,13 @@ import {
   type PhotoContentType,
   type PhotoKind,
 } from "@/shared/constants.ts";
-import type { PhotoMeta, PhotoPatchInput, PhotoUploadFields } from "@/shared/photos.ts";
+import {
+  PHOTO_SINGLE_OWNER_MESSAGE,
+  type PhotoMeta,
+  type PhotoPatchInput,
+  type PhotoUploadFields,
+  photoOwnerIds,
+} from "@/shared/photos.ts";
 import { ApiError } from "../errors.ts";
 import { ImageInspectFailure, inspectImageBytes } from "./image-inspect.ts";
 
@@ -80,9 +86,52 @@ export function toPhotoMeta(row: typeof photos.$inferSelect): PhotoMeta {
 }
 
 function ownerCount(owners: PhotoOwners): number {
-  return [owners.bottleId, owners.tastingNoteId, owners.drinkLogId].filter(
-    (id): id is string => typeof id === "string",
-  ).length;
+  return photoOwnerIds(owners).length;
+}
+
+function assertSingleOwner(owners: PhotoOwners): void {
+  if (ownerCount(owners) > 1) {
+    throw new ApiError("validation_error", {
+      fields: { "": [PHOTO_SINGLE_OWNER_MESSAGE] },
+    });
+  }
+}
+
+function inspectOrThrow(bytes: Uint8Array) {
+  try {
+    return inspectImageBytes(bytes);
+  } catch (error) {
+    if (error instanceof ImageInspectFailure) {
+      if (error.code === "payload_too_large") {
+        throw new ApiError("payload_too_large");
+      }
+      if (error.code === "unsupported_media_type") {
+        throw new ApiError("unsupported_media_type");
+      }
+      throw new ApiError("validation_error", {
+        fields: { file: ["画像のサイズが大きすぎます"] },
+      });
+    }
+    throw error;
+  }
+}
+
+async function assertOwnedRow(
+  db: AppSqliteDb,
+  userId: string,
+  table: typeof bottles | typeof tastingNotes | typeof drinkLogs,
+  id: string | null,
+): Promise<void> {
+  if (!id) {
+    return;
+  }
+  const [row] = await db
+    .select({ id: table.id })
+    .from(table)
+    .where(and(eq(table.id, id), eq(table.userId, userId)));
+  if (!row) {
+    throw new ApiError("not_found");
+  }
 }
 
 export function normalizeUploadOwners(fields: PhotoUploadFields): PhotoOwners {
@@ -106,34 +155,20 @@ async function assertOwnResource(
   userId: string,
   owners: PhotoOwners,
 ): Promise<void> {
-  if (owners.bottleId) {
-    const [row] = await db
-      .select({ id: bottles.id })
-      .from(bottles)
-      .where(and(eq(bottles.id, owners.bottleId), eq(bottles.userId, userId)));
-    if (!row) {
-      throw new ApiError("not_found");
-    }
-  }
-  if (owners.tastingNoteId) {
-    const [row] = await db
-      .select({ id: tastingNotes.id })
-      .from(tastingNotes)
-      .where(and(eq(tastingNotes.id, owners.tastingNoteId), eq(tastingNotes.userId, userId)));
-    if (!row) {
-      throw new ApiError("not_found");
-    }
-  }
-  if (owners.drinkLogId) {
-    const [row] = await db
-      .select({ id: drinkLogs.id })
-      .from(drinkLogs)
-      .where(and(eq(drinkLogs.id, owners.drinkLogId), eq(drinkLogs.userId, userId)));
-    if (!row) {
-      throw new ApiError("not_found");
-    }
-  }
+  await assertOwnedRow(db, userId, bottles, owners.bottleId);
+  await assertOwnedRow(db, userId, tastingNotes, owners.tastingNoteId);
+  await assertOwnedRow(db, userId, drinkLogs, owners.drinkLogId);
 }
+
+type OwnerColumn = typeof photos.bottleId | typeof photos.tastingNoteId | typeof photos.drinkLogId;
+
+type OwnerCapacityCheck = {
+  ownerId: string | null;
+  column: OwnerColumn;
+  limit: number;
+  field: "bottleId" | "tastingNoteId" | "drinkLogId";
+  message: string;
+};
 
 async function assertOwnerCapacity(
   db: AppSqliteDb,
@@ -141,39 +176,42 @@ async function assertOwnerCapacity(
   owners: PhotoOwners,
   exceptPhotoId?: string,
 ): Promise<void> {
-  if (owners.bottleId) {
-    const current = await db
-      .select({ id: photos.id })
-      .from(photos)
-      .where(and(eq(photos.userId, userId), eq(photos.bottleId, owners.bottleId)));
-    const used = current.filter((item) => item.id !== exceptPhotoId).length;
-    if (used >= PHOTO_OWNER_LIMITS.bottle) {
-      throw new ApiError("validation_error", {
-        fields: { bottleId: ["このボトルにはすでに写真があります"] },
-      });
+  const checks: OwnerCapacityCheck[] = [
+    {
+      ownerId: owners.bottleId,
+      column: photos.bottleId,
+      limit: PHOTO_OWNER_LIMITS.bottle,
+      field: "bottleId",
+      message: "このボトルにはすでに写真があります",
+    },
+    {
+      ownerId: owners.tastingNoteId,
+      column: photos.tastingNoteId,
+      limit: PHOTO_OWNER_LIMITS.tastingNote,
+      field: "tastingNoteId",
+      message: "ノートの写真は6枚までです",
+    },
+    {
+      ownerId: owners.drinkLogId,
+      column: photos.drinkLogId,
+      limit: PHOTO_OWNER_LIMITS.drinkLog,
+      field: "drinkLogId",
+      message: "この記録にはすでに写真があります",
+    },
+  ];
+
+  for (const check of checks) {
+    if (!check.ownerId) {
+      continue;
     }
-  }
-  if (owners.tastingNoteId) {
     const current = await db
       .select({ id: photos.id })
       .from(photos)
-      .where(and(eq(photos.userId, userId), eq(photos.tastingNoteId, owners.tastingNoteId)));
+      .where(and(eq(photos.userId, userId), eq(check.column, check.ownerId)));
     const used = current.filter((item) => item.id !== exceptPhotoId).length;
-    if (used >= PHOTO_OWNER_LIMITS.tastingNote) {
+    if (used >= check.limit) {
       throw new ApiError("validation_error", {
-        fields: { tastingNoteId: ["ノートの写真は6枚までです"] },
-      });
-    }
-  }
-  if (owners.drinkLogId) {
-    const current = await db
-      .select({ id: photos.id })
-      .from(photos)
-      .where(and(eq(photos.userId, userId), eq(photos.drinkLogId, owners.drinkLogId)));
-    const used = current.filter((item) => item.id !== exceptPhotoId).length;
-    if (used >= PHOTO_OWNER_LIMITS.drinkLog) {
-      throw new ApiError("validation_error", {
-        fields: { drinkLogId: ["この記録にはすでに写真があります"] },
+        fields: { [check.field]: [check.message] },
       });
     }
   }
@@ -186,64 +224,17 @@ export async function createPhoto(input: {
   bytes: Uint8Array;
   fields: PhotoUploadFields;
 }): Promise<PhotoMeta> {
-  let inspected: ReturnType<typeof inspectImageBytes>;
-  try {
-    inspected = inspectImageBytes(input.bytes);
-  } catch (error) {
-    if (error instanceof ImageInspectFailure) {
-      if (error.code === "payload_too_large") {
-        throw new ApiError("payload_too_large");
-      }
-      if (error.code === "unsupported_media_type") {
-        throw new ApiError("unsupported_media_type");
-      }
-      throw new ApiError("validation_error", {
-        fields: { file: ["画像のサイズが大きすぎます"] },
-      });
-    }
-    throw error;
-  }
+  const inspected = inspectOrThrow(input.bytes);
 
   const owners = normalizeUploadOwners(input.fields);
-  if (ownerCount(owners) > 1) {
-    throw new ApiError("validation_error", {
-      fields: { "": ["紐付け先は1つまでにしてください"] },
-    });
-  }
+  assertSingleOwner(owners);
   await assertOwnResource(input.db, input.userId, owners);
   await assertOwnerCapacity(input.db, input.userId, owners);
 
   const id = crypto.randomUUID();
   const r2Key = `${id}.${inspected.extension}`;
   const now = new Date();
-
-  await input.bucket.put(r2Key, input.bytes, {
-    httpMetadata: { contentType: inspected.contentType },
-  });
-
-  try {
-    await input.db.insert(photos).values({
-      id,
-      userId: input.userId,
-      r2Key,
-      contentType: inspected.contentType,
-      byteSize: input.bytes.byteLength,
-      width: inspected.width,
-      height: inspected.height,
-      bottleId: owners.bottleId,
-      tastingNoteId: owners.tastingNoteId,
-      drinkLogId: owners.drinkLogId,
-      kind: inspected.kind,
-      sortOrder: input.fields.sortOrder ?? 0,
-      createdAt: now,
-      updatedAt: now,
-    });
-  } catch (error) {
-    await input.bucket.delete(r2Key);
-    throw error;
-  }
-
-  return toPhotoMeta({
+  const row = {
     id,
     userId: input.userId,
     r2Key,
@@ -258,7 +249,20 @@ export async function createPhoto(input: {
     sortOrder: input.fields.sortOrder ?? 0,
     createdAt: now,
     updatedAt: now,
+  };
+
+  await input.bucket.put(r2Key, input.bytes, {
+    httpMetadata: { contentType: inspected.contentType },
   });
+
+  try {
+    await input.db.insert(photos).values(row);
+  } catch (error) {
+    await input.bucket.delete(r2Key);
+    throw error;
+  }
+
+  return toPhotoMeta(row);
 }
 
 export async function getOwnPhoto(
@@ -291,11 +295,7 @@ export async function updatePhoto(input: {
     },
     input.patch,
   );
-  if (ownerCount(owners) > 1) {
-    throw new ApiError("validation_error", {
-      fields: { "": ["紐付け先は1つまでにしてください"] },
-    });
-  }
+  assertSingleOwner(owners);
   await assertOwnResource(input.db, input.userId, owners);
   await assertOwnerCapacity(input.db, input.userId, owners, input.photoId);
 

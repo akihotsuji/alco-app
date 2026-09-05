@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { deletePhoto, uploadPhoto } from "@/client/hooks/use-photos.ts";
+import { historyHasFlag } from "@/client/lib/history-state.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
 import { pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
@@ -51,6 +52,20 @@ const PhotoEditContext = createContext<PhotoEditValue>({
 });
 
 const HISTORY_FLAG = "alcoPhotoEdit";
+const DECODE_FALLBACK = "この写真を読み込めませんでした";
+
+async function decodePickedFile(
+  file: File,
+): Promise<{ bitmap: ImageBitmap | null; error: string | null }> {
+  try {
+    return { bitmap: await decodeImage(file), error: null };
+  } catch (error) {
+    return {
+      bitmap: null,
+      error: error instanceof PhotoDecodeError ? error.message : DECODE_FALLBACK,
+    };
+  }
+}
 
 export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -75,8 +90,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const closePhotoEdit = useCallback(() => {
-    const state = window.history.state as { [HISTORY_FLAG]?: boolean } | null;
-    if (state?.[HISTORY_FLAG]) {
+    if (historyHasFlag(window.history.state, HISTORY_FLAG)) {
       window.history.back();
       return;
     }
@@ -99,16 +113,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
   const loadFile = useCallback(
     async (nextKind: PhotoEditContextKind, file: File) => {
-      try {
-        const bitmap = await decodeImage(file);
-        openWithSource(nextKind, bitmap, null);
-      } catch (error) {
-        openWithSource(
-          nextKind,
-          null,
-          error instanceof PhotoDecodeError ? error.message : "この写真を読み込めませんでした",
-        );
-      }
+      const decoded = await decodePickedFile(file);
+      openWithSource(nextKind, decoded.bitmap, decoded.error);
     },
     [openWithSource],
   );
@@ -129,22 +135,12 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     if (!file) {
       return;
     }
-    try {
-      const bitmap = await decodeImage(file);
-      setSource((prev) => {
-        prev?.close();
-        return bitmap;
-      });
-      setDecodeError(null);
-    } catch (error) {
-      setSource((prev) => {
-        prev?.close();
-        return null;
-      });
-      setDecodeError(
-        error instanceof PhotoDecodeError ? error.message : "この写真を読み込めませんでした",
-      );
-    }
+    const decoded = await decodePickedFile(file);
+    setSource((prev) => {
+      prev?.close();
+      return decoded.bitmap;
+    });
+    setDecodeError(decoded.error);
   }, []);
 
   const beginUpload = useCallback(

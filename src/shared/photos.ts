@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { PHOTO_CONTENT_TYPES, PHOTO_KINDS } from "./constants.ts";
 
+export const PHOTO_SINGLE_OWNER_MESSAGE = "紐付け先は1つまでにしてください";
+
 const emptyToUndefined = (value: unknown) => {
   if (value === "" || value === null || value === undefined) {
     return undefined;
@@ -17,6 +19,29 @@ const optionalUuidOrNull = z.preprocess((value) => {
   return value;
 }, z.string().uuid().nullable().optional());
 
+export function photoOwnerIds(value: {
+  bottleId?: string | null;
+  tastingNoteId?: string | null;
+  drinkLogId?: string | null;
+}): string[] {
+  return [value.bottleId, value.tastingNoteId, value.drinkLogId].filter(
+    (id): id is string => typeof id === "string",
+  );
+}
+
+function refineSingleOwner(
+  value: { bottleId?: string | null; tastingNoteId?: string | null; drinkLogId?: string | null },
+  ctx: z.RefinementCtx,
+) {
+  if (photoOwnerIds(value).length > 1) {
+    ctx.addIssue({
+      code: "custom",
+      path: [""],
+      message: PHOTO_SINGLE_OWNER_MESSAGE,
+    });
+  }
+}
+
 export const photoIdParamSchema = z
   .object({
     id: z.string().uuid(),
@@ -31,18 +56,7 @@ export const photoUploadFieldsSchema = z
     sortOrder: z.preprocess(emptyToUndefined, z.coerce.number().int().optional()),
   })
   .strict()
-  .superRefine((value, ctx) => {
-    const owners = [value.bottleId, value.tastingNoteId, value.drinkLogId].filter(
-      (id): id is string => typeof id === "string",
-    );
-    if (owners.length > 1) {
-      ctx.addIssue({
-        code: "custom",
-        path: [""],
-        message: "紐付け先は1つまでにしてください",
-      });
-    }
-  });
+  .superRefine(refineSingleOwner);
 
 export const photoPatchSchema = z
   .object({
@@ -52,18 +66,7 @@ export const photoPatchSchema = z
     sortOrder: z.number().int().optional(),
   })
   .strict()
-  .superRefine((value, ctx) => {
-    const owners = [value.bottleId, value.tastingNoteId, value.drinkLogId].filter(
-      (id): id is string => typeof id === "string",
-    );
-    if (owners.length > 1) {
-      ctx.addIssue({
-        code: "custom",
-        path: [""],
-        message: "紐付け先は1つまでにしてください",
-      });
-    }
-  });
+  .superRefine(refineSingleOwner);
 
 export const photoMetaSchema = z.object({
   id: z.string(),

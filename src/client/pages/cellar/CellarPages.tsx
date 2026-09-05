@@ -1,12 +1,11 @@
-import { useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { EmptyState } from "@/client/components/feedback/EmptyState.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
-import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
+import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { cn } from "@/client/lib/utils.ts";
 
@@ -34,17 +33,12 @@ export function BottleDetailPage() {
 }
 
 export function BottleFormPage({ mode }: { mode: "new" | "edit" }) {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { startCapture, attachments, retryUpload, clearAttachment } = usePhotoEdit();
-  const camera = searchParams.get("camera") === "1";
-
-  useEffect(() => {
-    if (mode === "new" && camera) {
-      void startCapture("cellar");
-    }
-  }, [camera, mode, startCapture]);
+  const { startCapture, attachments, retryUpload, clearAttachment } = useCaptureOnCameraQuery(
+    "cellar",
+    mode === "new",
+  );
 
   return (
     <div className="form-page">

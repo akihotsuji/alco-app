@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { hidesTabBar, isValidLogDateParam, parentTabOf, resolveAppRoute } from "./app-routes.ts";
+import {
+  hidesTabBar,
+  isValidLogDateParam,
+  logFormHrefs,
+  parentTabOf,
+  resolveAppRoute,
+} from "./app-routes.ts";
 
 const NOW = new Date("2026-09-04T15:00:00.000Z");
 
@@ -62,10 +68,42 @@ describe("resolveAppRoute", () => {
     expect(header.right).toEqual({ kind: "plus", to: "/cellar/new?camera=1" });
     expect(header.titleMuted).toBe("0 本");
   });
+
+  it("作成は戻る＋タブ隠し、詳細は編集リンク", () => {
+    const created = resolveAppRoute("/logs/new", NOW);
+    expect(created.hideTabBar).toBe(true);
+    expect(created.header).toEqual({
+      title: "記録する",
+      left: { kind: "back", fallback: "/logs" },
+      right: { kind: "spacer" },
+    });
+    expect(resolveAppRoute("/cellar/b1", NOW).header.right).toEqual({
+      kind: "edit",
+      to: "/cellar/b1/edit",
+    });
+    expect(resolveAppRoute("/unknown", NOW).header).toEqual({
+      title: "見つかりません",
+      left: { kind: "spacer" },
+      right: { kind: "spacer" },
+    });
+  });
 });
 
 describe("parentTabOf", () => {
   it("不明パスはハイライトしない", () => {
     expect(parentTabOf("/nope")).toBeNull();
+  });
+});
+
+describe("logFormHrefs", () => {
+  it("日付なしは新規記録、日付ありは query を付ける", () => {
+    expect(logFormHrefs()).toEqual({
+      newHref: "/logs/new",
+      cameraHref: "/logs/new?camera=1",
+    });
+    expect(logFormHrefs("2026-09-04")).toEqual({
+      newHref: "/logs/new?date=2026-09-04",
+      cameraHref: "/logs/new?date=2026-09-04&camera=1",
+    });
   });
 });

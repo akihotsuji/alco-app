@@ -4,10 +4,14 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import type { ApiErrorBody, ApiErrorFields } from "@/shared/api-error.ts";
 import type { AppEnv } from "../app-env.ts";
-import { API_ERROR_STATUS, ApiError, errorCodeForStatus } from "../errors.ts";
+import {
+  API_ERROR_STATUS,
+  ApiError,
+  errorCodeForStatus,
+  MALFORMED_REQUEST_MESSAGE,
+} from "../errors.ts";
 
 const ROOT_FIELD = "";
-const MALFORMED_REQUEST_MESSAGE = "リクエストの形式が正しくありません";
 
 /** Zod の path 配列を `fields` のキーへ畳む。内部パスやスキーマの所在は出さない。 */
 export function fieldsFromZodIssues(issues: readonly z.core.$ZodIssue[]): ApiErrorFields {

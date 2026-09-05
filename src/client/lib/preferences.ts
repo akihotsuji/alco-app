@@ -20,34 +20,23 @@ function writeFlag(key: string, value: boolean): void {
   }
 }
 
-export function getComposeMascotPref(): boolean {
-  return readFlag(PHOTO_PREF_KEYS.mascot, true);
+function flagPref(key: string, fallback: boolean) {
+  return {
+    get: () => readFlag(key, fallback),
+    set: (value: boolean) => writeFlag(key, value),
+  };
 }
 
-export function setComposeMascotPref(value: boolean): void {
-  writeFlag(PHOTO_PREF_KEYS.mascot, value);
-}
+const composeMascot = flagPref(PHOTO_PREF_KEYS.mascot, true);
+const colorCorrection = flagPref(PHOTO_PREF_KEYS.filter, true);
+const cutout = flagPref(PHOTO_PREF_KEYS.cutout, true);
+const cellarRecognize = flagPref(PHOTO_PREF_KEYS.recognize, true);
 
-export function getColorCorrectionPref(): boolean {
-  return readFlag(PHOTO_PREF_KEYS.filter, true);
-}
-
-export function setColorCorrectionPref(value: boolean): void {
-  writeFlag(PHOTO_PREF_KEYS.filter, value);
-}
-
-export function getCutoutPref(): boolean {
-  return readFlag(PHOTO_PREF_KEYS.cutout, true);
-}
-
-export function setCutoutPref(value: boolean): void {
-  writeFlag(PHOTO_PREF_KEYS.cutout, value);
-}
-
-export function getCellarRecognizePref(): boolean {
-  return readFlag(PHOTO_PREF_KEYS.recognize, true);
-}
-
-export function setCellarRecognizePref(value: boolean): void {
-  writeFlag(PHOTO_PREF_KEYS.recognize, value);
-}
+export const getComposeMascotPref = composeMascot.get;
+export const setComposeMascotPref = composeMascot.set;
+export const getColorCorrectionPref = colorCorrection.get;
+export const setColorCorrectionPref = colorCorrection.set;
+export const getCutoutPref = cutout.get;
+export const setCutoutPref = cutout.set;
+export const getCellarRecognizePref = cellarRecognize.get;
+export const setCellarRecognizePref = cellarRecognize.set;

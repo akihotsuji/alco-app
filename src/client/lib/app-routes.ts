@@ -53,12 +53,41 @@ export type AppRoute = {
   notFound: boolean;
 };
 
+const SPACER = { kind: "spacer" } as const;
+
 export function splitPath(pathname: string): string[] {
   return pathname.split("/").filter(Boolean);
 }
 
 export function isValidLogDateParam(value: string): boolean {
   return parseCalendarDate(value) !== null;
+}
+
+function found(
+  screenId: string,
+  parentTab: TabId,
+  header: ShellHeader,
+  hideTabBar = false,
+): AppRoute {
+  return { screenId, parentTab, hideTabBar, header, notFound: false };
+}
+
+function backHeader(title: string, fallback: string, right: HeaderRight = SPACER): ShellHeader {
+  return { title, left: { kind: "back", fallback }, right };
+}
+
+function formRoute(screenId: string, parentTab: TabId, title: string, fallback: string): AppRoute {
+  return found(screenId, parentTab, backHeader(title, fallback), true);
+}
+
+function detailRoute(
+  screenId: string,
+  parentTab: TabId,
+  title: string,
+  fallback: string,
+  editTo: string,
+): AppRoute {
+  return found(screenId, parentTab, backHeader(title, fallback, { kind: "edit", to: editTo }));
 }
 
 function notFoundRoute(): AppRoute {
@@ -68,8 +97,8 @@ function notFoundRoute(): AppRoute {
     hideTabBar: false,
     header: {
       title: "見つかりません",
-      left: { kind: "spacer" },
-      right: { kind: "spacer" },
+      left: SPACER,
+      right: SPACER,
     },
     notFound: true,
   };
@@ -94,268 +123,114 @@ export function resolveAppRoute(pathname: string, now: Date = new Date()): AppRo
   const today = tokyoToday(now);
 
   if (segments.length === 0) {
-    return {
-      screenId: "home",
-      parentTab: "home",
-      hideTabBar: false,
-      header: { title: "ホーム", left: { kind: "spacer" }, right: { kind: "spacer" } },
-      notFound: false,
-    };
+    return found("home", "home", { title: "ホーム", left: SPACER, right: SPACER });
   }
 
   if (segments[0] === "summary" && segments.length === 2) {
     if (segments[1] === "week") {
-      return {
-        screenId: "summary-week",
-        parentTab: "home",
-        hideTabBar: false,
-        header: {
-          title: "今週",
-          left: { kind: "back", fallback: "/" },
-          right: { kind: "text", to: "/summary/month", label: "今月" },
-        },
-        notFound: false,
-      };
+      return found(
+        "summary-week",
+        "home",
+        backHeader("今週", "/", { kind: "text", to: "/summary/month", label: "今月" }),
+      );
     }
     if (segments[1] === "month") {
-      return {
-        screenId: "summary-month",
-        parentTab: "home",
-        hideTabBar: false,
-        header: {
-          title: "今月",
-          left: { kind: "back", fallback: "/" },
-          right: { kind: "text", to: "/summary/week", label: "今週" },
-        },
-        notFound: false,
-      };
+      return found(
+        "summary-month",
+        "home",
+        backHeader("今月", "/", { kind: "text", to: "/summary/week", label: "今週" }),
+      );
     }
   }
 
   if (segments[0] === "logs") {
     if (segments.length === 1) {
-      return {
-        screenId: "log-day",
-        parentTab: "log",
-        hideTabBar: false,
-        header: logDayHeader(today, today),
-        notFound: false,
-      };
+      return found("log-day", "log", logDayHeader(today, today));
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return {
-        screenId: "log-new",
-        parentTab: "log",
-        hideTabBar: true,
-        header: {
-          title: "記録する",
-          left: { kind: "back", fallback: "/logs" },
-          right: { kind: "spacer" },
-        },
-        notFound: false,
-      };
+      return formRoute("log-new", "log", "記録する", "/logs");
     }
     if (segments[1] === "my-drinks") {
       if (segments.length === 2) {
-        return {
-          screenId: "mydrink-list",
-          parentTab: "log",
-          hideTabBar: false,
-          header: {
-            title: "マイドリンク",
-            left: { kind: "back", fallback: "/logs" },
-            right: { kind: "plus", to: "/logs/my-drinks/new" },
-          },
-          notFound: false,
-        };
+        return found(
+          "mydrink-list",
+          "log",
+          backHeader("マイドリンク", "/logs", { kind: "plus", to: "/logs/my-drinks/new" }),
+        );
       }
       if (segments[2] === "new" && segments.length === 3) {
-        return {
-          screenId: "mydrink-new",
-          parentTab: "log",
-          hideTabBar: true,
-          header: {
-            title: "マイドリンクを追加",
-            left: { kind: "back", fallback: "/logs/my-drinks" },
-            right: { kind: "spacer" },
-          },
-          notFound: false,
-        };
+        return formRoute("mydrink-new", "log", "マイドリンクを追加", "/logs/my-drinks");
       }
       if (segments.length === 4 && segments[3] === "edit" && segments[2]) {
-        return {
-          screenId: "mydrink-edit",
-          parentTab: "log",
-          hideTabBar: true,
-          header: {
-            title: "マイドリンクを編集",
-            left: { kind: "back", fallback: "/logs/my-drinks" },
-            right: { kind: "spacer" },
-          },
-          notFound: false,
-        };
+        return formRoute("mydrink-edit", "log", "マイドリンクを編集", "/logs/my-drinks");
       }
     }
     if (segments[1] === "entries" && segments.length === 4 && segments[3] === "edit") {
-      return {
-        screenId: "log-edit",
-        parentTab: "log",
-        hideTabBar: true,
-        header: {
-          title: "記録を編集",
-          left: { kind: "back", fallback: "/logs" },
-          right: { kind: "spacer" },
-        },
-        notFound: false,
-      };
+      return formRoute("log-edit", "log", "記録を編集", "/logs");
     }
     if (segments.length === 2 && segments[1] && isValidLogDateParam(segments[1])) {
-      return {
-        screenId: "log-day",
-        parentTab: "log",
-        hideTabBar: false,
-        header: logDayHeader(segments[1], today),
-        notFound: false,
-      };
+      return found("log-day", "log", logDayHeader(segments[1], today));
     }
     return notFoundRoute();
   }
 
   if (segments[0] === "cellar") {
     if (segments.length === 1) {
-      return {
-        screenId: "bottle-list",
-        parentTab: "cellar",
-        hideTabBar: false,
-        header: {
-          title: "セラー",
-          titleMuted: "0 本",
-          left: { kind: "archive" },
-          right: { kind: "plus", to: "/cellar/new?camera=1" },
-        },
-        notFound: false,
-      };
+      return found("bottle-list", "cellar", {
+        title: "セラー",
+        titleMuted: "0 本",
+        left: { kind: "archive" },
+        right: { kind: "plus", to: "/cellar/new?camera=1" },
+      });
     }
     if (segments[1] === "archive" && segments.length === 2) {
-      return {
-        screenId: "bottle-archive",
-        parentTab: "cellar",
-        hideTabBar: false,
-        header: {
-          title: "貯蔵庫",
-          titleMuted: "0 本",
-          left: { kind: "back", fallback: "/cellar" },
-          right: { kind: "spacer" },
-        },
-        notFound: false,
-      };
+      return found("bottle-archive", "cellar", {
+        title: "貯蔵庫",
+        titleMuted: "0 本",
+        left: { kind: "back", fallback: "/cellar" },
+        right: SPACER,
+      });
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return {
-        screenId: "bottle-new",
-        parentTab: "cellar",
-        hideTabBar: true,
-        header: {
-          title: "ボトルを追加",
-          left: { kind: "back", fallback: "/cellar" },
-          right: { kind: "spacer" },
-        },
-        notFound: false,
-      };
+      return formRoute("bottle-new", "cellar", "ボトルを追加", "/cellar");
     }
     if (segments.length === 3 && segments[2] === "edit" && segments[1]) {
-      return {
-        screenId: "bottle-edit",
-        parentTab: "cellar",
-        hideTabBar: true,
-        header: {
-          title: "ボトルを編集",
-          left: { kind: "back", fallback: `/cellar/${segments[1]}` },
-          right: { kind: "spacer" },
-        },
-        notFound: false,
-      };
+      return formRoute("bottle-edit", "cellar", "ボトルを編集", `/cellar/${segments[1]}`);
     }
     if (segments.length === 2 && segments[1]) {
-      return {
-        screenId: "bottle-detail",
-        parentTab: "cellar",
-        hideTabBar: false,
-        header: {
-          title: "ボトル",
-          left: { kind: "back", fallback: "/cellar" },
-          right: { kind: "edit", to: `/cellar/${segments[1]}/edit` },
-        },
-        notFound: false,
-      };
+      return detailRoute(
+        "bottle-detail",
+        "cellar",
+        "ボトル",
+        "/cellar",
+        `/cellar/${segments[1]}/edit`,
+      );
     }
     return notFoundRoute();
   }
 
   if (segments[0] === "notes") {
     if (segments.length === 1) {
-      return {
-        screenId: "note-list",
-        parentTab: "notes",
-        hideTabBar: false,
-        header: {
-          title: "ノート",
-          left: { kind: "spacer" },
-          right: { kind: "plus", to: "/notes/new?camera=1" },
-        },
-        notFound: false,
-      };
+      return found("note-list", "notes", {
+        title: "ノート",
+        left: SPACER,
+        right: { kind: "plus", to: "/notes/new?camera=1" },
+      });
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return {
-        screenId: "note-new",
-        parentTab: "notes",
-        hideTabBar: true,
-        header: {
-          title: "ノートを作成",
-          left: { kind: "back", fallback: "/notes" },
-          right: { kind: "spacer" },
-        },
-        notFound: false,
-      };
+      return formRoute("note-new", "notes", "ノートを作成", "/notes");
     }
     if (segments.length === 3 && segments[2] === "edit" && segments[1]) {
-      return {
-        screenId: "note-edit",
-        parentTab: "notes",
-        hideTabBar: true,
-        header: {
-          title: "ノートを編集",
-          left: { kind: "back", fallback: `/notes/${segments[1]}` },
-          right: { kind: "spacer" },
-        },
-        notFound: false,
-      };
+      return formRoute("note-edit", "notes", "ノートを編集", `/notes/${segments[1]}`);
     }
     if (segments.length === 2 && segments[1]) {
-      return {
-        screenId: "note-detail",
-        parentTab: "notes",
-        hideTabBar: false,
-        header: {
-          title: "ノート",
-          left: { kind: "back", fallback: "/notes" },
-          right: { kind: "edit", to: `/notes/${segments[1]}/edit` },
-        },
-        notFound: false,
-      };
+      return detailRoute("note-detail", "notes", "ノート", "/notes", `/notes/${segments[1]}/edit`);
     }
     return notFoundRoute();
   }
 
   if (segments[0] === "settings" && segments.length === 1) {
-    return {
-      screenId: "settings",
-      parentTab: "settings",
-      hideTabBar: false,
-      header: { title: "設定", left: { kind: "spacer" }, right: { kind: "spacer" } },
-      notFound: false,
-    };
+    return found("settings", "settings", { title: "設定", left: SPACER, right: SPACER });
   }
 
   return notFoundRoute();
@@ -371,6 +246,16 @@ export function parentTabOf(pathname: string): TabId | null {
 
 export function logDayHref(date: string, now: Date = new Date()): string {
   return logDayPath(date, tokyoToday(now));
+}
+
+export function logFormHrefs(date?: string): { newHref: string; cameraHref: string } {
+  if (!date) {
+    return { newHref: "/logs/new", cameraHref: "/logs/new?camera=1" };
+  }
+  return {
+    newHref: `/logs/new?date=${date}`,
+    cameraHref: `/logs/new?date=${date}&camera=1`,
+  };
 }
 
 export function isFutureTokyoDate(date: string, now: Date = new Date()): boolean {

@@ -1,8 +1,7 @@
-import { PHOTO_ASPECT } from "@/shared/constants.ts";
 import { applyPreset, type ColorPreset } from "./apply-preset.ts";
 import { composeMascot } from "./compose-mascot.ts";
 import { cropResize } from "./crop-resize.ts";
-import { type AspectRatio, computeCoverCrop, outputSizeForAspect } from "./geometry.ts";
+import { aspectForKind, computeCoverCrop, outputSizeForAspect } from "./geometry.ts";
 import { removeBackground, supportsBackgroundRemoval } from "./remove-background.ts";
 import { toJpegBlob, toWebpBlob } from "./to-jpeg-blob.ts";
 
@@ -34,12 +33,8 @@ export function presetForKind(kind: PhotoProcessKind, filterOn: boolean): ColorP
   return kind === "cellar" ? "cellar" : "table";
 }
 
-export function aspectForEditKind(kind: PhotoProcessKind): AspectRatio {
-  return kind === "cellar" ? PHOTO_ASPECT.cellar : PHOTO_ASPECT.log;
-}
-
 export async function processPhoto(input: ProcessPhotoInput): Promise<ProcessedPhoto> {
-  const aspect = aspectForEditKind(input.kind);
+  const aspect = aspectForKind(input.kind);
   const crop = computeCoverCrop({
     sourceWidth: input.sourceWidth,
     sourceHeight: input.sourceHeight,
