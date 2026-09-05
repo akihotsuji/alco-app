@@ -1,8 +1,8 @@
 # データモデル（ER / Drizzle スキーマ設計）
 
-Phase 1-04 の成果物。Phase 2-01（Drizzle 実装・マイグレーション）の正本。
+Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzle 実装・マイグレーション）の正本。
 
-- 状態: **承認済み**（main マージ）
+- 状態: 1-04 は **承認済み**（main マージ）。**1-07 の改訂（下表「1-07 改訂」行）はオーナー承認待ち**
 - ソース: [spec/01-requirements.md](01-requirements.md)、[roadmap/phase-01-design/04-er-drizzle-schema.md](../roadmap/phase-01-design/04-er-drizzle-schema.md)
 - 実装ルール: [`.cursor/rules/database.mdc`](../.cursor/rules/database.mdc)
 
@@ -26,15 +26,30 @@ Phase 1-04 の成果物。Phase 2-01（Drizzle 実装・マイグレーション
 | 記録メモ上限 | 500 文字 | モバイルの短メモ |
 | マイドリンク名上限 | 40 文字 | 1 タップ表示 |
 | 評価 | 整数 `rating_x10`（10〜50、5 刻み）。1.0〜5.0 の 0.5 刻み | float 比較を避ける |
-| 写真の持ち方 | 単一 `photos` テーブル。`bottle_id` と `tasting_note_id` は排他。両方 NULL は未紐付け（先アップロード） | 4-04 / 5-03 の推奨フロー |
+| 写真の持ち方 | 単一 `photos` テーブル。所有者列（`bottle_id` / `tasting_note_id` / 1-07 で `drink_log_id` 追加）は最大 1 つ。すべて NULL は未紐付け（先アップロード） | 4-04 / 5-03 の推奨フロー |
 | ボトル写真 | スキーマは 1:N。MVP UI は 1 枚（`sort_order` 最小をサムネ） | 要件 1.3 は「写真」、ノート側が複数枚 |
 | ボトル種類 | 飲酒記録と同じ 7 種 enum | フィルタ共通化（4-01 推奨） |
 | ノートの銘柄 | **スナップショット必須**（`drink_name` / `drink_type`）+ 任意の `bottle_id` | ボトル改名後も当時の記録を残す |
 | ボトル削除時のノート | **`bottle_id` を SET NULL**。ノートは残す | テイスティング履歴を消さない |
 | 削除方針 | アプリエンティティは **物理削除** | 個人アプリ。監査用論理削除は不要 |
-| 本数とステータス | **独立**。自動連動しない | 二重管理リスクはアプリ仕様（4-03）で扱う |
 | 開栓日 | `opened_on`（日付、任意） | 4-03。無ければメモ運用になるのを避ける |
 | `user_id` + `id` 複合 PK | **採用しない**。PK は `id`、アクセスは必ず `id AND user_id` | FK を単純に保つ。認可は API |
+
+### 1-07 改訂（2026-09-05。承認待ち）
+
+[screen-designs/](screen-designs/README.md) の「追加と消費」「写真を撮って記録」に合わせた変更。
+
+| 項目 | 決定 | 根拠 |
+|---|---|---|
+| 1 行 = 1 本 | `bottles.quantity` を **廃止**。登録時の本数 N は API が **N 行に展開**（上限 12） | 棚に N 本並ぶ。消費は常に 1 本（[04-cellar.md](screen-designs/04-cellar.md)） |
+| ボトルステータス | `sealed` / `opened` / **`consumed`**（`finished` を改名）。`consumed` = 貯蔵庫 | 「消費 → 貯蔵庫」の語彙 |
+| 消費日時 | `consumed_at`（UTC ms、任意）と `consumed_on`（JST 日、サーバー算出）。復元で両方 NULL | 貯蔵庫の月見出し・undo |
+| 記録とボトル | `drink_logs.bottle_id`（任意、SET NULL）。消費で自動、`log-new` の「ボトル」行で手動。`drink_name` にボトル名をスナップショット | 何を飲んだかを残す |
+| 記録の写真 | `photos.drink_log_id`（任意、CASCADE）。1 記録につき **1 枚** | 写真を撮って記録する UX |
+| 写真の所有者 | `bottle_id` / `tasting_note_id` / `drink_log_id` は **最大 1 つ**（CHECK）。3 つとも NULL は未紐付け | 排他を 3 way に拡張 |
+| 未紐付け写真 | 作成 24 時間で GC（Cron Trigger 日次）。R2 と D1 の両方を消す | 「使う」直後にアップロードするため放棄分が出る |
+| 写真枚数 | 記録 1 / ボトル 1 / ノート **6**（確定） | 5-01 の「提案 6」を確定 |
+| 写真の中身 | 加工後（比率・色補正・キャラ合成済み）の JPEG **1 枚だけ**。元画像は保存しない | R2 を倍にしない（[07-photo-capture.md](screen-designs/07-photo-capture.md)） |
 
 ---
 
@@ -90,9 +105,11 @@ erDiagram
     user ||--o{ tasting_notes : owns
     user ||--o{ photos : owns
     my_drinks ||--o{ drink_logs : "optional ref"
+    bottles ||--o{ drink_logs : "optional (consume / manual)"
     bottles ||--o{ tasting_notes : "optional"
-    bottles ||--o{ photos : "xor owner"
-    tasting_notes ||--o{ photos : "xor owner"
+    bottles ||--o{ photos : "one owner"
+    tasting_notes ||--o{ photos : "one owner"
+    drink_logs ||--o{ photos : "one owner"
 
     user {
         text id PK
@@ -126,6 +143,7 @@ erDiagram
         real alcohol_g
         text memo
         text my_drink_id FK
+        text bottle_id FK
         integer created_at
         integer updated_at
     }
@@ -153,11 +171,12 @@ erDiagram
         text purchased_on
         integer price_jpy
         text shop
-        integer quantity
         text storage
         text memo
         text status
         text opened_on
+        integer consumed_at
+        text consumed_on
         integer created_at
         integer updated_at
     }
@@ -188,6 +207,7 @@ erDiagram
         integer height
         text bottle_id FK
         text tasting_note_id FK
+        text drink_log_id FK
         integer sort_order
         integer created_at
         integer updated_at
@@ -236,13 +256,13 @@ erDiagram
 
 ### 5.4 bottle_status
 
-| DB 値 | 表示 | 初期値 |
-|---|---|---|
-| `sealed` | 未開栓 | 新規登録のデフォルト |
-| `opened` | 開栓済み | |
-| `finished` | 飲み切り | |
+| DB 値 | 表示 | 画面 | 初期値 |
+|---|---|---|---|
+| `sealed` | 未開栓 | 棚 | 新規登録のデフォルト |
+| `opened` | 開栓済み | 棚 | 「開栓する」で `opened_on` = 今日 |
+| `consumed` | 消費（貯蔵庫） | 貯蔵庫 | 「消費する」で `consumed_at` = 今、`consumed_on` = その JST 日 |
 
-遷移ルール（戻し可否など）は 4-03 / `spec/features/cellar.md`。DB は 3 値のみ許可する。
+遷移: `sealed → opened`（開栓）、`sealed | opened → consumed`（消費）、`consumed → sealed | opened`（復元。`opened_on` があれば `opened`、無ければ `sealed`。`consumed_at` / `consumed_on` は NULL に戻す）。`opened → sealed` の戻しは編集画面から不可（誤操作は削除して再登録）。DB は 3 値のみ許可する。詳細は [screen-designs/04-cellar.md](screen-designs/04-cellar.md)。
 
 ### 5.5 評価（rating_x10）
 
@@ -270,9 +290,10 @@ erDiagram
 | `bottles.memo` / ノート 4 欄 | 0〜2000 |
 | `vintage` | 1800〜2100 または NULL（NV / 未入力） |
 | `price_jpy` | 0 以上の整数円、または NULL |
-| `quantity` | 整数 1 以上。デフォルト 1 |
+| 登録時の本数 `count` | 整数 1〜12（API 入力のみ。列は無い。N 行に展開） |
 | マイドリンク件数 | ユーザーあたり 30（アプリ制限。DB CHECK なし） |
-| ノート写真枚数 | 提案 6（5-01 で確定） |
+| 写真枚数 | 記録 1 / ボトル 1 / ノート 6（アプリ制限。DB CHECK なし） |
+| 写真 1 枚 | ≦ 1MB、長辺 ≦ 1600px、`image/jpeg` / `image/png` / `image/webp` |
 
 ---
 
@@ -297,10 +318,13 @@ erDiagram
 | alcoholG | alcohol_g | real | NO | 小数第 2 位 | サーバー再計算 |
 | memo | memo | text | YES | ≦500 | 任意メモ |
 | myDrinkId | my_drink_id | text | YES | FK → my_drinks.id SET NULL | 参照は任意。値の正はスナップショット列 |
+| bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携（1-07）。消費で自動、`log-new` で手動。他人の id は 404 |
 | createdAt | created_at | integer | NO | | UTC ms |
 | updatedAt | updated_at | integer | NO | | UTC ms |
 
 **スナップショット:** 1 タップ記録時、サーバーが `my_drinks` を読み、`drink_type` / `volume_ml` / `abv_percent` / `drink_name` をコピーして `alcohol_g` を計算する。クライアントが量を上書きして 1 タップ API に混ぜることはしない（3-03）。
+
+**ボトル紐付け（1-07）:** `bottle_id` を付けるとき、サーバーは自ユーザーのボトルを読み `drink_name` にボトル名、`drink_type` にボトルの種類をコピーする（量・度数はリクエストが正。消費ダイアログは種類デフォルトを初期値にする）。ボトル削除後も `drink_name` は残る。写真は `photos.drink_log_id` で 1 枚。
 
 ### 6.2 my_drinks
 
@@ -322,7 +346,7 @@ erDiagram
 
 ### 6.3 bottles
 
-セラーの 1 行 = 1 つの在庫エントリ（同一銘柄をまとめても、1 本ずつでもよい）。
+セラーの **1 行 = 1 本**（1-07）。同じ銘柄を N 本登録すると N 行できる（API が展開。`count` 1〜12）。
 
 | 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
 |---|---|---|---|---|---|
@@ -336,17 +360,18 @@ erDiagram
 | purchasedOn | purchased_on | text | YES | `YYYY-MM-DD` | 購入日（JST） |
 | priceJpy | price_jpy | integer | YES | >= 0 | 購入価格（円、小数なし） |
 | shop | shop | text | YES | ≦100 | 購入場所 |
-| quantity | quantity | integer | NO | >= 1, default 1 | 本数 |
 | storage | storage | text | YES | ≦100 | 保管場所 |
 | memo | memo | text | YES | ≦2000 | メモ |
-| status | status | text | NO | CHECK enum, default `sealed` | 未開栓 / 開栓済み / 飲み切り |
-| openedOn | opened_on | text | YES | `YYYY-MM-DD` | 開栓日（JST）。任意 |
+| status | status | text | NO | CHECK enum, default `sealed` | 未開栓 / 開栓済み / 消費（貯蔵庫） |
+| openedOn | opened_on | text | YES | `YYYY-MM-DD` | 開栓日（JST）。「開栓する」で今日 |
+| consumedAt | consumed_at | integer | YES | | 消費日時（UTC ms）。`consumed` のとき必須、それ以外 NULL |
+| consumedOn | consumed_on | text | YES | `YYYY-MM-DD` | 消費日（JST）。`consumed_at` からサーバー算出。貯蔵庫の月見出し |
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
 
-**本数とステータス:** DB は連動させない。`finished` でも `quantity` は購入時の本数のまま残してよい。自動で飲み切りにするロジックは持たない（4-03）。
+`quantity` 列は **持たない**（1-07 で廃止。1 行 = 1 本）。
 
-必須になりやすい項目（画面仕様は 4-01）: `name`, `drink_type`, `status`。残りは任意。
+必須項目（画面仕様は [screen-designs/04-cellar.md](screen-designs/04-cellar.md)）: `name`, `drink_type`, `status`。残りは任意。
 
 ### 6.4 tasting_notes
 
@@ -385,31 +410,34 @@ erDiagram
 | byteSize | byte_size | integer | NO | > 0 | 保存バイト数 |
 | width | width | integer | YES | | リサイズ後（任意） |
 | height | height | integer | YES | | リサイズ後（任意） |
-| bottleId | bottle_id | text | YES | FK → bottles.id CASCADE | 所有者の一方 |
-| tastingNoteId | tasting_note_id | text | YES | FK → tasting_notes.id CASCADE | 所有者の一方 |
+| bottleId | bottle_id | text | YES | FK → bottles.id CASCADE | 所有者の一つ |
+| tastingNoteId | tasting_note_id | text | YES | FK → tasting_notes.id CASCADE | 所有者の一つ |
+| drinkLogId | drink_log_id | text | YES | FK → drink_logs.id CASCADE | 所有者の一つ（1-07） |
 | sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。ボトルサムネは最小 |
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
 
-**排他（DB CHECK）:**
+**排他（DB CHECK。3 列のうち最大 1 つ）:**
 
 ```sql
 CHECK (
-  NOT (bottle_id IS NOT NULL AND tasting_note_id IS NOT NULL)
+  (bottle_id IS NOT NULL) + (tasting_note_id IS NOT NULL) + (drink_log_id IS NOT NULL) <= 1
 )
 ```
 
-| bottle_id | tasting_note_id | 意味 |
-|---|---|---|
-| 値 | NULL | ボトル写真 |
-| NULL | 値 | ノート写真 |
-| NULL | NULL | 未紐付け（先アップロード）。GC 対象にしてよい |
-| 値 | 値 | **禁止** |
+| bottle_id | tasting_note_id | drink_log_id | 意味 |
+|---|---|---|---|
+| 値 | NULL | NULL | ボトル写真（1 枚） |
+| NULL | 値 | NULL | ノート写真（≦6） |
+| NULL | NULL | 値 | 記録写真（1 枚） |
+| NULL | NULL | NULL | 未紐付け（先アップロード）。**24 時間で GC** |
+| 2 つ以上 | | | **禁止** |
 
 - ユーザー入力のファイル名はどの列にも保存しない
 - `r2_key` に `user_id` を含めない（列挙耐性）。所有は DB の `user_id` が正
-- MIME / サイズ上限の数値は 4-04。SVG / GIF は拒否
+- MIME / サイズ上限は [screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md)（1MB、長辺 1600、jpeg/png/webp、magic bytes）。SVG / GIF / HEIC は拒否
 - 紐付け時も `photos.user_id === session.userId` を必須にする（他人の photo id を拒否）
+- 保存するのは加工後の 1 枚。キャラクター合成の有無は列に持たない（画像に焼き込み済み）
 
 ---
 
@@ -422,14 +450,17 @@ CHECK (
 | `drink_logs_user_drunk_on_idx` | drink_logs | `user_id`, `drunk_on` | 日別ビュー・休肝日 |
 | `drink_logs_user_drunk_at_idx` | drink_logs | `user_id`, `drunk_at` | 期間サマリー |
 | `drink_logs_my_drink_id_idx` | drink_logs | `my_drink_id` | プリセット削除時の SET NULL |
+| `drink_logs_user_bottle_idx` | drink_logs | `user_id`, `bottle_id` | ボトル詳細の記録節、SET NULL |
 | `my_drinks_user_sort_idx` | my_drinks | `user_id`, `sort_order` | 1 タップ一覧 |
-| `bottles_user_status_idx` | bottles | `user_id`, `status` | ステータス絞り込み |
+| `bottles_user_status_idx` | bottles | `user_id`, `status` | 棚 / 貯蔵庫の切替、状態絞り込み |
 | `bottles_user_type_idx` | bottles | `user_id`, `drink_type` | 種類絞り込み |
+| `bottles_user_consumed_idx` | bottles | `user_id`, `consumed_at` | 貯蔵庫の並び（降順） |
 | `tasting_notes_user_tasted_on_idx` | tasting_notes | `user_id`, `tasted_on` | ノート一覧（日付降順） |
 | `tasting_notes_user_bottle_idx` | tasting_notes | `user_id`, `bottle_id` | ボトル詳細からの参照 |
 | `photos_user_created_idx` | photos | `user_id`, `created_at` | 未紐付け GC、所有確認 |
 | `photos_bottle_sort_idx` | photos | `bottle_id`, `sort_order` | ボトルサムネ |
 | `photos_note_sort_idx` | photos | `tasting_note_id`, `sort_order` | ノートギャラリー |
+| `photos_log_idx` | photos | `drink_log_id` | 記録サムネ |
 | `photos_r2_key_uidx` | photos | `r2_key` UNIQUE | キー衝突防止 |
 
 名前検索（銘柄・生産者）は個人規模では `user_id` 絞り込み + `LIKE` で足りる。全文検索インデックスは作らない。
@@ -446,11 +477,13 @@ CHECK (
 |---|---|---|---|
 | `user.id` | アプリ 5 テーブルの `user_id` | CASCADE | アカウント削除で残党を出さない（削除 UI は将来） |
 | `my_drinks.id` | `drink_logs.my_drink_id` | SET NULL | 過去ログを残す |
+| `bottles.id` | `drink_logs.bottle_id` | SET NULL | 記録と `drink_name` スナップショットを残す |
 | `bottles.id` | `tasting_notes.bottle_id` | SET NULL | ノートとスナップショットを残す |
 | `bottles.id` | `photos.bottle_id` | CASCADE | ボトル写真は在庫と運命を共にする |
 | `tasting_notes.id` | `photos.tasting_note_id` | CASCADE | ノート写真も同様 |
+| `drink_logs.id` | `photos.drink_log_id` | CASCADE | 記録写真も同様 |
 
-写真行の削除時、アプリが R2 オブジェクトも消す（失敗時の孤立掃除は 4-04）。DB カスケードだけでは R2 は消えない。
+写真行の削除時、アプリが R2 オブジェクトも消す（DB カスケードだけでは R2 は消えない）。親削除の前に子 photo の `r2_key` を集めて R2 を消し、失敗分は未紐付け GC と同じ日次ジョブで再試行する。
 
 ボトル削除後のノートは、スナップショットだけで独立ノートとして残る。ボトル詳細からは辿れなくなる。
 
@@ -500,7 +533,7 @@ const drinkTypeEnum = [
   "other",
 ] as const;
 
-const bottleStatusEnum = ["sealed", "opened", "finished"] as const;
+const bottleStatusEnum = ["sealed", "opened", "consumed"] as const;
 
 export const myDrinks = sqliteTable(
   "my_drinks",
@@ -536,6 +569,7 @@ export const drinkLogs = sqliteTable(
     alcoholG: real("alcohol_g").notNull(),
     memo: text("memo"),
     myDrinkId: text("my_drink_id").references(() => myDrinks.id, { onDelete: "set null" }),
+    bottleId: text("bottle_id").references(() => bottles.id, { onDelete: "set null" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
@@ -543,9 +577,11 @@ export const drinkLogs = sqliteTable(
     index("drink_logs_user_drunk_on_idx").on(table.userId, table.drunkOn),
     index("drink_logs_user_drunk_at_idx").on(table.userId, table.drunkAt),
     index("drink_logs_my_drink_id_idx").on(table.myDrinkId),
+    index("drink_logs_user_bottle_idx").on(table.userId, table.bottleId),
   ],
 );
 
+// bottles は drinkLogs より前に宣言する（循環参照を避ける。実装時にファイル順を揃える）
 export const bottles = sqliteTable(
   "bottles",
   {
@@ -561,17 +597,19 @@ export const bottles = sqliteTable(
     purchasedOn: text("purchased_on"),
     priceJpy: integer("price_jpy"),
     shop: text("shop"),
-    quantity: integer("quantity").notNull().default(1),
     storage: text("storage"),
     memo: text("memo"),
     status: text("status", { enum: bottleStatusEnum }).notNull().default("sealed"),
     openedOn: text("opened_on"),
+    consumedAt: integer("consumed_at", { mode: "timestamp_ms" }),
+    consumedOn: text("consumed_on"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
     index("bottles_user_status_idx").on(table.userId, table.status),
     index("bottles_user_type_idx").on(table.userId, table.drinkType),
+    index("bottles_user_consumed_idx").on(table.userId, table.consumedAt),
   ],
 );
 
@@ -616,6 +654,7 @@ export const photos = sqliteTable(
     tastingNoteId: text("tasting_note_id").references(() => tastingNotes.id, {
       onDelete: "cascade",
     }),
+    drinkLogId: text("drink_log_id").references(() => drinkLogs.id, { onDelete: "cascade" }),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
@@ -625,7 +664,8 @@ export const photos = sqliteTable(
     index("photos_user_created_idx").on(table.userId, table.createdAt),
     index("photos_bottle_sort_idx").on(table.bottleId, table.sortOrder),
     index("photos_note_sort_idx").on(table.tastingNoteId, table.sortOrder),
-    // bottle_id と tasting_note_id の排他は SQL CHECK をマイグレーションに書く
+    index("photos_log_idx").on(table.drinkLogId),
+    // 所有者 3 列の排他は SQL CHECK をマイグレーションに書く
   ],
 );
 ```
@@ -634,8 +674,8 @@ CHECK の書き方（マイグレーション SQL）:
 
 ```sql
 CHECK (drink_type IN ('wine','beer','whisky','sake','shochu','cocktail','other'))
-CHECK (status IN ('sealed','opened','finished'))
-CHECK (NOT (bottle_id IS NOT NULL AND tasting_note_id IS NOT NULL))
+CHECK (status IN ('sealed','opened','consumed'))
+CHECK ((bottle_id IS NOT NULL) + (tasting_note_id IS NOT NULL) + (drink_log_id IS NOT NULL) <= 1)
 ```
 
 Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHECK が自動で出ない場合は SQL を手で足す。出しすぎは避ける（範囲・文字数は Zod）。
@@ -677,18 +717,20 @@ Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHEC
 - 目標設定（週あたり純アルコール上限、休肝日目標）
 - 飲み頃メモ・アラート、在庫金額サマリー
 - 種類別テイスティングテンプレート
-- ボトル開栓時の記録・ノート誘導、ノートと飲酒記録の同時作成
+- ノートと飲酒記録の同時作成（**消費 → 記録** は 1-07 で MVP に入った）
+- 写真の背景除去済み画像（切り抜き）を別に持つ列。v1.x で必要なら `photos.variant` を足す
 - CSV エクスポート用の追加テーブル
 
 ---
 
-## 14. 受け入れ（1-04）
+## 14. 受け入れ（1-04 / 1-07）
 
-- [x] `spec/data-model.md` を作成（承認は本 PR）
+- [x] `spec/data-model.md` を作成（1-04 承認済み）
 - [x] 全アプリテーブルに `user_id`。Auth テーブルはライブラリ管理と明記
 - [x] enum が要件の 7 種類・ボトルステータス 3 種と一致
 - [x] 写真の所有者が `user_id` で辿れる
 - [x] `database` ルール（`.cursor/rules/database.mdc`）を同梱
+- [ ] 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id`）のオーナー承認
 
 ---
 

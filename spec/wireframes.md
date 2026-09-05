@@ -1,31 +1,54 @@
-# 主要画面のワイヤーフレーム
+# 主要画面のワイヤーフレーム（1-02。骨格の履歴）
 
-Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何がどの順で並ぶか**を決める。色・フォント・影の数値は [design-system.md](design-system.md)（1-03）。ルートとタブは [screens.md](screens.md)。
+Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何がどの順で並ぶか**を決めた骨格。色・フォント・影の数値は [design-system.md](design-system.md)（1-03）。ルートとタブは [screens.md](screens.md)。
 
-ツールは **Markdown の箱図**（配置の正本）と、質感確認用の静止画（[mocks/](wireframes/mocks/)）。ステータスバーは描かない。ダミー文言は架空（実データ・実名を載せない）。
+> **2026-09-05（1-07）: 配置の正本は [screen-designs/](screen-designs/README.md) に移った。** 本ファイルの箱図は 1-02 時点の骨格として残す。下の「1-07 で覆した点」以外の判断（最短タップ、FAB なし、フルスクリーン入力、undo 5 秒、空・エラー・ローディング方針）は引き続き有効で、screen-designs に転記済み。
+
+## 1-07 で覆した点
+
+| 1-02 の判断 | 1-07 の判断 | 理由 |
+|---|---|---|
+| タブ順 ホーム / 記録 / セラー / ノート / 設定 | **ホーム / セラー / 記録（中央・円形） / ノート / 設定** | オーナー指示。記録が最頻 |
+| セラー一覧は「行」（エクスプローラ） | **棚（陳列）**。3 列、2:3 写真が棚板に立つ | オーナー指示。写真主役 |
+| セラー詳細のステータスはセグメント | 主「消費する」+ 副「開栓する」「1 杯を記録」。消費で **貯蔵庫** へ移り、その日の記録へ | オーナー指示 |
+| 記録・ノートの写真は「枠だけ」 | **写真タイルが最上部**。撮る → 編集（比率・色補正・キャラ合成）→ 添付 | オーナー指示 |
+| ノート一覧は行 | **写真グリッド 2 列** | 写真主役 |
+| キャラクターなし | **1 体のキャラクター**（[character.md](character.md)） | ニューモーフィズムだけでは簡素 |
+| 開栓 → 記録誘導は v1.x | **消費 → 記録** は MVP。開栓誘導はしない | 上に同じ |
 
 ## 質感モック
 
-デザインシステムの CSS 変数（[mocks/tokens.css](wireframes/mocks/tokens.css)）で描いた実装レベルの質感確認。アプリ本体は含まない。ソースは [mocks/preview.html](wireframes/mocks/preview.html)。
+デザインシステムの CSS 変数（[mocks/tokens.css](wireframes/mocks/tokens.css)）で描いた実装レベルの質感確認。アプリ本体は含まない。ソースは [mocks/preview.html](wireframes/mocks/preview.html)（`?s=<id>&theme=dark`）。**画像は 1-07 の設計に更新済み**（要素表と食い違えば screen-designs が正）。
 
-| 画面 | ファイル |
-|---|---|
-| ホーム（ライト） | [mocks/home.png](wireframes/mocks/home.png) |
-| ホーム（ダーク） | [mocks/home-dark.png](wireframes/mocks/home-dark.png) |
-| ホーム（1 タップ後トースト） | [mocks/home-toast.png](wireframes/mocks/home-toast.png) |
-| 記録入力 | [mocks/log-new.png](wireframes/mocks/log-new.png) |
-| 日別記録 | [mocks/log-day.png](wireframes/mocks/log-day.png) |
-| セラー一覧 | [mocks/cellar-list.png](wireframes/mocks/cellar-list.png) |
-| セラー詳細 | [mocks/cellar-detail.png](wireframes/mocks/cellar-detail.png) |
-| ノート一覧 | [mocks/note-list.png](wireframes/mocks/note-list.png) |
-| ノート詳細 | [mocks/note-detail.png](wireframes/mocks/note-detail.png) |
-| ノート作成 | [mocks/note-new.png](wireframes/mocks/note-new.png) |
-| ログイン | [mocks/login.png](wireframes/mocks/login.png) |
-| 設定 | [mocks/settings.png](wireframes/mocks/settings.png) |
+| 画面 | ファイル | 設計 |
+|---|---|---|
+| ホーム（記録あり） | [mocks/home.png](wireframes/mocks/home.png) | [02-home](screen-designs/02-home.md) |
+| ホーム（ダーク） | [mocks/home-dark.png](wireframes/mocks/home-dark.png) | 同上 |
+| ホーム（記録 0・休肝） | [mocks/home-rest.png](wireframes/mocks/home-rest.png) | 同上 |
+| ホーム（1 タップ後トースト） | [mocks/home-toast.png](wireframes/mocks/home-toast.png) | 同上 |
+| 日別記録（消費直後） | [mocks/log-day.png](wireframes/mocks/log-day.png) | [03-log](screen-designs/03-log.md) |
+| 記録入力（撮影前） | [mocks/log-new.png](wireframes/mocks/log-new.png) | 同上 |
+| 記録入力（撮影後） | [mocks/log-new-photo.png](wireframes/mocks/log-new-photo.png) | 同上 |
+| 写真を編集 | [mocks/photo-edit.png](wireframes/mocks/photo-edit.png) | [07-photo-capture](screen-designs/07-photo-capture.md) |
+| セラー（棚） | [mocks/cellar-shelf.png](wireframes/mocks/cellar-shelf.png) | [04-cellar](screen-designs/04-cellar.md) |
+| セラー（棚・ダーク） | [mocks/cellar-shelf-dark.png](wireframes/mocks/cellar-shelf-dark.png) | 同上 |
+| セラー（空） | [mocks/cellar-empty.png](wireframes/mocks/cellar-empty.png) | 同上 |
+| 貯蔵庫 | [mocks/cellar-archive.png](wireframes/mocks/cellar-archive.png) | 同上 |
+| ボトルを追加 | [mocks/cellar-new.png](wireframes/mocks/cellar-new.png) | 同上 |
+| ボトル詳細 | [mocks/cellar-detail.png](wireframes/mocks/cellar-detail.png) | 同上 |
+| 消費ダイアログ | [mocks/cellar-consume.png](wireframes/mocks/cellar-consume.png) | 同上 |
+| ノート一覧 | [mocks/note-list.png](wireframes/mocks/note-list.png) | [05-notes](screen-designs/05-notes.md) |
+| ノート作成 | [mocks/note-new.png](wireframes/mocks/note-new.png) | 同上 |
+| ノート詳細 | [mocks/note-detail.png](wireframes/mocks/note-detail.png) | 同上 |
+| ログイン | [mocks/login.png](wireframes/mocks/login.png) | [01-auth](screen-designs/01-auth.md) |
+| 設定 | [mocks/settings.png](wireframes/mocks/settings.png) | [06-settings](screen-designs/06-settings.md) |
+| 見つかりません | [mocks/not-found.png](wireframes/mocks/not-found.png) | [00-common](screen-designs/00-common.md) |
 
-**Phase 2 以降の画面実装は、配置と優先順位についてこのファイルを正本にする。**
+キャラクターの SVG は [assets/character/](assets/character/)。モックは同じパスをインラインで埋め込んでいる。
 
 ---
+
+## 以下は 1-02 時点の骨格（履歴）
 
 ## 確定事項（1-02）
 

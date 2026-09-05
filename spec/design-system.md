@@ -1,8 +1,8 @@
 # デザインシステム
 
-Phase 1-03 の成果物（2026-09-04 改訂）。配色・型・余白・部品方針の正本。Phase 2-06（Tailwind トークン + shadcn）はこのファイルを写す。配置は [wireframes.md](wireframes.md)。
+Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追補）。配色・型・余白・部品方針の正本。Phase 2-06（Tailwind トークン + shadcn）はこのファイルを写す。配置は [screen-designs/](screen-designs/README.md)（詳細画面設計）。
 
-**全体方針はニューモーフィズム。** 先に置いた Win98 寄りの essences は破棄する。
+**全体方針はニューモーフィズム + 1 体のキャラクター。** 面は地と同色の浮き／沈み、感情はキャラクター（[character.md](character.md)）で出す。Win98 寄りの essences は破棄済み。
 
 アプリ本体（`src/client`）は本タスクでは実装しない。質感確認用の実装参照は [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css) と [wireframes/mocks/preview.html](wireframes/mocks/preview.html)。モックはトークンと同じ CSS 変数で描いている。
 
@@ -16,8 +16,11 @@ Phase 1-03 の成果物（2026-09-04 改訂）。配色・型・余白・部品�
 4. **ゲーミフィケーションは薄く。** 大きなスコア、休肝ピル、押して凹む、短いトースト。経験値・レベル・ガチャは置かない。
 5. **テーマは OS 追従。** ライト／ダーク両方。アプリ内切替は持たない（`prefers-color-scheme`。2026-08-13 確定）。
 6. **色と影はトークン経由だけ。** `bg-[#123]` やその場の `shadow` 直書きは禁止（`ui-design`）。
+7. **ポップさはキャラクター 1 体と写真で出す。** 面や色数を増やして賑やかにしない。キャラクターの置き場所は [character.md](character.md) と各画面設計に従う。
+8. **写真が主役の画面では、面より写真を大きく。** 記録・ノート・セラーの写真は角 `--radius-photo`、影は inset 枠。写真の上に文字を重ねない（キャラクターの合成だけ例外）。
 
-オーナー訂正（2026-09-04）: 全体デザイン方針を **ニューモーフィズム** にする。Win98 / ヴェイパーウェーブは採用しない。
+オーナー訂正（2026-09-04）: 全体デザイン方針を **ニューモーフィズム** にする。Win98 / ヴェイパーウェーブは採用しない。  
+オーナー指示（2026-09-05）: ニューモーフィズムだけでは簡素なので **キャラクターでポップさを足す**。記録・セラー・ノートは **写真を撮って記録する体験**に寄せる。セラーは **陳列**で見せる。
 
 ---
 
@@ -30,8 +33,10 @@ Phase 1-03 の成果物（2026-09-04 改訂）。配色・型・余白・部品�
 | ワインの主ボタン、大きなスコア | 全面ネオン、XP ゲージ、紙吹雪 |
 | 本文は pen のように濃い | 薄いグレー文字、フォーカスリング削除 |
 | 押下は inset に切り替わる | Material の長い影、ガラスのぼかし全面 |
+| 目だけで驚く 1 体のキャラクター、写真が主役 | 複数キャラ、吹き出し会話、絵文字、スタンプ祭り |
+| 木の棚に写真が並ぶセラー | 表形式の在庫リスト、Masonry |
 
-ロードマップの「大人向けの落ち着いたトーン」は、**暖色の紙地 + ワインの一点アクセント** と読む。
+ロードマップの「大人向けの落ち着いたトーン」は、**暖色の紙地 + ワインの一点アクセント + 少しだけ抜けた顔のキャラクター** と読む。
 
 ---
 
@@ -133,7 +138,9 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 | `--radius-card` | 24px | スコアカード、ログインカード |
 | `--radius-pill` | 999px | チップ、休肝 |
 | `--header-h` | 56px | ヘッダー |
-| `--tab-h` | 64px | 下部タブ＋余白 |
+| `--tab-h` | 72px | 下部タブ＋余白（2026-09-05: 中央タブが浮くため 64 → 72） |
+| `--tab-center-size` | 60px | 中央「記録」タブの円 |
+| `--radius-photo` | 20px | 写真・写真タイル |
 
 影（値をそのまま `box-shadow` に入れる）:
 
@@ -177,12 +184,58 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | Tabs | 下部。アクティブは inset + primary 色のアイコン |
 | Dialog | 地色カード。タイトルはテキストのみ |
 | Sheet | 使わない |
-| Toast | 地色 + outset。undo は primary テキスト |
+| Toast | 地色 + outset。undo は primary テキスト。保存成功時は左端に `cheer` 32px |
 | 行 | 地色 + outset。左 48px サムネ、高さ 64px 以上 |
+| 中央タブ（記録） | 直径 `--tab-center-size` の円。`--primary` 塗り + `--shadow-primary`、タブバー上端から 12px 浮く。アイコンはグラス。他 4 タブは従来どおり |
+| 写真タイル（撮影前） | 地色 + inset、角 `--radius-photo`、中央にカメラアイコン + 「写真を撮る」。右下に `surprised` 48px |
+| 写真（撮影後） | 角 `--radius-photo`、inset 枠。比率は文脈で固定（記録・ノート 4:5、セラー 2:3） |
+| 棚（セラー） | 横一杯の棚板 `--shelf-rail` 高さ 14px + 下に `--shadow-outset`。ボトルは棚板の上に 3 本／段（390px）。棚板は 2:3 の写真の下端に接する |
+| 貯蔵庫（アーカイブ）のボトル | 同じ棚。写真に `filter: saturate(0.6) brightness(0.92)`。右上に消費日ピル |
+| 空状態 | 説明 1 行 + 主ボタン。上にキャラクター 96px（ポーズは character.md） |
 
 アイコン: **lucide-react**、ストローク 2、絵文字禁止。
 
 ヘッダーは色帯にしない。戻るは円形の outset ボタン。
+
+---
+
+## キャラクター（1-08 追補）
+
+正本は [character.md](character.md)。ここではトークンだけ。
+
+| トークン | ライト | ダーク | 用途 |
+|---|---|---|---|
+| `--mascot-wine` | `#8E2F3C` | `#8E2F3C` | キャラのワイン（テーマで変えない） |
+| `--mascot-wine-light` | `#B34A5A` | `#B34A5A` | 水面ハイライト |
+| `--mascot-ink` | `#1F1B17` | `#1F1B17` | 黒目・閉じた目（テーマで変えない） |
+| `--mascot-line` | `var(--foreground)` | `var(--foreground)` | 輪郭（`currentColor` で継承） |
+| `--mascot-glow` | `rgba(255,255,255,0.6)` | 同じ | 写真合成時の背後グロー |
+
+サイズは `size` プロップ（px）。トークンにしない。
+
+---
+
+## 陳列・写真（1-07 追補）
+
+| トークン | ライト | ダーク | 用途 |
+|---|---|---|---|
+| `--shelf-rail` | `#B99A78` | `#5A4634` | 棚板の塗り |
+| `--shelf-rail-edge` | `#8F7458` | `#3E2F22` | 棚板の前面下辺 2px |
+| `--radius-photo` | 20px | 20px | 写真の角 |
+| `--photo-ratio-log` | 4 / 5 | 同じ | 記録・ノート写真 |
+| `--photo-ratio-bottle` | 2 / 3 | 同じ | セラー写真 |
+| `--tab-center-size` | 60px | 同じ | 中央タブ円 |
+| `--tab-h` | **72px**（64 → 72 に改訂） | 同じ | 中央タブが浮く余白を確保 |
+
+写真の色補正プリセット（Canvas `filter`。数値は正本、変えるなら本表を直す）:
+
+| プリセット | filter | 用途 |
+|---|---|---|
+| `table` | `saturate(1.08) contrast(1.04)` | 記録・ノート（食卓の一杯） |
+| `cellar` | `saturate(1.05) contrast(1.06) brightness(0.97) sepia(0.10)` + 周辺減光（半径 0.75、濃度 0.25） | セラー陳列 |
+| `none` | なし | ユーザーが OFF にしたとき |
+
+棚板の上に載る写真は **2:3 縦**。切り抜き（背景除去）は MVP では行わない（[screen-designs/04-cellar.md](screen-designs/04-cellar.md) の v1.x 注記）。
 
 ---
 
@@ -203,6 +256,8 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 - 他ユーザーの発見 UI
 - 画面ごとに別トーン
 - `dangerouslySetInnerHTML`
+- キャラクターを 2 体以上、吹き出しで話させる、飲酒を促す文言に添える
+- 写真の上に銘柄名や数値を重ねる（キャラ合成だけ例外）
 
 ---
 
@@ -215,8 +270,10 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 --neu-light --neu-dark
 --text-caption --text-body --text-title --text-score
 --space-1 … --space-8 --tap-min
---radius --radius-card --radius-pill --header-h --tab-h
+--radius --radius-card --radius-pill --radius-photo --header-h --tab-h --tab-center-size
 --shadow-outset --shadow-inset --shadow-primary
+--mascot-wine --mascot-wine-light --mascot-ink --mascot-line --mascot-glow
+--shelf-rail --shelf-rail-edge --photo-ratio-log --photo-ratio-bottle
 ```
 
 shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`destructive` → `--danger`、`muted-foreground` → `--muted`、`radius` → `--radius`。`border` は `transparent` 相当。
@@ -242,18 +299,24 @@ shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`de
 - [x] `ui-design` を方針に合わせて更新
 - [x] フォントはシステムスタック
 - [x] オーナー承認（2026-09-04。画面の細部は後から直してよい）
+- [ ] 1-07 / 1-08 追補（キャラクター・陳列・写真・中央タブのトークン）のオーナー承認
 
 ---
 
-## 将来（MVP では作らない）
+## 改訂履歴
 
-オーナー希望（2026-09-04）: 撮影したボトル写真を加工し、セラー風の背景に並べる見せ方。トークンやナビは変えず、Phase 4 以降または v1.x で検討する。
+| 日付 | 内容 |
+|---|---|
+| 2026-09-04 | ニューモーフィズムへ方針変更。セラー風陳列は「将来」とした |
+| 2026-09-05 | オーナー指示により **陳列を MVP へ繰り上げ**。キャラクター・写真・中央タブのトークンを追補。`--tab-h` 64 → 72 |
 
 ---
 
 ## 関連
 
-- [wireframes.md](wireframes.md)
+- [screen-designs/](screen-designs/README.md)（詳細画面設計。配置の正本）
+- [character.md](character.md)
+- [wireframes.md](wireframes.md)（1-02 の骨格。履歴）
 - [screens.md](screens.md)
 - 手順: [roadmap/phase-01-design/03-design-system.md](../roadmap/phase-01-design/03-design-system.md)
 - 実装: [roadmap/phase-02-platform/06-design-tokens-shadcn.md](../roadmap/phase-02-platform/06-design-tokens-shadcn.md)

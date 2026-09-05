@@ -33,11 +33,26 @@
   --radius: 16px;
   --radius-card: 24px;
   --radius-pill: 999px;
+  --radius-photo: 20px;
   --header-h: 56px;
-  --tab-h: 64px;
+  --tab-h: 72px;
+  --tab-center-size: 60px;
+  /* 1-08 キャラクター（テーマで変えない） */
+  --mascot-wine: #8e2f3c;
+  --mascot-wine-light: #b34a5a;
+  --mascot-ink: #1f1b17;
+  --mascot-line: var(--foreground);
+  --mascot-glow: rgba(255, 255, 255, 0.6);
+  /* 1-07 陳列・写真 */
+  --shelf-rail: #b99a78;
+  --shelf-rail-edge: #8f7458;
+  --photo-ratio-log: 4 / 5;
+  --photo-ratio-bottle: 2 / 3;
 }
 
 html.dark {
+  --shelf-rail: #5a4634;
+  --shelf-rail-edge: #3e2f22;
   --background: #2c2926;
   --surface: #2c2926;
   --foreground: #f4ede4;
@@ -58,6 +73,8 @@ html.dark {
 
 @media (prefers-color-scheme: dark) {
   html:not([data-preview]) {
+    --shelf-rail: #5a4634;
+    --shelf-rail-edge: #3e2f22;
     --background: #2c2926;
     --surface: #2c2926;
     --foreground: #f4ede4;

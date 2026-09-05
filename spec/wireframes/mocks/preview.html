@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja" data-preview>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=390" />
-  <title>alco-app neu mock</title>
+  <title>alco-app mock (1-07)</title>
   <link rel="stylesheet" href="./tokens.css" />
   <style>
     * { box-sizing: border-box; }
@@ -14,204 +14,226 @@
       overflow: hidden;
       background: var(--background);
       color: var(--foreground);
-      font-family: system-ui, "WenQuanYi Micro Hei", "Droid Sans Fallback", "Hiragino Sans", sans-serif;
+      font-family: system-ui, "Hiragino Sans", "Segoe UI", "Noto Sans JP", sans-serif;
       font-size: var(--text-body);
       line-height: 1.5;
     }
     button { font: inherit; color: inherit; border: 0; background: none; padding: 0; }
-    .screen { display: none; width: 390px; height: 844px; flex-direction: column; }
+    .screen { display: none; width: 390px; height: 844px; flex-direction: column; position: relative; }
     .screen.on { display: flex; }
     .neu-out { background: var(--background); box-shadow: var(--shadow-outset); }
     .neu-in { background: var(--background); box-shadow: var(--shadow-inset); }
-    .header {
-      height: var(--header-h);
-      flex: none;
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 12px;
-    }
-    .header h1 {
-      flex: 1;
-      margin: 0;
-      font-size: var(--text-title);
-      font-weight: 600;
-      text-align: center;
-    }
-    .icon-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      box-shadow: var(--shadow-outset);
-      flex: none;
-    }
-    .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .header { height: var(--header-h); flex: none; display: flex; align-items: center; padding: 0 16px; gap: 12px; }
+    .header h1 { flex: 1; margin: 0; font-size: var(--text-title); font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header h1 small { font-size: 13px; color: var(--muted); font-weight: 600; margin-left: 6px; }
+    .icon-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; box-shadow: var(--shadow-outset); flex: none; }
+    .icon-btn svg, .ico { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .body { flex: 1; overflow: hidden; padding: 8px 20px 16px; }
-    .tabs {
-      height: var(--tab-h);
-      flex: none;
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      padding: 8px 12px 12px;
-      align-items: center;
-    }
-    .tab {
-      height: 48px;
-      border-radius: var(--radius);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-      font-size: var(--text-caption);
-      color: var(--muted);
-    }
-    .tab.on {
-      color: var(--primary);
-      box-shadow: var(--shadow-inset);
-    }
-    .tab svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
-    .btn {
-      width: 100%;
-      min-height: 52px;
-      border-radius: var(--radius);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-    }
-    .btn-primary {
-      background: var(--primary);
-      color: var(--primary-fg);
-      box-shadow: var(--shadow-primary);
-    }
-    .card {
-      border-radius: var(--radius-card);
-      padding: 20px;
-      box-shadow: var(--shadow-outset);
-    }
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 40px;
-      padding: 0 14px;
-      border-radius: var(--radius-pill);
-      font-size: 14px;
-      margin: 0 8px 8px 0;
-      box-shadow: var(--shadow-outset);
-    }
-    .chip.on {
-      box-shadow: var(--shadow-inset);
-      color: var(--primary);
-      font-weight: 600;
-    }
-    .row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-height: 64px;
-      padding: 10px 14px;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-outset);
-      margin-bottom: 12px;
-    }
-    .row .meta { margin-left: auto; color: var(--muted); font-size: 13px; }
+    .tabs { height: var(--tab-h); flex: none; display: grid; grid-template-columns: repeat(5, 1fr); padding: 8px 12px 12px; align-items: center; position: relative; }
+    .tab { height: 48px; border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: var(--text-caption); color: var(--muted); }
+    .tab.on { color: var(--primary); box-shadow: var(--shadow-inset); }
+    .tab svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .tab.center { height: auto; box-shadow: none; gap: 4px; margin-top: -24px; }
+    .tab.center .circle { width: var(--tab-center-size); height: var(--tab-center-size); border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; box-shadow: var(--shadow-primary); }
+    .tab.center .circle svg { width: 26px; height: 26px; }
+    .tab.center.on .circle { box-shadow: var(--shadow-inset), inset 0 0 0 999px rgba(0,0,0,0.08); }
+    .tab.center.on { color: var(--primary); }
+    .btn { width: 100%; min-height: 52px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .btn-primary { background: var(--primary); color: var(--primary-fg); box-shadow: var(--shadow-primary); }
+    .btn-secondary { box-shadow: var(--shadow-outset); }
+    .btn-danger { color: var(--danger); font-weight: 600; text-align: center; padding: 12px; }
+    .btn-circle { width: 52px; height: 52px; min-height: 52px; border-radius: 50%; flex: none; box-shadow: var(--shadow-outset); display: grid; place-items: center; }
+    .btn-circle svg { width: 22px; height: 22px; }
+    .actions { display: flex; gap: 12px; align-items: center; }
+    .card { border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-outset); position: relative; }
+    .chip { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); font-size: 14px; margin: 0 8px 8px 0; box-shadow: var(--shadow-outset); white-space: nowrap; }
+    .chip.on { box-shadow: var(--shadow-inset); color: var(--primary); font-weight: 600; }
+    .chip svg { width: 16px; height: 16px; margin-right: 6px; }
+    .chips { white-space: nowrap; overflow: hidden; }
+    .row { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 14px; border-radius: var(--radius); box-shadow: var(--shadow-outset); margin-bottom: 12px; }
+    .row.hl { box-shadow: var(--shadow-inset), 0 0 0 2px var(--primary); }
+    .row .meta { margin-left: auto; color: var(--muted); font-size: 13px; white-space: nowrap; }
     .row .sub { color: var(--muted); font-size: 13px; }
-    .thumb {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      flex: none;
-    }
-    .field {
-      width: 100%;
-      min-height: 48px;
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      box-shadow: var(--shadow-inset);
-    }
-    .label { color: var(--muted); font-size: 13px; margin: 14px 0 8px; font-weight: 600; }
+    .thumb { width: 48px; height: 48px; border-radius: 14px; flex: none; overflow: hidden; display: grid; place-items: center; }
+    .thumb.in { box-shadow: var(--shadow-inset); color: var(--muted); }
+    .field { width: 100%; min-height: 48px; border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow-inset); display: flex; align-items: center; gap: 10px; }
+    .label { color: var(--muted); font-size: 13px; margin: 14px 0 8px; font-weight: 600; display: flex; justify-content: space-between; }
     .score { font-size: var(--text-score); font-weight: 650; color: var(--score); line-height: 1; letter-spacing: -0.03em; }
     .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 16px; text-align: center; }
     .week .d { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
-    .cell {
-      height: 28px;
-      border-radius: 8px;
-      box-shadow: var(--shadow-outset);
-    }
-    .cell.fill {
-      background: var(--primary);
-      box-shadow: var(--shadow-inset);
-    }
-    .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .seg > div {
-      min-height: 44px;
-      border-radius: var(--radius-pill);
-      display: grid;
-      place-items: center;
-      font-size: 13px;
-      box-shadow: var(--shadow-outset);
-    }
-    .seg > .on { color: var(--primary); font-weight: 700; box-shadow: var(--shadow-inset); }
-    .prop { display: flex; justify-content: space-between; padding: 14px 0; }
+    .cell { height: 28px; border-radius: 8px; box-shadow: var(--shadow-outset); }
+    .cell.fill { background: var(--primary); box-shadow: var(--shadow-inset); }
+    .cell.today { box-shadow: var(--shadow-inset), inset 0 0 0 2px var(--primary); }
+    .cell.future { opacity: 0.45; }
+    .prop { display: flex; justify-content: space-between; padding: 12px 0; }
     .prop + .prop { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--muted) 20%, transparent); }
-    .photo { height: 168px; border-radius: 20px; box-shadow: var(--shadow-inset); }
-    .wine { background: linear-gradient(165deg, #6a2030, #3a1018); }
-    .malt { background: linear-gradient(165deg, #8a6230, #3a2410); }
     .muted { color: var(--muted); }
     .tiny { font-size: 13px; }
     .foot { flex: none; padding: 8px 20px 20px; }
-    .toast {
-      position: absolute;
-      left: 20px;
-      right: 20px;
-      bottom: 80px;
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: var(--shadow-outset);
-      background: var(--background);
-    }
-    .wrap { position: relative; }
+    .toast { position: absolute; left: 20px; right: 20px; bottom: 88px; border-radius: var(--radius); padding: 10px 16px 10px 12px; min-height: 52px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-outset); background: var(--background); }
+    .toast .act { margin-left: auto; color: var(--primary); font-weight: 700; }
     .eyebrow { margin: 0 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      height: 28px;
-      padding: 0 10px;
-      border-radius: var(--radius-pill);
-      color: var(--rest);
-      font-size: 13px;
-      font-weight: 600;
-      box-shadow: var(--shadow-inset);
-    }
+    .badge { display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: var(--radius-pill); color: var(--rest); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-inset); }
+    .pill { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; color: var(--primary); box-shadow: var(--shadow-inset); }
     .spacer { width: 40px; }
     .grow { flex: 1; min-width: 0; }
+    .ellip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* mascot */
+    .mascot { display: inline-block; color: var(--mascot-line); }
+    .mascot svg { width: 100%; height: 100%; display: block; }
+    .peek { position: absolute; right: -12px; bottom: -14px; width: 54px; height: 72px; }
+    /* photo tile / photo */
+    .ptile { position: relative; width: 100%; height: 120px; border-radius: var(--radius-photo); box-shadow: var(--shadow-inset); display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-weight: 600; }
+    .ptile .cam { width: 28px; height: 28px; }
+    .ptile .mascot { position: absolute; right: 14px; bottom: 8px; width: 36px; height: 48px; }
+    .ptile.bottle { width: 100px; height: 150px; flex-direction: column; font-size: 13px; gap: 6px; }
+    .photo { position: relative; border-radius: var(--radius-photo); box-shadow: var(--shadow-inset); overflow: hidden; }
+    .photo-log { aspect-ratio: 4 / 5; }
+    .photo-bottle { aspect-ratio: 2 / 3; }
+    .p-table { background: radial-gradient(120% 90% at 30% 20%, #d8c3a5 0%, #9c7a55 45%, #3b2a1f 100%); }
+    .p-red { background: linear-gradient(165deg, #6a2030, #3a1018); }
+    .p-malt { background: linear-gradient(165deg, #8a6230, #3a2410); }
+    .p-white { background: linear-gradient(165deg, #cfc08a, #7d7248); }
+    .p-sake { background: linear-gradient(165deg, #7d8f9a, #3a4750); }
+    .p-beer { background: linear-gradient(165deg, #c7952f, #6b4a12); }
+    .archived .photo { filter: saturate(0.6) brightness(0.92); }
+    .photo .stamp { position: absolute; right: 4%; bottom: 4%; width: 22%; aspect-ratio: 3 / 4; color: #2B261F; }
+    .photo .stamp::before { content: ""; position: absolute; inset: 8% -8% 4% -8%; border-radius: 50%; background: var(--mascot-glow); filter: blur(3px); }
+    .photo .stamp svg { position: relative; }
+    .glass-sil { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 40%; height: 60%; fill: rgba(120, 30, 40, 0.85); stroke: rgba(255,255,255,0.7); stroke-width: 2; }
+    .bot-sil { width: 60%; height: 80%; fill: var(--background); stroke: var(--muted); stroke-width: 3; }
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); opacity: 0.4; margin: 0 3px; }
+    .dot.on { background: var(--primary); opacity: 1; }
+    /* shelf */
+    .shelf { margin-top: 12px; }
+    .rowb { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 6px; align-items: end; }
+    .bottle { display: flex; flex-direction: column; align-items: center; }
+    .bottle .photo { width: 100px; height: 150px; border-radius: 8px; box-shadow: 0 6px 10px -6px rgba(0,0,0,0.5); }
+    .bottle .photo.empty { box-shadow: var(--shadow-inset); display: grid; place-items: center; }
+    .bottle .photo .date { position: absolute; top: 6px; right: 6px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--background); color: var(--foreground); font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+    .rail { height: 14px; border-radius: 3px; background: var(--shelf-rail); border-bottom: 2px solid var(--shelf-rail-edge); box-shadow: var(--shadow-outset); margin: 0 -4px; }
+    .caps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 8px 6px 0; text-align: center; }
+    .caps .n { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .caps .s { font-size: 12px; color: var(--muted); }
+    .caps .s .pill { height: 20px; font-size: 11px; }
+    .month { font-size: 13px; font-weight: 600; color: var(--muted); margin: 10px 0 8px; }
+    /* grid notes */
+    .ngrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ncard .n { font-size: 14px; font-weight: 600; margin-top: 8px; }
+    .ncard .s { font-size: 12px; color: var(--muted); }
+    .ncard .photo.empty { display: grid; place-items: center; color: var(--muted); }
+    .ncard .photo.empty svg { width: 32px; height: 32px; }
+    .strip { display: flex; gap: 10px; overflow: hidden; }
+    .strip .ptile { width: 96px; height: 120px; flex: none; flex-direction: column; font-size: 13px; gap: 6px; }
+    .strip .photo { width: 96px; height: 120px; flex: none; border-radius: 12px; }
+    /* dialog */
+    .scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--foreground) 40%, transparent); display: flex; align-items: flex-end; padding: 0 20px 24px; }
+    .dialog { width: 100%; border-radius: var(--radius-card); padding: 20px; background: var(--background); box-shadow: var(--shadow-outset); }
+    .dialog h2 { margin: 0 0 12px; font-size: 20px; font-weight: 600; }
+    .check { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 8px 0 6px; }
+    .check .box { width: 22px; height: 22px; border-radius: 6px; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; }
+    .check .box svg { width: 14px; height: 14px; stroke-width: 3; }
+    .switch { width: 44px; height: 26px; border-radius: 999px; background: var(--primary); position: relative; margin-left: auto; box-shadow: var(--shadow-inset); flex: none; }
+    .switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--primary-fg); }
+    .star { color: var(--primary); font-size: 20px; letter-spacing: 2px; }
+    .stepper { display: inline-flex; gap: 8px; align-items: center; }
+    .stepper .k { width: 40px; height: 40px; border-radius: 50%; box-shadow: var(--shadow-outset); display: grid; place-items: center; font-weight: 700; }
+    .section { font-size: 13px; font-weight: 600; color: var(--muted); margin: 18px 0 8px; display: flex; justify-content: space-between; }
+    .editbar { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+    .frame { position: relative; margin: 4px 20px 0; border-radius: var(--radius-photo); overflow: hidden; box-shadow: var(--shadow-inset); }
+    .center { text-align: center; }
+    .empty { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 40px; text-align: center; }
   </style>
 </head>
 <body>
-  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+    <defs>
+      <clipPath id="bowl"><path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z"/></clipPath>
+    </defs>
+    <!-- lucide-like icons -->
     <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4z"/><path d="M9 20v-6h6v6"/></symbol>
-    <symbol id="i-log" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4.5" cy="6" r=".5"/><circle cx="4.5" cy="12" r=".5"/><circle cx="4.5" cy="18" r=".5"/></symbol>
-    <symbol id="i-cellar" viewBox="0 0 24 24"><path d="M8 3h8l2 6v12H6V9z"/><path d="M9 14h6"/></symbol>
-    <symbol id="i-note" viewBox="0 0 24 24"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h6"/></symbol>
+    <symbol id="i-cellar" viewBox="0 0 24 24"><path d="M9 3h6v4l2 3v11H7V10l2-3z"/><path d="M9 14h6"/></symbol>
+    <symbol id="i-glass" viewBox="0 0 24 24"><path d="M6 3h12l-1 8a5 5 0 0 1-10 0z"/><path d="M12 16v5M8 21h8"/><path d="M6.6 8h10.8"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h6"/><path d="M10 14h6M10 18h4"/></symbol>
     <symbol id="i-set" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6 9 12l6 6"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><path d="M3 5h18v4H3z"/><path d="M5 9v11h14V9"/><path d="M10 13h4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-imgs" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M21 8v11a2 2 0 0 1-2 2H8"/><path d="m3 16 4-4 4 4 3-3 3 3"/></symbol>
+    <symbol id="i-bottle-sil" viewBox="0 0 60 120"><path d="M24 4h12v22c0 6 10 10 10 24v60a6 6 0 0 1-6 6H20a6 6 0 0 1-6-6V50c0-14 10-18 10-24z"/><path d="M18 62h24"/></symbol>
+    <symbol id="i-glass-sil" viewBox="0 0 60 100"><path d="M10 6h40l-4 34a16 16 0 0 1-32 0z"/><path d="M30 56v32M16 94h28"/></symbol>
+    <!-- mascot poses (= spec/assets/character/*.svg) -->
+    <symbol id="m-default" viewBox="0 0 120 160">
+      <ellipse cx="60" cy="141" rx="30" ry="7" fill="none" stroke="currentColor" stroke-width="3"/>
+      <rect x="57" y="96" width="6" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="#FFFFFF" fill-opacity="0.35"/>
+      <g clip-path="url(#bowl)"><path d="M20 60 Q60 52 100 60 V110 H20 Z" fill="#8E2F3C"/><path d="M20 60 Q60 52 100 60 V64 Q60 57 20 64 Z" fill="#B34A5A"/></g>
+      <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M26 22 H94" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M34 34 C33 50 36 66 42 78" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="48" cy="54" r="13" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+      <circle cx="72" cy="52" r="15" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+      <circle cx="50" cy="56" r="5.5" fill="#1F1B17"/><circle cx="74" cy="54" r="6" fill="#1F1B17"/>
+      <circle cx="52" cy="54" r="1.6" fill="#FFFFFF"/><circle cx="76" cy="52" r="1.8" fill="#FFFFFF"/>
+    </symbol>
+    <symbol id="m-surprised" viewBox="0 0 120 160">
+      <g stroke="currentColor" stroke-width="3.5" stroke-linecap="round" fill="none"><path d="M10 30 L19 21"/><path d="M17 9 L22 20"/><path d="M31 5 L29 17"/></g>
+      <ellipse cx="60" cy="141" rx="30" ry="7" fill="none" stroke="currentColor" stroke-width="3"/>
+      <rect x="57" y="96" width="6" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="#FFFFFF" fill-opacity="0.35"/>
+      <g clip-path="url(#bowl)"><path d="M20 66 Q60 50 100 58 V110 H20 Z" fill="#8E2F3C"/><path d="M20 66 Q60 50 100 58 V62 Q60 55 20 70 Z" fill="#B34A5A"/></g>
+      <circle cx="90" cy="40" r="2.5" fill="#8E2F3C"/><circle cx="84" cy="32" r="1.8" fill="#8E2F3C"/>
+      <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M26 22 H94" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M34 34 C33 50 36 66 42 78" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="47" cy="56" r="15" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+      <circle cx="73" cy="53" r="17" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+      <circle cx="42" cy="51" r="4.5" fill="#1F1B17"/><circle cx="67" cy="47" r="5" fill="#1F1B17"/>
+      <circle cx="43.5" cy="49.5" r="1.4" fill="#FFFFFF"/><circle cx="68.5" cy="45.5" r="1.6" fill="#FFFFFF"/>
+    </symbol>
+    <symbol id="m-rest" viewBox="0 0 120 160">
+      <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M96 22 H106 L96 32 H106"/><path d="M104 6 H111 L104 13 H111"/></g>
+      <ellipse cx="60" cy="141" rx="30" ry="7" fill="none" stroke="currentColor" stroke-width="3"/>
+      <rect x="57" y="96" width="6" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="#FFFFFF" fill-opacity="0.35"/>
+      <g clip-path="url(#bowl)"><path d="M20 78 Q60 74 100 78 V110 H20 Z" fill="#8E2F3C"/><path d="M20 78 Q60 74 100 78 V81 Q60 77 20 81 Z" fill="#B34A5A"/></g>
+      <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M26 22 H94" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M34 34 C33 50 36 66 42 78" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="48" cy="54" r="13" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+      <circle cx="72" cy="52" r="15" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+      <path d="M40 57 Q48 63 56 57" fill="none" stroke="#1F1B17" stroke-width="3" stroke-linecap="round"/>
+      <path d="M63 55 Q72 62 81 55" fill="none" stroke="#1F1B17" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="m-cheer" viewBox="0 0 120 160">
+      <g fill="currentColor"><path d="M14 40 l2 -6 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 z"/><path d="M104 26 l1.5 -4.5 l1.5 4.5 l4.5 1.5 l-4.5 1.5 l-1.5 4.5 l-1.5 -4.5 l-4.5 -1.5 z"/></g>
+      <ellipse cx="60" cy="141" rx="30" ry="7" fill="none" stroke="currentColor" stroke-width="3"/>
+      <rect x="57" y="96" width="6" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="#FFFFFF" fill-opacity="0.35"/>
+      <g clip-path="url(#bowl)"><path d="M20 62 Q40 48 60 60 Q80 72 100 56 V110 H20 Z" fill="#8E2F3C"/><path d="M20 62 Q40 48 60 60 Q80 72 100 56 V60 Q80 76 60 64 Q40 52 20 66 Z" fill="#B34A5A"/></g>
+      <path d="M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M26 22 H94" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M34 34 C33 50 36 66 42 78" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="48" cy="54" rx="13" ry="11" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+      <ellipse cx="72" cy="52" rx="15" ry="13" fill="#FFFFFF" stroke="currentColor" stroke-width="3"/>
+      <circle cx="49" cy="49" r="5.5" fill="#1F1B17"/><circle cx="73" cy="46" r="6" fill="#1F1B17"/>
+      <circle cx="51" cy="47" r="1.6" fill="#FFFFFF"/><circle cx="75" cy="44" r="1.8" fill="#FFFFFF"/>
+    </symbol>
   </svg>
 
+  <!-- ============ HOME ============ -->
   <section class="screen" id="home">
     <header class="header"><div class="spacer"></div><h1>ホーム</h1><div class="spacer"></div></header>
     <div class="body">
-      <p class="eyebrow">9月4日 金曜</p>
-      <div class="card neu-out">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div class="tiny muted">今日</div>
-        </div>
+      <p class="eyebrow">9月5日 土曜</p>
+      <div class="card">
+        <div class="tiny muted">今日</div>
         <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
           <div><div class="score">2</div><div class="tiny muted" style="margin-top:6px">杯</div></div>
           <div style="text-align:right"><div class="score">28</div><div class="tiny muted" style="margin-top:6px">g 純アルコール</div></div>
@@ -222,30 +244,70 @@
           <div><div class="d">水</div><div class="cell"></div></div>
           <div><div class="d">木</div><div class="cell fill"></div></div>
           <div><div class="d">金</div><div class="cell"></div></div>
-          <div><div class="d">土</div><div class="cell"></div></div>
-          <div><div class="d">日</div><div class="cell"></div></div>
+          <div><div class="d">土</div><div class="cell fill today"></div></div>
+          <div><div class="d">日</div><div class="cell future"></div></div>
         </div>
+        <span class="mascot peek"><svg><use href="#m-default"/></svg></span>
       </div>
-      <button class="btn btn-primary" style="margin:24px 0 20px">記録する</button>
-      <div class="tiny muted" style="margin-bottom:10px;font-weight:600">マイドリンク</div>
-      <span class="chip neu-out">赤ラベル 125ml</span>
-      <span class="chip neu-out">ハイボール</span>
-      <div class="tiny muted" style="margin-top:8px">管理</div>
+      <div class="actions" style="margin:28px 0 20px">
+        <button class="btn btn-primary">記録する</button>
+        <button class="btn-circle" aria-label="撮って記録"><svg class="ico"><use href="#i-cam"/></svg></button>
+      </div>
+      <div class="label" style="margin-top:0">マイドリンク<span style="color:var(--primary)">管理</span></div>
+      <div class="chips"><span class="chip">赤ラベル 125ml</span><span class="chip">ハイボール 350ml</span></div>
     </div>
     <nav class="tabs">
       <div class="tab on"><svg><use href="#i-home"/></svg>ホーム</div>
-      <div class="tab"><svg><use href="#i-log"/></svg>記録</div>
       <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
       <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>
   </section>
 
-  <section class="screen wrap" id="home-toast">
+  <section class="screen" id="home-rest">
     <header class="header"><div class="spacer"></div><h1>ホーム</h1><div class="spacer"></div></header>
     <div class="body">
-      <p class="eyebrow">9月4日 金曜</p>
-      <div class="card neu-out">
+      <p class="eyebrow">9月5日 土曜</p>
+      <div class="card">
+        <div class="tiny muted">今日</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
+          <div style="display:flex;align-items:flex-end;gap:12px"><div><div class="score">0</div><div class="tiny muted" style="margin-top:6px">杯</div></div><span class="badge" style="margin-bottom:26px">休肝</span></div>
+          <div style="text-align:right"><div class="score">0</div><div class="tiny muted" style="margin-top:6px">g 純アルコール</div></div>
+        </div>
+        <div class="week">
+          <div><div class="d">月</div><div class="cell fill"></div></div>
+          <div><div class="d">火</div><div class="cell fill"></div></div>
+          <div><div class="d">水</div><div class="cell"></div></div>
+          <div><div class="d">木</div><div class="cell fill"></div></div>
+          <div><div class="d">金</div><div class="cell"></div></div>
+          <div><div class="d">土</div><div class="cell today"></div></div>
+          <div><div class="d">日</div><div class="cell future"></div></div>
+        </div>
+        <span class="mascot peek"><svg><use href="#m-rest"/></svg></span>
+      </div>
+      <div class="actions" style="margin:28px 0 20px">
+        <button class="btn btn-primary">記録する</button>
+        <button class="btn-circle"><svg class="ico"><use href="#i-cam"/></svg></button>
+      </div>
+      <div class="label" style="margin-top:0">マイドリンク</div>
+      <p class="tiny muted" style="margin:0 0 10px">よく飲む一杯を登録すると、ここを 1 回タップで記録できます</p>
+      <button class="btn btn-secondary" style="min-height:44px;width:auto;padding:0 20px">登録</button>
+    </div>
+    <nav class="tabs">
+      <div class="tab on"><svg><use href="#i-home"/></svg>ホーム</div>
+      <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
+      <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
+      <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
+    </nav>
+  </section>
+
+  <section class="screen" id="home-toast">
+    <header class="header"><div class="spacer"></div><h1>ホーム</h1><div class="spacer"></div></header>
+    <div class="body">
+      <p class="eyebrow">9月5日 土曜</p>
+      <div class="card">
         <div class="tiny muted">今日</div>
         <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
           <div><div class="score">3</div><div class="tiny muted" style="margin-top:6px">杯</div></div>
@@ -256,206 +318,344 @@
           <div><div class="d">火</div><div class="cell fill"></div></div>
           <div><div class="d">水</div><div class="cell"></div></div>
           <div><div class="d">木</div><div class="cell fill"></div></div>
-          <div><div class="d">金</div><div class="cell fill"></div></div>
-          <div><div class="d">土</div><div class="cell"></div></div>
-          <div><div class="d">日</div><div class="cell"></div></div>
+          <div><div class="d">金</div><div class="cell"></div></div>
+          <div><div class="d">土</div><div class="cell fill today"></div></div>
+          <div><div class="d">日</div><div class="cell future"></div></div>
         </div>
+        <span class="mascot peek"><svg><use href="#m-cheer"/></svg></span>
       </div>
-      <button class="btn btn-primary" style="margin:24px 0 20px">記録する</button>
-      <div class="tiny muted" style="margin-bottom:10px;font-weight:600">マイドリンク</div>
-      <span class="chip on">赤ラベル 125ml</span>
-      <span class="chip neu-out">ハイボール</span>
+      <div class="actions" style="margin:28px 0 20px">
+        <button class="btn btn-primary">記録する</button>
+        <button class="btn-circle"><svg class="ico"><use href="#i-cam"/></svg></button>
+      </div>
+      <div class="label" style="margin-top:0">マイドリンク<span style="color:var(--primary)">管理</span></div>
+      <div class="chips"><span class="chip on">赤ラベル 125ml</span><span class="chip">ハイボール 350ml</span></div>
     </div>
-    <div class="toast"><span>記録しました</span><span style="color:var(--primary);font-weight:700">取り消す</span></div>
+    <div class="toast"><span class="mascot" style="width:24px;height:32px"><svg><use href="#m-cheer"/></svg></span><span>記録しました</span><span class="act">取り消す</span></div>
     <nav class="tabs">
       <div class="tab on"><svg><use href="#i-home"/></svg>ホーム</div>
-      <div class="tab"><svg><use href="#i-log"/></svg>記録</div>
       <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
+      <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
+      <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
+    </nav>
+  </section>
+
+  <!-- ============ LOG ============ -->
+  <section class="screen" id="log-day">
+    <header class="header">
+      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
+      <h1>今日</h1>
+      <button class="icon-btn" style="opacity:.4"><svg><use href="#i-fwd"/></svg></button>
+    </header>
+    <div class="body">
+      <p class="eyebrow">2 杯 ・ 28 g</p>
+      <div class="actions" style="margin:4px 0 14px">
+        <button class="btn btn-primary">記録する</button>
+        <button class="btn-circle"><svg class="ico"><use href="#i-cam"/></svg></button>
+      </div>
+      <div class="chips" style="margin-bottom:6px"><span class="chip">赤ラベル 125ml</span><span class="chip">ハイボール 350ml</span><span class="chip" style="box-shadow:none;color:var(--primary);padding:0 6px">管理</span></div>
+      <div class="row hl">
+        <div class="thumb photo p-table"><svg class="glass-sil" viewBox="0 0 60 100"><use href="#i-glass-sil"/></svg></div>
+        <div class="grow"><div class="ellip">サンプル赤 125ml</div><div class="sub ellip">13:05 ・ 12% ・ セラーから</div></div>
+        <div class="meta">12.0 g</div>
+      </div>
+      <div class="row">
+        <div class="thumb in"><svg class="ico" style="width:22px;height:22px"><use href="#i-glass"/></svg></div>
+        <div class="grow"><div>ハイボール 350ml</div><div class="sub">21:10 ・ 7%</div></div>
+        <div class="meta">19.6 g</div>
+      </div>
+    </div>
+    <div class="toast"><span class="mascot" style="width:24px;height:32px"><svg><use href="#m-cheer"/></svg></span><span>貯蔵庫へ移しました</span><span class="act">取り消す</span></div>
+    <nav class="tabs">
+      <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
+      <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center on"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
       <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>
   </section>
 
   <section class="screen" id="log-new">
-    <header class="header">
-      <button class="icon-btn" aria-label="戻る"><svg><use href="#i-back"/></svg></button>
-      <h1>記録する</h1>
-      <div class="spacer"></div>
-    </header>
+    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>記録する</h1><div class="spacer"></div></header>
     <div class="body">
+      <div class="ptile"><svg class="cam ico"><use href="#i-cam"/></svg>写真を撮る<span class="mascot"><svg><use href="#m-surprised"/></svg></span></div>
       <div class="label">種類</div>
-      <span class="chip on">ワイン</span>
-      <span class="chip neu-out">ビール</span>
-      <span class="chip neu-out">ウイスキー</span>
-      <span class="chip neu-out">日本酒</span>
-      <span class="chip neu-out">焼酎</span>
-      <span class="chip neu-out">カクテル</span>
-      <span class="chip neu-out">その他</span>
+      <div class="chips"><span class="chip on">ワイン</span><span class="chip">ビール</span><span class="chip">ウイスキー</span><span class="chip">日本酒</span><span class="chip">焼酎</span><span class="chip">カクテル</span></div>
       <div class="label">量</div>
       <div class="score">125 <span style="font-size:16px;font-weight:600">ml</span></div>
-      <div style="margin-top:12px">
-        <span class="chip on">125</span>
-        <span class="chip neu-out">175</span>
-        <span class="chip neu-out">375</span>
-        <span class="chip neu-out">手入力</span>
-      </div>
+      <div class="chips" style="margin-top:12px"><span class="chip on">125</span><span class="chip">150</span><span class="chip">375</span><span class="chip">750</span><span class="chip">1500</span><span class="chip">手入力</span></div>
       <div class="label">度数</div>
-      <div class="score">12 <span style="font-size:16px;font-weight:600">%</span></div>
+      <div style="display:flex;align-items:center;gap:16px"><div class="score">12 <span style="font-size:16px;font-weight:600">%</span></div><div class="stepper"><div class="k">−</div><div class="k">＋</div></div><span class="tiny muted" style="margin-left:auto">＝ 12.0 g</span></div>
       <div class="label">日時</div>
-      <div class="field">2026-09-04 13:05</div>
+      <div class="field">今日 13:05<span style="margin-left:auto" class="muted">›</span></div>
+      <div class="label">ボトル</div>
+      <div class="field muted">選ぶ<span style="margin-left:auto">›</span></div>
     </div>
     <div class="foot"><button class="btn btn-primary">保存する</button></div>
   </section>
 
-  <section class="screen" id="log-day">
-    <header class="header">
-      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
-      <h1>9月4日</h1>
-      <button class="icon-btn" style="font-size:20px;font-weight:600">+</button>
-    </header>
+  <section class="screen" id="log-new-photo">
+    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>記録する</h1><div class="spacer"></div></header>
     <div class="body">
-      <p class="eyebrow">2 杯 ・ 28 g</p>
-      <div class="row"><div><div>ワイン 125ml</div><div class="sub">13:05 ・ 12%</div></div><div class="meta">12g</div></div>
-      <div class="row"><div><div>ハイボール 120ml</div><div class="sub">21:10 ・ 15%</div></div><div class="meta">14g</div></div>
+      <div style="display:flex;gap:14px;align-items:center">
+        <div class="photo photo-log p-table" style="width:96px;height:120px;border-radius:12px"><svg class="glass-sil" viewBox="0 0 60 100"><use href="#i-glass-sil"/></svg><span class="mascot stamp"><svg><use href="#m-surprised"/></svg></span></div>
+        <div class="tiny" style="display:flex;flex-direction:column;gap:12px;color:var(--primary);font-weight:600"><span>編集</span><span style="color:var(--muted)">削除</span></div>
+      </div>
+      <div class="label">種類</div>
+      <div class="chips"><span class="chip on">ワイン</span><span class="chip">ビール</span><span class="chip">ウイスキー</span><span class="chip">日本酒</span><span class="chip">焼酎</span><span class="chip">カクテル</span></div>
+      <div class="label">量</div>
+      <div class="score">125 <span style="font-size:16px;font-weight:600">ml</span></div>
+      <div class="chips" style="margin-top:12px"><span class="chip on">125</span><span class="chip">150</span><span class="chip">375</span><span class="chip">750</span><span class="chip">1500</span><span class="chip">手入力</span></div>
+      <div class="label">度数</div>
+      <div style="display:flex;align-items:center;gap:16px"><div class="score">12 <span style="font-size:16px;font-weight:600">%</span></div><div class="stepper"><div class="k">−</div><div class="k">＋</div></div><span class="tiny muted" style="margin-left:auto">＝ 12.0 g</span></div>
+      <div class="label">日時</div>
+      <div class="field">今日 13:05<span style="margin-left:auto" class="muted">›</span></div>
+      <div class="label">ボトル</div>
+      <div class="field">サンプル赤（セラー）<span style="margin-left:auto" class="muted">× ›</span></div>
+    </div>
+    <div class="foot"><button class="btn btn-primary">保存する</button></div>
+  </section>
+
+  <!-- ============ PHOTO EDIT ============ -->
+  <section class="screen" id="photo-edit">
+    <div class="editbar"><button class="icon-btn"><svg><use href="#i-x"/></svg></button><span class="tiny" style="color:var(--primary);font-weight:600">撮り直す</span></div>
+    <div class="frame photo photo-log p-table" style="height:437px">
+      <svg class="glass-sil" viewBox="0 0 60 100" style="width:36%;height:64%"><use href="#i-glass-sil"/></svg>
+      <span class="mascot stamp"><svg><use href="#m-surprised"/></svg></span>
+    </div>
+    <div class="body" style="flex:none;padding-top:16px">
+      <div class="chips"><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>色補正: 食卓</span><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>キャラを入れる</span></div>
+      <p class="tiny muted" style="margin:6px 0 0">ドラッグで位置、ピンチで大きさを調整</p>
+    </div>
+    <div class="foot" style="margin-top:auto"><button class="btn btn-primary">使う</button></div>
+  </section>
+
+  <!-- ============ CELLAR ============ -->
+  <section class="screen" id="cellar-shelf">
+    <header class="header"><button class="icon-btn"><svg><use href="#i-archive"/></svg></button><h1>セラー<small>12 本</small></h1><button class="icon-btn"><svg><use href="#i-plus"/></svg></button></header>
+    <div class="body">
+      <div class="chips"><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">種類 ▾</span><span class="chip">未開栓</span><span class="chip">開栓済</span></div>
+      <div class="shelf">
+        <div class="rowb">
+          <div class="bottle"><div class="photo p-red"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div class="bottle"><div class="photo p-malt"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div class="bottle"><div class="photo p-white"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+        </div>
+        <div class="rail"></div>
+        <div class="caps"><div><div class="n">サンプル赤</div><div class="s">2020</div></div><div><div class="n">サンプルモルト</div><div class="s"><span class="pill">開栓</span></div></div><div><div class="n">サンプル白</div><div class="s">NV</div></div></div>
+        <div class="rowb" style="margin-top:22px">
+          <div class="bottle"><div class="photo p-sake"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div class="bottle"><div class="photo empty"><svg class="bot-sil" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div class="bottle"><div class="photo p-beer"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+        </div>
+        <div class="rail"></div>
+        <div class="caps"><div><div class="n">サンプル純米</div><div class="s">2025</div></div><div><div class="n">サンプル芋</div><div class="s">NV</div></div><div><div class="n">サンプル IPA</div><div class="s">NV</div></div></div>
+        <div class="rowb" style="margin-top:22px">
+          <div class="bottle"><div class="photo p-red" style="filter:hue-rotate(-10deg)"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div class="bottle"><div class="photo p-malt" style="filter:brightness(1.15)"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div></div>
+        </div>
+        <div class="rail"></div>
+      </div>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
-      <div class="tab on"><svg><use href="#i-log"/></svg>記録</div>
-      <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab on"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
       <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>
   </section>
 
-  <section class="screen" id="cellar-list">
-    <header class="header"><div class="spacer"></div><h1>セラー</h1><button class="icon-btn" style="font-size:20px;font-weight:600">+</button></header>
+  <section class="screen" id="cellar-empty">
+    <header class="header"><button class="icon-btn"><svg><use href="#i-archive"/></svg></button><h1>セラー<small>0 本</small></h1><button class="icon-btn"><svg><use href="#i-plus"/></svg></button></header>
     <div class="body">
-      <div class="field" style="margin-bottom:12px;color:var(--muted)">名前・生産者で検索</div>
-      <span class="chip neu-out">種類</span>
-      <span class="chip neu-out">状態</span>
-      <div style="height:8px"></div>
-      <div class="row">
-        <div class="thumb wine"></div>
-        <div class="grow"><div>サンプル赤</div><div class="sub">2020 ・ フランス</div></div>
-        <div class="meta">未開栓</div>
+      <div class="shelf" style="margin-top:80px">
+        <div style="display:flex;justify-content:center"><span class="mascot" style="width:72px;height:96px"><svg><use href="#m-surprised"/></svg></span></div>
+        <div class="rail"></div>
       </div>
-      <div class="row">
-        <div class="thumb malt"></div>
-        <div class="grow"><div>サンプルモルト</div><div class="sub">2012 ・ スコットランド</div></div>
-        <div class="meta">開栓済</div>
-      </div>
+      <p class="center" style="margin:28px 0 16px">ボトルはまだありません。<br>撮って 1 本目を並べましょう</p>
+      <button class="btn btn-primary">ボトルを追加</button>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
-      <div class="tab"><svg><use href="#i-log"/></svg>記録</div>
       <div class="tab on"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
       <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>
+  </section>
+
+  <section class="screen archived" id="cellar-archive">
+    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>貯蔵庫<small>34 本</small></h1><div class="spacer"></div></header>
+    <div class="body">
+      <div class="chips"><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">種類 ▾</span></div>
+      <div class="month">2026年9月</div>
+      <div class="rowb">
+        <div class="bottle"><div class="photo p-red"><span class="date">9/5</span></div></div>
+        <div class="bottle"><div class="photo p-beer"><span class="date">9/2</span></div></div>
+        <div class="bottle"><div class="photo p-white"><span class="date">9/1</span></div></div>
+      </div>
+      <div class="rail"></div>
+      <div class="caps"><div><div class="n">サンプル赤</div><div class="s">2019</div></div><div><div class="n">サンプル IPA</div><div class="s">NV</div></div><div><div class="n">サンプル白</div><div class="s">2023</div></div></div>
+      <div class="month" style="margin-top:22px">2026年8月</div>
+      <div class="rowb">
+        <div class="bottle"><div class="photo p-malt"><span class="date">8/30</span></div></div>
+        <div class="bottle"><div class="photo p-sake"><span class="date">8/22</span></div></div>
+        <div class="bottle"><div class="photo p-red" style="filter:saturate(.6) brightness(.92) hue-rotate(-12deg)"><span class="date">8/15</span></div></div>
+      </div>
+      <div class="rail"></div>
+      <div class="caps"><div><div class="n">サンプルモルト</div><div class="s">2012</div></div><div><div class="n">サンプル純米</div><div class="s">2024</div></div><div><div class="n">サンプル赤</div><div class="s">2018</div></div></div>
+    </div>
+    <nav class="tabs">
+      <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
+      <div class="tab on"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
+      <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
+      <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
+    </nav>
+  </section>
+
+  <section class="screen" id="cellar-new">
+    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>ボトルを追加</h1><div class="spacer"></div></header>
+    <div class="body">
+      <div style="display:flex;gap:14px;align-items:flex-end">
+        <div class="photo photo-bottle p-red" style="width:100px;height:150px;border-radius:12px"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div>
+        <div class="tiny" style="display:flex;flex-direction:column;gap:12px;color:var(--primary);font-weight:600;padding-bottom:8px"><span>撮り直す</span><span style="color:var(--muted)">削除</span></div>
+      </div>
+      <div class="label">銘柄名 *</div>
+      <div class="field">サンプル赤</div>
+      <div class="label">種類 *</div>
+      <div class="chips"><span class="chip on">ワイン</span><span class="chip">ビール</span><span class="chip">ウイスキー</span><span class="chip">日本酒</span><span class="chip">焼酎</span></div>
+      <div class="label">本数</div>
+      <div class="stepper"><div class="k">−</div><span style="font-size:24px;font-weight:650;min-width:32px;text-align:center">2</span><div class="k">＋</div></div>
+      <div class="label" style="margin-top:20px">詳細を入力<span class="muted">▾</span></div>
+    </div>
+    <div class="foot"><button class="btn btn-primary">棚に並べる（2 本）</button></div>
   </section>
 
   <section class="screen" id="cellar-detail">
-    <header class="header">
-      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
-      <h1>サンプル赤</h1>
-      <div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div>
-    </header>
+    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>サンプル赤</h1><div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div></header>
     <div class="body">
-      <div class="photo wine" style="margin-bottom:16px"></div>
-      <div class="label">ステータス</div>
-      <div class="seg"><div class="on">未開栓</div><div>開栓済</div><div>飲み切</div></div>
-      <div class="prop"><span class="muted">種類</span><span style="font-weight:600">ワイン</span></div>
-      <div class="prop"><span class="muted">生産者</span><span style="font-weight:600">サンプル生産者</span></div>
-      <div class="prop"><span class="muted">産地</span><span style="font-weight:600">フランス</span></div>
-      <div class="prop"><span class="muted">年</span><span style="font-weight:600">2020</span></div>
-      <div class="label">ノート</div>
-      <div class="row"><div>2026-08-01</div><div class="meta">4.5</div></div>
+      <div style="display:flex;justify-content:center"><div class="photo p-red" style="width:160px;height:240px;border-radius:10px;box-shadow:0 8px 12px -8px rgba(0,0,0,.6)"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+      <div class="rail"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin:14px 0 16px"><span class="pill">未開栓</span><span class="tiny muted">ワイン ・ 2020 ・ フランス</span></div>
+      <button class="btn btn-primary">消費する</button>
+      <div class="actions" style="margin-top:12px"><button class="btn btn-secondary" style="min-height:44px">開栓する</button><button class="btn btn-secondary" style="min-height:44px">1 杯を記録</button></div>
+      <div style="margin-top:8px">
+        <div class="prop"><span class="muted">生産者</span><span style="font-weight:600">サンプル生産者</span></div>
+        <div class="prop"><span class="muted">購入日</span><span style="font-weight:600">2026-06-01</span></div>
+        <div class="prop"><span class="muted">価格</span><span style="font-weight:600">¥3,800</span></div>
+      </div>
+      <div class="section">ノート<span style="color:var(--primary)">書く ›</span></div>
+      <div class="row" style="min-height:52px"><div>2026-08-01</div><div class="meta">★4.5</div></div>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
-      <div class="tab"><svg><use href="#i-log"/></svg>記録</div>
       <div class="tab on"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
       <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>
   </section>
 
-  <section class="screen" id="note-list">
-    <header class="header"><div class="spacer"></div><h1>ノート</h1><button class="icon-btn" style="font-size:20px;font-weight:600">+</button></header>
+  <section class="screen" id="cellar-consume">
+    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>サンプル赤</h1><div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div></header>
     <div class="body">
-      <div class="field" style="margin-bottom:12px;color:var(--muted)">銘柄で検索</div>
-      <span class="chip neu-out">種類</span>
-      <span class="chip neu-out">評価</span>
-      <div style="height:8px"></div>
-      <div class="row"><div class="grow"><div>サンプル赤</div><div class="sub">澄んだルビー</div></div><div class="meta">4.5</div></div>
-      <div class="row"><div class="grow"><div>サンプルモルト</div><div class="sub">蜂蜜とオーク</div></div><div class="meta">4.0</div></div>
+      <div style="display:flex;justify-content:center"><div class="photo p-red" style="width:160px;height:240px;border-radius:10px"></div></div>
+      <div class="rail"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin:14px 0 16px"><span class="pill">未開栓</span><span class="tiny muted">ワイン ・ 2020 ・ フランス</span></div>
+      <button class="btn btn-primary">消費する</button>
     </div>
-    <nav class="tabs">
-      <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
-      <div class="tab"><svg><use href="#i-log"/></svg>記録</div>
-      <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
-      <div class="tab on"><svg><use href="#i-note"/></svg>ノート</div>
-      <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
-    </nav>
+    <div class="scrim">
+      <div class="dialog">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><div class="thumb photo p-red" style="border-radius:10px"></div><div><div style="font-weight:600">サンプル赤</div><div class="tiny muted">2020 ・ フランス</div></div></div>
+        <h2>消費して貯蔵庫へ移します</h2>
+        <div class="check"><span class="box"><svg class="ico"><use href="#i-check"/></svg></span>今日の記録に 1 杯を追加</div>
+        <div class="chips" style="margin-left:32px"><span class="chip on" style="min-height:36px">125</span><span class="chip" style="min-height:36px">150</span><span class="chip" style="min-height:36px">375</span><span class="chip" style="min-height:36px">750</span></div>
+        <div style="display:flex;gap:16px;margin:0 0 12px 32px;align-items:center"><span class="tiny muted">度数</span><span style="font-weight:650;font-size:20px">12 %</span><span class="tiny muted" style="margin-left:auto">日時 いま ›</span></div>
+        <button class="btn btn-primary">記録して貯蔵庫へ</button>
+        <div class="center tiny" style="margin-top:14px;font-weight:600">キャンセル</div>
+      </div>
+    </div>
   </section>
 
-  <section class="screen" id="note-detail">
-    <header class="header">
-      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
-      <h1>サンプル赤</h1>
-      <div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div>
-    </header>
+  <!-- ============ NOTES ============ -->
+  <section class="screen" id="note-list">
+    <header class="header"><div class="spacer"></div><h1>ノート</h1><button class="icon-btn"><svg><use href="#i-plus"/></svg></button></header>
     <div class="body">
-      <p class="eyebrow">2026-08-01　評価 4.5</p>
-      <div class="card" style="margin-bottom:12px">
-        <div class="tiny muted">外観</div>
-        <div>澄んだルビー。粘性は中程度。</div>
-        <div class="tiny muted" style="margin-top:12px">香り</div>
-        <div>赤系果実とわずかなスパイス。</div>
-        <div class="tiny muted" style="margin-top:12px">味わい</div>
-        <div>酸がきれいで、タンニンは細かい。</div>
-        <div class="tiny muted" style="margin-top:12px">余韻</div>
-        <div>短め。食事向き。</div>
+      <div class="chips"><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">種類 ▾</span><span class="chip">★4 以上</span></div>
+      <div class="ngrid" style="margin-top:8px">
+        <div class="ncard"><div class="photo photo-log p-table"><svg class="glass-sil" viewBox="0 0 60 100"><use href="#i-glass-sil"/></svg><span class="mascot stamp"><svg><use href="#m-surprised"/></svg></span></div><div class="n ellip">サンプル赤</div><div class="s">★4.5 ・ 8/1 ・ <svg class="ico" style="width:12px;height:12px;vertical-align:-1px"><use href="#i-imgs"/></svg> 3</div></div>
+        <div class="ncard"><div class="photo photo-log p-malt" style="background:radial-gradient(120% 90% at 70% 20%,#e0c48a 0%,#8a6230 45%,#2a1a0c 100%)"><svg class="glass-sil" viewBox="0 0 60 100" style="fill:rgba(190,120,40,.85)"><use href="#i-glass-sil"/></svg></div><div class="n ellip">サンプルモルト</div><div class="s">★4.0 ・ 7/20</div></div>
+        <div class="ncard"><div class="photo photo-log empty neu-in"><svg class="ico"><use href="#i-glass"/></svg></div><div class="n ellip">サンプル純米</div><div class="s">★3.5 ・ 7/2</div></div>
+        <div class="ncard"><div class="photo photo-log p-table" style="filter:hue-rotate(20deg)"><svg class="glass-sil" viewBox="0 0 60 100" style="fill:rgba(220,190,120,.85)"><use href="#i-glass-sil"/></svg><span class="mascot stamp"><svg><use href="#m-surprised"/></svg></span></div><div class="n ellip">サンプル白</div><div class="s">★4.0 ・ 6/15</div></div>
       </div>
-      <div class="photo wine" style="height:96px"></div>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
-      <div class="tab"><svg><use href="#i-log"/></svg>記録</div>
       <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
       <div class="tab on"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>
   </section>
 
   <section class="screen" id="note-new">
-    <header class="header">
-      <button class="icon-btn"><svg><use href="#i-back"/></svg></button>
-      <h1>ノートを作成</h1>
-      <div class="spacer"></div>
-    </header>
+    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>ノートを作成</h1><div class="spacer"></div></header>
     <div class="body">
+      <div class="label" style="margin-top:4px">写真<span>2 / 6</span></div>
+      <div class="strip">
+        <div class="ptile"><svg class="cam ico"><use href="#i-cam"/></svg>撮る</div>
+        <div class="photo p-table"><svg class="glass-sil" viewBox="0 0 60 100"><use href="#i-glass-sil"/></svg><span class="mascot stamp"><svg><use href="#m-surprised"/></svg></span></div>
+        <div class="photo p-red"></div>
+      </div>
       <div class="label">ボトル</div>
-      <div class="field">サンプル赤</div>
+      <div class="field">サンプル赤（セラー）<span style="margin-left:auto" class="muted">× ›</span></div>
       <div class="label">飲んだ日</div>
-      <div class="field">今日</div>
+      <div class="field">今日<span style="margin-left:auto" class="muted">›</span></div>
       <div class="label">評価</div>
-      <div style="font-size:22px;font-weight:700;color:var(--primary)">4.5</div>
-      <div class="label">外観</div>
-      <div class="field" style="min-height:72px;color:var(--muted)">あとからでも書けます</div>
+      <div style="display:flex;align-items:center;gap:14px"><span class="star">★★★★☆</span><span style="font-size:22px;font-weight:700;color:var(--primary)">4.5</span><div class="stepper" style="margin-left:auto"><div class="k">−</div><div class="k">＋</div></div></div>
+      <div class="label">一言</div>
+      <div class="field muted">酸がきれい、食事向き</div>
+      <div class="label">詳しく書く<span class="muted">▾</span></div>
     </div>
     <div class="foot"><button class="btn btn-primary">保存する</button></div>
   </section>
 
+  <section class="screen" id="note-detail">
+    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>サンプル赤</h1><div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div></header>
+    <div class="body">
+      <div class="photo photo-log p-table" style="height:300px"><svg class="glass-sil" viewBox="0 0 60 100" style="width:30%;height:56%"><use href="#i-glass-sil"/></svg><span class="mascot stamp"><svg><use href="#m-surprised"/></svg></span></div>
+      <div class="center" style="margin:8px 0"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><span><span class="star">★★★★☆</span> <b style="color:var(--primary)">4.5</b></span><span class="tiny muted">2026年8月1日</span></div>
+      <div class="field" style="margin-top:12px;min-height:44px"><svg class="ico"><use href="#i-cellar"/></svg>セラーのボトル<span style="margin-left:auto" class="muted">›</span></div>
+      <div class="section" style="margin-bottom:4px">味わい</div>
+      <div>酸がきれいで、タンニンは細かい。食事向き。</div>
+      <div class="section" style="margin-bottom:4px">香り</div>
+      <div>赤系果実とわずかなスパイス。</div>
+    </div>
+    <nav class="tabs">
+      <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
+      <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
+      <div class="tab on"><svg><use href="#i-note"/></svg>ノート</div>
+      <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
+    </nav>
+  </section>
+
+  <!-- ============ AUTH / SETTINGS / 404 ============ -->
   <section class="screen" id="login">
-    <div class="body" style="display:flex;align-items:center;padding:28px">
+    <div class="body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px">
+      <span class="mascot" style="width:90px;height:120px"><svg><use href="#m-default"/></svg></span>
+      <p class="eyebrow" style="margin:8px 0 16px">alco-app</p>
       <div class="card" style="width:100%">
-        <p class="eyebrow">alco</p>
         <h1 style="margin:0 0 20px;font-size:24px">ログイン</h1>
         <div class="label" style="margin-top:0">メール</div>
         <div class="field">user@example.com</div>
         <div class="label">パスワード</div>
-        <div class="field">••••••••</div>
+        <div class="field">••••••••<svg class="ico muted" style="margin-left:auto"><use href="#i-eye"/></svg></div>
         <button class="btn btn-primary" style="margin-top:24px">ログイン</button>
         <div class="tiny" style="text-align:center;margin-top:16px;color:var(--primary);font-weight:600">アカウントを作成</div>
       </div>
@@ -465,17 +665,39 @@
   <section class="screen" id="settings">
     <header class="header"><div class="spacer"></div><h1>設定</h1><div class="spacer"></div></header>
     <div class="body">
-      <div class="row"><div>表示名</div><div class="meta">オーナー</div></div>
+      <div class="section" style="margin-top:4px">アカウント</div>
+      <div class="row"><div>表示名</div><div class="meta">オーナー ›</div></div>
       <div class="row"><div>メール</div><div class="meta">user@example.com</div></div>
-      <div class="row" style="margin-top:8px"><div style="color:var(--danger);font-weight:600">ログアウト</div></div>
-      <p class="tiny muted" style="margin-top:20px;padding:0 4px">テーマは端末の外観設定に追従します。ここには切替がありません。</p>
+      <div class="section">写真</div>
+      <div class="row"><div>写真にキャラを入れる<div class="sub">撮影後の既定</div></div><span class="switch"></span></div>
+      <div class="row"><div>色補正を掛ける<div class="sub">撮影後の既定</div></div><span class="switch"></span></div>
+      <div class="row" style="margin-top:20px"><div class="btn-danger" style="padding:0">ログアウト</div></div>
+      <p class="tiny muted" style="margin-top:20px;padding:0 4px">テーマは端末の外観設定に追従します。<br>alco-app 0.1.0</p>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
-      <div class="tab"><svg><use href="#i-log"/></svg>記録</div>
       <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
       <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab on"><svg><use href="#i-set"/></svg>設定</div>
+    </nav>
+  </section>
+
+  <section class="screen" id="not-found">
+    <header class="header"><div class="spacer"></div><h1>見つかりません</h1><div class="spacer"></div></header>
+    <div class="body">
+      <div class="empty" style="padding-top:120px">
+        <span class="mascot" style="width:72px;height:96px"><svg><use href="#m-surprised"/></svg></span>
+        <p style="margin:0">ページが見つかりませんでした</p>
+        <button class="btn btn-primary" style="width:200px">ホームへ</button>
+      </div>
+    </div>
+    <nav class="tabs">
+      <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
+      <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
+      <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
+      <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>
   </section>
 

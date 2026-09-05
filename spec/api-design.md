@@ -1,8 +1,9 @@
 # API設計
 
-Phase 1-05 の成果物。Hono が公開する HTTP API の契約。実装は Phase 2 以降。クライアントは Hono RPC（2-04）で同じ型を使う。
+Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開する HTTP API の契約。実装は Phase 2 以降。クライアントは Hono RPC（2-04）で同じ型を使う。
 
-- 状態: **承認済み**（#12 マージ）。範囲・丸めの数値は [features/alcohol-calculation.md](features/alcohol-calculation.md) を正とする
+- 状態: 1-05 は **承認済み**（#12 マージ）。**1-07 の改訂（1.1 節）はオーナー承認待ち**。範囲・丸めの数値は [features/alcohol-calculation.md](features/alcohol-calculation.md) を正とする
+- 画面との対応は [screen-designs/](screen-designs/README.md) の各要素表
 - 列・enum・削除方針の正本: [data-model.md](data-model.md)
 - セキュリティ正本: [`.cursor/rules/security.mdc`](../.cursor/rules/security.mdc)
 - 公開 `GET /api/health` の個別契約: [features/health.md](features/health.md)
@@ -35,6 +36,22 @@ Phase 1-05 の成果物。Hono が公開する HTTP API の契約。実装は Ph
 | カレンダー日 | **`YYYY-MM-DD`（Asia/Tokyo）** | data-model の `*_on` |
 | CORS | **全開放しない**。SPA と API は同一 Worker・同一オリジン | 余計なクロスオリジンを増やさない |
 | 未定義 `/api/*` | Phase 2 で `{ "error": "not_found" }` に統一（現状は `{ "ok": false }`） | 共通エラー形式。health 成功は `{ "ok": true }` のまま |
+
+### 1.1 1-07 改訂（2026-09-05。承認待ち）
+
+| 項目 | 決定 | 根拠 |
+|---|---|---|
+| 消費 | **`POST /api/bottles/:id/consume`** を追加。ボトルを `consumed` にし、任意で同じトランザクション内に drink-log を 1 件作る | [screen-designs/04-cellar.md](screen-designs/04-cellar.md) 消費ダイアログ |
+| 復元 | **`POST /api/bottles/:id/restore`** を追加。`consumed → sealed | opened`。undo と「セラーに戻す」 | 同上 |
+| 棚 / 貯蔵庫 | `GET /api/bottles` に **`view=cellar \| archive \| all`**（既定 `cellar`）。`archive` は `consumedAt` 降順 | 棚と貯蔵庫の分離 |
+| 本数展開 | `POST /api/bottles` に **`count`（1〜12）**。N 行を作り `{ items: Bottle[] }` を返す。`quantity` フィールドは廃止 | 1 行 = 1 本 |
+| 記録とボトル | drink-log に **`bottleId`**（任意）。`GET /api/drink-logs?bottleId=` で絞り込み（期間必須は維持しない: `bottleId` 指定時は期間省略可、最大 100 件） | ボトル詳細の記録節 |
+| 写真の紐付け | 作成 API（drink-logs / bottles / tasting-notes）が **`photoIds: string[]`** を受け取り、同一トランザクションで紐付ける。PATCH でも可 | 「使う」直後の先アップロード → 保存で紐付け |
+| 記録の写真 | `POST /api/photos` に **`drinkLogId`** を追加。所有者 3 列は最大 1 つ | 写真を撮って記録 |
+| 写真枚数 | 記録 1 / ボトル 1 / ノート 6。超過は 400 `validation_error`（`photoIds`） | data-model 5.6 |
+| 写真の実体検証 | **magic bytes**、1MB（413）、長辺 1600px（400）、jpeg/png/webp のみ | [screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md) |
+| 未紐付け GC | **Cron Trigger（日次）** で作成 24h 超の未紐付け写真を R2 + D1 から削除。公開エンドポイントではない（Worker の `scheduled` ハンドラ） | 放棄分の掃除 |
+| 一覧のサムネ | drink-log 一覧にも `thumbPhotoId` を含める | 日別の行サムネ |
 
 ---
 
@@ -217,11 +234,13 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | PATCH | `/api/my-drinks/:id` | 必須 | 部分更新 |
 | DELETE | `/api/my-drinks/:id` | 必須 | 削除 |
 | POST | `/api/my-drinks/:id/log` | 必須 | 1 タップ記録 |
-| GET | `/api/bottles` | 必須 | ボトル一覧（検索・絞り込み） |
-| POST | `/api/bottles` | 必須 | ボトル作成 |
+| GET | `/api/bottles` | 必須 | 棚 / 貯蔵庫の一覧（`view`、検索・絞り込み） |
+| POST | `/api/bottles` | 必須 | ボトル作成（`count` 本を展開） |
 | GET | `/api/bottles/:id` | 必須 | 詳細（写真メタ含む） |
-| PATCH | `/api/bottles/:id` | 必須 | 部分更新 |
-| DELETE | `/api/bottles/:id` | 必須 | 削除（写真 CASCADE、ノートは残す） |
+| PATCH | `/api/bottles/:id` | 必須 | 部分更新（開栓を含む） |
+| DELETE | `/api/bottles/:id` | 必須 | 削除（写真 CASCADE、ノート・記録は残す） |
+| POST | `/api/bottles/:id/consume` | 必須 | 消費 → 貯蔵庫。任意で記録 1 件を同時作成 |
+| POST | `/api/bottles/:id/restore` | 必須 | 貯蔵庫 → 棚（undo / セラーに戻す） |
 | GET | `/api/tasting-notes` | 必須 | ノート一覧 |
 | POST | `/api/tasting-notes` | 必須 | ノート作成 |
 | GET | `/api/tasting-notes/:id` | 必須 | 詳細（写真メタ含む） |
@@ -233,7 +252,9 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | PATCH | `/api/photos/:id` | 必須 | 紐付け・並び |
 | DELETE | `/api/photos/:id` | 必須 | メタと R2 を削除 |
 
-`GET /api/drink-logs/summary` は `GET /api/drink-logs/:id` より**先に登録**する（`summary` を id と誤認しない）。
+`GET /api/drink-logs/summary` は `GET /api/drink-logs/:id` より**先に登録**する（`summary` を id と誤認しない）。`/api/bottles/:id/consume` / `restore` は `:id` の配下なので順序の問題はない。
+
+Cron（公開エンドポイントではない）: `scheduled` ハンドラで日次に未紐付け写真 GC を実行する。`wrangler.jsonc` の `triggers.crons`（例 `0 18 * * *` = JST 3:00）。
 
 ---
 
@@ -274,15 +295,20 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | alcoholG | number | サーバー計算 |
 | memo | string \| null | ≦500 |
 | myDrinkId | string \| null | 参照。削除後は null |
+| bottleId | string \| null | セラー連携（1-07）。削除後は null |
+| thumbPhotoId | string \| null | 記録写真（1 枚）の id |
 | createdAt | string | ISO UTC |
 | updatedAt | string | ISO UTC |
+
+詳細（`GET /:id`）と作成応答には `photos`（4.7 のメタ配列、最大 1）を含める。
 
 #### GET /api/drink-logs
 
 | クエリ | 必須 | 説明 |
 |---|---|---|
-| `date` | `from`/`to` が無いとき必須 | 単一日（JST） |
-| `from`, `to` | `date` が無いとき両方必須 | 閉区間の JST 日。`from <= to` |
+| `date` | `from`/`to`/`bottleId` が無いとき必須 | 単一日（JST） |
+| `from`, `to` | `date` が無いとき両方必須（`bottleId` 指定時は任意） | 閉区間の JST 日。`from <= to` |
+| `bottleId` | 任意 | 自分のボトル。他人・不明は 404。指定時は期間を省略でき、`drunkAt` 降順・最大 100 件 |
 | `limit`, `cursor` | 任意 | 2.7 |
 
 `date` と `from`/`to` の同時指定は 400。期間は最大 31 日（`to - from`）。超えたら 400。
@@ -342,7 +368,9 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
   "volumeMl": 125,
   "abvPercent": 12,
   "memo": null,
-  "myDrinkId": null
+  "myDrinkId": null,
+  "bottleId": null,
+  "photoIds": []
 }
 ```
 
@@ -354,8 +382,10 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | abvPercent | 必須 | 0〜100、小数第 1 位。**0 は可** |
 | memo | 任意 | 空は null |
 | myDrinkId | 任意 | 自分の ID のみ。他人・不明は 404。量・度数・種類はリクエストが正。`drinkName` はプリセット名をコピーする。量をサーバーに上書きさせない 1 タップは 4.4 |
+| bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404。`drinkName` にボトル名、`drinkType` はボトルの種類で上書き（1-07） |
+| photoIds | 任意 | 自分の **未紐付け**写真 id。最大 1。他人・紐付け済み・不明は 404。同一トランザクションで `drink_log_id` をセット（1-07） |
 
-通常の POST で `myDrinkId` を付けるのは「どのプリセットから始めたか」の記録用。1 タップ（サーバーコピー）とは別経路。
+通常の POST で `myDrinkId` を付けるのは「どのプリセットから始めたか」の記録用。1 タップ（サーバーコピー）とは別経路。`myDrinkId` と `bottleId` の同時指定は可（`drinkName` はボトル名が優先）。
 
 成功: 201 と作成オブジェクト。
 
@@ -367,7 +397,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 送ったフィールドだけ更新。`drunkAt` を変えたら `drunkOn` を再計算。`volumeMl` / `abvPercent` を変えたら `alcoholG` を再計算。
 
-`myDrinkId` を後から付けても、量・度数・種類は送られた値（または既存値）が正。プリセットの再コピーはしない。
+`myDrinkId` を後から付けても、量・度数・種類は送られた値（または既存値）が正。プリセットの再コピーはしない。`bottleId` を変えたら `drinkName` を新しいボトル名で上書き、null にしたら `drinkName` は残す。`photoIds` は差し替え（送った id の集合にする。外れた写真は削除 = R2 も消す）。
 
 #### DELETE /api/drink-logs/:id
 
@@ -418,32 +448,68 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 ### 4.5 bottles
 
-**共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。日付は `purchasedOn` / `openedOn`（`YYYY-MM-DD` \| null）。`priceJpy` は整数円または null。`status` は `sealed` \| `opened` \| `finished`。
+**共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。日付は `purchasedOn` / `openedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`priceJpy` は整数円または null。`status` は `sealed` \| `opened` \| `consumed`。`quantity` は無い（1 行 = 1 本）。
 
-詳細・作成応答に `photos`（4.7 のメタ配列、`sortOrder` 昇順）を含める。一覧は `thumbPhotoId`（`sortOrder` 最小の写真 id、無ければ null）だけにする。
+詳細・作成応答に `photos`（4.7 のメタ配列、最大 1）を含める。一覧は `thumbPhotoId`（無ければ null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）を含める（ヘッダーの「12 本」）。
 
 #### GET /api/bottles
 
 | クエリ | 説明 |
 |---|---|
+| `view` | `cellar`（既定。`sealed` + `opened`、`createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用） |
 | `q` | 銘柄名・生産者の部分一致。最大 100 文字。空は未指定と同じ |
 | `drinkType` | 7 種のいずれか |
-| `status` | `sealed` \| `opened` \| `finished` |
+| `status` | `sealed` \| `opened`（`view=cellar` 内の絞り込み。`archive` では無視） |
 | `limit`, `cursor` | 2.7 |
 
-飲み切りを一覧から外すかはクエリで足りる（デフォルトは全ステータス）。ノート作成ピッカーは `q` を再利用し、`finished` も含めてよい（5-04）。
+ノート・記録のボトルピッカーは `view=all&q=` を使う（貯蔵庫の本も選べる）。
 
 #### POST /api/bottles
 
-必須: `name`, `drinkType`。`status` 省略時は `sealed`。`quantity` 省略時は 1。その他は data-model どおり任意。
+必須: `name`, `drinkType`。`status` 省略時は `sealed`。**`count`（1〜12、省略時 1）** の本数だけ同じ属性の行を作る。`photoIds`（最大 1。同じ写真 id を N 行に付けることはできないため、**N ≥ 2 のときサーバーが photo 行を複製**する。R2 オブジェクトは 1 つを共有せず N 個にコピーする — 削除の独立性のため）。
 
-写真は別リクエスト（4.7）。成功: 201。
+成功: 201 `{ "items": Bottle[] }`（`createdAt` は同一、`id` は個別）。
 
 #### GET / PATCH / DELETE /api/bottles/:id
 
-PATCH は部分更新。`status` と `quantity` は独立（data-model）。開栓ルールの詳細は 4-03。
+PATCH は部分更新。`status` に送れるのは **`opened` のみ**（開栓。`openedOn` を省略したら今日）。`consumed` への変更は 4.5.1、戻しは 4.5.2 を使う。`consumedAt` / `consumedOn` は PATCH で受け取らない。`photoIds` は差し替え。
 
-DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` は SET NULL。ノート本体は残る。
+DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` と記録の `bottleId` は SET NULL。本体は残る。貯蔵庫の本も削除できる。
+
+#### 4.5.1 POST /api/bottles/:id/consume
+
+```json
+{
+  "log": {
+    "drunkAt": "2026-09-05T04:05:00.000Z",
+    "volumeMl": 125,
+    "abvPercent": 12,
+    "memo": null
+  }
+}
+```
+
+| 入力 | 扱い |
+|---|---|
+| `log` | **null で記録なし**。オブジェクトなら drink-log を 1 件作る |
+| `log.drunkAt` | 任意。4.3 の未来 15 分ルール。`consumedAt` はこれと同じ瞬間にする（省略時はサーバー現在時刻） |
+| `log.volumeMl` / `log.abvPercent` | 必須（記録ありのとき）。範囲は 4.3 |
+| `log.memo` | 任意 |
+
+サーバー:
+
+1. 自分のボトルで `status !== "consumed"` を確認。他人・不明・すでに消費済みは 404
+2. `status = consumed`、`consumedAt`、`consumedOn`（JST 日）を更新
+3. `log` があれば drink-log を作成: `drinkType` = ボトルの種類、`drinkName` = ボトル名、`bottleId` = このボトル、`alcoholG` 再計算
+4. 2〜3 は同一トランザクション（D1 batch）
+
+成功: 200 `{ "bottle": Bottle, "drinkLog": DrinkLog | null }`。
+
+#### 4.5.2 POST /api/bottles/:id/restore
+
+ボディなし。自分のボトルで `status === "consumed"` のとき、`openedOn` があれば `opened`、無ければ `sealed` に戻し、`consumedAt` / `consumedOn` を null にする。それ以外は 404。**記録は消さない**（undo で消すかはクライアントが `DELETE /api/drink-logs/:id` を続けて呼ぶ）。
+
+成功: 200 `Bottle`。
 
 ### 4.6 tasting-notes
 
@@ -465,20 +531,21 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 | フィールド | 必須 | 備考 |
 |---|---|---|
-| bottleId | 任意 | 自分のボトルのみ。他人・不明は 404 |
+| bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404 |
 | drinkName | `bottleId` なしのとき必須 | ボトルありのときは**送っても無視**し、サーバーがボトルからコピー |
 | drinkType | `bottleId` なしのとき必須 | 同上 |
-| tastedOn | 必須 | JST 日 |
+| tastedOn | 必須 | JST 日。未来は 400 |
 | appearance, aroma, taste, finish | 任意 | 各 ≦2000 |
 | ratingX10 | 必須 | 10〜50、5 刻み |
+| photoIds | 任意 | 自分の未紐付け写真 id、**最大 6**、配列順が `sortOrder` |
 
 スナップショット方針は data-model 6.4。以降のボトル改名はノートに反映しない。
 
-成功: 201。写真は作成後に 4.7 で添付。
+成功: 201（`photos` を含む）。
 
 #### GET / PATCH / DELETE /api/tasting-notes/:id
 
-PATCH で `bottleId` を付け替える場合、新しいボトルも自分のもの。スナップショット（`drinkName` / `drinkType`）は**新しいボトルから再コピー**する。`bottleId` を null にする場合は `drinkName` と `drinkType` が必須（都度入力に戻す）。
+PATCH で `bottleId` を付け替える場合、新しいボトルも自分のもの。スナップショット（`drinkName` / `drinkType`）は**新しいボトルから再コピー**する。`bottleId` を null にする場合は `drinkName` と `drinkType` が必須（都度入力に戻す）。`photoIds` は差し替え（配列順 = `sortOrder`。外れた写真は削除）。
 
 DELETE: ノート写真は CASCADE（R2 も消す）。
 
@@ -494,32 +561,33 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 | width, height | number \| null |
 | bottleId | string \| null |
 | tastingNoteId | string \| null |
+| drinkLogId | string \| null |
 | sortOrder | number |
 | createdAt, updatedAt | string |
 
-`bottleId` と `tastingNoteId` の同時セットは禁止（data-model CHECK）。両方 null は未紐付け（先アップロード）。
+所有者 3 列（`bottleId` / `tastingNoteId` / `drinkLogId`）は最大 1 つ（data-model CHECK）。すべて null は未紐付け（先アップロード。24h で GC）。
 
 #### POST /api/photos
 
-`multipart/form-data`。
+`multipart/form-data`。**推奨フローは未紐付けで先にアップロードし、作成 API の `photoIds` で紐付ける**（[screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md)）。
 
 | パート | 必須 | 説明 |
 |---|---|---|
 | `file` | 必須 | 画像本体。ファイル名はキーに使わない |
 | `bottleId` | 任意 | 自分のボトル。他人は 404 |
 | `tastingNoteId` | 任意 | 自分のノート。他人は 404 |
+| `drinkLogId` | 任意 | 自分の記録。他人は 404 |
 | `sortOrder` | 任意 | 整数。省略時 0 |
 
-`bottleId` と `tastingNoteId` の同時指定は 400。どちらも無しは未紐付け。
+所有者の 2 つ以上の同時指定は 400。すべて無しは未紐付け。
 
 サーバー:
 
-1. MIME とサイズを**実体**で検証する（クライアント申告を信用しない）。許可は jpeg / png / webp。SVG / GIF / HEIC は 415
-2. 上限バイトは 4-04（骨格のみ。実装まで仮に超えたら 413）
+1. MIME を **magic bytes** で検証する（クライアント申告・拡張子を信用しない）。許可は jpeg / png / webp。SVG / GIF / HEIC は 415
+2. **1MB** 超は 413。長辺 **1600px** 超は 400（クライアント出力は 1280）
 3. `r2_key` はサーバー生成（例 `{photoId}.jpg`）。`user_id` も元ファイル名もキーに含めない
 4. `user_id` はセッションから付与
-
-ノートあたり枚数は提案 **6**（5-01 で確定）。超過は 400。ボトルはスキーマ 1:N、MVP UI は 1 枚（4-01）。
+5. 紐付け先の枚数上限（記録 1 / ボトル 1 / ノート 6）を超えるなら 400
 
 成功: 201 とメタ。
 
@@ -543,13 +611,19 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 
 #### PATCH /api/photos/:id
 
-紐付けと `sortOrder`。未紐付け → ボトル / ノート。付け替え先も自分のリソース。両方の ID を同時にセットしない。紐付け解除（両方 null）は可。
+紐付けと `sortOrder`。未紐付け → ボトル / ノート / 記録。付け替え先も自分のリソース。所有者を 2 つ以上同時にセットしない。紐付け解除（すべて null）は可（24h で GC 対象になる）。
 
 他人の photo id を自分のボトルに付けることはできない（`photos.user_id` 一致が必須）。
 
 #### DELETE /api/photos/:id
 
-メタ削除 + R2 削除。R2 失敗時の孤立掃除は 4-04。200 `{ "ok": true }`。
+メタ削除 + R2 削除。R2 失敗時は日次 GC で再試行。200 `{ "ok": true }`。
+
+#### 未紐付け GC（`scheduled`）
+
+- 対象: `bottle_id` / `tasting_note_id` / `drink_log_id` がすべて NULL かつ `created_at < now - 24h`
+- R2 削除 → D1 削除の順。R2 が 404 でも D1 は消す
+- 1 回の実行で最大 500 件。ログは件数のみ（キーや `user_id` を出さない）
 
 ---
 
@@ -610,7 +684,8 @@ Auth を MW で保護するとログイン不能になる。catch-all より前�
 |---|---|
 | 目標設定 API | v1.x |
 | 在庫金額サマリー、飲み頃アラート | v1.x |
-| ノートと飲酒記録の同時作成 | v1.x |
+| ノートと飲酒記録の同時作成 | v1.x（消費 → 記録は 4.5.1 で MVP） |
+| 背景除去（切り抜き）画像の保存 | v1.x |
 | CSV エクスポート | 将来構想 |
 | アカウント削除 API | 将来（FK CASCADE は data-model 済み） |
 | パスワードリセットメール | Phase 8-03 |
@@ -629,26 +704,32 @@ Auth を MW で保護するとログイン不能になる。catch-all より前�
 | 画面 ID | 主に使う API |
 |---|---|
 | auth-login / auth-signup | `/api/auth/*` |
-| home | `GET /api/drink-logs/summary?period=day`、`GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
-| log-day | `GET /api/drink-logs?date=`、PATCH / DELETE |
-| log-new / log-edit | POST / PATCH `/api/drink-logs` |
+| home | `GET /api/drink-logs/summary?period=day\|week`、`GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
+| log-day | `GET /api/drink-logs?date=`、`POST /api/my-drinks/:id/log`、DELETE（undo） |
+| log-new / log-edit | POST / PATCH `/api/drink-logs`（`photoIds`, `bottleId`）、`POST /api/photos`、`GET /api/bottles?view=all&q=` |
 | mydrink-list / mydrink-new | `/api/my-drinks` |
 | summary-week / summary-month | `GET /api/drink-logs/summary?period=week\|month` |
-| bottle-list / bottle-detail / bottle-new / bottle-edit | `/api/bottles`、`/api/photos`、`GET /api/tasting-notes?bottleId=` |
-| note-list / note-detail / note-new / note-edit | `/api/tasting-notes`、`/api/photos`、`GET /api/bottles?q=` |
+| bottle-list（棚） | `GET /api/bottles?view=cellar` |
+| bottle-archive（貯蔵庫） | `GET /api/bottles?view=archive` |
+| bottle-new / bottle-edit | `POST /api/bottles`（`count`, `photoIds`）、PATCH、`POST /api/photos` |
+| bottle-detail | `GET /api/bottles/:id`、`PATCH`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
+| bottle-consume | `POST /api/bottles/:id/consume`、undo: `restore` + `DELETE /api/drink-logs/:id` |
+| note-list / note-detail / note-new / note-edit | `/api/tasting-notes`（`photoIds`）、`/api/photos`、`GET /api/bottles?view=all&q=` |
+| photo-edit | `POST /api/photos`（未紐付け）、`DELETE /api/photos/:id`（破棄） |
 | settings | `GET /api/me`、Better Auth ログアウト / 表示名 |
 
 クライアントのルートガードは UX。認可の正は本 API。
 
 ---
 
-## 9. 受け入れ（1-05）
+## 9. 受け入れ（1-05 / 1-07）
 
-- [x] `spec/api-design.md` を作成（承認は本 PR）
+- [x] `spec/api-design.md` を作成（1-05 承認済み）
 - [x] 全データ API に認可ルール（セッション `userId`、404 統一）がある
-- [x] 公開エンドポイントを列挙した（オーナー承認対象）
+- [x] 公開エンドポイントを列挙した（オーナー承認対象。1-07 で追加なし）
 - [x] 404 統一（未存在 = 他人）を書いた
 - [x] 計算の正はサーバー。クライアントの `alcoholG` を信じない
+- [ ] 1-07 改訂（consume / restore / view / count / photoIds / drinkLogId / GC）のオーナー承認
 
 ---
 

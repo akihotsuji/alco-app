@@ -12,7 +12,8 @@
 
 ## 依存
 
-- Phase 2 完了（認証済みユーザー、空ホーム、Hono RPC、共通レイアウト）
+- Phase 2 完了（認証済みユーザー、空ホーム、Hono RPC、共通レイアウト、**写真パイプライン 2-08**）
+- 画面は [spec/screen-designs/02-home.md](../../spec/screen-designs/02-home.md) / [03-log.md](../../spec/screen-designs/03-log.md) のとおりに作る（受け入れチェックを PR に貼る）
 - Phase 1 の計算・プリセット仕様は [spec/features/alcohol-calculation.md](../../spec/features/alcohol-calculation.md) が正本（要件 1.2 の式とデフォルト表は 2026-08-13 確定）。日付境界は Asia/Tokyo
 - 実装前に本フェーズ最初のタスクで `spec/features/drink-log.md` を書き、オーナー承認を得る
 
@@ -27,10 +28,10 @@
 | # | ファイル | 要点 |
 |---|---|---|
 | 01 | [機能仕様](01-spec-drink-log.md) | `spec/features/drink-log.md`（実装禁止、承認待ち） |
-| 02 | [記録入力画面](02-log-input-screen.md) | 種類→量・度数プリセット→保存 |
-| 03 | [マイドリンク](03-my-drinks.md) | プリセット登録と 1 タップ記録 |
+| 02 | [記録入力画面](02-log-input-screen.md) | 種類→量・度数プリセット→保存。写真タイル（任意）、ボトル紐付け、`?camera=1` |
+| 03 | [マイドリンク](03-my-drinks.md) | プリセット登録と 1 タップ記録（ホーム・日別）、ホームのキャラクター |
 | 04 | [純アルコール計算](04-alcohol-calc-logic.md) | 単体テスト必須。02 より先に shared へ置くとよい |
-| 05 | [日別ビュー](05-daily-view.md) | 当日一覧・合計・編集・削除 |
+| 05 | [日別ビュー](05-daily-view.md) | 中央タブの着地。最上部に記録・カメラ・マイドリンク。当日一覧（写真サムネ）・合計・編集・削除・`?highlight=` |
 | 06 | [週/月サマリー](06-weekly-monthly-summary.md) | グラフ、休肝日 |
 | 07 | [dev デプロイ](07-dev-deploy-dogfood.md) | 日常利用開始 |
 
@@ -39,7 +40,8 @@
 ## スコープ外（このフェーズ）
 
 - 目標設定（週あたり上限、休肝日目標）は v1.x
-- セラー/ノート連携は Phase 4/5 および v1.x
+- セラー連携のうち「ボトル」行のピッカーは `bottles` API が無いと動かないため、Phase 4 まで **行を非表示**にしてよい（設計は 03-log.md N8。Phase 4-02 で有効化）
+- 写真パイプライン本体（2-08）。本フェーズは `photoIds` の紐付けと UI 配置のみ
 - オフライン記録は対象外
 
 ## 終了後にできること
