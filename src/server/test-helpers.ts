@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
+import { z } from "zod";
 import * as schema from "@/db/schema.ts";
 import { createAuth } from "./auth.ts";
 import { createApp } from "./index.ts";
@@ -36,6 +37,21 @@ async function applyDrizzleMigrations(client: ReturnType<typeof createClient>) {
 }
 
 type TestApp = ReturnType<typeof createApp>;
+type TestUserInput = {
+  name: string;
+  email: string;
+  password: string;
+};
+
+const testUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+});
+
+export type TestUser = z.infer<typeof testUserSchema> & {
+  cookie: string;
+};
 
 // Better Auth のレート制限ストアはモジュール共有（メモリ）。テスト間で 429 を踏まないよう
 // アプリごとに別クライアント IP を名乗る
@@ -77,10 +93,7 @@ export function cookieHeaderFrom(response: Response): string {
     .join("; ");
 }
 
-export async function signUp(
-  app: TestApp,
-  input: { name: string; email: string; password: string },
-) {
+export async function signUp(app: TestApp, input: TestUserInput) {
   return app.request("/api/auth/sign-up/email", {
     method: "POST",
     headers: authHeaders(app),
@@ -94,4 +107,36 @@ export async function signIn(app: TestApp, input: { email: string; password: str
     headers: authHeaders(app),
     body: JSON.stringify(input),
   });
+}
+
+export async function createTestUser(app: TestApp, input: TestUserInput): Promise<TestUser> {
+  const signUpResponse = await signUp(app, input);
+  if (!signUpResponse.ok) {
+    throw new Error("テストユーザーの作成に失敗しました");
+  }
+
+  const cookie = cookieHeaderFrom(signUpResponse);
+  if (!cookie) {
+    throw new Error("テストユーザーのセッション Cookie を取得できませんでした");
+  }
+
+  const meResponse = await app.request("/api/me", {
+    headers: { Cookie: cookie },
+  });
+  if (!meResponse.ok) {
+    throw new Error("作成したテストユーザーを取得できませんでした");
+  }
+
+  return {
+    ...testUserSchema.parse(await meResponse.json()),
+    cookie,
+  };
+}
+
+/** リソース API の IDOR テストで使う、別セッションの 2 ユーザーを順番に作成する。 */
+export async function createTestUserPair(
+  app: TestApp,
+  inputs: readonly [TestUserInput, TestUserInput],
+): Promise<[TestUser, TestUser]> {
+  return [await createTestUser(app, inputs[0]), await createTestUser(app, inputs[1])];
 }

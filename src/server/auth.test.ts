@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { cookieHeaderFrom, createTestApp, signIn, signUp } from "./test-helpers.ts";
+import {
+  cookieHeaderFrom,
+  createTestApp,
+  createTestUserPair,
+  signIn,
+  signUp,
+} from "./test-helpers.ts";
 
 const meSchema = z.object({
   id: z.string(),
@@ -42,48 +48,75 @@ describe("認証 API", () => {
     });
   });
 
-  it("ユーザーAの Cookie ではユーザーBの me が返らない", async () => {
+  it("サインアップしたユーザーがログインすると、その Cookie で自分の me を取得できる", async () => {
     const { app } = await createTestApp();
-    const aRes = await signUp(app, {
-      name: "A",
-      email: "a@example.com",
+    const signUpRes = await signUp(app, {
+      name: "ログイン確認",
+      email: "login@example.com",
       password: "password1",
     });
-    const bRes = await signUp(app, {
-      name: "B",
-      email: "b@example.com",
+    expect(signUpRes.status).toBe(200);
+
+    const signInRes = await signIn(app, {
+      email: "login@example.com",
       password: "password1",
     });
-    expect(aRes.status).toBe(200);
-    expect(bRes.status).toBe(200);
+    expect(signInRes.status).toBe(200);
 
-    const meA = meSchema.parse(
-      await (await app.request("/api/me", { headers: { Cookie: cookieHeaderFrom(aRes) } })).json(),
-    );
-    const meB = meSchema.parse(
-      await (await app.request("/api/me", { headers: { Cookie: cookieHeaderFrom(bRes) } })).json(),
-    );
-
-    expect(meA).toMatchObject({ email: "a@example.com", name: "A" });
-    expect(meB).toMatchObject({ email: "b@example.com", name: "B" });
-    expect(meA.id).not.toBe(meB.id);
+    const meRes = await app.request("/api/me", {
+      headers: { Cookie: cookieHeaderFrom(signInRes) },
+    });
+    expect(meRes.status).toBe(200);
+    expect(meSchema.parse(await meRes.json())).toMatchObject({
+      email: "login@example.com",
+      name: "ログイン確認",
+    });
   });
 
-  it("誤ったパスワードではログインできず、存在推測できる本文を出さない", async () => {
+  it("ユーザーAの Cookie でユーザーBの id を指定しても、A の me だけを返す", async () => {
+    const { app } = await createTestApp();
+    const [userA, userB] = await createTestUserPair(app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+
+    const meRes = await app.request(`/api/me?userId=${encodeURIComponent(userB.id)}`, {
+      headers: { Cookie: userA.cookie },
+    });
+    expect(meRes.status).toBe(200);
+    expect(meSchema.parse(await meRes.json())).toEqual({
+      id: userA.id,
+      email: userA.email,
+      name: userA.name,
+    });
+    expect(userA.id).not.toBe(userB.id);
+  });
+
+  it("ログイン失敗はメールの登録有無で応答を変えず、内部情報を出さない", async () => {
     const { app } = await createTestApp();
     await signUp(app, {
       name: "A",
       email: "a@example.com",
       password: "password1",
     });
-    const res = await signIn(app, {
+    const existingUserRes = await signIn(app, {
       email: "a@example.com",
       password: "wrong-password",
     });
-    expect(res.status).toBeGreaterThanOrEqual(400);
-    const body = await res.json();
-    expect(JSON.stringify(body)).not.toMatch(/password1/);
-    expect(JSON.stringify(body).toLowerCase()).not.toContain("stack");
+    const unknownUserRes = await signIn(app, {
+      email: "unknown@example.com",
+      password: "wrong-password",
+    });
+
+    expect(existingUserRes.status).toBeGreaterThanOrEqual(400);
+    expect(unknownUserRes.status).toBe(existingUserRes.status);
+    const existingUserBody = await existingUserRes.json();
+    const unknownUserBody = await unknownUserRes.json();
+    expect(unknownUserBody).toEqual(existingUserBody);
+
+    const serializedBody = JSON.stringify(existingUserBody);
+    expect(serializedBody).not.toMatch(/password1|wrong-password/);
+    expect(serializedBody.toLowerCase()).not.toMatch(/stack|select|account\.password/);
   });
 
   it("未定義の /api/* も未認証なら 401（ルートの存在を漏らさない）", async () => {
