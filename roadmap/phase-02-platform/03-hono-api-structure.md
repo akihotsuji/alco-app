@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 2 土台実装 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-05） |
 | 要件 | 全 API 認証、Zod、secure-headers |
 | ソース | Phase 2「ルーティング分割、認証ミドルウェア、エラーハンドリング、Zodバリデーション」 |
 
@@ -51,15 +51,23 @@
 
 ## 6. 手順
 
-1. ルート構成案:
+1. ルート構成（実装済み）:
 
 ```
 src/server/
-  index.ts          # app 組み立て
-  middleware/auth.ts
-  middleware/error.ts
-  routes/me.ts
+  index.ts              # app 組み立て、AppType export
+  app-env.ts
+  errors.ts             # ApiError / code ↔ status
+  validation.ts         # validate(target, schema)
+  middleware/auth.ts    # PUBLIC_API_ROUTES / createAuthGuard
+  middleware/error.ts   # errorHandler / notFoundHandler
   routes/health.ts
+  routes/me.ts
+  services/             # 空（後続フェーズ）
+src/shared/
+  api-error.ts          # API_ERROR_CODES / apiErrorBodySchema
+  zod-config.ts         # ja ロケール + jitless
+public/_headers         # SPA 静的アセットの CSP 等
 ```
 
 2. `c.get("user")` を MW でセット。ハンドラは `body.userId` を見ない。
@@ -75,6 +83,19 @@ src/server/
 
 5. ブランチ: `feature/api-foundation`
 
+### 実装時の確定事項（2026-09-05）
+
+| 要確認だった点 | 確定 |
+|---|---|
+| CSP と SPA / インライン | Worker の `secureHeaders` は `/api/*` にしか届かない（`run_worker_first: ["/api/*"]`）。**API 応答は `default-src 'none'`、SPA は `public/_headers`** で `script-src 'self'; style-src 'self'`（`unsafe-inline` なし）。`pnpm build` → `wrangler dev --env dev` で `/login` → ログイン → ホーム → ログアウトを Chrome DevTools で確認し、CSP 違反ゼロ |
+| Vite 開発と本番の分離 | `pnpm dev`（Vite）では `_headers` は適用されない。React Fast Refresh がインラインスクリプトのため、開発時に CSP を掛けない方が正しい。本番相当の確認は wrangler dev で行う |
+| Zod の `new Function` プローブ | Zod v4 が JIT 可否判定で `new Function("")` を試し、CSP 違反として記録される（動作は壊れない）。`z.config({ jitless: true })` で抑止。`'unsafe-eval'` は足さない |
+| 認証 MW の掛け方 | ルート個別の `requireAuth` ではなく `/api/*` 全体に `createAuthGuard`。公開ルートは `PUBLIC_API_ROUTES` で除外するので登録順に依存しない。未認証の未定義 `/api/*` は 404 より先に 401 |
+| health と D1 | `GET /api/health` は Better Auth を組み立てない（D1 に触らない）。死活確認が DB 障害に巻き込まれない |
+| ZodError の扱い | ハンドラ内で `parse` が投げた ZodError も `onError` で 400 に寄せる。サーバー側データの検証は `safeParse` を使う（ルールに明記） |
+| HTTPException | `hono/validator` の壊れた JSON 等（400）はキー `""` の日本語メッセージ 1 件に置換し、Hono の英語文言をエコーしない。対応表にない 403 等は 500 `internal_error` にして 403 を出さない |
+| Better Auth のレート制限とテスト | メモリストアがプロセス共有なので、テストヘルパーがアプリごとに `cf-connecting-ip` を変えて 429 を避ける |
+
 ## 7. 仕様詳細
 
 api-conventions に書くこと:
@@ -88,12 +109,12 @@ api-conventions に書くこと:
 
 ## 8. 受け入れ条件
 
-- [ ] 保護ルートが未ログインで 401
-- [ ] `/api/health` は 200
-- [ ] エラー本文にスタック・パスがない
-- [ ] secure-headers が付く
-- [ ] api-conventions ルールがある
-- [ ] lint / typecheck / test
+- [x] 保護ルートが未ログインで 401（`src/server/auth.test.ts`。未定義 `/api/*` も 401）
+- [x] `/api/health` は 200（`src/server/index.test.ts`）
+- [x] エラー本文にスタック・パスがない（`src/server/middleware/error.test.ts`）
+- [x] secure-headers が付く（API: `index.test.ts`。SPA: `public/_headers` を wrangler dev で確認）
+- [x] api-conventions ルールがある（`.cursor/rules/api-conventions.mdc`）
+- [x] lint / typecheck / test
 
 ## 9. セキュリティ観点
 

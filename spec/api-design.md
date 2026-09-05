@@ -35,7 +35,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | JSON の瞬間時刻 | **ISO 8601 UTC**（`...Z`）。DB の Unix ms とはサーバーが変換 | 可読性と TZ 明示 |
 | カレンダー日 | **`YYYY-MM-DD`（Asia/Tokyo）** | data-model の `*_on` |
 | CORS | **全開放しない**。SPA と API は同一 Worker・同一オリジン | 余計なクロスオリジンを増やさない |
-| 未定義 `/api/*` | Phase 2 で `{ "error": "not_found" }` に統一（現状は `{ "ok": false }`） | 共通エラー形式。health 成功は `{ "ok": true }` のまま |
+| 未定義 `/api/*` | `{ "error": "not_found" }`（2-03 で統一済み）。**未認証なら 404 より先に 401**（ルートの存在を漏らさない） | 共通エラー形式。health 成功は `{ "ok": true }` のまま |
 
 ### 1.1 1-07 改訂（2026-09-05。承認待ち）
 
@@ -77,7 +77,8 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 - セッション Cookie: **httpOnly / secure（本番） / sameSite=Lax**（Strict は外部リンク戻りで消える。2-02 と一致）
 - 保護ルートは認証ミドルウェアでセッションを解決し、`c.get("user")` の **`user.id` だけ**を所有者キーにする
 - リクエストのボディ・クエリ・パスに `userId` を**含めない**（Zod スキーマにも置かない）。送ってきても無視せず、スキーマ不一致で 400
-- 未認証の保護ルートは **401** `{ "error": "unauthorized" }`
+- 未認証の保護ルートは **401** `{ "error": "unauthorized" }`。未定義の `/api/*` も未認証なら 401（認証 MW はルート解決より前に走る）
+- 認証 MW は `/api/*` 全体に 1 箇所で掛ける（`src/server/middleware/auth.ts` の `createAuthGuard`）。公開ルートの除外は同ファイルの `PUBLIC_API_ROUTES` だけで判定し、ルート側に認証の分岐を書かない（2-03）
 - ログイン試行のレート制限は Better Auth 標準を有効化する（2-02）。アプリ全体のレート制限は Phase 8
 
 ### 2.3 公開エンドポイント（オーナー承認対象）
@@ -157,10 +158,11 @@ WHERE id = :id AND user_id = :sessionUserId
 | 502 | `upstream_error` | Workers AI が失敗 / タイムアウト（ラベル読み取りのみ。詳細は出さない） |
 | 500 | `internal_error` | それ以外。スタック・SQL・内部パスは出さない |
 
-- `fields` のキーはリクエストのフィールド名（camelCase）。Zod の内部 path 配列やスキーマファイルパスは出さない
-- メッセージは日本語。値のエコーは最小（パスワードは絶対に返さない）
-- 詳細は Workers Logs のみ。Cookie・トークン・パスワードをログらない
-- Phase 0 の未定義ルート `{ "ok": false }` と 500 `{ "ok": false }` は **2-03 で本形式へ移行**する。`GET /api/health` の成功は変えない
+- `fields` のキーはリクエストのフィールド名（camelCase）。ネストは `.` 区切り（`log.volumeMl`、`photoIds.0`）。リクエスト全体の不備（未知キー、壊れた JSON、Content-Type 不一致）はキー `""`。Zod の内部 path 配列やスキーマファイルパスは出さない
+- メッセージは日本語（Zod の `ja` ロケール。`src/shared/zod-config.ts`）。値のエコーは最小（パスワードは絶対に返さない）
+- 詳細は Workers Logs のみ（メソッドとパスだけ。クエリ・ヘッダー・ボディは出さない）。Cookie・トークン・パスワードをログらない
+- エラーコードの一覧と本文スキーマは `src/shared/api-error.ts`（`API_ERROR_CODES` / `apiErrorBodySchema`）。ハンドラは `src/server/errors.ts` の `ApiError` を投げ、`src/server/middleware/error.ts` が本形式へ変換する（2-03）
+- Phase 0 の未定義ルート `{ "ok": false }` と 500 `{ "ok": false }` は **2-03 で本形式へ移行済み**。`GET /api/health` の成功は変えない
 
 存在しないリソースと権限のないリソースは、ステータスも本文も同じにする。**403 は使わない**。
 
@@ -206,7 +208,17 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 - SPA と API は同一オリジン。`Access-Control-Allow-Origin: *` は置かない
 - Vite 開発でオリジンが分かれる場合だけ、許可オリジンを明示し `credentials: true` にする（`*` は不可）。Better Auth の `trustedOrigins` と一致させる
-- 全レスポンスに `hono/secure-headers`（CSP・X-Content-Type-Options 等）。CSP の詳細は 2-03
+- セキュリティヘッダーは配信経路が 2 つあるため 2 箇所で付ける（2-03 で確定）:
+
+| 経路 | 対象 | 付与場所 | CSP |
+|---|---|---|---|
+| Worker | `/api/*` の JSON・写真バイナリ | `src/server/index.ts` の `hono/secure-headers` | `default-src 'none'; frame-ancestors 'none'`（API 応答にスクリプトは要らない）。加えて `X-Frame-Options: DENY`、nosniff、`Referrer-Policy: no-referrer`、CORP `same-origin` |
+| 静的アセット | SPA の HTML / JS / CSS | `public/_headers`（Workers Static Assets が読む。`run_worker_first` は `/api/*` のみなので Worker のヘッダーは届かない） | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
+
+- `script-src` / `style-src` に `'unsafe-inline'` を入れない。Vite のビルド出力は外部ファイル参照のみで、React の `style` prop は CSSOM 経由なので CSP に当たらない
+- Zod v4 は既定で `new Function("")` を試して JIT 可否を判定し、これが CSP 違反として記録される。`z.config({ jitless: true })`（`src/shared/zod-config.ts`）で抑止する。`'unsafe-eval'` は足さない
+- 緩める予定があるもの: 4-06 の端末内 WASM 背景除去で `script-src 'wasm-unsafe-eval'`（モデルを CDN から取るなら `connect-src` も）。変更時は本表を先に直す
+- Vite 開発サーバー（`pnpm dev`）では `_headers` は適用されない（React Fast Refresh がインラインスクリプトを使うため、適用すると開発が止まる）。CSP の確認は `pnpm build` → `wrangler dev --env dev` で行う
 
 ### 2.11 入力検証
 
@@ -675,9 +687,12 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 
 ```text
 src/server/
-  index.ts              # app 組み立て、secure-headers、onError
-  middleware/auth.ts    # 公開パス以外
-  middleware/error.ts
+  index.ts              # app 組み立て、secure-headers、onError / notFound、AppType の export
+  app-env.ts            # Hono Env 型（Variables: auth, user）
+  errors.ts             # ApiError と code ↔ status 対応表
+  validation.ts         # validate(target, schema): zod-validator 共通ラッパー（失敗は 400 validation_error）
+  middleware/auth.ts    # PUBLIC_API_ROUTES（公開パスの唯一のリスト）と createAuthGuard
+  middleware/error.ts   # errorHandler / notFoundHandler
   routes/health.ts
   routes/me.ts
   routes/drink-logs.ts  # /summary を /:id より前
@@ -685,26 +700,26 @@ src/server/
   routes/bottles.ts
   routes/tasting-notes.ts
   routes/photos.ts
+  services/             # 複数ルートで共有する業務ロジック
 ```
 
 ```text
 1. secure-headers
-2. /api/health
-3. /api/auth/*
-4. 認証 MW（上記以外の /api/*）
-5. 業務ルート（固定パスを :id より前）
-6. 未定義 /api/* → 404 { "error": "not_found" }
+2. 認証 MW（/api/* 全体。PUBLIC_API_ROUTES = GET /api/health, /api/auth/* は内部で除外）
+3. /api/auth/*（Better Auth handler）
+4. 業務ルート（/api/health, /api/me, …。固定パスを :id より前）
+5. 未定義 /api/* → 404 { "error": "not_found" }（未認証なら 2 で 401）
 ```
 
-Auth を MW で保護するとログイン不能になる。catch-all より前に Auth を置く。
+認証 MW は公開ルートを自分で除外するので、登録順に依存せずログインが通る。Auth（Better Auth インスタンス）の組み立ては保護ルートと `/api/auth/*` でだけ行い、`GET /api/health` は D1 に触らない。
 
-`export type AppType = typeof app`（または route 合成型）を 2-03 / 2-04 で出す。
+`export type AppType = ReturnType<typeof createApp>`（`src/server/index.ts`。2-03 で export 済み。2-04 の `hc<AppType>` が使う）。業務ルートは `createApp` 内の `.route()` チェーンに繋いで型に載せる。
 
 ---
 
-## 6. Phase 2 の `api-conventions` 草案
+## 6. `api-conventions` ルール
 
-2-03 で `.cursor/rules/api-conventions.mdc`（globs: `src/server/**`）へ落とす項目。
+2-03 で [`.cursor/rules/api-conventions.mdc`](../.cursor/rules/api-conventions.mdc)（globs: `src/server/**`）に落とした。ルール側が実装制約の正本で、以下は要点。
 
 1. ルートはリソース単位。チェーンは浅く、固定パスをパラメータより前に置く
 2. 公開パスは一箇所（`/api/health`, `/api/auth/*`）。追加は spec 更新が先
