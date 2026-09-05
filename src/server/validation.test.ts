@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import "@/shared/zod-locale.ts";
+import "@/shared/zod-config.ts";
 import type { AppEnv } from "./app-env.ts";
 import { errorHandler } from "./middleware/error.ts";
 import { validate } from "./validation.ts";

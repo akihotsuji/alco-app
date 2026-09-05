@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import "@/shared/zod-locale.ts";
+import "@/shared/zod-config.ts";
 import type { AppEnv } from "../app-env.ts";
 import { ApiError } from "../errors.ts";
 import { errorHandler, fieldsFromZodIssues, notFoundHandler } from "./error.ts";

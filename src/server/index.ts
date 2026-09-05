@@ -1,4 +1,4 @@
-import "@/shared/zod-locale.ts";
+import "@/shared/zod-config.ts";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import type { AppEnv } from "./app-env.ts";
