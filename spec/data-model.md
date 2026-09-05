@@ -499,7 +499,7 @@ CHECK (
 
 | 親 | 子 | ON DELETE | 理由 |
 |---|---|---|---|
-| `user.id` | アプリ 5 テーブルの `user_id` | CASCADE | アカウント削除で残党を出さない（削除 UI は将来） |
+| `user.id` | アプリ 6 テーブル（`ai_usage` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない（削除 UI は将来） |
 | `my_drinks.id` | `drink_logs.my_drink_id` | SET NULL | 過去ログを残す |
 | `bottles.id` | `drink_logs.bottle_id` | SET NULL | 記録と `drink_name` スナップショットを残す |
 | `bottles.id` | `tasting_notes.bottle_id` | SET NULL | ノートとスナップショットを残す |
@@ -541,7 +541,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 ## 10. Drizzle スキーマ草案
 
-Phase 2-01 の実装メモ。このブロックはドキュメントであり、`src/db` にはまだ置かない。Auth の `user` は CLI 生成物を import する。
+Phase 2-01 の実装メモ。**実装済み（1-07 改訂を含む）**: 正は [`src/db/schema.ts`](../src/db/schema.ts)（アプリ 6 テーブル。`ai_usage` を含む）と [`src/db/auth-schema.ts`](../src/db/auth-schema.ts)（Better Auth CLI 生成物）。enum 配列は [`src/shared/constants.ts`](../src/shared/constants.ts) から import し、CHECK 制約も drizzle-kit 経由（`check()`）で生成する。以下の草案は設計時の参考として残す。差分が出たら実装側を正とし、本表を更新する。
 
 ```ts
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
@@ -716,18 +716,18 @@ CHECK ((bottle_id IS NOT NULL) + (tasting_note_id IS NOT NULL) + (drink_log_id I
 CHECK (kind IN ('photo','cutout'))
 ```
 
-Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHECK が自動で出ない場合は SQL を手で足す。出しすぎは避ける（範囲・文字数は Zod）。
+Drizzle の `enum` オプションは TS 上の制約のみ。CHECK は `drizzle-orm/sqlite-core` の `check()` でスキーマに書き、drizzle-kit が SQL に出す（2-01 で実装済み。SQL を手で足さない）。出しすぎは避ける（範囲・文字数は Zod）。
 
 ---
 
-## 11. マイグレーション方針（Phase 2 へ委譲）
+## 11. マイグレーション方針
 
-詳細手順は Phase 2-01 と skill `db-migration`。本設計での固定事項:
+詳細手順は skill [`db-migration`](../.cursor/skills/db-migration/SKILL.md)（2-01 で作成）。初回マイグレーションは `src/db/migrations/0000_init.sql`（Auth 4 テーブル + アプリ 6 テーブル。1-07 改訂後のスキーマ）。本設計での固定事項:
 
 1. スキーマ変更は **drizzle-kit のマイグレーション経由のみ**。本番・共有 D1 への手書き `ALTER` 禁止
 2. `migrations/` の SQL と `meta/_journal.json` は git に含める
 3. down マイグレーションは使わない。修正は新しい forward migration
-4. 初回は Auth テーブル + アプリ 5 テーブルを同じ運用に乗せる（同一 PR でも 2-01 / 2-02 分割でも可）
+4. 初回は Auth テーブル + アプリ 6 テーブルを同じ運用に乗せる（2-01 で同一マイグレーション `0000_init` に収めた）
 5. リモート本番 apply は Phase 7。2-01 はローカル D1 のみ
 6. シードに管理者パスワードを埋め込まない
 
