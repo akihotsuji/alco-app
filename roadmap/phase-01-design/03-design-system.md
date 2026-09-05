@@ -91,7 +91,7 @@ shadcn:
 
 ## 8. 受け入れ条件
 
-- [x] `spec/design-system.md` がある（オーナー承認は PR。Phase 1 DoD）
+- [x] `spec/design-system.md` がある（オーナー承認 2026-09-04）
 - [x] トークン名が実装時にコピーできる
 - [x] ライト／ダーク両方のパレットが定義され、OS追従であることが書いてある
 - [x] ui-design ルールがある（`.cursor/rules/ui-design.mdc`）

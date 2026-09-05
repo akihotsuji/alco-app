@@ -108,7 +108,7 @@ alco-app/
 | audit | lockfile の既知脆弱性があれば失敗。npm の `/-/npm/v1/security/audits` は使わない（ソケットタイムアウトが多発するため）。例外を黙って無視しない |
 | 権限 | `permissions.contents: read` のみ。`pull_request_target` は使わない |
 | 禁止 | デプロイ、`CLOUDFLARE_API_TOKEN`、Better Auth secret の参照 |
-| ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェックにこの名前を指定する） |
+| ジョブ名 | `lint / typecheck / test / audit`（ruleset の必須チェックには使わない。2026-09-04） |
 
 ## ブランチ運用（0-08 FIX）
 
@@ -121,10 +121,12 @@ alco-app/
 | 対象 | デフォルトブランチ `main` |
 | 禁止 | 直接 push、force push、`main` 削除 |
 | 作業ブランチ | 切る直前に `git fetch origin main`。`git checkout -b feature/<内容> origin/main`（または `fix/`）。ローカル main / 未フェッチの origin から切らない |
-| PR | 必須。承認 0 人。マージは squash のみ |
-| 必須チェック | `lint / typecheck / test / audit`（0-07） |
+| PR | 必須。承認 0 人 |
+| マージ | merge / squash / rebase いずれも可 |
+| 必須チェック | **なし**（2026-09-04）。CI は回すが ruleset では止めない |
 | bypass | なし |
-| 適用 | オーナーが Administration で作成。エージェントトークンでは 403 |
+| 適用 | 2026-09-05 済み（id `22315799`）。エージェントトークンでは作成不可 |
+| 可視性 | **public**（Free で ruleset を使う。private にするなら Pro） |
 
 ## 環境（Cloudflare）
 

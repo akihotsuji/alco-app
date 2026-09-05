@@ -24,18 +24,7 @@
         "required_review_thread_resolution": false,
         "require_code_owner_review": false,
         "require_last_push_approval": false,
-        "allowed_merge_methods": ["squash"]
-      }
-    },
-    {
-      "type": "required_status_checks",
-      "parameters": {
-        "strict_required_status_checks_policy": false,
-        "required_status_checks": [
-          {
-            "context": "lint / typecheck / test / audit"
-          }
-        ]
+        "allowed_merge_methods": ["merge", "squash", "rebase"]
       }
     }
   ]

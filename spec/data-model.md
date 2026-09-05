@@ -261,7 +261,7 @@ erDiagram
 | 対象 | 範囲 |
 |---|---|
 | `volume_ml` | 整数 1〜5000 |
-| `abv_percent` | 0.1〜100。小数 1 桁まで。**0% は不可** |
+| `abv_percent` | 0〜100。小数 1 桁まで。**0% は可** |
 | `alcohol_g` | サーバー計算。保存は小数第 2 位（四捨五入） |
 | `drink_logs.memo` | 0〜500 |
 | `my_drinks.name` | 1〜40 |
@@ -293,7 +293,7 @@ erDiagram
 | drinkType | drink_type | text | NO | CHECK enum | 7 種 |
 | drinkName | drink_name | text | YES | ≦40 | マイドリンク名のスナップショット |
 | volumeMl | volume_ml | integer | NO | 1〜5000 | ml |
-| abvPercent | abv_percent | real | NO | 0.1〜100 | %。0 は不可 |
+| abvPercent | abv_percent | real | NO | 0〜100 | %。0 は可 |
 | alcoholG | alcohol_g | real | NO | 小数第 2 位 | サーバー再計算 |
 | memo | memo | text | YES | ≦500 | 任意メモ |
 | myDrinkId | my_drink_id | text | YES | FK → my_drinks.id SET NULL | 参照は任意。値の正はスナップショット列 |
@@ -313,7 +313,7 @@ erDiagram
 | name | name | text | NO | 1〜40 | 表示名 |
 | drinkType | drink_type | text | NO | CHECK enum | 7 種 |
 | volumeMl | volume_ml | integer | NO | 1〜5000 | プリセット量 |
-| abvPercent | abv_percent | real | NO | 0.1〜100 | プリセット度数。0 は不可 |
+| abvPercent | abv_percent | real | NO | 0〜100 | プリセット度数。0 は可 |
 | sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。DnD は後回し |
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
