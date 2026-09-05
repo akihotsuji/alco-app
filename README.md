@@ -39,8 +39,15 @@ pnpm dev
 
 ブラウザで確認する:
 
-- `/` … SPA の Hello World（「alco-app」）
+- `/login` `/signup` … メール＋パスワード（仕様は [spec/features/auth.md](spec/features/auth.md)）
+- `/` … ログイン後の空ホーム
 - `/api/health` … `{ "ok": true }`（公開エンドポイント。仕様は [spec/features/health.md](spec/features/health.md)）
+
+初回は `.dev.vars.example` をコピーして `.dev.vars` を作り、`BETTER_AUTH_SECRET` を入れる（値は git に含めない）。ローカル D1 へ初回マイグレーション（`0000_init`）を適用する:
+
+```powershell
+pnpm db:migrate:local
+```
 
 Phase 0 DoD の wrangler 単体確認（先にビルドが必要）:
 

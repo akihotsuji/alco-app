@@ -1,17 +1,41 @@
 import { Hono } from "hono";
+import { createMiddleware } from "hono/factory";
 import { secureHeaders } from "hono/secure-headers";
+import type { AppEnv } from "./app-env.ts";
+import { type Auth, createAuthFromEnv } from "./auth.ts";
+import { meRoute } from "./routes/me.ts";
 
-export const app = new Hono();
+export type CreateAppOptions = {
+  auth?: Auth;
+};
 
-app.use(secureHeaders());
+export function createApp(options: CreateAppOptions = {}) {
+  const app = new Hono<AppEnv>();
 
-app.get("/api/health", (c) => c.json({ ok: true }));
+  app.use(secureHeaders());
 
-app.all("/api/*", (c) => c.json({ ok: false }, 404));
+  const attachAuth = createMiddleware<AppEnv>(async (c, next) => {
+    const auth = options.auth ?? createAuthFromEnv(c.env, c.req.url);
+    c.set("auth", auth);
+    await next();
+  });
 
-app.onError((err, c) => {
-  console.error(err);
-  return c.json({ ok: false }, 500);
-});
+  app.get("/api/health", (c) => c.json({ ok: true }));
 
+  app.all("/api/auth/*", attachAuth, (c) => c.get("auth").handler(c.req.raw));
+
+  app.use("/api/me", attachAuth);
+  app.route("/api/me", meRoute);
+
+  app.all("/api/*", (c) => c.json({ ok: false }, 404));
+
+  app.onError((err, c) => {
+    console.error(err);
+    return c.json({ ok: false }, 500);
+  });
+
+  return app;
+}
+
+export const app = createApp();
 export default app;

@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 2 土台実装 |
-| ステータス | **未着手** |
+| ステータス | **完了** |
 | 要件 | [spec/01-requirements.md](../../spec/01-requirements.md) 1.1 メール＋パスワード |
 | ソース | Phase 2「サインアップ/ログイン/ログアウト、セッション管理（招待制は採用しない）」
 
@@ -13,7 +13,8 @@ Better Auth の標準機能で認証する。独自 JWT や自前パスワード
 
 ## 2. 前提条件
 
-- 2-01 で Auth 用テーブルが migrate 済み（または本タスクで同時）
+- 2-01 の `0000_init` に Auth 4 テーブル（`user` / `session` / `account` / `verification`）とアプリ 6 テーブルがある
+- Auth スキーマは 2-01 の CLI 生成物を正とする（`issuer` / `rate_limit` は足さない）
 - `BETTER_AUTH_SECRET` を `.dev.vars` に置く（gitignore 済み）
 - 公開エンドポイント `/api/auth/*` を api-design に明記済みであること
 
@@ -23,7 +24,7 @@ Better Auth の標準機能で認証する。独自 JWT や自前パスワード
 
 - サインアップ、ログイン、ログアウト
 - セッション Cookie（httpOnly / secure / sameSite）
-- ログイン試行のレート制限（Better Auth 標準）
+- ログイン試行のレート制限（Better Auth 標準。`rate_limit` テーブルは使わずメモリ）
 - クライアントのログイン/サインアップ画面（最低限）
 
 **対象外**
@@ -91,13 +92,13 @@ Phase 8-03 の「招待制の解除」は発生しない。同タスクはパス
 
 ## 8. 受け入れ条件
 
-- [ ] サインアップ → ログイン → ホーム（空）が実機ブラウザでできる（Phase 2 DoD の一部。レイアウトは 2-05）
-- [ ] ログアウトできる
-- [ ] Cookie が httpOnly
-- [ ] 独自トークン実装がない
-- [ ] 招待制のコード・フラグが無い（方針どおり）
-- [ ] `.dev.vars` がコミットされていない
-- [ ] security-audit Critical/High ゼロ
+- [x] サインアップ → ログイン → ホーム（空）が実機ブラウザでできる（Phase 2 DoD の一部。レイアウトは 2-05）
+- [x] ログアウトできる
+- [x] Cookie が httpOnly
+- [x] 独自トークン実装がない
+- [x] 招待制のコード・フラグが無い（方針どおり）
+- [x] `.dev.vars` がコミットされていない
+- [x] security-audit Critical/High ゼロ
 
 ## 9. セキュリティ観点
 
@@ -114,6 +115,7 @@ Phase 8-03 の「招待制の解除」は発生しない。同タスクはパス
 
 ## 11. リスク・注意点
 
+- 2-01 の `auth-schema.ts` を手で増やさない。`rateLimit.storage: "database"` は `rate_limit` を生成し、2-01 の 10 テーブル検証が壊れる
 - Workers での Better Auth 設定ミス（baseURL、trustedOrigins）
 - 招待制を後から足すと Auth 設定と仕様が再び分岐する。必要になったら Phase 8 で別途決める
 - メール検証（マジックリンク）を MVP でやるかは **要確認**。個人利用なら検証なしでも可

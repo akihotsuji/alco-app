@@ -1,2 +1,5 @@
 # ローカル用シークレットのひな形。コピーして .dev.vars を作る（.dev.vars はコミットしない）
-# BETTER_AUTH_SECRET=
+# 値は `openssl rand -hex 32` で生成し、チャットや git に貼らない
+BETTER_AUTH_SECRET=
+# 省略時はリクエストの origin を使う。本番 URL を dev に書かない
+# BETTER_AUTH_URL=
