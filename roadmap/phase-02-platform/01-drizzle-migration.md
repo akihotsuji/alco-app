@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 2 土台実装 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-05。1-07 改訂後のスキーマで実装） |
 | 要件 | スキーマ駆動、D1 |
 | ソース | Phase 2「Drizzleスキーマ実装とマイグレーション運用の確立（ローカルD1に適用）」 |
 
@@ -79,16 +79,23 @@ pnpm exec wrangler d1 execute alco-app-dev --local --env dev --command "SELECT n
 - 列名: DB snake_case、Drizzle `camelCase` マッピング
 - Better Auth のテーブルは公式スキーマを import または生成手順に従う。手で列を減らさない
 
-**要確認**: マイグレーションの journal を git に含める（含めるべき）。
+**確定**: マイグレーションの journal（`src/db/migrations/meta/`）は git に含める。Biome の整形対象からは除外する（drizzle-kit の出力を書き換えない）。
+
+**実装メモ（2026-09-05）**
+
+- Auth スキーマは Better Auth CLI（better-auth 1.7.2 / CLI 1.4.21）で生成し `src/db/auth-schema.ts` に置いた。2-02 で実設定から再生成して差分がないことを確認する
+- enum の CHECK は `check()` でスキーマに書き、drizzle-kit に出させる。バインド値が `?` のまま出力される問題は `sql.raw` の定数リテラルで回避（`schema.ts` の `inList()`）
+- `src/db/migrations.test.ts` が `node:sqlite` にマイグレーションを適用し、スキーマ同期・CHECK・FK 挙動を検証する（追加依存なし）
+- 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id` / `photos.kind` / `ai_usage`）を含めて実装した。data-model の 1-07 承認は PR レビューで行う
 
 ## 8. 受け入れ条件
 
-- [ ] ローカル D1 にテーブルがある
-- [ ] スキーマが data-model と一致
-- [ ] generate/apply 手順が skill にある
-- [ ] `pnpm typecheck` / lint / 既存テストがパス
-- [ ] リモートの本番 DB を叩いていない
-- [ ] security-audit: スキーマに秘密列なし
+- [x] ローカル D1 にテーブルがある
+- [x] スキーマが data-model と一致（`migrations.test.ts` で列・NOT NULL・インデックスを機械的に照合）
+- [x] generate/apply 手順が skill にある
+- [x] `pnpm typecheck` / lint / 既存テストがパス
+- [x] リモートの本番 DB を叩いていない（`--local` のみ）
+- [x] security-audit: スキーマに秘密列なし（`account.password` は Better Auth 管理列）
 
 ## 9. セキュリティ観点
 

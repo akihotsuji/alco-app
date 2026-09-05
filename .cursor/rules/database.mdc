@@ -10,7 +10,10 @@ alwaysApply: false
 
 ## マイグレーション
 
-- スキーマ変更は **drizzle-kit でマイグレーションを生成してから適用**する。共有 D1 への手書き `CREATE` / `ALTER` は禁止
+手順の詳細は skill [`db-migration`](../skills/db-migration/SKILL.md)。
+
+- スキーマ変更は **drizzle-kit でマイグレーションを生成してから適用**する（`pnpm db:generate --name <内容>` → `pnpm db:migrate:local`）。共有 D1 への手書き `CREATE` / `ALTER` は禁止
+- `src/db/migrations.test.ts` がスキーマと SQL の同期を検証する。スキーマを変えたら generate と test を同じ PR で通す
 - 生成された SQL と `meta/_journal.json` は必ずコミットする
 - 適用済みマイグレーションを書き換えて履歴を改ざんしない。修正は新しい forward migration
 - down（ロールバック SQL）は使わない。D1 は新しい migration で直す
@@ -32,7 +35,7 @@ alwaysApply: false
 
 ## Better Auth
 
-- `user` / `session` / `account` / `verification` を手で再定義したり列を削ったりしない。CLI 生成物を正とする
+- `user` / `session` / `account` / `verification` を手で再定義したり列を削ったりしない。CLI 生成物（`src/db/auth-schema.ts`）を正とする。再生成手順は skill `db-migration`
 - アプリ用の `users` テーブルは作らない（二重管理禁止）
 - `account.password` をアプリの SELECT やログに出さない
 - 追加プロフィール列が必要なら Better Auth の `additionalFields` を使い、勝手に `user` を ALTER しない
@@ -47,7 +50,7 @@ alwaysApply: false
 
 - 瞬間時刻は `integer` + `{ mode: "timestamp_ms" }`（UTC ミリ秒）
 - カレンダー日は `text` の `YYYY-MM-DD`（Asia/Tokyo）。UTC 日付にしない
-- `drink_type` / `bottle status` の値は data-model と `src/shared` の Zod を一致させる
+- `drink_type` / `bottle status` の値は `src/shared/constants.ts`（`DRINK_TYPES` / `BOTTLE_STATUSES`）を唯一のソースにし、DB CHECK と Zod enum の両方をそこから作る
 
 ## 禁止
 
