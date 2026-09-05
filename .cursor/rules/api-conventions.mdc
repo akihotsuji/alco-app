@@ -1,0 +1,73 @@
+---
+description: Hono API のルート構成・認可・入力検証・エラー形式・レスポンス型の規約
+globs: src/server/**
+alwaysApply: false
+---
+
+# API 規約
+
+正本は [spec/api-design.md](../../spec/api-design.md)（契約）と [security.mdc](security.mdc)（セキュリティ）。本ルールは `src/server/**` の実装制約。骨格は 2-03 で作成済み。新しいリソースは `routes/me.ts` と `validation.test.ts` の形を写す。
+
+## ディレクトリ
+
+```text
+src/server/
+  index.ts              # app 組み立て（secure-headers → 認証 MW → Better Auth → ルート → 404）。AppType を export
+  app-env.ts            # Hono の Env 型（Bindings / Variables: auth, user）
+  errors.ts             # ApiError と code ↔ status 対応表
+  validation.ts         # validate(target, schema): zod-validator の共通ラッパー
+  middleware/auth.ts    # PUBLIC_API_ROUTES と createAuthGuard
+  middleware/error.ts   # errorHandler / notFoundHandler
+  routes/<resource>.ts  # リソース単位の Hono。パスは index.ts で `/api/<resource>` に mount
+  services/             # 複数ルートで共有する業務ロジック（DB 操作・集計）。ルートに SQL を書き溜めない
+```
+
+- 1 リソース = 1 ファイル。`routes/drink-logs.ts` のように kebab-case
+- 固定パス（`/summary`、`/recognize`）は `/:id` より**前**に登録する
+- 新ルートは `index.ts` の `.route()` チェーンに繋ぐ（`AppType` に載せる。文（statement）で追加すると RPC 型から漏れる）
+- ルート・パス・メソッドは [spec/api-design.md](../../spec/api-design.md) 3 章にあるものだけ作る。無いものは先に仕様へ
+
+## 認可（最重要）
+
+- 認証は `index.ts` の `createAuthGuard` が `/api/*` 全体に掛ける。ルート側で個別に外せない
+- 公開ルートは `middleware/auth.ts` の **`PUBLIC_API_ROUTES` だけ**（`GET /api/health`、`/api/auth/*`）。追加は spec 2.3 の更新とオーナー承認が先。ルートファイルに「認証なし」の分岐を書かない
+- ハンドラは **`c.get("user").id` のみ**を所有者キーにする。ボディ・クエリ・パスの `userId` を読まない。Zod スキーマにも `userId` を置かない（送られてきたら `.strict()` で 400）
+- 一覧・詳細・更新・削除・集計・写真配信はすべて `eq(table.userId, user.id)` を条件に含める
+- 更新・削除は `and(eq(table.id, id), eq(table.userId, user.id))`。「存在確認してから更新」にしない
+- 他人の ID・存在しない ID・他人の参照 ID（`myDrinkId` / `bottleId` / `photoIds`）は **同じ 404** `throw new ApiError("not_found")`。403 を使わない
+- 公開ルートのハンドラで `c.get("user")` を読まない（未設定）
+
+## 入力検証
+
+- 外部入力（json / query / param / form）は **`validate(target, schema)`**（`src/server/validation.ts`）で受け、`c.req.valid(target)` から取り出す。検証前の `c.req.json()` / `c.req.query()` を DB・R2・レスポンスに渡さない
+- スキーマは `src/shared/` に置き、クライアントと共有する。数値の範囲・enum・文字数はそこで制限する
+- `alcoholG` / `drunkOn` / `id` / `createdAt` / `updatedAt` / `r2Key` は入力スキーマに置かない（サーバー計算・採番）
+- サーバー側データ（DB 行、AI 出力）を Zod で検証するときは `safeParse` を使う。`parse` の失敗は `errorHandler` が 400 にするため、リクエスト起因でないものに使わない
+- SQL は Drizzle のビルダーのみ。`sql` テンプレートの値はプレースホルダ。`LIKE` はユーザー入力の `%` / `_` をエスケープ
+
+## エラー
+
+- 業務エラーは `throw new ApiError(code, { fields? })`（`src/server/errors.ts`）。code は `src/shared/api-error.ts` の `API_ERROR_CODES`。`c.json({ error }, 4xx)` を各所で組み立てない
+- 未捕捉の例外は `errorHandler` が 500 `{ "error": "internal_error" }` にする。ハンドラで `try/catch` して握りつぶさない
+- クライアントに返すのは `error` コードと 400 の `fields` だけ。メッセージ・スタック・SQL・内部パス・Zod の path 配列を出さない
+- ログは `console.error` にメソッドとパスのみ。クエリ文字列・ヘッダー（Cookie）・ボディ・パスワードを出さない
+- `fields` のメッセージは日本語（`src/shared/zod-config.ts` を `index.ts` で読み込み済み）
+
+## レスポンス
+
+- 単一リソースはオブジェクトを直接。一覧は `{ items, nextCursor }`。削除は `{ ok: true }`。作成は 201
+- 瞬間時刻は ISO 8601 UTC 文字列、カレンダー日は `YYYY-MM-DD`（Asia/Tokyo）。DB の Unix ms との変換はサーバー
+- `userId` / `r2Key` / `account.password` / `user.image` をレスポンスに含めない
+- 戻り値は `c.json()` にリテラルを渡して型を確定させる（RPC の推論用）。`any` / `as` で型を作らない
+- CORS は付けない（SPA と同一オリジン）。`Access-Control-Allow-Origin: *` を置かない
+
+## セキュリティヘッダー
+
+- API 応答は `index.ts` の `secureHeaders`（CSP は `default-src 'none'`）。ルートで上書きしない
+- SPA の HTML / JS / CSS は静的アセット配信のため、CSP は `public/_headers`。緩める（`unsafe-inline`、外部オリジン、`wasm-unsafe-eval`）ときは spec 2.10 を先に更新する
+
+## テスト
+
+- リソースごとに `routes/<resource>.test.ts`。`createTestApp()` / `signUp()` / `cookieHeaderFrom()`（`test-helpers.ts`）で実際のセッション Cookie を使う
+- 必須ケース: 正常系、**未認証 401**、**ユーザー A の Cookie でユーザー B のリソースが 404**、バリデーション 400 の `fields` キー
+- 認可テストは「A が作成 → B の Cookie で GET / PATCH / DELETE → 404、A で再取得して未変更」まで書く

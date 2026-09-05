@@ -35,6 +35,13 @@ async function applyDrizzleMigrations(client: ReturnType<typeof createClient>) {
   await client.execute("PRAGMA foreign_keys = ON;");
 }
 
+type TestApp = ReturnType<typeof createApp>;
+
+// Better Auth のレート制限ストアはモジュール共有（メモリ）。テスト間で 429 を踏まないよう
+// アプリごとに別クライアント IP を名乗る
+const clientIpByApp = new WeakMap<TestApp, string>();
+let appCount = 0;
+
 export async function createTestApp() {
   const client = createClient({ url: ":memory:" });
   await applyDrizzleMigrations(client);
@@ -48,7 +55,18 @@ export async function createTestApp() {
     useSecureCookies: false,
   });
 
-  return { app: createApp({ auth }), auth };
+  const app = createApp({ auth });
+  appCount += 1;
+  clientIpByApp.set(app, `10.0.${Math.floor(appCount / 256)}.${appCount % 256}`);
+  return { app, auth };
+}
+
+function authHeaders(app: TestApp): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Origin: TEST_ORIGIN,
+    "cf-connecting-ip": clientIpByApp.get(app) ?? "10.0.0.0",
+  };
 }
 
 export function cookieHeaderFrom(response: Response): string {
@@ -60,29 +78,20 @@ export function cookieHeaderFrom(response: Response): string {
 }
 
 export async function signUp(
-  app: ReturnType<typeof createApp>,
+  app: TestApp,
   input: { name: string; email: string; password: string },
 ) {
   return app.request("/api/auth/sign-up/email", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Origin: TEST_ORIGIN,
-    },
+    headers: authHeaders(app),
     body: JSON.stringify(input),
   });
 }
 
-export async function signIn(
-  app: ReturnType<typeof createApp>,
-  input: { email: string; password: string },
-) {
+export async function signIn(app: TestApp, input: { email: string; password: string }) {
   return app.request("/api/auth/sign-in/email", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Origin: TEST_ORIGIN,
-    },
+    headers: authHeaders(app),
     body: JSON.stringify(input),
   });
 }

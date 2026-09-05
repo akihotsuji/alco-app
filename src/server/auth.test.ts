@@ -86,6 +86,38 @@ describe("認証 API", () => {
     expect(JSON.stringify(body).toLowerCase()).not.toContain("stack");
   });
 
+  it("未定義の /api/* も未認証なら 401（ルートの存在を漏らさない）", async () => {
+    const { app } = await createTestApp();
+    const res = await app.request("/api/not-a-real-route");
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
+  });
+
+  it("認証済みの未定義 /api/* は共通形式の 404", async () => {
+    const { app } = await createTestApp();
+    const signUpRes = await signUp(app, {
+      name: "A",
+      email: "a@example.com",
+      password: "password1",
+    });
+    expect(signUpRes.status).toBe(200);
+    const res = await app.request("/api/not-a-real-route", {
+      headers: { Cookie: cookieHeaderFrom(signUpRes) },
+    });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "not_found" });
+  });
+
+  it("公開ルートは Cookie なしで通る（health 200 / auth は Better Auth が処理）", async () => {
+    const { app } = await createTestApp();
+    const health = await app.request("/api/health");
+    expect(health.status).toBe(200);
+
+    const session = await app.request("/api/auth/get-session");
+    expect(session.status).toBe(200);
+    expect(await session.json()).toBeNull();
+  });
+
   it("ログアウト後は GET /api/me が 401 になる", async () => {
     const { app } = await createTestApp();
     const signUpRes = await signUp(app, {

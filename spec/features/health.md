@@ -13,7 +13,9 @@
 | GET | `/api/health` | なし | `{ "ok": true }` |
 
 - スタックトレース、アカウント ID、シークレット、バインディング内部名は返さない
-- 未定義の `/api/*` は、Phase 0 実装では `{ "ok": false }` の 404。**Phase 2-03 で共通エラー形式 `{ "error": "not_found" }` に揃える**（存在推測を避けるため詳細は出さない）
+- 未定義の `/api/*` は共通エラー形式 `{ "error": "not_found" }` の 404（2-03 で `{ "ok": false }` から移行済み。存在推測を避けるため詳細は出さない）。未認証なら 404 より先に 401 になる
+- 認証ミドルウェアの公開判定は `GET /api/health` の完全一致のみ（`HEAD` は Hono が GET として処理）。`POST /api/health` や `/api/health/…` は保護ルート扱い
+- 本エンドポイントは Better Auth（D1）に触らない。死活確認が DB 障害に巻き込まれないようにする
 - 成功契約 `{ "ok": true }` は変えない
 
 契約は `src/server/index.test.ts` で Hono の `app.request()` により固定する（0-06）。公開エンドポイントの一覧と認可の正本は [api-design.md](../api-design.md)。

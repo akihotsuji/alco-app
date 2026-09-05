@@ -1,0 +1,11 @@
+# 静的アセット（SPA の HTML / JS / CSS）に付けるセキュリティヘッダー。
+# Workers Static Assets が配信するため Worker の hono/secure-headers は届かない（run_worker_first は /api/* のみ）。
+# API 応答のヘッダーは src/server/index.ts。CSP を緩める変更は spec/api-design.md 2.10 を先に更新する。
+# script-src に 'unsafe-inline' を入れない。Vite のビルド出力は外部ファイル参照のみ。
+# 4-06（端末内 WASM 背景除去）で script-src に 'wasm-unsafe-eval' が必要になる。
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), microphone=()
