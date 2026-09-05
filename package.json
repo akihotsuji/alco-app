@@ -40,6 +40,9 @@
     "wrangler": "^4.127.0"
   },
   "pnpm": {
+    "overrides": {
+      "@esbuild-kit/core-utils>esbuild": "^0.25.0"
+    },
     "onlyBuiltDependencies": [
       "esbuild",
       "workerd"
