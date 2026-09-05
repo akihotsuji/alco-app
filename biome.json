@@ -8,6 +8,8 @@
   "files": {
     "includes": [
       "src/**",
+      "!src/db/migrations",
+      "drizzle.config.ts",
       "vite.config.ts",
       "vite.alias.ts",
       "vitest.config.ts",

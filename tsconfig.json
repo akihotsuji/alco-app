@@ -22,5 +22,5 @@
     },
     "types": ["./worker-configuration.d.ts", "vite/client", "node"]
   },
-  "include": ["src", "vite.config.ts", "vite.alias.ts", "vitest.config.ts"]
+  "include": ["src", "drizzle.config.ts", "vite.config.ts", "vite.alias.ts", "vitest.config.ts"]
 }

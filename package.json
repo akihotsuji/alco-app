@@ -12,6 +12,8 @@
     "preview": "vite preview",
     "dev:wrangler": "wrangler dev --env dev",
     "cf-typegen": "wrangler types --env dev",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply alco-app-dev --local --env dev",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome check --write .",
@@ -19,6 +21,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.11.1",
     "react": "^19.2.1",
     "react-dom": "^19.2.1"
@@ -30,6 +33,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.9.3",
     "vite": "^7.0.0",
     "vitest": "^5.0.0",
