@@ -1,7 +1,7 @@
 import { Camera } from "lucide-react";
 import { Link, useParams } from "react-router";
-import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import { isFutureTokyoDate, isValidLogDateParam, tokyoToday } from "@/client/lib/app-routes.ts";
+import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 
 export function LogDayPage() {
   const { date } = useParams();
