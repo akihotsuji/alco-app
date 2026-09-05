@@ -726,6 +726,7 @@
 
 .photo-edit-mascot.is-off {
   opacity: 0;
+  visibility: hidden;
 }
 
 .photo-edit-mascot.is-instant {

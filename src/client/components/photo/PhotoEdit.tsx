@@ -5,7 +5,7 @@ import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { applyPreset } from "@/client/lib/photo/apply-preset.ts";
-import { supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
+import { prefersReducedMotion, supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
 import {
   aspectForKind,
   clampScale,
@@ -34,6 +34,7 @@ export function PhotoEdit() {
   const [cutoutOn, setCutoutOn] = useState(getCutoutPref);
   const [processing, setProcessing] = useState(false);
   const [cutoutMessage, setCutoutMessage] = useState<string | null>(null);
+  const [mascotMounted, setMascotMounted] = useState(getComposeMascotPref);
   const filterSupported = useMemo(() => supportsCanvasFilter(), []);
   const cutoutSupported = kind === "cellar" && supportsBackgroundRemoval();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,11 +49,23 @@ export function PhotoEdit() {
     setOffsetX(0);
     setOffsetY(0);
     setFilterOn(filterSupported ? getColorCorrectionPref() : false);
-    setMascotOn(getComposeMascotPref());
+    const nextMascot = getComposeMascotPref();
+    setMascotOn(nextMascot);
+    setMascotMounted(nextMascot);
     setCutoutOn(getCutoutPref());
     setProcessing(false);
     setCutoutMessage(null);
   }, [open, filterSupported]);
+
+  useEffect(() => {
+    if (mascotOn) {
+      setMascotMounted(true);
+      return;
+    }
+    const delay = prefersReducedMotion() ? 0 : 200;
+    const timer = window.setTimeout(() => setMascotMounted(false), delay);
+    return () => window.clearTimeout(timer);
+  }, [mascotOn]);
 
   useEffect(() => {
     if (!source) {
@@ -226,9 +239,10 @@ export function PhotoEdit() {
               {decodeError ?? "この写真を読み込めませんでした"}
             </p>
           )}
-          {kind !== "cellar" && source && !decodeError ? (
+          {kind !== "cellar" && source && !decodeError && mascotMounted ? (
             <span
               className={`photo-edit-mascot${reducedMotionClass()}${mascotOn ? "" : " is-off"}`}
+              style={{ opacity: mascotOn ? 1 : 0 }}
             >
               <Mascot pose="surprised" size={64} aria-hidden />
             </span>
