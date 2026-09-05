@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import "@/shared/zod-config.ts";
 import type { AppEnv } from "./app-env.ts";
 import { errorHandler } from "./middleware/error.ts";
@@ -54,10 +55,10 @@ describe("validate()", () => {
       JSON.stringify({ drinkType: "sake", volumeMl: 0, memo: 1 }),
     );
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string; fields: Record<string, string[]> };
+    const body = apiErrorBodySchema.parse(await res.json());
     expect(body.error).toBe("validation_error");
-    expect(Object.keys(body.fields).sort()).toEqual(["drinkType", "memo", "volumeMl"]);
-    for (const messages of Object.values(body.fields)) {
+    expect(Object.keys(body.fields ?? {}).sort()).toEqual(["drinkType", "memo", "volumeMl"]);
+    for (const messages of Object.values(body.fields ?? {})) {
       for (const message of messages) {
         expect(message).toMatch(/[ぁ-んァ-ン一-龥]/);
       }
@@ -73,16 +74,16 @@ describe("validate()", () => {
       JSON.stringify({ drinkType: "wine", volumeMl: 125, userId: "someone-else" }),
     );
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string; fields: Record<string, string[]> };
-    expect(body.fields[""]?.[0]).toContain("userId");
+    const body = apiErrorBodySchema.parse(await res.json());
+    expect(body.fields?.[""]?.[0]).toContain("userId");
   });
 
   it("壊れた JSON は 400 validation_error（Hono の文言をエコーしない）", async () => {
     const res = await postJson(buildApp(), "{ not json");
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string; fields: Record<string, string[]> };
+    const body = apiErrorBodySchema.parse(await res.json());
     expect(body.error).toBe("validation_error");
-    expect(body.fields[""]).toEqual(["リクエストの形式が正しくありません"]);
+    expect(body.fields?.[""]).toEqual(["リクエストの形式が正しくありません"]);
   });
 
   it("クエリは coerce と既定値が効き、範囲外は 400", async () => {
@@ -94,7 +95,7 @@ describe("validate()", () => {
 
     const tooLarge = await buildApp().request("/items?limit=101");
     expect(tooLarge.status).toBe(400);
-    const body = (await tooLarge.json()) as { fields: Record<string, string[]> };
-    expect(Object.keys(body.fields)).toEqual(["limit"]);
+    const body = apiErrorBodySchema.parse(await tooLarge.json());
+    expect(Object.keys(body.fields ?? {})).toEqual(["limit"]);
   });
 });

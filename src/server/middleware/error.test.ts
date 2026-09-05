@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import "@/shared/zod-config.ts";
 import type { AppEnv } from "../app-env.ts";
 import { ApiError } from "../errors.ts";
@@ -63,10 +64,10 @@ describe("errorHandler", () => {
   it("ハンドラ内で投げられた ZodError は 400 validation_error（日本語メッセージ）", async () => {
     const res = await buildApp().request("/zod-error");
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string; fields: Record<string, string[]> };
+    const body = apiErrorBodySchema.parse(await res.json());
     expect(body.error).toBe("validation_error");
-    expect(Object.keys(body.fields)).toEqual(["volumeMl"]);
-    expect(body.fields.volumeMl?.[0]).toMatch(/[ぁ-んァ-ン一-龥]/);
+    expect(Object.keys(body.fields ?? {})).toEqual(["volumeMl"]);
+    expect(body.fields?.volumeMl?.[0]).toMatch(/[ぁ-んァ-ン一-龥]/);
   });
 
   it("HTTPException はステータスからコードへ寄せる", async () => {
@@ -76,9 +77,9 @@ describe("errorHandler", () => {
 
     const res400 = await buildApp().request("/http-400");
     expect(res400.status).toBe(400);
-    const body = (await res400.json()) as { error: string; fields: Record<string, string[]> };
+    const body = apiErrorBodySchema.parse(await res400.json());
     expect(body.error).toBe("validation_error");
-    expect(body.fields[""]).toHaveLength(1);
+    expect(body.fields?.[""]).toHaveLength(1);
     expect(JSON.stringify(body)).not.toContain("Malformed JSON");
   });
 
