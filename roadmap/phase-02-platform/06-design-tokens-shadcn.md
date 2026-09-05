@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 2 土台実装 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-05） |
 | 要件 | Tailwind + shadcn、design-system |
 | ソース | Phase 2「デザイントークン（Tailwind設定）とshadcn/ui導入、基本コンポーネント」 |
 
@@ -21,9 +21,9 @@
 
 **対象**
 
-- Tailwind CSS v4 または v3（導入時の shadcn 推奨に合わせる。**要確認**）
+- Tailwind CSS v4（`@tailwindcss/vite`。導入時点の shadcn Vite 手順）
 - CSS 変数（design-system の全トークン。1-07 / 1-08 追補の `--mascot-*` / `--shelf-*` / `--radius-photo` / `--tab-center-size` を含む）
-- shadcn: Button, Input, Label, Card, Tabs, Sonner or Toast, Dialog, Form（必要なら）。Sheet は使わない
+- shadcn: Button, Input, Label, Card, Dialog。Toast は 2-05 の `ToastProvider`（cheer / 5 秒 / タブ上配置が仕様どおり）。Tabs は下部タブが独自実装のため未導入。Form / Sheet は使わない
 - **`<Mascot pose size />`**（4 ポーズは 2-05 で `src/client/components/mascot/Mascot.tsx` に実装済み。本タスクは Tailwind / shadcn への載せ替えとトークン同期）
 - ログイン画面をこれらの部品で整える（キャラ `default` 120px。2-02 の見た目改善でも可）
 
@@ -70,17 +70,17 @@ OS の外観設定に追従する（2026-08-13 確定）。`:root` にライト�
 - フォントは 1-03 確定のシステムスタック。Web フォント CDN は足さない
 - shadcn は Default + Stone。ニューモーフィズムの `--shadow-outset` / `--shadow-inset` / `--shadow-primary` で上書きする。色帯ヘッダーは置かない
 
-**要確認**: Tailwind v4 の `@theme` と shadcn の互換。導入時点のドキュメントを正とする。
+Tailwind v4 は `@theme inline` で CSS 変数をユーティリティに写し、影は `@utility shadow-*` で `var(--shadow-*)` を参照する（ダーク切替で値が追従する）。`@custom-variant dark` は `prefers-color-scheme`。
 
 ## 8. 受け入れ条件
 
-- [ ] Button/Input/Card がストーリーなしでもログイン画面で使われている
-- [ ] `<Mascot />` 4 ポーズがライト／ダークで崩れない（黒目が見える）。SVG は [spec/assets/character/](../../spec/assets/character/) と同一
-- [ ] トークンが design-system と対応（ライト／ダーク両方）
-- [ ] OS のライト／ダーク切替で見た目が追従する（html に `.dark` 固定なし）
-- [ ] モバイル幅で崩れない
-- [ ] 追加依存の理由が PR にある
-- [ ] lint / typecheck
+- [x] Button/Input/Card がストーリーなしでもログイン画面で使われている
+- [x] `<Mascot />` 4 ポーズがライト／ダークで崩れない（黒目が見える）。SVG は [spec/assets/character/](../../spec/assets/character/) と同一
+- [x] トークンが design-system と対応（ライト／ダーク両方）
+- [x] OS のライト／ダーク切替で見た目が追従する（html に `.dark` 固定なし）
+- [x] モバイル幅で崩れない
+- [x] 追加依存の理由が PR にある
+- [x] lint / typecheck
 
 ## 9. セキュリティ観点
 

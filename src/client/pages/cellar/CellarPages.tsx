@@ -6,7 +6,9 @@ import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx"
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
+import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
+import { cn } from "@/client/lib/utils.ts";
 
 export function CellarPage() {
   return (
@@ -16,7 +18,7 @@ export function CellarPage() {
         <div className="shelf-board" />
       </div>
       <p className="empty-state-message">ボトルはまだありません。撮って 1 本目を並べましょう</p>
-      <Link className="btn-primary" to="/cellar/new?camera=1">
+      <Link className={cn(buttonVariants(), "empty-action")} to="/cellar/new?camera=1">
         ボトルを追加
       </Link>
     </div>

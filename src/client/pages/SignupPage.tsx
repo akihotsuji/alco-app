@@ -2,7 +2,12 @@ import { Eye, EyeOff } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
+import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
+import { Card, CardContent } from "@/client/components/ui/card.tsx";
+import { Input } from "@/client/components/ui/input.tsx";
+import { Label } from "@/client/components/ui/label.tsx";
 import { authClient } from "@/client/lib/auth-client.ts";
+import { cn } from "@/client/lib/utils.ts";
 import {
   AUTH_NAME_MAX_LENGTH,
   AUTH_PASSWORD_MIN_LENGTH,
@@ -57,70 +62,73 @@ export function SignupPage() {
   }
 
   return (
-    <main className="auth-page">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 py-6">
       <Mascot pose="default" size={120} aria-hidden />
-      <p className="auth-wordmark">alco-app</p>
-      <form className="auth-card" onSubmit={onSubmit} noValidate>
-        <h1 className="auth-title">アカウント作成</h1>
-        {error ? (
-          <p className="auth-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <label className="auth-label" htmlFor="signup-name">
-          表示名
-        </label>
-        <input
-          id="signup-name"
-          className="auth-input"
-          type="text"
-          autoComplete="name"
-          maxLength={AUTH_NAME_MAX_LENGTH}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <label className="auth-label" htmlFor="signup-email">
-          メール
-        </label>
-        <input
-          id="signup-email"
-          className="auth-input"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-        />
-        <label className="auth-label" htmlFor="signup-password">
-          パスワード（{AUTH_PASSWORD_MIN_LENGTH} 文字以上）
-        </label>
-        <div className="auth-password">
-          <input
-            id="signup-password"
-            className="auth-input"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            minLength={AUTH_PASSWORD_MIN_LENGTH}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-          <button
-            type="button"
-            className="auth-password-toggle"
-            onClick={() => setShowPassword((current) => !current)}
-            aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
-          >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
-        <button className="auth-submit" type="submit" disabled={!canSubmit}>
-          {submitting ? "登録中" : "登録する"}
-        </button>
-        <Link className="auth-link" to={loginHref}>
-          ログインへ
-        </Link>
-      </form>
+      <p className="mb-6 text-[13px] font-semibold text-muted">alco-app</p>
+      <Card className="w-full max-w-[360px] p-6">
+        <CardContent>
+          <form className="flex flex-col" onSubmit={onSubmit} noValidate>
+            <h1 className="mb-4 text-2xl font-semibold leading-[1.3]">アカウント作成</h1>
+            {error ? (
+              <p className="mb-4 text-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <Label htmlFor="signup-name">表示名</Label>
+            <Input
+              id="signup-name"
+              className="mb-4"
+              type="text"
+              autoComplete="name"
+              maxLength={AUTH_NAME_MAX_LENGTH}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <Label htmlFor="signup-email">メール</Label>
+            <Input
+              id="signup-email"
+              className="mb-4"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+            <Label htmlFor="signup-password">
+              パスワード（{AUTH_PASSWORD_MIN_LENGTH} 文字以上）
+            </Label>
+            <div className="auth-password mb-4">
+              <Input
+                id="signup-password"
+                className="pr-[52px]"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                minLength={AUTH_PASSWORD_MIN_LENGTH}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            <Button className="mt-2" type="submit" disabled={!canSubmit}>
+              {submitting ? "登録中" : "登録する"}
+            </Button>
+            <Link
+              className={cn(buttonVariants({ variant: "link" }), "mt-4 self-center")}
+              to={loginHref}
+            >
+              ログインへ
+            </Link>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }

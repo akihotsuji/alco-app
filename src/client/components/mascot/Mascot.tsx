@@ -197,6 +197,7 @@ export function Mascot({ pose = "default", size, "aria-hidden": ariaHidden }: Ma
       viewBox="0 0 120 160"
       width={width}
       height={size}
+      className="text-foreground"
       aria-hidden={ariaHidden ?? true}
       role="presentation"
       focusable="false"

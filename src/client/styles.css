@@ -1,3 +1,22 @@
+@import "tailwindcss";
+
+/* OS の外観設定に追従する。html に .dark は付けない（アプリ内切替なし）。 */
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+/*
+  design-system → shadcn / Tailwind 対応（値は :root が正）
+  --background/--surface → background / card
+  --foreground           → foreground
+  --muted                → muted-foreground
+  --primary              → primary
+  --primary-fg           → primary-foreground
+  --danger / --danger-fg → destructive / destructive-foreground
+  --ring                 → ring
+  --radius               → --radius-md
+  --radius-card          → --radius-lg
+  border                 → transparent（境界は影）
+*/
+
 :root {
   color-scheme: light dark;
   --background: #e6e0d6;
@@ -41,18 +60,15 @@
   --mascot-wine: #8e2f3c;
   --mascot-wine-light: #b34a5a;
   --mascot-ink: #1f1b17;
+  --mascot-line: var(--foreground);
+  --mascot-glow: rgba(255, 255, 255, 0.6);
   --shelf-glass: rgba(255, 255, 255, 0.34);
   --shelf-glass-edge: rgba(255, 255, 255, 0.85);
   --shelf-glass-shadow: 0 10px 16px -6px rgba(43, 38, 31, 0.35);
+  --shelf-ghost: rgba(43, 38, 31, 0.07);
   --shelf-h: 10px;
   --photo-ratio-log: 4 / 5;
   --photo-ratio-bottle: 2 / 3;
-  font-family:
-    system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Segoe UI", "Noto Sans JP", sans-serif;
-  line-height: 1.5;
-  font-size: var(--text-body);
-  color: var(--foreground);
-  background: var(--background);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -78,27 +94,92 @@
     --shelf-glass: rgba(255, 255, 255, 0.1);
     --shelf-glass-edge: rgba(255, 255, 255, 0.35);
     --shelf-glass-shadow: 0 10px 16px -6px rgba(0, 0, 0, 0.6);
+    --shelf-ghost: rgba(244, 237, 228, 0.07);
   }
 }
 
-* {
-  box-sizing: border-box;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-foreground: var(--primary-fg);
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--danger-fg);
+  --color-rest: var(--rest);
+  --color-score: var(--score);
+  --color-ring: var(--ring);
+  --color-card: var(--background);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--background);
+  --color-popover-foreground: var(--foreground);
+  --color-accent: var(--background);
+  --color-accent-foreground: var(--foreground);
+  --color-border: transparent;
+  --color-input: transparent;
+  --color-mascot-wine: var(--mascot-wine);
+  --color-mascot-wine-light: var(--mascot-wine-light);
+  --color-mascot-ink: var(--mascot-ink);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-card);
+  --font-sans:
+    system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Segoe UI", "Noto Sans JP", sans-serif;
 }
 
-body {
-  margin: 0;
-  min-height: 100dvh;
-  background: var(--background);
-  color: var(--foreground);
+@utility shadow-outset {
+  box-shadow: var(--shadow-outset);
+}
+
+@utility shadow-inset {
+  box-shadow: var(--shadow-inset);
+}
+
+@utility shadow-outset-sm {
+  box-shadow: var(--shadow-outset-sm);
+}
+
+@utility shadow-inset-sm {
+  box-shadow: var(--shadow-inset-sm);
+}
+
+@utility shadow-primary {
+  box-shadow: var(--shadow-primary);
+}
+
+@utility shadow-primary-pressed {
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.5;
+    color: var(--foreground);
+    background: var(--background);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 #root {
   min-height: 100dvh;
-}
-
-button,
-a {
-  font: inherit;
 }
 
 .auth-boot {
@@ -106,75 +187,8 @@ a {
   background: var(--background);
 }
 
-.auth-page {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-5);
-  gap: var(--space-2);
-}
-
-.auth-wordmark {
-  margin: 0 0 var(--space-5);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.auth-card {
-  width: min(100%, 360px);
-  padding: var(--space-5);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-outset);
-  display: flex;
-  flex-direction: column;
-}
-
-.auth-title {
-  margin: 0 0 var(--space-4);
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.auth-error {
-  margin: 0 0 var(--space-4);
-  color: var(--danger);
-  font-size: var(--text-body);
-}
-
-.auth-label {
-  margin-bottom: var(--space-2);
-  font-size: var(--text-body);
-}
-
-.auth-input {
-  width: 100%;
-  height: 48px;
-  margin-bottom: var(--space-4);
-  padding: 0 var(--space-4);
-  border: none;
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--foreground);
-  font: inherit;
-  box-shadow: var(--shadow-inset-sm);
-}
-
-.auth-input:focus {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
 .auth-password {
   position: relative;
-}
-
-.auth-password .auth-input {
-  padding-right: 52px;
 }
 
 .auth-password-toggle {
@@ -188,15 +202,9 @@ a {
   color: var(--muted);
   display: grid;
   place-items: center;
-  cursor: pointer;
 }
 
 .auth-password-toggle:focus-visible,
-.icon-btn:focus-visible,
-.btn-primary:focus-visible,
-.btn-secondary:focus-visible,
-.btn-text:focus-visible,
-.btn-danger:focus-visible,
 .header-text-link:focus-visible,
 .tab-item:focus-visible,
 .tab-center:focus-visible,
@@ -204,110 +212,6 @@ a {
 .app-toast-action:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
-}
-
-.auth-submit,
-.btn-primary {
-  width: 100%;
-  height: 52px;
-  border: none;
-  border-radius: var(--radius);
-  background: var(--primary);
-  color: var(--primary-fg);
-  font: inherit;
-  font-weight: 600;
-  box-shadow: var(--shadow-primary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.auth-submit {
-  margin-top: var(--space-2);
-}
-
-.auth-submit:disabled,
-.btn-primary:disabled,
-.btn-secondary:disabled,
-.btn-danger:disabled,
-.icon-btn:disabled,
-.icon-btn.is-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  width: 100%;
-  height: 52px;
-  border: none;
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--foreground);
-  font: inherit;
-  font-weight: 600;
-  box-shadow: var(--shadow-outset-sm);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.btn-danger {
-  width: 100%;
-  height: 52px;
-  border: none;
-  border-radius: var(--radius);
-  background: var(--danger);
-  color: var(--danger-fg);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-text {
-  width: 100%;
-  min-height: var(--tap-min);
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.auth-link {
-  margin-top: var(--space-4);
-  align-self: center;
-  min-height: var(--tap-min);
-  display: inline-flex;
-  align-items: center;
-  color: var(--primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.auth-link:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
-.icon-btn {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border: none;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--foreground);
-  box-shadow: var(--shadow-outset-sm);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  text-decoration: none;
-  padding: 0;
 }
 
 .app-shell {
@@ -408,7 +312,6 @@ a {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  cursor: pointer;
   border-radius: var(--radius);
 }
 
@@ -436,7 +339,6 @@ a {
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  cursor: pointer;
   position: relative;
   padding-bottom: 0;
 }
@@ -506,50 +408,7 @@ a {
   color: var(--primary);
   font: inherit;
   font-weight: 600;
-  cursor: pointer;
   min-height: var(--tap-min);
-}
-
-.app-dialog-root {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 20px calc(24px + env(safe-area-inset-bottom));
-}
-
-.app-dialog-scrim {
-  position: absolute;
-  inset: 0;
-  border: none;
-  padding: 0;
-  background: color-mix(in srgb, var(--foreground) 40%, transparent);
-  cursor: pointer;
-}
-
-.app-dialog {
-  position: relative;
-  width: 100%;
-  padding: var(--space-5);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-outset);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.app-dialog-title {
-  margin: 0;
-  font-size: var(--text-title);
-  font-weight: 600;
-}
-
-.app-dialog-body {
-  margin: 0;
-  font-size: var(--text-body);
 }
 
 .empty-state,
@@ -567,6 +426,11 @@ a {
 .empty-state-message {
   margin: 0;
   font-size: var(--text-body);
+}
+
+.empty-state .empty-action,
+.cellar-empty .empty-action {
+  width: min(100%, 280px);
 }
 
 .shelf-stage {
@@ -679,7 +543,6 @@ a {
   background: var(--surface);
   box-shadow: var(--shadow-inset);
   color: var(--foreground);
-  cursor: pointer;
 }
 
 .photo-tile-center {
@@ -782,9 +645,6 @@ a {
   position: relative;
   display: block;
   padding: var(--space-4) var(--space-4) 28px;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-outset);
   color: inherit;
   text-decoration: none;
   overflow: visible;
@@ -868,12 +728,6 @@ a {
   flex: 1;
 }
 
-.home-camera {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-}
-
 .home-mydrinks-head {
   display: flex;
   align-items: center;
@@ -949,7 +803,6 @@ a {
 .settings-logout {
   color: var(--danger);
   font-weight: 600;
-  cursor: pointer;
 }
 
 .settings-note {
@@ -967,7 +820,6 @@ a {
   background: var(--surface);
   box-shadow: var(--shadow-inset-sm);
   position: relative;
-  cursor: pointer;
 }
 
 .switch::after {

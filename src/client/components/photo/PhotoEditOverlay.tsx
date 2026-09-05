@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
+import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 
 export function PhotoEditOverlay() {
@@ -31,9 +32,9 @@ export function PhotoEditOverlay() {
         </div>
       </div>
       <div className="save-bar">
-        <button type="button" className="btn-primary" onClick={closePhotoEdit}>
+        <Button type="button" onClick={closePhotoEdit}>
           使う
-        </button>
+        </Button>
       </div>
     </div>
   );

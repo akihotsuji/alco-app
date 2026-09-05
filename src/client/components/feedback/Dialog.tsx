@@ -1,3 +1,11 @@
+import { Button } from "@/client/components/ui/button.tsx";
+import {
+  DialogContent,
+  DialogDescription,
+  Dialog as DialogRoot,
+  DialogTitle,
+} from "@/client/components/ui/dialog.tsx";
+
 type DialogProps = {
   open: boolean;
   title: string;
@@ -19,39 +27,46 @@ export function Dialog({
   onPrimary,
   onClose,
 }: DialogProps) {
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div className="app-dialog-root">
-      {destructive ? (
-        <div className="app-dialog-scrim" />
-      ) : (
-        <button type="button" className="app-dialog-scrim" aria-label="閉じる" onClick={onClose} />
-      )}
-      <div
-        className="app-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="app-dialog-title"
+    <DialogRoot
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        aria-describedby="app-dialog-body"
+        onInteractOutside={(event) => {
+          if (destructive) {
+            event.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(event) => {
+          if (destructive) {
+            event.preventDefault();
+          }
+        }}
       >
-        <h2 id="app-dialog-title" className="app-dialog-title">
+        <DialogTitle className="text-[length:var(--text-title)] font-semibold leading-[1.3]">
           {title}
-        </h2>
-        <p className="app-dialog-body">{body}</p>
-        <button
+        </DialogTitle>
+        <DialogDescription id="app-dialog-body" className="text-base text-foreground">
+          {body}
+        </DialogDescription>
+        <Button
           type="button"
-          className={destructive ? "btn-danger" : "btn-primary"}
+          variant={destructive ? "destructive" : "default"}
           onClick={onPrimary}
           disabled={pending}
         >
           {pending ? "処理中" : primaryLabel}
-        </button>
-        <button type="button" className="btn-text" onClick={onClose} disabled={pending}>
+        </Button>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
           キャンセル
-        </button>
-      </div>
-    </div>
+        </Button>
+      </DialogContent>
+    </DialogRoot>
   );
 }
