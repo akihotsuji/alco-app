@@ -13,8 +13,8 @@
 |---|---|
 | **完了** | 0-01〜0-09、1-01〜1-06。設計は 2026-09-04 承認。`protect-main` は 2026-09-05 適用（id `22315799`） |
 | **レビュー待ち** | **1-07 詳細画面設計**（`spec/screen-designs/`）と **1-08 キャラクター**（`spec/character.md`）。data-model / api-design / design-system の 1-07 改訂を含む |
-| **進行中** | Phase 2（2-01〜2-07 完了。認証・認可の回帰テストまで） |
-| **未着手** | 2-08 以降（写真パイプラインを追加） |
+| **進行中** | Phase 2（2-01〜2-08 完了） |
+| **未着手** | Phase 3 以降 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
@@ -141,7 +141,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 2-05 | 共通レイアウト | [05-common-layout.md](phase-02-platform/05-common-layout.md) | 完了 |
 | 2-06 | デザイントークンとshadcn/ui | [06-design-tokens-shadcn.md](phase-02-platform/06-design-tokens-shadcn.md) | 完了 |
 | 2-07 | 認証周りの単体テスト・APIテスト | [07-auth-tests.md](phase-02-platform/07-auth-tests.md) | 完了 |
-| 2-08 | 写真パイプライン基盤（撮影→編集→合成→R2、未紐付け GC） | [08-photo-pipeline.md](phase-02-platform/08-photo-pipeline.md) | 未着手 |
+| 2-08 | 写真パイプライン基盤（撮影→編集→合成→R2、未紐付け GC） | [08-photo-pipeline.md](phase-02-platform/08-photo-pipeline.md) | 完了 |
 
 ### Phase 3（7タスク）
 

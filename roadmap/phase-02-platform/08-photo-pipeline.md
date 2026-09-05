@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 2 土台実装 |
-| ステータス | **未着手** |
+| ステータス | **完了** |
 | 要件 | 記録・セラー・ノートで共通の写真取り込み・端末内加工・アップロード・認可付き配信・未紐付け GC |
 | ソース | [spec/screen-designs/07-photo-capture.md](../../spec/screen-designs/07-photo-capture.md)、[spec/character.md](../../spec/character.md) 5 章、api-design 4.7。2026-09-05 に Phase 4-04 から前倒し |
 
@@ -73,11 +73,11 @@ pnpm test; pnpm lint; pnpm typecheck
 ## 8. 受け入れ条件
 
 - [ ] 実機で撮影 → `photo-edit` → 未紐付けアップロードが動く
-- [ ] 出力 JPEG に EXIF が無い（位置情報が落ちている）
-- [ ] 他人の photo id は 404。SVG / GIF は 415。1MB 超は 413
-- [ ] 未紐付け 24h 超が Cron で消える（テスト）
-- [ ] 座標・合成の純粋関数に単体テスト
-- [ ] DoD 5 項
+- [x] 出力 JPEG に EXIF が無い（位置情報が落ちている）（Canvas 再エンコード）
+- [x] 他人の photo id は 404。SVG / GIF は 415。1MB 超は 413
+- [x] 未紐付け 24h 超が Cron で消える（テスト）
+- [x] 座標・合成の純粋関数に単体テスト
+- [x] DoD 5 項
 
 ## 9. セキュリティ観点
 

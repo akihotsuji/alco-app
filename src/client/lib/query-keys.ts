@@ -5,4 +5,5 @@
  */
 export const queryKeys = {
   me: ["me"] as const,
+  photos: ["photos"] as const,
 } as const;

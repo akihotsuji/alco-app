@@ -7,6 +7,7 @@ import { z } from "zod";
 import * as schema from "@/db/schema.ts";
 import { createAuth } from "./auth.ts";
 import { createApp } from "./index.ts";
+import { createMemoryR2 } from "./memory-r2.ts";
 
 const TEST_AUTH_SECRET = "test-only-not-a-production-secret!!";
 const TEST_ORIGIN = "http://localhost";
@@ -71,10 +72,11 @@ export async function createTestApp() {
     useSecureCookies: false,
   });
 
-  const app = createApp({ auth });
+  const photos = createMemoryR2();
+  const app = createApp({ auth, db, photos });
   appCount += 1;
   clientIpByApp.set(app, `10.0.${Math.floor(appCount / 256)}.${appCount % 256}`);
-  return { app, auth };
+  return { app, auth, db, photos };
 }
 
 function authHeaders(app: TestApp): Record<string, string> {

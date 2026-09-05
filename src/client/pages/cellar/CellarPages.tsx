@@ -37,18 +37,24 @@ export function BottleFormPage({ mode }: { mode: "new" | "edit" }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { openPhotoEdit } = usePhotoEdit();
+  const { startCapture, attachments, retryUpload, clearAttachment } = usePhotoEdit();
   const camera = searchParams.get("camera") === "1";
 
   useEffect(() => {
     if (mode === "new" && camera) {
-      openPhotoEdit("cellar");
+      void startCapture("cellar");
     }
-  }, [camera, mode, openPhotoEdit]);
+  }, [camera, mode, startCapture]);
 
   return (
     <div className="form-page">
-      <PhotoTile onClick={() => openPhotoEdit("cellar")} showMascot={false} />
+      <PhotoTile
+        onClick={() => void startCapture("cellar")}
+        showMascot={false}
+        attachment={attachments.cellar}
+        onRetry={() => void retryUpload("cellar")}
+        onClear={() => void clearAttachment("cellar")}
+      />
       <p className="form-placeholder">入力項目は Phase 4 で実装します</p>
       <SaveBar
         label={mode === "new" ? "棚に並べる" : "保存する"}

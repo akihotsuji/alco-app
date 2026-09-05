@@ -5,6 +5,9 @@
   "main": "./src/server/index.ts",
   "compatibility_date": "2026-09-03",
   "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    "crons": ["0 18 * * *"]
+  },
   "assets": {
     // Vite プラグイン利用時はビルド出力が自動で繋がる。wrangler dev --env dev 用に directory も残す
     "directory": "./dist/client",
@@ -27,7 +30,10 @@
           "binding": "PHOTOS",
           "bucket_name": "alco-app-photos-dev"
         }
-      ]
+      ],
+      "triggers": {
+        "crons": ["0 18 * * *"]
+      }
     }
   }
 }

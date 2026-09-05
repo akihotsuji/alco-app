@@ -102,7 +102,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] Hono RPC + TanStack Query のクライアント側データ取得基盤（`src/client/lib/api.ts` / `hooks/`。決定は [02-tech-stack.md](02-tech-stack.md) 「クライアントのデータ取得」）
 - [x] 共通レイアウト実装: 下部タブ（**記録が中央の円形ボタン**）、ヘッダー、トースト、ダイアログ、空・ローディング/エラー表示（[screen-designs/00-common.md](screen-designs/00-common.md) どおり）
 - [x] デザイントークン（Tailwind設定）とshadcn/ui導入、基本コンポーネント、**`<Mascot />` コンポーネント**（4 ポーズ）
-- [ ] **写真パイプライン基盤（2-08）**: `photo-edit`（撮影 → 比率切り抜き → 色補正 → キャラ合成 → JPEG）、`POST /api/photos`（magic bytes・1MB・未紐付け）、`GET /api/photos/:id/content`、未紐付け GC の Cron（[screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md)）
+- [x] **写真パイプライン基盤（2-08）**: `photo-edit`（撮影 → 比率切り抜き → 色補正 → キャラ合成 → JPEG）、`POST /api/photos`（magic bytes・1MB・未紐付け）、`GET /api/photos/:id/content`、未紐付け GC の Cron（[screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md)）
 - [x] 認証周りの単体テスト・APIテスト
 
 ### rules / skills
