@@ -1,9 +1,8 @@
 // Better Auth CLI の生成物。手で列を増減しない（.cursor/rules/database.mdc）。
-// 再生成: pnpm dlx @better-auth/cli@latest generate --config <auth設定> --output src/db/auth-schema.ts
-// 生成時のバージョン: better-auth 1.7.2 / @better-auth/cli 1.4.21（drizzleAdapter provider: "sqlite"）
-
+// 再生成: pnpm dlx auth@1.7.2 generate --config src/server/auth.cli.ts --output src/db/auth-schema.ts -y
+// 生成時のバージョン: better-auth 1.7.2（`@better-auth/cli@latest` 1.4.21 は account.issuer を出さない）
 import { relations, sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -45,6 +44,7 @@ export const account = sqliteTable(
   "account",
   {
     id: text("id").primaryKey(),
+    issuer: text("issuer").notNull(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
     userId: text("user_id")
@@ -68,7 +68,10 @@ export const account = sqliteTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("account_userId_idx").on(table.userId)],
+  (table) => [
+    uniqueIndex("account_issuer_accountId_uidx").on(table.issuer, table.accountId),
+    index("account_userId_idx").on(table.userId),
+  ],
 );
 
 export const verification = sqliteTable(

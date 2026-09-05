@@ -83,7 +83,7 @@ pnpm exec wrangler d1 execute alco-app-dev --local --env dev --command "SELECT n
 
 **実装メモ（2026-09-05）**
 
-- Auth スキーマは Better Auth CLI（better-auth 1.7.2 / CLI 1.4.21）で生成し `src/db/auth-schema.ts` に置いた。2-02 で実設定から再生成して差分がないことを確認する
+- Auth スキーマは Better Auth CLI（better-auth 1.7.2 / CLI 1.4.21）で生成し `src/db/auth-schema.ts` に置いた。2-02 で `auth@1.7.2` により `account.issuer` が追加された（`0000_init` は維持し forward migration）
 - enum の CHECK は `check()` でスキーマに書き、drizzle-kit に出させる。バインド値が `?` のまま出力される問題は `sql.raw` の定数リテラルで回避（`schema.ts` の `inList()`）
 - `src/db/migrations.test.ts` が `node:sqlite` にマイグレーションを適用し、スキーマ同期・CHECK・FK 挙動を検証する（追加依存なし）
 - 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id` / `photos.kind` / `ai_usage`）を含めて実装した。data-model の 1-07 承認は PR レビューで行う
