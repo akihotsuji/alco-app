@@ -103,14 +103,16 @@ pnpm exec wrangler d1 execute alco-app-dev --local --env dev --command "PRAGMA t
 `src/db/auth-schema.ts` は Better Auth CLI の出力。プラグイン追加や Better Auth のメジャーアップデートで列が増えたら CLI で再生成し、差分を drizzle-kit で forward migration にする。
 
 ```powershell
-pnpm dlx @better-auth/cli@latest generate --config src/server/auth.ts --output src/db/auth-schema.ts -y
+pnpm dlx auth@1.7.2 generate --config src/server/auth.cli.ts --output src/db/auth-schema.ts -y
 pnpm format
 pnpm db:generate --name better_auth_update
 ```
 
-- 2-01 時点では `src/server/auth.ts` が無いため、`drizzleAdapter({}, { provider: "sqlite" })` + `emailAndPassword` の最小設定で生成した（better-auth 1.7.2 / CLI 1.4.21）。2-02 で実設定に置き換えたら再生成して差分がないことを確認する
+- ランタイムの `better-auth` と同じバージョンの `auth` CLI を使う。`@better-auth/cli@latest`（1.4.21）は `account.issuer` を出さず、1.7.2 のサインアップが失敗する
+- 2-01 は CLI 1.4.21 で生成。2-02 で `auth@1.7.2` により `account.issuer` と unique index を追加し、`0001_better_auth_account_issuer` で forward した（`0000_init` は書き換えない）
 - 生成物の列を手で減らさない。`account.password` はアプリから SELECT しない
 - `usePlural` は使わない（テーブル名はライブラリ既定の単数形）
+- `rateLimit.storage: "database"` は `rate_limit` テーブルを生成する。2-01 / 2-02 では使わない（レート制限はメモリ）
 
 ## 禁止
 
