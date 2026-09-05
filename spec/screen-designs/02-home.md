@@ -45,7 +45,7 @@
 | H3 | 杯数 | スコア 40px | `totalCount`。0 のとき「0」 | 同上 |
 | H4 | 純アルコール | スコア 40px | `displayAlcoholGrams(totalAlcoholG)`、単位「g 純アルコール」 | 同上 |
 | H5 | 休肝ピル | ピル（`--rest`） | 記録 0 のとき杯数の右に「休肝」。0 でないときは非表示 | `totalCount === 0` |
-| H6 | 週マス | 7 マス | 月〜日（ISO 週、JST）。記録あり = primary 塗り inset、今日 = 枠線 2px primary、未来 = 薄く。タップで `summary-week` | `GET /api/drink-logs/summary?period=week` |
+| H6 | 週マス | 7 マス 28px、間隔 10px | 月〜日（ISO 週、JST）。記録あり = **`--primary` べた塗り・影なし**（inset を重ねない。2026-09-05 修正）、空 = `--shadow-inset-sm`、今日 = 外側リング 2px primary（記録ありの今日は地色 2px + primary 2px の二重リング）、未来 = 45%。タップで `summary-week` | `GET /api/drink-logs/summary?period=week` |
 | H7 | キャラクター | Mascot 72px | カード右下、外へ 12px はみ出す。記録あり `default`、0 `rest` | H3 |
 | H8 | 記録する | Button 主 | `/logs/new` | — |
 | H9 | カメラ | Button 副（円 52px、`camera`） | `/logs/new?camera=1`（開いた直後に撮影へ） | — |
@@ -124,7 +124,7 @@
 
 ## 受け入れチェック（3-03 / 3-06）
 
-- [ ] 今日カード: 杯 / g（表示丸め第 1 位）/ 休肝ピル / 週 7 マス / キャラ 72px（`default` ↔ `rest`）
+- [ ] 今日カード: 杯 / g（表示丸め第 1 位）/ 休肝ピル / 週 7 マス（記録あり = べた塗り、ぼやけた薄赤にならない）/ キャラ 72px（`default` ↔ `rest`）
 - [ ] 「記録する」+ カメラ円ボタン。カメラは `?camera=1` で撮影から始まる
 - [ ] マイドリンクチップ最大 4、1 タップ保存、遷移なし、トースト 5 秒 undo、楽観更新なし
 - [ ] 空状態文言と「登録」ボタン

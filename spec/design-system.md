@@ -61,7 +61,7 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 | `--rest` | `#2F5D3E` | 休肝ピルの文字 |
 | `--score` | `#7A3538` | 杯数・g |
 | `--ring` | `#7A3538` | フォーカス |
-| `--neu-light` | `#FFFFFF` | 外光 |
+| `--neu-light` | `rgba(255,255,255,0.8)` | 外光（2026-09-05: 純白 → 80%。強すぎると切り抜きに見える） |
 | `--neu-dark` | `#C9C2B6` | 外陰 |
 
 ### ダーク
@@ -142,15 +142,21 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 | `--tab-center-size` | 60px | 中央「記録」タブの円 |
 | `--radius-photo` | 20px | 写真・写真タイル |
 
-影（値をそのまま `box-shadow` に入れる）:
+影（値をそのまま `box-shadow` に入れる）。**部品の高さで 2 段階に分ける**（2026-09-05 改訂。小さい部品に大きい影を使うとハイライトが隣に被り、シールを重ねたように見える）:
 
-| トークン | ライト | ダーク |
-|---|---|---|
-| `--shadow-outset` | `8px 8px 16px #C9C2B6, -8px -8px 16px #FFFFFF` | `8px 8px 16px #1A1816, -6px -6px 14px #3A3632` |
-| `--shadow-inset` | `inset 6px 6px 12px #C9C2B6, inset -6px -6px 12px #F7F3EC` | `inset 6px 6px 12px #1A1816, inset -4px -4px 10px #3A3632` |
-| `--shadow-primary` | `6px 10px 18px rgba(122, 53, 56, 0.28)` | `6px 10px 18px rgba(0, 0, 0, 0.45)` |
+| トークン | 対象 | ライト | ダーク |
+|---|---|---|---|
+| `--shadow-outset` | 高さ 64px 以上（カード・行・写真タイル・トースト・ダイアログ） | `6px 6px 14px #C9C2B6, -6px -6px 14px rgba(255,255,255,0.8)` | `6px 6px 14px #1A1816, -5px -5px 12px #3A3632` |
+| `--shadow-inset` | 同上の沈み（写真枠、選択行） | `inset 5px 5px 10px #C9C2B6, inset -5px -5px 10px rgba(255,255,255,0.7)` | `inset 5px 5px 10px #1A1816, inset -4px -4px 9px #3A3632` |
+| `--shadow-outset-sm` | 高さ 64px 未満（チップ・タブ・円ボタン・ステッパー・ピル・サムネ） | `3px 3px 6px #C9C2B6, -3px -3px 6px rgba(255,255,255,0.8)` | `3px 3px 6px #1A1816, -3px -3px 6px #3A3632` |
+| `--shadow-inset-sm` | 同上の沈み（選択チップ・現在地タブ・入力欄・週マスの空） | `inset 2px 2px 5px #C9C2B6, inset -2px -2px 5px rgba(255,255,255,0.7)` | `inset 2px 2px 5px #1A1816, inset -2px -2px 5px #3A3632` |
+| `--shadow-primary` | 主ボタン・中央タブ | `6px 10px 18px rgba(122, 53, 56, 0.28)` | `6px 10px 18px rgba(0, 0, 0, 0.45)` |
 
-押下・選択中のチップ／週マスは `--shadow-inset`。入力も inset。カード・行・非選択チップは `--shadow-outset`。主ボタンは塗り + `--shadow-primary`。押下で `--shadow-inset` かつ少し暗くする。
+- ハイライトは純白ではなく **白 80%**（`--neu-light`）。地色に対して強すぎると影が「切り抜き」に見える
+- **隣り合う部品の間隔は影のぼかし以上**にする（小: 12px 以上、大: 16px 以上）。チップ列は横 12px・縦 10px
+- 主ボタンは塗り + `--shadow-primary`。押下で `inset 3px 3px 6px rgba(0,0,0,0.25)` かつ少し暗くする
+- **塗りのある小部品（週マスの記録あり、中央タブ）には inset を重ねない**。塗りに inset を掛けるとぼやけた薄赤になる（2026-09-05 指摘）。記録ありの週マスは `--primary` のべた塗り・影なし、今日は外側リング 2px、空のマスは `--shadow-inset-sm`
+- 入力欄は `--shadow-inset-sm`（高さ 48px）
 
 Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベルは使わない。
 
@@ -178,19 +184,25 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | 部品 | 方針 |
 |---|---|
 | Button 主 | `--primary` 塗り、角 `--radius`、高さ 52px、`--shadow-primary` |
-| Button 副 | 地色 + `--shadow-outset`。押下 inset |
-| Input | 地色 + `--shadow-inset`。枠線なし。ラベル 16px |
+| Button 副 | 地色 + `--shadow-outset-sm`。押下 inset-sm |
+| Input | 地色 + `--shadow-inset-sm`。枠線なし。ラベル 16px |
 | Card | 地色 + `--shadow-outset`、角 `--radius-card`。色帯ヘッダーは置かない |
-| Tabs | 下部。アクティブは inset + primary 色のアイコン |
+| Tabs | 下部。アクティブは inset-sm + primary 色のアイコン |
+| Chip | 地色 + `--shadow-outset-sm`、高さ 40px、間隔 横 12px / 縦 10px。選択は inset-sm + primary 文字 |
+| 2 択セグメント（表示切替） | inset-sm の溝の中に、選択側だけ outset-sm の玉。高さ 40px |
+| 週マス | 28px。記録あり = `--primary` べた塗り（影なし）、今日 = 外側リング 2px、空 = inset-sm、未来 = 45% |
 | Dialog | 地色カード。タイトルはテキストのみ |
 | Sheet | 使わない |
 | Toast | 地色 + outset。undo は primary テキスト。保存成功時は左端に `cheer` 32px |
 | 行 | 地色 + outset。左 48px サムネ、高さ 64px 以上 |
 | 中央タブ（記録） | 直径 `--tab-center-size` の円。`--primary` 塗り + `--shadow-primary`、タブバー上端から 12px 浮く。アイコンはグラス。他 4 タブは従来どおり |
-| 写真タイル（撮影前） | 地色 + inset、角 `--radius-photo`、中央にカメラアイコン + 「写真を撮る」。右下に `surprised` 48px |
+| 写真タイル（撮影前） | 地色 + inset、角 `--radius-photo`、中央にカメラアイコン + 「写真を撮る」。右下に `surprised` 48px（セラーでは出さない） |
 | 写真（撮影後） | 角 `--radius-photo`、inset 枠。比率は文脈で固定（記録・ノート 4:5、セラー 2:3） |
-| 棚（セラー） | 横一杯の棚板 `--shelf-rail` 高さ 14px + 下に `--shadow-outset`。ボトルは棚板の上に 3 本／段（390px）。棚板は 2:3 の写真の下端に接する |
-| 貯蔵庫（アーカイブ）のボトル | 同じ棚。写真に `filter: saturate(0.6) brightness(0.92)`。右上に消費日ピル |
+| 棚（セラー） | **地色の上にガラス風の棚板**（2026-09-05 決定）。棚板は横一杯、高さ `--shelf-h` 10px、塗り `--shelf-glass`、上辺 1px `--shelf-glass-edge`、下に `--shelf-glass-shadow`。**切り抜いたボトル**（背景除去済み、透過）が棚板の上に立つ。3 本／段（390px）。段の間隔 24px |
+| 棚（種類ごと表示） | 種類ごとに 1 段。段の左上に種類名の **ゴースト見出し**（44px / 700、`--shelf-ghost`、ボトルの背後）+ 本数。段は横スクロール。棚板は本数分の幅 |
+| 切り抜けなかったボトル | 2:3 の長方形写真（角 8px、`cellar` プリセット済み）を棚板に載せる。写真なしは種類別シルエット（線 `--muted`、inset-sm の枠） |
+| 貯蔵庫（アーカイブ）のボトル | 同じ棚。切り抜きに `filter: saturate(0.5) brightness(0.9)`。右上に消費日ピル |
+| AI 読み取りの印 | フィールド右端に `pill.ai`（20px、`sparkles` アイコン + 「AI」、primary 文字）。ユーザーが編集したら消す |
 | 空状態 | 説明 1 行 + 主ボタン。上にキャラクター 96px（ポーズは character.md） |
 
 アイコン: **lucide-react**、ストローク 2、絵文字禁止。
@@ -219,8 +231,11 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 
 | トークン | ライト | ダーク | 用途 |
 |---|---|---|---|
-| `--shelf-rail` | `#B99A78` | `#5A4634` | 棚板の塗り |
-| `--shelf-rail-edge` | `#8F7458` | `#3E2F22` | 棚板の前面下辺 2px |
+| `--shelf-glass` | `rgba(255,255,255,0.34)` | `rgba(255,255,255,0.10)` | ガラス棚板の塗り |
+| `--shelf-glass-edge` | `rgba(255,255,255,0.85)` | `rgba(255,255,255,0.35)` | 棚板の上辺 1px |
+| `--shelf-glass-shadow` | `0 10px 16px -6px rgba(43,38,31,0.35)` | `0 10px 16px -6px rgba(0,0,0,0.6)` | 棚板の落ち影 |
+| `--shelf-ghost` | `rgba(43,38,31,0.07)` | `rgba(244,237,228,0.07)` | 種類ごと表示のゴースト見出し |
+| `--shelf-h` | 10px | 10px | 棚板の厚み |
 | `--radius-photo` | 20px | 20px | 写真の角 |
 | `--photo-ratio-log` | 4 / 5 | 同じ | 記録・ノート写真 |
 | `--photo-ratio-bottle` | 2 / 3 | 同じ | セラー写真 |
@@ -235,7 +250,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | `cellar` | `saturate(1.05) contrast(1.06) brightness(0.97) sepia(0.10)` + 周辺減光（半径 0.75、濃度 0.25） | セラー陳列 |
 | `none` | なし | ユーザーが OFF にしたとき |
 
-棚板の上に載る写真は **2:3 縦**。切り抜き（背景除去）は MVP では行わない（[screen-designs/04-cellar.md](screen-designs/04-cellar.md) の v1.x 注記）。
+セラーの写真は 2:3 に切ったあと **端末内で背景除去**し、透過 WebP として保存する（2026-09-05 に MVP へ）。除去できない・未対応の端末では長方形のまま保存し、棚では角 8px の写真として載せる（[screen-designs/04-cellar.md](screen-designs/04-cellar.md) 陳列の写真、[07-photo-capture.md](screen-designs/07-photo-capture.md)）。
 
 ---
 
@@ -271,9 +286,10 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 --text-caption --text-body --text-title --text-score
 --space-1 … --space-8 --tap-min
 --radius --radius-card --radius-pill --radius-photo --header-h --tab-h --tab-center-size
---shadow-outset --shadow-inset --shadow-primary
+--shadow-outset --shadow-inset --shadow-outset-sm --shadow-inset-sm --shadow-primary
 --mascot-wine --mascot-wine-light --mascot-ink --mascot-line --mascot-glow
---shelf-rail --shelf-rail-edge --photo-ratio-log --photo-ratio-bottle
+--shelf-glass --shelf-glass-edge --shelf-glass-shadow --shelf-ghost --shelf-h
+--photo-ratio-log --photo-ratio-bottle
 ```
 
 shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`destructive` → `--danger`、`muted-foreground` → `--muted`、`radius` → `--radius`。`border` は `transparent` 相当。
@@ -309,6 +325,7 @@ shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`de
 |---|---|
 | 2026-09-04 | ニューモーフィズムへ方針変更。セラー風陳列は「将来」とした |
 | 2026-09-05 | オーナー指示により **陳列を MVP へ繰り上げ**。キャラクター・写真・中央タブのトークンを追補。`--tab-h` 64 → 72 |
+| 2026-09-05（2 回目） | デザイン崩れの修正: 影を部品サイズで 2 段階化（`-sm` 追加）、ハイライトを白 80% に、塗り部品に inset を重ねない（週マス）。棚を **ガラス風の棚板 + 切り抜きボトル**に変更し `--shelf-rail*` を `--shelf-glass*` に置換。種類ごと表示のゴースト見出し。AI 読み取りの印 |
 
 ---
 

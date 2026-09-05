@@ -26,44 +26,48 @@
     .header { height: var(--header-h); flex: none; display: flex; align-items: center; padding: 0 16px; gap: 12px; }
     .header h1 { flex: 1; margin: 0; font-size: var(--text-title); font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .header h1 small { font-size: 13px; color: var(--muted); font-weight: 600; margin-left: 6px; }
-    .icon-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; box-shadow: var(--shadow-outset); flex: none; }
+    .icon-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; box-shadow: var(--shadow-outset-sm); flex: none; }
     .icon-btn svg, .ico { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .body { flex: 1; overflow: hidden; padding: 8px 20px 16px; }
     .tabs { height: var(--tab-h); flex: none; display: grid; grid-template-columns: repeat(5, 1fr); padding: 8px 12px 12px; align-items: center; position: relative; }
     .tab { height: 48px; border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: var(--text-caption); color: var(--muted); }
-    .tab.on { color: var(--primary); box-shadow: var(--shadow-inset); }
+    .tab.on { color: var(--primary); box-shadow: var(--shadow-inset-sm); }
     .tab svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .tab.center { height: auto; box-shadow: none; gap: 4px; margin-top: -24px; }
     .tab.center .circle { width: var(--tab-center-size); height: var(--tab-center-size); border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; box-shadow: var(--shadow-primary); }
     .tab.center .circle svg { width: 26px; height: 26px; }
-    .tab.center.on .circle { box-shadow: var(--shadow-inset), inset 0 0 0 999px rgba(0,0,0,0.08); }
+    .tab.center.on .circle { box-shadow: inset 3px 3px 6px rgba(0,0,0,0.25); }
     .tab.center.on { color: var(--primary); }
     .btn { width: 100%; min-height: 52px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-weight: 600; }
     .btn-primary { background: var(--primary); color: var(--primary-fg); box-shadow: var(--shadow-primary); }
-    .btn-secondary { box-shadow: var(--shadow-outset); }
+    .btn-secondary { box-shadow: var(--shadow-outset-sm); }
     .btn-danger { color: var(--danger); font-weight: 600; text-align: center; padding: 12px; }
-    .btn-circle { width: 52px; height: 52px; min-height: 52px; border-radius: 50%; flex: none; box-shadow: var(--shadow-outset); display: grid; place-items: center; }
+    .btn-circle { width: 52px; height: 52px; min-height: 52px; border-radius: 50%; flex: none; box-shadow: var(--shadow-outset-sm); display: grid; place-items: center; }
     .btn-circle svg { width: 22px; height: 22px; }
     .actions { display: flex; gap: 12px; align-items: center; }
     .card { border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-outset); position: relative; }
-    .chip { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); font-size: 14px; margin: 0 8px 8px 0; box-shadow: var(--shadow-outset); white-space: nowrap; }
-    .chip.on { box-shadow: var(--shadow-inset); color: var(--primary); font-weight: 600; }
+    .chip { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); font-size: 14px; margin: 0 12px 10px 0; box-shadow: var(--shadow-outset-sm); white-space: nowrap; }
+    .chip.on { box-shadow: var(--shadow-inset-sm); color: var(--primary); font-weight: 600; }
     .chip svg { width: 16px; height: 16px; margin-right: 6px; }
-    .chips { white-space: nowrap; overflow: hidden; }
-    .row { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 14px; border-radius: var(--radius); box-shadow: var(--shadow-outset); margin-bottom: 12px; }
+    .chips { white-space: nowrap; overflow: hidden; padding: 4px 0 0; }
+    .seg2 { display: inline-flex; border-radius: var(--radius-pill); box-shadow: var(--shadow-inset-sm); padding: 3px; margin: 0 12px 10px 0; vertical-align: top; }
+    .seg2 span { min-height: 34px; padding: 0 12px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; font-size: 13px; color: var(--muted); }
+    .seg2 span.on { background: var(--background); box-shadow: var(--shadow-outset-sm); color: var(--primary); font-weight: 600; }
+    .row { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 14px; border-radius: var(--radius); box-shadow: var(--shadow-outset); margin-bottom: 14px; }
     .row.hl { box-shadow: var(--shadow-inset), 0 0 0 2px var(--primary); }
     .row .meta { margin-left: auto; color: var(--muted); font-size: 13px; white-space: nowrap; }
     .row .sub { color: var(--muted); font-size: 13px; }
     .thumb { width: 48px; height: 48px; border-radius: 14px; flex: none; overflow: hidden; display: grid; place-items: center; }
-    .thumb.in { box-shadow: var(--shadow-inset); color: var(--muted); }
-    .field { width: 100%; min-height: 48px; border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow-inset); display: flex; align-items: center; gap: 10px; }
+    .thumb.in { box-shadow: var(--shadow-inset-sm); color: var(--muted); }
+    .field { width: 100%; min-height: 48px; border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow-inset-sm); display: flex; align-items: center; gap: 10px; }
     .label { color: var(--muted); font-size: 13px; margin: 14px 0 8px; font-weight: 600; display: flex; justify-content: space-between; }
     .score { font-size: var(--text-score); font-weight: 650; color: var(--score); line-height: 1; letter-spacing: -0.03em; }
-    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 16px; text-align: center; }
+    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 16px; text-align: center; }
     .week .d { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
-    .cell { height: 28px; border-radius: 8px; box-shadow: var(--shadow-outset); }
-    .cell.fill { background: var(--primary); box-shadow: var(--shadow-inset); }
-    .cell.today { box-shadow: var(--shadow-inset), inset 0 0 0 2px var(--primary); }
+    .cell { height: 28px; border-radius: 8px; box-shadow: var(--shadow-inset-sm); }
+    .cell.fill { background: var(--primary); box-shadow: none; }
+    .cell.today { box-shadow: var(--shadow-inset-sm), inset 0 0 0 2px var(--primary); }
+    .cell.fill.today { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--primary); }
     .cell.future { opacity: 0.45; }
     .prop { display: flex; justify-content: space-between; padding: 12px 0; }
     .prop + .prop { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--muted) 20%, transparent); }
@@ -73,8 +77,10 @@
     .toast { position: absolute; left: 20px; right: 20px; bottom: 88px; border-radius: var(--radius); padding: 10px 16px 10px 12px; min-height: 52px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-outset); background: var(--background); }
     .toast .act { margin-left: auto; color: var(--primary); font-weight: 700; }
     .eyebrow { margin: 0 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
-    .badge { display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: var(--radius-pill); color: var(--rest); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-inset); }
-    .pill { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; color: var(--primary); box-shadow: var(--shadow-inset); }
+    .badge { display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: var(--radius-pill); color: var(--rest); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-inset-sm); }
+    .pill { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; color: var(--primary); box-shadow: var(--shadow-inset-sm); }
+    .pill.ai { height: 20px; font-size: 11px; padding: 0 7px; gap: 3px; }
+    .pill.ai svg { width: 11px; height: 11px; }
     .spacer { width: 40px; }
     .grow { flex: 1; min-width: 0; }
     .ellip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -86,32 +92,32 @@
     .ptile { position: relative; width: 100%; height: 120px; border-radius: var(--radius-photo); box-shadow: var(--shadow-inset); display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-weight: 600; }
     .ptile .cam { width: 28px; height: 28px; }
     .ptile .mascot { position: absolute; right: 14px; bottom: 8px; width: 36px; height: 48px; }
-    .ptile.bottle { width: 100px; height: 150px; flex-direction: column; font-size: 13px; gap: 6px; }
     .photo { position: relative; border-radius: var(--radius-photo); box-shadow: var(--shadow-inset); overflow: hidden; }
     .photo-log { aspect-ratio: 4 / 5; }
-    .photo-bottle { aspect-ratio: 2 / 3; }
     .p-table { background: radial-gradient(120% 90% at 30% 20%, #d8c3a5 0%, #9c7a55 45%, #3b2a1f 100%); }
     .p-red { background: linear-gradient(165deg, #6a2030, #3a1018); }
     .p-malt { background: linear-gradient(165deg, #8a6230, #3a2410); }
-    .p-white { background: linear-gradient(165deg, #cfc08a, #7d7248); }
-    .p-sake { background: linear-gradient(165deg, #7d8f9a, #3a4750); }
-    .p-beer { background: linear-gradient(165deg, #c7952f, #6b4a12); }
-    .archived .photo { filter: saturate(0.6) brightness(0.92); }
     .photo .stamp { position: absolute; right: 4%; bottom: 4%; width: 22%; aspect-ratio: 3 / 4; color: #2B261F; }
     .photo .stamp::before { content: ""; position: absolute; inset: 8% -8% 4% -8%; border-radius: 50%; background: var(--mascot-glow); filter: blur(3px); }
     .photo .stamp svg { position: relative; }
     .glass-sil { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 40%; height: 60%; fill: rgba(120, 30, 40, 0.85); stroke: rgba(255,255,255,0.7); stroke-width: 2; }
-    .bot-sil { width: 60%; height: 80%; fill: var(--background); stroke: var(--muted); stroke-width: 3; }
     .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); opacity: 0.4; margin: 0 3px; }
     .dot.on { background: var(--primary); opacity: 1; }
-    /* shelf */
-    .shelf { margin-top: 12px; }
-    .rowb { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 6px; align-items: end; }
-    .bottle { display: flex; flex-direction: column; align-items: center; }
-    .bottle .photo { width: 100px; height: 150px; border-radius: 8px; box-shadow: 0 6px 10px -6px rgba(0,0,0,0.5); }
-    .bottle .photo.empty { box-shadow: var(--shadow-inset); display: grid; place-items: center; }
-    .bottle .photo .date { position: absolute; top: 6px; right: 6px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--background); color: var(--foreground); font-size: 11px; font-weight: 600; display: grid; place-items: center; }
-    .rail { height: 14px; border-radius: 3px; background: var(--shelf-rail); border-bottom: 2px solid var(--shelf-rail-edge); box-shadow: var(--shadow-outset); margin: 0 -4px; }
+    /* shelf (glass) */
+    .shelf { margin-top: 8px; position: relative; }
+    .rowb { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 6px; align-items: end; position: relative; z-index: 1; }
+    .rowb.h { display: flex; gap: 22px; padding: 0 10px; overflow: hidden; }
+    .cut { position: relative; width: 100px; height: 150px; display: flex; align-items: flex-end; justify-content: center; }
+    .rowb.h .cut { width: 72px; height: 120px; flex: none; }
+    .cut svg { width: 100%; height: 100%; }
+    .cut .date { position: absolute; top: 0; right: 4px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--background); color: var(--foreground); font-size: 11px; font-weight: 600; display: grid; place-items: center; box-shadow: var(--shadow-outset-sm); }
+    .cut.empty { box-shadow: var(--shadow-inset-sm); border-radius: 10px; align-items: center; color: var(--muted); }
+    .cut.empty svg { width: 44%; height: 70%; fill: none; stroke: var(--muted); stroke-width: 3; }
+    .archived .cut > svg { filter: saturate(0.5) brightness(0.9); }
+    .rail { height: var(--shelf-h); border-radius: 3px; background: var(--shelf-glass); border-top: 1px solid var(--shelf-glass-edge); box-shadow: var(--shelf-glass-shadow); margin: -1px -6px 0; backdrop-filter: blur(2px); }
+    .rail.short { margin-right: 60px; }
+    .ghost { position: absolute; left: 4px; top: -18px; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; color: var(--shelf-ghost); line-height: 1; pointer-events: none; z-index: 0; }
+    .ghost small { font-size: 18px; margin-left: 8px; letter-spacing: 0; }
     .caps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 8px 6px 0; text-align: center; }
     .caps .n { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .caps .s { font-size: 12px; color: var(--muted); }
@@ -123,7 +129,7 @@
     .ncard .s { font-size: 12px; color: var(--muted); }
     .ncard .photo.empty { display: grid; place-items: center; color: var(--muted); }
     .ncard .photo.empty svg { width: 32px; height: 32px; }
-    .strip { display: flex; gap: 10px; overflow: hidden; }
+    .strip { display: flex; gap: 12px; overflow: hidden; padding: 4px 0; }
     .strip .ptile { width: 96px; height: 120px; flex: none; flex-direction: column; font-size: 13px; gap: 6px; }
     .strip .photo { width: 96px; height: 120px; flex: none; border-radius: 12px; }
     /* dialog */
@@ -133,16 +139,18 @@
     .check { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 8px 0 6px; }
     .check .box { width: 22px; height: 22px; border-radius: 6px; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; }
     .check .box svg { width: 14px; height: 14px; stroke-width: 3; }
-    .switch { width: 44px; height: 26px; border-radius: 999px; background: var(--primary); position: relative; margin-left: auto; box-shadow: var(--shadow-inset); flex: none; }
+    .switch { width: 44px; height: 26px; border-radius: 999px; background: var(--primary); position: relative; margin-left: auto; box-shadow: var(--shadow-inset-sm); flex: none; }
     .switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--primary-fg); }
     .star { color: var(--primary); font-size: 20px; letter-spacing: 2px; }
-    .stepper { display: inline-flex; gap: 8px; align-items: center; }
-    .stepper .k { width: 40px; height: 40px; border-radius: 50%; box-shadow: var(--shadow-outset); display: grid; place-items: center; font-weight: 700; }
+    .stepper { display: inline-flex; gap: 10px; align-items: center; }
+    .stepper .k { width: 40px; height: 40px; border-radius: 50%; box-shadow: var(--shadow-outset-sm); display: grid; place-items: center; font-weight: 700; }
     .section { font-size: 13px; font-weight: 600; color: var(--muted); margin: 18px 0 8px; display: flex; justify-content: space-between; }
     .editbar { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
     .frame { position: relative; margin: 4px 20px 0; border-radius: var(--radius-photo); overflow: hidden; box-shadow: var(--shadow-inset); }
     .center { text-align: center; }
     .empty { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 40px; text-align: center; }
+    .ainote { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-radius: var(--radius); box-shadow: var(--shadow-inset-sm); font-size: 13px; color: var(--muted); margin-top: 12px; }
+    .ainote svg { width: 16px; height: 16px; color: var(--primary); flex: none; }
   </style>
 </head>
 <body>
@@ -166,8 +174,64 @@
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
     <symbol id="i-imgs" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M21 8v11a2 2 0 0 1-2 2H8"/><path d="m3 16 4-4 4 4 3-3 3 3"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l2 5.5L19.5 10 14 12l-2 5.5L10 12 4.5 10 10 8.5z"/><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/></symbol>
     <symbol id="i-bottle-sil" viewBox="0 0 60 120"><path d="M24 4h12v22c0 6 10 10 10 24v60a6 6 0 0 1-6 6H20a6 6 0 0 1-6-6V50c0-14 10-18 10-24z"/><path d="M18 62h24"/></symbol>
     <symbol id="i-glass-sil" viewBox="0 0 60 100"><path d="M10 6h40l-4 34a16 16 0 0 1-32 0z"/><path d="M30 56v32M16 94h28"/></symbol>
+    <!-- 切り抜き済みボトル（ダミー）。実物は背景除去した写真 -->
+    <symbol id="b-wine" viewBox="0 0 60 150">
+      <ellipse cx="30" cy="147" rx="24" ry="3" fill="rgba(0,0,0,0.25)"/>
+      <path d="M24 2h12v26c0 8 11 12 11 28v84a6 6 0 0 1-6 6H19a6 6 0 0 1-6-6V56c0-16 11-20 11-28z" fill="#3a1018"/>
+      <path d="M24 2h12v6H24z" fill="#8e2f3c"/>
+      <rect x="16" y="76" width="28" height="36" rx="2" fill="#f1e8d6"/>
+      <rect x="20" y="84" width="20" height="3" fill="#8e2f3c"/><rect x="22" y="92" width="16" height="2" fill="#5c564c"/><rect x="24" y="98" width="12" height="2" fill="#5c564c"/>
+      <path d="M17 60 C17 100 17 120 18 138" stroke="rgba(255,255,255,0.35)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="b-white" viewBox="0 0 60 150">
+      <ellipse cx="30" cy="147" rx="24" ry="3" fill="rgba(0,0,0,0.25)"/>
+      <path d="M24 2h12v26c0 8 11 12 11 28v84a6 6 0 0 1-6 6H19a6 6 0 0 1-6-6V56c0-16 11-20 11-28z" fill="#c8c07a"/>
+      <path d="M24 2h12v6H24z" fill="#d8b23a"/>
+      <rect x="16" y="76" width="28" height="36" rx="2" fill="#fbf7ee"/>
+      <rect x="20" y="84" width="20" height="3" fill="#5c564c"/><rect x="22" y="92" width="16" height="2" fill="#5c564c"/>
+      <path d="M17 60 C17 100 17 120 18 138" stroke="rgba(255,255,255,0.5)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="b-burg" viewBox="0 0 60 150">
+      <ellipse cx="30" cy="147" rx="26" ry="3" fill="rgba(0,0,0,0.25)"/>
+      <path d="M25 2h10v24c0 14 15 18 15 40v74a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6V66c0-22 15-26 15-40z" fill="#4a1a24"/>
+      <path d="M25 2h10v7H25z" fill="#2b261f"/>
+      <rect x="15" y="82" width="30" height="34" rx="2" fill="#efe4cf"/>
+      <rect x="19" y="90" width="22" height="3" fill="#7a3538"/><rect x="21" y="98" width="18" height="2" fill="#5c564c"/>
+      <path d="M14 70 C14 100 14 120 15 138" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="b-whisky" viewBox="0 0 60 150">
+      <ellipse cx="30" cy="147" rx="22" ry="3" fill="rgba(0,0,0,0.25)"/>
+      <path d="M22 4h16v22c0 6 9 8 9 18v92a4 4 0 0 1-4 4H17a4 4 0 0 1-4-4V44c0-10 9-12 9-18z" fill="#a86a2a"/>
+      <path d="M22 4h16v8H22z" fill="#3a2410"/>
+      <rect x="15" y="70" width="30" height="40" rx="1" fill="#f6ecd8"/>
+      <rect x="19" y="78" width="22" height="4" fill="#3a2410"/><rect x="21" y="88" width="18" height="2" fill="#5c564c"/><rect x="23" y="94" width="14" height="2" fill="#5c564c"/>
+      <path d="M15 50 V136" stroke="rgba(255,255,255,0.35)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="b-sake" viewBox="0 0 60 150">
+      <ellipse cx="30" cy="147" rx="22" ry="3" fill="rgba(0,0,0,0.25)"/>
+      <path d="M23 2h14v20c0 6 8 8 8 16v98a4 4 0 0 1-4 4H19a4 4 0 0 1-4-4V38c0-8 8-10 8-16z" fill="#4c6b5a"/>
+      <path d="M23 2h14v6H23z" fill="#d8c7a0"/>
+      <rect x="17" y="60" width="26" height="54" rx="1" fill="#f7f1e4"/>
+      <rect x="27" y="66" width="6" height="40" fill="#2b261f"/>
+      <path d="M17 44 V136" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="b-can" viewBox="0 0 60 150">
+      <ellipse cx="30" cy="147" rx="18" ry="3" fill="rgba(0,0,0,0.25)"/>
+      <rect x="14" y="52" width="32" height="92" rx="5" fill="#c7952f"/>
+      <path d="M16 52h28v4H16z" fill="#a8a8a8"/>
+      <rect x="18" y="80" width="24" height="30" rx="2" fill="#fbf3dd"/><rect x="22" y="88" width="16" height="3" fill="#7a3538"/>
+      <path d="M17 60 V136" stroke="rgba(255,255,255,0.4)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="b-bubbles" viewBox="0 0 60 150">
+      <ellipse cx="30" cy="147" rx="26" ry="3" fill="rgba(0,0,0,0.25)"/>
+      <path d="M24 2h12v22c0 16 14 20 14 42v72a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6V66c0-22 14-26 14-42z" fill="#213a2e"/>
+      <path d="M22 2h16v12H22z" fill="#c9a24a"/>
+      <rect x="16" y="84" width="28" height="30" rx="2" fill="#f4eee0"/><rect x="20" y="92" width="20" height="3" fill="#213a2e"/>
+      <path d="M14 70 C14 100 14 120 15 138" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </symbol>
     <!-- mascot poses (= spec/assets/character/*.svg) -->
     <symbol id="m-default" viewBox="0 0 120 160">
       <ellipse cx="60" cy="141" rx="30" ry="7" fill="none" stroke="currentColor" stroke-width="3"/>
@@ -431,32 +495,93 @@
     <div class="foot" style="margin-top:auto"><button class="btn btn-primary">使う</button></div>
   </section>
 
+  <section class="screen" id="photo-edit-bottle">
+    <div class="editbar"><button class="icon-btn"><svg><use href="#i-x"/></svg></button><span class="tiny" style="color:var(--primary);font-weight:600">撮り直す</span></div>
+    <div class="frame" style="height:437px;display:flex;align-items:flex-end;justify-content:center;background:repeating-conic-gradient(color-mix(in srgb, var(--muted) 12%, transparent) 0 25%, transparent 0 50%) 0 0 / 20px 20px">
+      <svg viewBox="0 0 60 150" style="width:150px;height:375px;margin-bottom:24px"><use href="#b-wine"/></svg>
+    </div>
+    <div class="body" style="flex:none;padding-top:16px">
+      <div class="chips"><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>切り抜く</span><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>色補正: セラー</span></div>
+      <p class="tiny muted" style="margin:6px 0 0">切り抜きは端末内で処理します。うまく抜けないときは長方形のまま保存します</p>
+    </div>
+    <div class="foot" style="margin-top:auto"><button class="btn btn-primary">使う</button></div>
+  </section>
+
   <!-- ============ CELLAR ============ -->
   <section class="screen" id="cellar-shelf">
     <header class="header"><button class="icon-btn"><svg><use href="#i-archive"/></svg></button><h1>セラー<small>12 本</small></h1><button class="icon-btn"><svg><use href="#i-plus"/></svg></button></header>
     <div class="body">
-      <div class="chips"><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">種類 ▾</span><span class="chip">未開栓</span><span class="chip">開栓済</span></div>
+      <div class="chips"><span class="seg2"><span>種類ごと</span><span class="on">1 本ずつ</span></span><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">種類 ▾</span><span class="chip">未開栓</span></div>
       <div class="shelf">
         <div class="rowb">
-          <div class="bottle"><div class="photo p-red"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
-          <div class="bottle"><div class="photo p-malt"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
-          <div class="bottle"><div class="photo p-white"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-wine"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-whisky"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-white"/></svg></div>
         </div>
         <div class="rail"></div>
         <div class="caps"><div><div class="n">サンプル赤</div><div class="s">2020</div></div><div><div class="n">サンプルモルト</div><div class="s"><span class="pill">開栓</span></div></div><div><div class="n">サンプル白</div><div class="s">NV</div></div></div>
         <div class="rowb" style="margin-top:22px">
-          <div class="bottle"><div class="photo p-sake"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
-          <div class="bottle"><div class="photo empty"><svg class="bot-sil" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
-          <div class="bottle"><div class="photo p-beer"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-sake"/></svg></div>
+          <div class="cut empty"><svg viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-can"/></svg></div>
         </div>
         <div class="rail"></div>
         <div class="caps"><div><div class="n">サンプル純米</div><div class="s">2025</div></div><div><div class="n">サンプル芋</div><div class="s">NV</div></div><div><div class="n">サンプル IPA</div><div class="s">NV</div></div></div>
         <div class="rowb" style="margin-top:22px">
-          <div class="bottle"><div class="photo p-red" style="filter:hue-rotate(-10deg)"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
-          <div class="bottle"><div class="photo p-malt" style="filter:brightness(1.15)"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-burg"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-bubbles"/></svg></div>
           <div></div>
         </div>
         <div class="rail"></div>
+      </div>
+    </div>
+    <nav class="tabs">
+      <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
+      <div class="tab on"><svg><use href="#i-cellar"/></svg>セラー</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
+      <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
+      <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
+    </nav>
+  </section>
+
+  <section class="screen" id="cellar-by-type">
+    <header class="header"><button class="icon-btn"><svg><use href="#i-archive"/></svg></button><h1>セラー<small>12 本</small></h1><button class="icon-btn"><svg><use href="#i-plus"/></svg></button></header>
+    <div class="body">
+      <div class="chips"><span class="seg2"><span class="on">種類ごと</span><span>1 本ずつ</span></span><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">未開栓</span></div>
+      <div class="shelf" style="margin-top:34px">
+        <div class="ghost">ワイン<small>6 本</small></div>
+        <div class="rowb h">
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-wine"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-burg"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-white"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-bubbles"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-wine"/></svg></div>
+        </div>
+        <div class="rail"></div>
+      </div>
+      <div class="shelf" style="margin-top:58px">
+        <div class="ghost">ウイスキー<small>3 本</small></div>
+        <div class="rowb h">
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-whisky"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-whisky"/></svg></div>
+          <div class="cut empty"><svg viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div>
+        </div>
+        <div class="rail short"></div>
+      </div>
+      <div class="shelf" style="margin-top:58px">
+        <div class="ghost">日本酒<small>2 本</small></div>
+        <div class="rowb h">
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-sake"/></svg></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-sake"/></svg></div>
+        </div>
+        <div class="rail short" style="margin-right:150px"></div>
+      </div>
+      <div class="shelf" style="margin-top:58px">
+        <div class="ghost">ビール<small>1 本</small></div>
+        <div class="rowb h">
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-can"/></svg></div>
+        </div>
+        <div class="rail short" style="margin-right:240px"></div>
       </div>
     </div>
     <nav class="tabs">
@@ -492,21 +617,25 @@
     <div class="body">
       <div class="chips"><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">種類 ▾</span></div>
       <div class="month">2026年9月</div>
-      <div class="rowb">
-        <div class="bottle"><div class="photo p-red"><span class="date">9/5</span></div></div>
-        <div class="bottle"><div class="photo p-beer"><span class="date">9/2</span></div></div>
-        <div class="bottle"><div class="photo p-white"><span class="date">9/1</span></div></div>
+      <div class="shelf">
+        <div class="rowb">
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-wine"/></svg><span class="date">9/5</span></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-can"/></svg><span class="date">9/2</span></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-white"/></svg><span class="date">9/1</span></div>
+        </div>
+        <div class="rail"></div>
+        <div class="caps"><div><div class="n">サンプル赤</div><div class="s">2019</div></div><div><div class="n">サンプル IPA</div><div class="s">NV</div></div><div><div class="n">サンプル白</div><div class="s">2023</div></div></div>
       </div>
-      <div class="rail"></div>
-      <div class="caps"><div><div class="n">サンプル赤</div><div class="s">2019</div></div><div><div class="n">サンプル IPA</div><div class="s">NV</div></div><div><div class="n">サンプル白</div><div class="s">2023</div></div></div>
       <div class="month" style="margin-top:22px">2026年8月</div>
-      <div class="rowb">
-        <div class="bottle"><div class="photo p-malt"><span class="date">8/30</span></div></div>
-        <div class="bottle"><div class="photo p-sake"><span class="date">8/22</span></div></div>
-        <div class="bottle"><div class="photo p-red" style="filter:saturate(.6) brightness(.92) hue-rotate(-12deg)"><span class="date">8/15</span></div></div>
+      <div class="shelf">
+        <div class="rowb">
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-whisky"/></svg><span class="date">8/30</span></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-sake"/></svg><span class="date">8/22</span></div>
+          <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-burg"/></svg><span class="date">8/15</span></div>
+        </div>
+        <div class="rail"></div>
+        <div class="caps"><div><div class="n">サンプルモルト</div><div class="s">2012</div></div><div><div class="n">サンプル純米</div><div class="s">2024</div></div><div><div class="n">サンプル赤</div><div class="s">2018</div></div></div>
       </div>
-      <div class="rail"></div>
-      <div class="caps"><div><div class="n">サンプルモルト</div><div class="s">2012</div></div><div><div class="n">サンプル純米</div><div class="s">2024</div></div><div><div class="n">サンプル赤</div><div class="s">2018</div></div></div>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
@@ -521,16 +650,19 @@
     <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>ボトルを追加</h1><div class="spacer"></div></header>
     <div class="body">
       <div style="display:flex;gap:14px;align-items:flex-end">
-        <div class="photo photo-bottle p-red" style="width:100px;height:150px;border-radius:12px"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div>
+        <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-wine"/></svg></div>
         <div class="tiny" style="display:flex;flex-direction:column;gap:12px;color:var(--primary);font-weight:600;padding-bottom:8px"><span>撮り直す</span><span style="color:var(--muted)">削除</span></div>
       </div>
+      <div class="ainote"><svg class="ico"><use href="#i-spark"/></svg><span>ラベルから読み取りました。内容を確認して保存してください</span></div>
       <div class="label">銘柄名 *</div>
-      <div class="field">サンプル赤</div>
+      <div class="field">サンプル赤<span class="pill ai" style="margin-left:auto"><svg class="ico"><use href="#i-spark"/></svg>AI</span></div>
       <div class="label">種類 *</div>
       <div class="chips"><span class="chip on">ワイン</span><span class="chip">ビール</span><span class="chip">ウイスキー</span><span class="chip">日本酒</span><span class="chip">焼酎</span></div>
       <div class="label">本数</div>
       <div class="stepper"><div class="k">−</div><span style="font-size:24px;font-weight:650;min-width:32px;text-align:center">2</span><div class="k">＋</div></div>
-      <div class="label" style="margin-top:20px">詳細を入力<span class="muted">▾</span></div>
+      <div class="label" style="margin-top:20px">詳細<span class="muted">▴</span></div>
+      <div class="field" style="margin-bottom:10px"><span class="muted tiny" style="width:64px">生産者</span>サンプル生産者<span class="pill ai" style="margin-left:auto"><svg class="ico"><use href="#i-spark"/></svg>AI</span></div>
+      <div class="field"><span class="muted tiny" style="width:64px">年</span>2020<span class="pill ai" style="margin-left:auto"><svg class="ico"><use href="#i-spark"/></svg>AI</span></div>
     </div>
     <div class="foot"><button class="btn btn-primary">棚に並べる（2 本）</button></div>
   </section>
@@ -538,11 +670,13 @@
   <section class="screen" id="cellar-detail">
     <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>サンプル赤</h1><div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div></header>
     <div class="body">
-      <div style="display:flex;justify-content:center"><div class="photo p-red" style="width:160px;height:240px;border-radius:10px;box-shadow:0 8px 12px -8px rgba(0,0,0,.6)"><svg class="bot-sil" style="position:absolute;left:20%;top:10%;fill:none;stroke:rgba(255,255,255,.55)" viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div></div>
-      <div class="rail"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin:14px 0 16px"><span class="pill">未開栓</span><span class="tiny muted">ワイン ・ 2020 ・ フランス</span></div>
+      <div class="shelf" style="margin-top:4px">
+        <div style="display:flex;justify-content:center;position:relative;z-index:1"><svg viewBox="0 0 60 150" style="width:96px;height:240px"><use href="#b-wine"/></svg></div>
+        <div class="rail"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:16px 0 16px"><span class="pill">未開栓</span><span class="tiny muted">ワイン ・ 2020 ・ フランス</span></div>
       <button class="btn btn-primary">消費する</button>
-      <div class="actions" style="margin-top:12px"><button class="btn btn-secondary" style="min-height:44px">開栓する</button><button class="btn btn-secondary" style="min-height:44px">1 杯を記録</button></div>
+      <div class="actions" style="margin-top:14px"><button class="btn btn-secondary" style="min-height:44px">開栓する</button><button class="btn btn-secondary" style="min-height:44px">1 杯を記録</button></div>
       <div style="margin-top:8px">
         <div class="prop"><span class="muted">生産者</span><span style="font-weight:600">サンプル生産者</span></div>
         <div class="prop"><span class="muted">購入日</span><span style="font-weight:600">2026-06-01</span></div>
@@ -563,14 +697,16 @@
   <section class="screen" id="cellar-consume">
     <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>サンプル赤</h1><div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div></header>
     <div class="body">
-      <div style="display:flex;justify-content:center"><div class="photo p-red" style="width:160px;height:240px;border-radius:10px"></div></div>
-      <div class="rail"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin:14px 0 16px"><span class="pill">未開栓</span><span class="tiny muted">ワイン ・ 2020 ・ フランス</span></div>
+      <div class="shelf" style="margin-top:4px">
+        <div style="display:flex;justify-content:center;position:relative;z-index:1"><svg viewBox="0 0 60 150" style="width:96px;height:240px"><use href="#b-wine"/></svg></div>
+        <div class="rail"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:16px 0 16px"><span class="pill">未開栓</span><span class="tiny muted">ワイン ・ 2020 ・ フランス</span></div>
       <button class="btn btn-primary">消費する</button>
     </div>
     <div class="scrim">
       <div class="dialog">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><div class="thumb photo p-red" style="border-radius:10px"></div><div><div style="font-weight:600">サンプル赤</div><div class="tiny muted">2020 ・ フランス</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><svg viewBox="0 0 60 150" style="width:24px;height:60px"><use href="#b-wine"/></svg><div><div style="font-weight:600">サンプル赤</div><div class="tiny muted">2020 ・ フランス</div></div></div>
         <h2>消費して貯蔵庫へ移します</h2>
         <div class="check"><span class="box"><svg class="ico"><use href="#i-check"/></svg></span>今日の記録に 1 杯を追加</div>
         <div class="chips" style="margin-left:32px"><span class="chip on" style="min-height:36px">125</span><span class="chip" style="min-height:36px">150</span><span class="chip" style="min-height:36px">375</span><span class="chip" style="min-height:36px">750</span></div>
@@ -671,8 +807,10 @@
       <div class="section">写真</div>
       <div class="row"><div>写真にキャラを入れる<div class="sub">撮影後の既定</div></div><span class="switch"></span></div>
       <div class="row"><div>色補正を掛ける<div class="sub">撮影後の既定</div></div><span class="switch"></span></div>
+      <div class="section">セラー</div>
+      <div class="row"><div>ラベルを自動で読み取る<div class="sub">写真を Cloudflare の AI に送ります</div></div><span class="switch"></span></div>
       <div class="row" style="margin-top:20px"><div class="btn-danger" style="padding:0">ログアウト</div></div>
-      <p class="tiny muted" style="margin-top:20px;padding:0 4px">テーマは端末の外観設定に追従します。<br>alco-app 0.1.0</p>
+      <p class="tiny muted" style="margin-top:20px;padding:0 4px">テーマは端末の外観設定に追従します。alco-app 0.1.0</p>
     </div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>

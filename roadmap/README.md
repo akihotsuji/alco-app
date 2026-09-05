@@ -58,10 +58,12 @@
 |---|---|
 | 詳細画面設計 | 全画面の機能・要素・状態・遷移をイメージ図付きで確定し、**実装はそのとおりに作る**（rules / skill に転記） |
 | 下部タブ | **ホーム / セラー / 記録（中央・円形） / ノート / 設定**。記録が最頻 |
-| セラー | 撮った写真を加工して **棚に陳列**。操作は **追加と消費**。消費で **貯蔵庫** へ移り、その日の記録に 1 杯を追加して日別へ遷移。1 行 = 1 本、`quantity` 廃止、`finished` → `consumed` |
+| セラー | 撮った写真を **切り抜いて**、**地色の上のガラス風棚板**に陳列（2 回目の指示で確定）。**種類ごと / 1 本ずつ**の表示切替。操作は **追加と消費**。消費で **貯蔵庫** へ移り、その日の記録に 1 杯を追加して日別へ遷移。1 行 = 1 本、`quantity` 廃止、`finished` → `consumed` |
+| ラベル読み取り | **Cloudflare Workers AI の Vision モデル**で、ラベル写真から銘柄名・生産者・産地・年・種類・度数の候補を空欄に入れる。**セラーのみ**。自動保存しない。Gemini 等の外部 API は将来の差し替え候補として念頭に置く（`LabelRecognizer` 差し替え） |
 | 記録・ノート | **写真を撮って記録・コメントを付ける**体験。写真は任意で最短タップは維持。記録は 1 枚、ノートは 6 枚 |
 | キャラクター | **1 体**（赤ワインの入ったグラスに Nani!? 風の目。仮称「グラッピー」）。ホーム・ログイン・空状態・保存トーストに。写真右下に「驚き」ポーズを合成できる |
-| 画像処理 | すべて端末内（Canvas）。加工後 1 枚だけ R2。背景除去は v1.x |
+| 画像処理 | すべて端末内（Canvas / WASM）。加工後 1 枚だけ R2。切り抜きも端末内（フォールバックあり） |
+| デザイン崩れ | 週マスの薄赤（塗りに inset を重ねていた）とチップの被り（影が大きすぎ）はトークンで修正。影を部品サイズで 2 段階化。実機での微調整は 2-06 |
 | 要確認 | 中央タブの着地（既定: 今日の日別）、本数上限（12）、ノート写真枚数（6）、キャラの名前 |
 
 ## オーナー決定（2026-08-15 FIX）
@@ -90,7 +92,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 1-01〜06 完了（2026-09-04 承認）。1-07 / 08 レビュー待ち |
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 未着手 |
 | Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 未着手 |
-| Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | 棚（陳列）・追加と消費・貯蔵庫 | 未着手 |
+| Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と消費・貯蔵庫・ラベル AI 読み取り | 未着手 |
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 未着手 |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
 | Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 未着手 |
@@ -152,15 +154,17 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 3-06 | 週/月サマリー | [06-weekly-monthly-summary.md](phase-03-drink-log/06-weekly-monthly-summary.md) | 未着手 |
 | 3-07 | dev環境デプロイと日常利用開始 | [07-dev-deploy-dogfood.md](phase-03-drink-log/07-dev-deploy-dogfood.md) | 未着手 |
 
-### Phase 4（5タスク）
+### Phase 4（7タスク）
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
 | 4-01 | `spec/features/cellar.md` 作成 | [01-spec-cellar.md](phase-04-cellar/01-spec-cellar.md) | 未着手 |
 | 4-02 | ボトルCRUD | [02-bottle-crud.md](phase-04-cellar/02-bottle-crud.md) | 未着手 |
 | 4-03 | 消費・貯蔵庫・開栓・復元（ステータス管理） | [03-status-management.md](phase-04-cellar/03-status-management.md) | 未着手 |
-| 4-04 | 陳列（棚）と写真加工（R2 基盤は 2-08 へ） | [04-photo-upload-r2.md](phase-04-cellar/04-photo-upload-r2.md) | 未着手 |
+| 4-04 | 陳列（ガラス棚。種類ごと / 1 本ずつ。R2 基盤は 2-08 へ） | [04-photo-upload-r2.md](phase-04-cellar/04-photo-upload-r2.md) | 未着手 |
 | 4-05 | APIテスト・コンポーネントテスト | [05-api-component-tests.md](phase-04-cellar/05-api-component-tests.md) | 未着手 |
+| 4-06 | 切り抜き（端末内 背景除去 → 透過 WebP） | [06-background-removal.md](phase-04-cellar/06-background-removal.md) | 未着手 |
+| 4-07 | ラベル読み取り（Workers AI） | [07-label-recognition.md](phase-04-cellar/07-label-recognition.md) | 未着手 |
 
 ### Phase 5（5タスク）
 
@@ -207,7 +211,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 8-05 | レート制限・不正利用対策 | [05-rate-limit-abuse.md](phase-08-public-launch/05-rate-limit-abuse.md) | 未着手 |
 | 8-06 | 無料枠の使用量監視 | [06-usage-monitoring.md](phase-08-public-launch/06-usage-monitoring.md) | 未着手 |
 
-**合計: フェーズフォルダ 9、タスクファイル 62、フェーズ概要 9、本インデックス 1。**
+**合計: フェーズフォルダ 9、タスクファイル 64、フェーズ概要 9、本インデックス 1。**
 
 ## 共通ルール（全タスク）
 

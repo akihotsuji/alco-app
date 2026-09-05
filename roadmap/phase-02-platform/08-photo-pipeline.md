@@ -34,7 +34,8 @@
 **対象外**
 
 - 作成 API の `photoIds` 紐付け（各機能フェーズ: 3-02 / 4-02 / 5-03）
-- 背景除去（v1.x）
+- 背景除去（4-06。本タスクでは `photo-edit` に切り抜きトグルの差し込み口と、サーバーの `kind` 判定だけ用意する）
+- ラベル読み取り（4-07。本タスクでは「切り抜く前の JPEG を呼び出し元へ渡す」経路だけ用意する）
 - 複数枚 UI（5-03）
 
 ## 4. 成果物
@@ -47,7 +48,7 @@
 
 1. 純粋関数（`cropResize` の座標、`composeMascot` の位置 = 短辺 22%・余白 4%）とテスト
 2. `PhotoEdit` UI（design どおり。タブ非表示、`pushState` 1 段）
-3. `photos` ルート（magic bytes: JPEG `FF D8 FF`、PNG `89 50 4E 47`、WebP `52 49 46 46 .... 57 45 42 50`）
+3. `photos` ルート（magic bytes: JPEG `FF D8 FF`、PNG `89 50 4E 47`、WebP `52 49 46 46 .... 57 45 42 50`。WebP は VP8X チャンクの alpha ビットで `kind = cutout` を判定）
 4. 配信（R2 ストリーム、Content-Type は保存値）
 5. Cron GC
 6. 実機（iOS Safari / Android Chrome）で撮影 → 編集 → アップロードを確認

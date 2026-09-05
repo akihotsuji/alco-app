@@ -9,7 +9,7 @@ Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何�
 | 1-02 の判断 | 1-07 の判断 | 理由 |
 |---|---|---|
 | タブ順 ホーム / 記録 / セラー / ノート / 設定 | **ホーム / セラー / 記録（中央・円形） / ノート / 設定** | オーナー指示。記録が最頻 |
-| セラー一覧は「行」（エクスプローラ） | **棚（陳列）**。3 列、2:3 写真が棚板に立つ | オーナー指示。写真主役 |
+| セラー一覧は「行」（エクスプローラ） | **棚（陳列）**。ガラス風の棚板に切り抜きボトルが立つ。種類ごと / 1 本ずつ | オーナー指示。写真主役 |
 | セラー詳細のステータスはセグメント | 主「消費する」+ 副「開栓する」「1 杯を記録」。消費で **貯蔵庫** へ移り、その日の記録へ | オーナー指示 |
 | 記録・ノートの写真は「枠だけ」 | **写真タイルが最上部**。撮る → 編集（比率・色補正・キャラ合成）→ 添付 | オーナー指示 |
 | ノート一覧は行 | **写真グリッド 2 列** | 写真主役 |
@@ -30,11 +30,13 @@ Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何�
 | 記録入力（撮影前） | [mocks/log-new.png](wireframes/mocks/log-new.png) | 同上 |
 | 記録入力（撮影後） | [mocks/log-new-photo.png](wireframes/mocks/log-new-photo.png) | 同上 |
 | 写真を編集 | [mocks/photo-edit.png](wireframes/mocks/photo-edit.png) | [07-photo-capture](screen-designs/07-photo-capture.md) |
-| セラー（棚） | [mocks/cellar-shelf.png](wireframes/mocks/cellar-shelf.png) | [04-cellar](screen-designs/04-cellar.md) |
+| 写真を編集（セラー・切り抜き） | [mocks/photo-edit-bottle.png](wireframes/mocks/photo-edit-bottle.png) | 同上 |
+| セラー（棚・1 本ずつ） | [mocks/cellar-shelf.png](wireframes/mocks/cellar-shelf.png) | [04-cellar](screen-designs/04-cellar.md) |
 | セラー（棚・ダーク） | [mocks/cellar-shelf-dark.png](wireframes/mocks/cellar-shelf-dark.png) | 同上 |
+| セラー（種類ごと） | [mocks/cellar-by-type.png](wireframes/mocks/cellar-by-type.png) | 同上 |
 | セラー（空） | [mocks/cellar-empty.png](wireframes/mocks/cellar-empty.png) | 同上 |
 | 貯蔵庫 | [mocks/cellar-archive.png](wireframes/mocks/cellar-archive.png) | 同上 |
-| ボトルを追加 | [mocks/cellar-new.png](wireframes/mocks/cellar-new.png) | 同上 |
+| ボトルを追加（ラベル読み取り後） | [mocks/cellar-new.png](wireframes/mocks/cellar-new.png) | 同上 |
 | ボトル詳細 | [mocks/cellar-detail.png](wireframes/mocks/cellar-detail.png) | 同上 |
 | 消費ダイアログ | [mocks/cellar-consume.png](wireframes/mocks/cellar-consume.png) | 同上 |
 | ノート一覧 | [mocks/note-list.png](wireframes/mocks/note-list.png) | [05-notes](screen-designs/05-notes.md) |

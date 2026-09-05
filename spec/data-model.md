@@ -49,7 +49,9 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 写真の所有者 | `bottle_id` / `tasting_note_id` / `drink_log_id` は **最大 1 つ**（CHECK）。3 つとも NULL は未紐付け | 排他を 3 way に拡張 |
 | 未紐付け写真 | 作成 24 時間で GC（Cron Trigger 日次）。R2 と D1 の両方を消す | 「使う」直後にアップロードするため放棄分が出る |
 | 写真枚数 | 記録 1 / ボトル 1 / ノート **6**（確定） | 5-01 の「提案 6」を確定 |
-| 写真の中身 | 加工後（比率・色補正・キャラ合成済み）の JPEG **1 枚だけ**。元画像は保存しない | R2 を倍にしない（[07-photo-capture.md](screen-designs/07-photo-capture.md)） |
+| 写真の中身 | 加工後（比率・色補正・キャラ合成済み）の画像 **1 枚だけ**。元画像は保存しない | R2 を倍にしない（[07-photo-capture.md](screen-designs/07-photo-capture.md)） |
+| 写真の種別 | `photos.kind`: `photo`（長方形 JPEG）/ `cutout`（背景除去済み透過 WebP。セラーのみ）。サーバーが画像ヘッダから判定 | 棚で描き方を分ける（2026-09-05） |
+| ラベル読み取り | **テーブルを持たない**。`POST /api/bottles/recognize` は候補を返すだけで保存しない。利用回数の上限はユーザーごとに日次でカウント（`ai_usage` テーブル、下記 6.6） | Workers AI 無料枠の保護 |
 
 ---
 
@@ -104,6 +106,7 @@ erDiagram
     user ||--o{ bottles : owns
     user ||--o{ tasting_notes : owns
     user ||--o{ photos : owns
+    user ||--o{ ai_usage : "daily count"
     my_drinks ||--o{ drink_logs : "optional ref"
     bottles ||--o{ drink_logs : "optional (consume / manual)"
     bottles ||--o{ tasting_notes : "optional"
@@ -208,9 +211,16 @@ erDiagram
         text bottle_id FK
         text tasting_note_id FK
         text drink_log_id FK
+        text kind
         integer sort_order
         integer created_at
         integer updated_at
+    }
+
+    ai_usage {
+        text user_id PK_FK
+        text used_on PK
+        integer count
     }
 ```
 
@@ -413,6 +423,7 @@ erDiagram
 | bottleId | bottle_id | text | YES | FK → bottles.id CASCADE | 所有者の一つ |
 | tastingNoteId | tasting_note_id | text | YES | FK → tasting_notes.id CASCADE | 所有者の一つ |
 | drinkLogId | drink_log_id | text | YES | FK → drink_logs.id CASCADE | 所有者の一つ（1-07） |
+| kind | kind | text | NO | CHECK `photo` / `cutout`, default `photo` | `cutout` = 背景除去済み透過 WebP（セラー）。サーバーが WebP の alpha フラグで判定 |
 | sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。ボトルサムネは最小 |
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
@@ -438,6 +449,19 @@ CHECK (
 - MIME / サイズ上限は [screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md)（1MB、長辺 1600、jpeg/png/webp、magic bytes）。SVG / GIF / HEIC は拒否
 - 紐付け時も `photos.user_id === session.userId` を必須にする（他人の photo id を拒否）
 - 保存するのは加工後の 1 枚。キャラクター合成の有無は列に持たない（画像に焼き込み済み）
+
+### 6.6 ai_usage
+
+ラベル読み取り（Workers AI）の日次利用回数。無料枠保護のため。
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| userId | user_id | text | NO | PK の一部、FK → user.id CASCADE | |
+| usedOn | used_on | text | NO | PK の一部 | JST 日 `YYYY-MM-DD` |
+| count | count | integer | NO | default 0 | その日の呼び出し回数 |
+
+- 上限はアプリ定数（初期値 **30 回 / 日 / ユーザー**）。超過は 429 `rate_limited`
+- 画像・結果・プロンプトは保存しない。行は 30 日で削除（未紐付け写真 GC と同じ日次ジョブ）
 
 ---
 
@@ -520,7 +544,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 Phase 2-01 の実装メモ。このブロックはドキュメントであり、`src/db` にはまだ置かない。Auth の `user` は CLI 生成物を import する。
 
 ```ts
-import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { user } from "./auth-schema";
 
 const drinkTypeEnum = [
@@ -655,6 +679,7 @@ export const photos = sqliteTable(
       onDelete: "cascade",
     }),
     drinkLogId: text("drink_log_id").references(() => drinkLogs.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["photo", "cutout"] }).notNull().default("photo"),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
@@ -668,6 +693,18 @@ export const photos = sqliteTable(
     // 所有者 3 列の排他は SQL CHECK をマイグレーションに書く
   ],
 );
+
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    usedOn: text("used_on").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.usedOn] })],
+);
 ```
 
 CHECK の書き方（マイグレーション SQL）:
@@ -676,6 +713,7 @@ CHECK の書き方（マイグレーション SQL）:
 CHECK (drink_type IN ('wine','beer','whisky','sake','shochu','cocktail','other'))
 CHECK (status IN ('sealed','opened','consumed'))
 CHECK ((bottle_id IS NOT NULL) + (tasting_note_id IS NOT NULL) + (drink_log_id IS NOT NULL) <= 1)
+CHECK (kind IN ('photo','cutout'))
 ```
 
 Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHECK が自動で出ない場合は SQL を手で足す。出しすぎは避ける（範囲・文字数は Zod）。
@@ -718,7 +756,7 @@ Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHEC
 - 飲み頃メモ・アラート、在庫金額サマリー
 - 種類別テイスティングテンプレート
 - ノートと飲酒記録の同時作成（**消費 → 記録** は 1-07 で MVP に入った）
-- 写真の背景除去済み画像（切り抜き）を別に持つ列。v1.x で必要なら `photos.variant` を足す
+- 切り抜き（`kind = cutout`）と長方形の両方を同時に持つこと。MVP はどちらか 1 枚
 - CSV エクスポート用の追加テーブル
 
 ---
@@ -730,7 +768,7 @@ Drizzle の `enum` オプションは TS 上の制約であり、SQLite に CHEC
 - [x] enum が要件の 7 種類・ボトルステータス 3 種と一致
 - [x] 写真の所有者が `user_id` で辿れる
 - [x] `database` ルール（`.cursor/rules/database.mdc`）を同梱
-- [ ] 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id`）のオーナー承認
+- [ ] 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id` / `photos.kind` / `ai_usage`）のオーナー承認
 
 ---
 

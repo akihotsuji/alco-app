@@ -17,7 +17,8 @@
 | 比率 | 文脈で固定: 記録・ノート **4:5**、セラー **2:3** | 一覧の見た目を揃える |
 | 色補正 | プリセット `table` / `cellar` を既定 ON。OFF 可（設定で既定変更） | 「いい感じに加工」の MVP 範囲 |
 | キャラ合成 | 記録・ノートのみ。右下 `surprised`。既定 ON | オーナー指示 |
-| 背景除去 | **v1.x**。ブラウザ WASM（例 `@imgly/background-removal`）。モデル数十 MB を初回 DL するため MVP では入れない | 棚に「本物のシルエット」で立たせる将来案 |
+| 背景除去（切り抜き） | **セラーのみ、MVP**（2026-09-05 決定）。ブラウザ WASM（候補 `@imgly/background-removal`）。トグル「切り抜く」既定 ON。出力は透過 WebP、`photos.kind = cutout`。失敗・未対応では長方形 JPEG（`kind = photo`）にフォールバック | ガラス棚に本物のシルエットで立たせる |
+| ラベル読み取り | セラーのみ。切り抜く**前**の 2:3 JPEG を保持し、`photo-edit` を閉じた直後に `POST /api/bottles/recognize` へ送る（画像は保存しない） | [04-cellar.md](04-cellar.md) B2 |
 | HEIC | iOS の `capture` 撮影は JPEG で来る。ライブラリ選択で HEIC が来た場合、Safari は `<img>` でデコードできるので Canvas 経由で JPEG 化される。デコードできないブラウザでは「この形式は使えません。JPEG / PNG を選んでください」 | サーバーは常に JPEG を受ける |
 | アップロード時期 | 「使う」を押した直後に **未紐付けで `POST /api/photos`**。フォーム保存時に `photoIds` で紐付け | 保存ボタン押下を速くする。放棄分はサーバー GC（24h） |
 | 上限 | サーバー 1 枚 **1MB**（413）。クライアント出力は通常 300KB 以下 | 実体検証はサーバー（magic bytes + サイズ） |
@@ -54,20 +55,29 @@
 | P3 | プレビュー | Canvas / `<img>` + 枠 | 比率枠に `cover`。1 本指ドラッグで平行移動、2 本指ピンチで 1.0〜3.0 倍。枠外は `--foreground` 60% で暗く |
 | P4 | 色補正トグル | Chip（✓） | ラベル: 記録・ノート「色補正: 食卓」、セラー「色補正: セラー」。ON/OFF でプレビュー即反映 |
 | P5 | キャラトグル | Chip（✓） | 記録・ノートのみ。ON でプレビュー右下に `surprised`（短辺 22%）。セラーでは **表示しない** |
-| P6 | 使う | Button 主 | 合成 → JPEG 化 → アップロード開始 → 閉じる。呼び出し元にサムネと `photoId`（アップロード中は進捗） |
+| P5b | 切り抜きトグル | Chip（✓） | **セラーのみ**、既定 ON。ON のときプレビュー背景を市松にして切り抜き結果を見せる（処理中はスピナー + 「切り抜き中…」、初回は「初回のみ数十 MB を取得します」）。失敗時は自動で OFF にし「うまく抜けませんでした。長方形のまま保存します」 |
+| P6 | 使う | Button 主 | 合成 → 画像化（cutout は WebP、他は JPEG）→ アップロード開始 → 閉じる。呼び出し元にサムネと `photoId`（アップロード中は進捗）。セラーでは切り抜く前の JPEG も呼び出し元へ渡す（読み取り用。保存しない） |
+
+モック: [photo-edit-bottle.png](../wireframes/mocks/photo-edit-bottle.png)（セラー。切り抜き ON）
 
 ### 処理順（`src/client/lib/photo/`）
 
 ```
 File → createImageBitmap（EXIF orientation 補正）
-     → 切り抜き（比率・位置・拡縮）→ 長辺 1280 にリサイズ
+     → トリミング（比率・位置・拡縮）→ 長辺 1280 にリサイズ
      → filter（プリセット。OFF なら none）→ 周辺減光（cellar のみ）
-     → composeMascot（ON のとき。右下、短辺 22%、余白 4%、背後グロー）
-     → canvas.toBlob("image/jpeg", 0.82)
+     → [記録・ノート] composeMascot（ON のとき。右下、短辺 22%、余白 4%、背後グロー）
+     → [記録・ノート] canvas.toBlob("image/jpeg", 0.82)
+     → [セラー] この時点の JPEG を recognize 用に保持（メモリのみ）
+     → [セラー・切り抜き ON] removeBackground（WASM）→ 透過キャンバスにボトルを下端揃えで配置
+                             → 足元に楕円の落ち影を焼き込む → canvas.toBlob("image/webp", 0.9)
+                             → 失敗なら JPEG にフォールバック
      → POST /api/photos（multipart: file, 任意 bottleId / tastingNoteId / drinkLogId）
 ```
 
-- 切り抜き・リサイズ・合成の座標計算は **純粋関数**にし単体テスト（比率 4:5 / 2:3、拡縮 1.0 / 3.0、短辺 22% の位置）
+- トリミング・リサイズ・合成・落ち影の座標計算は **純粋関数**にし単体テスト（比率 4:5 / 2:3、拡縮 1.0 / 3.0、短辺 22% の位置、切り抜きの下端揃え）
+- 背景除去は `src/client/lib/photo/remove-background.ts` に隔離し、ライブラリ差し替え可能にする（モデルの DL 先は同一オリジン配下 `/models/` に置くか、ライブラリ既定 CDN を使うかは 4-06 で決める。CDN を使う場合は CSP の `connect-src` に追加）
+- 背景除去の実行条件: WebAssembly SIMD が使えること。使えない端末はトグルを非表示にし常に長方形
 - `filter` は Canvas 2D の `ctx.filter`。未対応ブラウザ（古い Safari）では色補正をスキップし、トグルを無効化して「この端末では色補正を使えません」
 - メモリ: 4000×3000 の元画像は `createImageBitmap` の `resizeWidth` で先に縮める
 
@@ -80,6 +90,8 @@ File → createImageBitmap（EXIF orientation 補正）
 | 処理中（使う押下後） | ボタン「処理中」無効。1 秒以内が目標 |
 | アップロード中 | 呼び出し元のサムネに進捗リング。失敗時は「!」+ 再試行（同じ Blob を再送） |
 | キャラ ON→OFF | 200ms でフェード（`prefers-reduced-motion` なら即時） |
+| 切り抜き中 | プレビュー上にスピナー + 「切り抜き中…」。初回はモデル DL の進捗（%）。「使う」は処理完了まで無効 |
+| 切り抜き失敗 | トグル OFF に戻し、プレビューを長方形に。文言「うまく抜けませんでした。長方形のまま保存します」 |
 
 ### 設定の既定
 
@@ -89,6 +101,8 @@ File → createImageBitmap（EXIF orientation 補正）
 |---|---|---|
 | `photo.mascot` | `true` | キャラトグルの初期値（設定画面 S3 と同じ値） |
 | `photo.filter` | `true` | 色補正トグルの初期値（S4） |
+| `photo.cutout` | `true` | 切り抜きトグルの初期値（セラー） |
+| `cellar.recognize` | `true` | ラベル自動読み取り（設定画面 S5） |
 
 最後の選択で上書きする（トグルを触ると既定も変わる）。
 
@@ -100,6 +114,7 @@ File → createImageBitmap（EXIF orientation 補正）
 |---|---|
 | 認証 | 必須。`user_id` はセッション |
 | MIME | **magic bytes** で `image/jpeg` / `image/png` / `image/webp` のみ。SVG / GIF / HEIC は 415 |
+| `kind` | WebP かつ VP8X ヘッダに alpha フラグ → `cutout`、それ以外 `photo`。クライアント申告は受け取らない |
 | サイズ | ≦ 1MB。超過は 413 |
 | 寸法 | 長辺 ≦ 1600（クライアント 1280 + 余裕）。超過は 400 |
 | キー | `{photoId}.jpg` 等サーバー生成。ファイル名・`user_id` を含めない |
@@ -112,7 +127,8 @@ File → createImageBitmap（EXIF orientation 補正）
 ## 受け入れチェック（2-08）
 
 - [ ] `input[type=file] capture` で撮影 → `photo-edit` が開く
-- [ ] 比率 4:5 / 2:3 の枠、ドラッグ・ピンチ、色補正トグル、キャラトグル（セラーでは非表示）
+- [ ] 比率 4:5 / 2:3 の枠、ドラッグ・ピンチ、色補正トグル、キャラトグル（セラーでは非表示）、切り抜きトグル（セラーのみ）
+- [ ] 切り抜きが透過 WebP（`kind = cutout`）で保存され、失敗時に長方形 JPEG へフォールバックする。初回モデル DL の進捗が出る
 - [ ] 出力が JPEG 長辺 1280、品質 0.82、EXIF なし。キャラは右下 短辺 22%・余白 4%
 - [ ] 「使う」直後に未紐付けアップロード、フォーム保存で `photoIds` 紐付け
 - [ ] サーバー: magic bytes、1MB、SVG/GIF 415、他人の紐付け先 404、未紐付け 24h GC

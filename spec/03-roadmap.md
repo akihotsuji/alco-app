@@ -74,7 +74,8 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] ER図とDrizzleスキーマ設計（Auth の `user` / drink_logs / my_drinks / bottles / tasting_notes / photos）→ `spec/data-model.md`
 - [x] API設計: リソース単位のエンドポイント一覧、認可ルール（全データ user_id スコープ）→ [api-design.md](api-design.md)
 - [x] 純アルコール量計算・標準グラス量プリセットの仕様確定 → [features/alcohol-calculation.md](features/alcohol-calculation.md)
-- [ ] 1-07 に伴う改訂の承認: `bottles.status` に `consumed`、`consumed_at/on`、`quantity` 廃止（1 行 = 1 本）、`drink_logs.bottle_id`、`photos.drink_log_id`、`POST /api/bottles/:id/consume|restore`、`view`、`count`、`photoIds`、未紐付け写真 GC（data-model / api-design 内「1-07 改訂」）
+- [ ] 1-07 に伴う改訂の承認: `bottles.status` に `consumed`、`consumed_at/on`、`quantity` 廃止（1 行 = 1 本）、`drink_logs.bottle_id`、`photos.drink_log_id`、`photos.kind`、`ai_usage`、`POST /api/bottles/:id/consume|restore`、`POST /api/bottles/recognize`、`view`、`count`、`photoIds`、未紐付け写真 GC（data-model / api-design 内「1-07 改訂」）
+- [x] 2026-09-05（2 回目）オーナー決定: 棚は **地色の上にガラス風の棚板 + 切り抜きボトル**（切り抜きを MVP へ）、**種類ごと / 1 本ずつ**の表示切替、ラベル読み取りは **Workers AI（Vision）** でセラーのみ（Gemini 等は将来の差し替え候補）、デザイン崩れ（週マスの薄赤・チップの被り）は影トークンの 2 段階化で修正
 
 ### rules / skills
 
@@ -139,21 +140,24 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 
 ---
 
-## Phase 4: セラー管理（目安: 1〜1.5週間）
+## Phase 4: セラー管理（目安: 1.5〜2週間）
 
-**目的**: 撮って棚に並べ、消費で貯蔵庫へ移す在庫管理を構築する。写真基盤は Phase 2-08 のものを使う。
+**目的**: 撮って（切り抜いて）ガラス棚に並べ、消費で貯蔵庫へ移す在庫管理を構築する。ラベルの AI 読み取りで登録を楽にする。写真基盤は Phase 2-08 のものを使う。
 
 ### タスク
 
 - [ ] `spec/features/cellar.md` 作成（[screen-designs/04-cellar.md](screen-designs/04-cellar.md) を写す）
 - [ ] ボトルの追加・詳細・編集・削除: 「+」は撮影から（2:3、`cellar` プリセット、キャラ合成なし）、本数 N で N 行、詳細のプロパティ・ノート節・記録節
-- [ ] **棚（陳列）**: 3 列、2:3 写真が棚板に立つ、写真なしは種類別シルエット、種類・状態・検索フィルタ、空状態
+- [ ] **棚（陳列）**: 地色の上に **ガラス風の棚板**、**種類ごと / 1 本ずつ**の表示切替、`kind`（切り抜き / 長方形）の描き分け、写真なしは種類別シルエット、種類・状態・検索フィルタ、空状態
 - [ ] **消費・貯蔵庫・開栓・復元**: 消費ダイアログ（記録 1 杯を同時作成 → その日の日別へ、トースト undo）、`/cellar/archive`（月見出し・減彩）、「開栓する」、「セラーに戻す」
-- [ ] APIテスト・コンポーネントテスト（consume / restore の認可・トランザクション含む）
+- [ ] **切り抜き（4-06）**: 端末内 WASM で背景除去 → 透過 WebP（`kind = cutout`）。失敗時は長方形にフォールバック
+- [ ] **ラベル読み取り（4-07）**: `POST /api/bottles/recognize`（Cloudflare Workers AI の Vision モデル）で銘柄名・生産者・産地・年・種類・度数の候補を空欄に。自動保存しない。日次上限。設定で OFF。将来 Gemini 等へ差し替え可能な `LabelRecognizer`
+- [ ] APIテスト・コンポーネントテスト（consume / restore / recognize の認可・トランザクション・上限含む）
 
 ### 完了条件（DoD）
 
-- 手持ちのボトルを撮って棚に並べ、検索・絞り込みでき、消費すると貯蔵庫へ移ってその日の記録が増える
+- 手持ちのボトルを撮って（切り抜かれて）ガラス棚に並べ、種類ごと / 1 本ずつを切り替え、検索・絞り込みでき、消費すると貯蔵庫へ移ってその日の記録が増える
+- ラベル写真から候補が空欄に入り、確認して保存できる（読めなくても登録は止まらない）
 - 写真がR2に保存され、他ユーザーからアクセスできないことがテストで担保されている
 - 消費の undo でボトルと記録の両方が元に戻る
 

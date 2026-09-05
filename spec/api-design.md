@@ -51,7 +51,9 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 写真枚数 | 記録 1 / ボトル 1 / ノート 6。超過は 400 `validation_error`（`photoIds`） | data-model 5.6 |
 | 写真の実体検証 | **magic bytes**、1MB（413）、長辺 1600px（400）、jpeg/png/webp のみ | [screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md) |
 | 未紐付け GC | **Cron Trigger（日次）** で作成 24h 超の未紐付け写真を R2 + D1 から削除。公開エンドポイントではない（Worker の `scheduled` ハンドラ） | 放棄分の掃除 |
-| 一覧のサムネ | drink-log 一覧にも `thumbPhotoId` を含める | 日別の行サムネ |
+| 一覧のサムネ | drink-log 一覧にも `thumbPhotoId` を含める。bottles 一覧は `thumbPhotoKind`（`photo` / `cutout`）も返す | 日別の行サムネ、棚の描き分け |
+| 写真の種別 | 写真メタに `kind`（`photo` / `cutout`）。サーバーが WebP の alpha フラグで判定し、クライアント申告は受け取らない | 切り抜き（2026-09-05） |
+| ラベル読み取り | **`POST /api/bottles/recognize`** を追加。Workers AI（Vision）で候補を返す。**保存しない**。日次上限 30 回 / ユーザー（429） | オーナー決定（2026-09-05）。プロバイダは差し替え可能に |
 
 ---
 
@@ -149,8 +151,10 @@ WHERE id = :id AND user_id = :sessionUserId
 | 400 | `validation_error` | Zod 失敗。範囲・enum・日付形式・排他条件 |
 | 401 | `unauthorized` | セッションなし / 期限切れ |
 | 404 | `not_found` | 未定義ルート、存在しない ID、他人の ID、他人の参照 ID |
-| 413 | `payload_too_large` | 写真サイズ超過（上限数値は 4-04） |
+| 413 | `payload_too_large` | 写真サイズ超過（1MB） |
 | 415 | `unsupported_media_type` | 許可外 MIME（SVG / GIF / HEIC 等） |
+| 429 | `rate_limited` | ラベル読み取りの日次上限 |
+| 502 | `upstream_error` | Workers AI が失敗 / タイムアウト（ラベル読み取りのみ。詳細は出さない） |
 | 500 | `internal_error` | それ以外。スタック・SQL・内部パスは出さない |
 
 - `fields` のキーはリクエストのフィールド名（camelCase）。Zod の内部 path 配列やスキーマファイルパスは出さない
@@ -241,6 +245,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | DELETE | `/api/bottles/:id` | 必須 | 削除（写真 CASCADE、ノート・記録は残す） |
 | POST | `/api/bottles/:id/consume` | 必須 | 消費 → 貯蔵庫。任意で記録 1 件を同時作成 |
 | POST | `/api/bottles/:id/restore` | 必須 | 貯蔵庫 → 棚（undo / セラーに戻す） |
+| POST | `/api/bottles/recognize` | 必須 | ラベル写真から候補フィールド（Workers AI）。保存しない |
 | GET | `/api/tasting-notes` | 必須 | ノート一覧 |
 | POST | `/api/tasting-notes` | 必須 | ノート作成 |
 | GET | `/api/tasting-notes/:id` | 必須 | 詳細（写真メタ含む） |
@@ -252,7 +257,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | PATCH | `/api/photos/:id` | 必須 | 紐付け・並び |
 | DELETE | `/api/photos/:id` | 必須 | メタと R2 を削除 |
 
-`GET /api/drink-logs/summary` は `GET /api/drink-logs/:id` より**先に登録**する（`summary` を id と誤認しない）。`/api/bottles/:id/consume` / `restore` は `:id` の配下なので順序の問題はない。
+`GET /api/drink-logs/summary` は `GET /api/drink-logs/:id` より**先に登録**する（`summary` を id と誤認しない）。同様に **`POST /api/bottles/recognize` は `/api/bottles/:id/*` より先**に登録する。`consume` / `restore` は `:id` の配下なので順序の問題はない。
 
 Cron（公開エンドポイントではない）: `scheduled` ハンドラで日次に未紐付け写真 GC を実行する。`wrangler.jsonc` の `triggers.crons`（例 `0 18 * * *` = JST 3:00）。
 
@@ -450,7 +455,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 **共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。日付は `purchasedOn` / `openedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`priceJpy` は整数円または null。`status` は `sealed` \| `opened` \| `consumed`。`quantity` は無い（1 行 = 1 本）。
 
-詳細・作成応答に `photos`（4.7 のメタ配列、最大 1）を含める。一覧は `thumbPhotoId`（無ければ null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）を含める（ヘッダーの「12 本」）。
+詳細・作成応答に `photos`（4.7 のメタ配列、最大 1）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。
 
 #### GET /api/bottles
 
@@ -511,6 +516,42 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 成功: 200 `Bottle`。
 
+#### 4.5.3 POST /api/bottles/recognize
+
+ラベル写真から登録フォームの候補を返す。**DB には何も書かない**（利用回数以外）。画面: [screen-designs/04-cellar.md](screen-designs/04-cellar.md) B2。
+
+`multipart/form-data`。パート `file`（切り抜く前の 2:3 JPEG。≦1MB、magic bytes 検証は 4.7 と同じ）。
+
+```json
+{
+  "fields": {
+    "name":       { "value": "サンプル赤", "confidence": 0.86 },
+    "producer":   { "value": "サンプル生産者", "confidence": 0.71 },
+    "origin":     { "value": "フランス", "confidence": 0.62 },
+    "vintage":    { "value": 2020, "confidence": 0.9 },
+    "drinkType":  { "value": "wine", "confidence": 0.95 },
+    "abvPercent": { "value": 13.5, "confidence": 0.4 }
+  },
+  "provider": "workers-ai",
+  "remainingToday": 27
+}
+```
+
+| 規則 | 内容 |
+|---|---|
+| プロバイダ | **Cloudflare Workers AI**（binding `AI`。Vision 対応の指示追従モデル。導入時点の推奨モデル名は 4-07 で確定し `src/server/services/label-recognizer/` の定数に置く）。実装は `LabelRecognizer` インターフェースにし、将来 Gemini 等を差し替えられるようにする |
+| プロンプト | サーバー固定。ユーザー入力を含めない。「JSON のみで返す」指示 + スキーマ例。言語は日本語ラベル・英語ラベル両対応 |
+| 出力の扱い | モデル出力は **信頼しない入力**として Zod で検証する。`name` / `producer` / `origin` ≦100 文字、`vintage` 1800〜2100 の整数、`drinkType` 7 種、`abvPercent` 0〜100 小数 1 桁、`confidence` 0〜1。検証に落ちたフィールドは **省く**（全体を失敗にしない）。文字列は制御文字を除去 |
+| 欠落 | 読めなかったフィールドは省く。`fields` が空でも 200 |
+| 上限 | ユーザーごと **30 回 / 日（JST）**。`ai_usage` を先に加算し、超過は 429 `rate_limited`。失敗（502）は加算しない |
+| タイムアウト | 20 秒。超過は 502 `upstream_error` |
+| ログ | 件数・所要時間・成否のみ。画像・出力テキストをログに出さない |
+| 保存 | 画像も結果も保存しない。写真の保存は別途 4.7 |
+
+成功: 200。クライアントは確度 0.5 未満の候補を捨て、空欄にだけ入れる。
+
+公開エンドポイントではない（認証必須）。外部ベンダーへの送信は無い（Cloudflare 内）。将来 Gemini 等の外部 API を足す場合は、送信先を設定画面の副文とプライバシー表記（Phase 8-01）に明記し、オーナー承認を得る。
+
 ### 4.6 tasting-notes
 
 **共通オブジェクト:** data-model 6.4。API の評価は **`ratingX10`**（10〜50、5 刻み）。UI 表示は `/ 10`。`tastedOn` は JST 日。
@@ -562,10 +603,11 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 | bottleId | string \| null |
 | tastingNoteId | string \| null |
 | drinkLogId | string \| null |
+| kind | `photo` \| `cutout` |
 | sortOrder | number |
 | createdAt, updatedAt | string |
 
-所有者 3 列（`bottleId` / `tastingNoteId` / `drinkLogId`）は最大 1 つ（data-model CHECK）。すべて null は未紐付け（先アップロード。24h で GC）。
+所有者 3 列（`bottleId` / `tastingNoteId` / `drinkLogId`）は最大 1 つ（data-model CHECK）。すべて null は未紐付け（先アップロード。24h で GC）。`kind` はサーバー判定（WebP の VP8X alpha フラグ → `cutout`）。
 
 #### POST /api/photos
 
@@ -685,7 +727,9 @@ Auth を MW で保護するとログイン不能になる。catch-all より前�
 | 目標設定 API | v1.x |
 | 在庫金額サマリー、飲み頃アラート | v1.x |
 | ノートと飲酒記録の同時作成 | v1.x（消費 → 記録は 4.5.1 で MVP） |
-| 背景除去（切り抜き）画像の保存 | v1.x |
+| 切り抜きと長方形の両方を保存 | v1.x（MVP はどちらか 1 枚） |
+| Gemini / OpenAI 等の外部 Vision API | 将来。`LabelRecognizer` の差し替えで対応。外部送信の明記と承認が前提 |
+| 記録・ノート写真の AI 推定（種類・度数） | 将来 |
 | CSV エクスポート | 将来構想 |
 | アカウント削除 API | 将来（FK CASCADE は data-model 済み） |
 | パスワードリセットメール | Phase 8-03 |
@@ -711,7 +755,7 @@ Auth を MW で保護するとログイン不能になる。catch-all より前�
 | summary-week / summary-month | `GET /api/drink-logs/summary?period=week\|month` |
 | bottle-list（棚） | `GET /api/bottles?view=cellar` |
 | bottle-archive（貯蔵庫） | `GET /api/bottles?view=archive` |
-| bottle-new / bottle-edit | `POST /api/bottles`（`count`, `photoIds`）、PATCH、`POST /api/photos` |
+| bottle-new / bottle-edit | `POST /api/bottles`（`count`, `photoIds`）、PATCH、`POST /api/photos`、`POST /api/bottles/recognize`（bottle-new のみ） |
 | bottle-detail | `GET /api/bottles/:id`、`PATCH`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
 | bottle-consume | `POST /api/bottles/:id/consume`、undo: `restore` + `DELETE /api/drink-logs/:id` |
 | note-list / note-detail / note-new / note-edit | `/api/tasting-notes`（`photoIds`）、`/api/photos`、`GET /api/bottles?view=all&q=` |
@@ -729,7 +773,7 @@ Auth を MW で保護するとログイン不能になる。catch-all より前�
 - [x] 公開エンドポイントを列挙した（オーナー承認対象。1-07 で追加なし）
 - [x] 404 統一（未存在 = 他人）を書いた
 - [x] 計算の正はサーバー。クライアントの `alcoholG` を信じない
-- [ ] 1-07 改訂（consume / restore / view / count / photoIds / drinkLogId / GC）のオーナー承認
+- [ ] 1-07 改訂（consume / restore / recognize / view / count / photoIds / drinkLogId / kind / GC）のオーナー承認
 
 ---
 
