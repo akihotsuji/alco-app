@@ -1,6 +1,10 @@
 import { Camera } from "lucide-react";
 import { Link } from "react-router";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
+import { buttonVariants } from "@/client/components/ui/button.tsx";
+import { Card } from "@/client/components/ui/card.tsx";
+import { IconButton } from "@/client/components/ui/IconButton.tsx";
+import { cn } from "@/client/lib/utils.ts";
 import {
   formatHomeDateLabel,
   isoWeekDates,
@@ -15,36 +19,40 @@ export function HomePage() {
   return (
     <div className="home-page">
       <p className="home-date">{formatHomeDateLabel(today)}</p>
-      <Link className="today-card" to="/summary/week">
-        <div className="today-scores">
-          <div className="today-score">
-            <span className="today-score-num">0</span>
-            <span className="today-score-unit">杯</span>
+      <Card className="overflow-visible">
+        <Link className="today-card" to="/summary/week">
+          <div className="today-scores">
+            <div className="today-score">
+              <span className="today-score-num">0</span>
+              <span className="today-score-unit">杯</span>
+            </div>
+            <span className="rest-pill">休肝</span>
+            <div className="today-score">
+              <span className="today-score-num">0</span>
+              <span className="today-score-unit">g 純アルコール</span>
+            </div>
           </div>
-          <span className="rest-pill">休肝</span>
-          <div className="today-score">
-            <span className="today-score-num">0</span>
-            <span className="today-score-unit">g 純アルコール</span>
+          <div className="week-dots" aria-hidden>
+            {week.map((date, index) => (
+              <span key={date} className={date === today ? "week-dot week-dot-today" : "week-dot"}>
+                <span className="week-dot-label">{WEEKDAY_LABELS_MON_SUN[index] ?? ""}</span>
+              </span>
+            ))}
           </div>
-        </div>
-        <div className="week-dots" aria-hidden>
-          {week.map((date, index) => (
-            <span key={date} className={date === today ? "week-dot week-dot-today" : "week-dot"}>
-              <span className="week-dot-label">{WEEKDAY_LABELS_MON_SUN[index] ?? ""}</span>
-            </span>
-          ))}
-        </div>
-        <span className="today-mascot">
-          <Mascot pose="rest" size={72} aria-hidden />
-        </span>
-      </Link>
+          <span className="today-mascot">
+            <Mascot pose="rest" size={72} aria-hidden />
+          </span>
+        </Link>
+      </Card>
       <div className="home-actions">
-        <Link className="btn-primary home-log-btn" to="/logs/new">
+        <Link className={cn(buttonVariants(), "home-log-btn")} to="/logs/new">
           記録する
         </Link>
-        <Link className="icon-btn home-camera" to="/logs/new?camera=1" aria-label="カメラで記録">
-          <Camera size={22} />
-        </Link>
+        <IconButton label="カメラで記録" size="icon-lg" asChild>
+          <Link to="/logs/new?camera=1">
+            <Camera size={22} />
+          </Link>
+        </IconButton>
       </div>
       <div className="home-mydrinks">
         <div className="home-mydrinks-head">
@@ -56,7 +64,7 @@ export function HomePage() {
         <p className="home-mydrinks-empty">
           よく飲む一杯を登録すると、ここを 1 回タップで記録できます
         </p>
-        <Link className="btn-secondary" to="/logs/my-drinks/new">
+        <Link className={buttonVariants({ variant: "secondary" })} to="/logs/my-drinks/new">
           登録
         </Link>
       </div>

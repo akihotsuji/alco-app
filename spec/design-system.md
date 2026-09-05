@@ -294,7 +294,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 
 shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`destructive` → `--danger`、`muted-foreground` → `--muted`、`radius` → `--radius`。`border` は `transparent` 相当。
 
-参照実装: [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css)
+実装: `src/client/styles.css`（`:root` + `@media (prefers-color-scheme: dark)` + `@theme inline`）。対応表は `src/client/lib/design-tokens.ts`。参照モック: [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css)
 
 ---
 

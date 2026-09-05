@@ -13,8 +13,8 @@
 |---|---|
 | **完了** | 0-01〜0-09、1-01〜1-06。設計は 2026-09-04 承認。`protect-main` は 2026-09-05 適用（id `22315799`） |
 | **レビュー待ち** | **1-07 詳細画面設計**（`spec/screen-designs/`）と **1-08 キャラクター**（`spec/character.md`）。data-model / api-design / design-system の 1-07 改訂を含む |
-| **進行中** | Phase 2（2-01〜2-05 完了。共通レイアウトまで） |
-| **未着手** | 2-06 以降（2-08 写真パイプラインを追加） |
+| **進行中** | Phase 2（2-01〜2-06 完了。トークン / shadcn まで） |
+| **未着手** | 2-07 以降（2-08 写真パイプラインを追加） |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
@@ -91,7 +91,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 |---|---|---|---|
 | Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 完了 |
 | Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 1-01〜06 完了（2026-09-04 承認）。1-07 / 08 レビュー待ち |
-| Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 進行中（2-01〜2-05 完了） |
+| Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 進行中（2-01〜2-06 完了） |
 | Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 未着手 |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と消費・貯蔵庫・ラベル AI 読み取り | 未着手 |
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 未着手 |
@@ -139,7 +139,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 2-03 | Hono API基本構造 | [03-hono-api-structure.md](phase-02-platform/03-hono-api-structure.md) | 完了 |
 | 2-04 | Hono RPC + TanStack Query | [04-hono-rpc-tanstack-query.md](phase-02-platform/04-hono-rpc-tanstack-query.md) | 完了 |
 | 2-05 | 共通レイアウト | [05-common-layout.md](phase-02-platform/05-common-layout.md) | 完了 |
-| 2-06 | デザイントークンとshadcn/ui | [06-design-tokens-shadcn.md](phase-02-platform/06-design-tokens-shadcn.md) | 未着手 |
+| 2-06 | デザイントークンとshadcn/ui | [06-design-tokens-shadcn.md](phase-02-platform/06-design-tokens-shadcn.md) | 完了 |
 | 2-07 | 認証周りの単体テスト・APIテスト | [07-auth-tests.md](phase-02-platform/07-auth-tests.md) | 未着手 |
 | 2-08 | 写真パイプライン基盤（撮影→編集→合成→R2、未紐付け GC） | [08-photo-pipeline.md](phase-02-platform/08-photo-pipeline.md) | 未着手 |
 

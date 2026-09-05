@@ -1,6 +1,9 @@
 import { Camera } from "lucide-react";
 import { Link, useParams } from "react-router";
+import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
+import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { isFutureTokyoDate, isValidLogDateParam, tokyoToday } from "@/client/lib/app-routes.ts";
+import { cn } from "@/client/lib/utils.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 
 export function LogDayPage() {
@@ -20,22 +23,24 @@ export function LogDayPage() {
       </p>
       <div className="home-actions">
         {future ? (
-          <button type="button" className="btn-primary home-log-btn" disabled>
+          <Button className="home-log-btn" type="button" disabled>
             記録する
-          </button>
+          </Button>
         ) : (
-          <Link className="btn-primary home-log-btn" to={newHref}>
+          <Link className={cn(buttonVariants(), "home-log-btn")} to={newHref}>
             記録する
           </Link>
         )}
         {future ? (
-          <span className="icon-btn home-camera is-disabled" aria-disabled>
+          <IconButton label="カメラで記録" size="icon-lg" disabled>
             <Camera size={22} />
-          </span>
+          </IconButton>
         ) : (
-          <Link className="icon-btn home-camera" to={cameraHref} aria-label="カメラで記録">
-            <Camera size={22} />
-          </Link>
+          <IconButton label="カメラで記録" size="icon-lg" asChild>
+            <Link to={cameraHref}>
+              <Camera size={22} />
+            </Link>
+          </IconButton>
         )}
       </div>
       <p className="log-day-empty">この日の記録はまだありません</p>

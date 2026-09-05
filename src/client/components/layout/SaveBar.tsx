@@ -1,3 +1,5 @@
+import { Button } from "@/client/components/ui/button.tsx";
+
 type SaveBarProps = {
   label?: string;
   pending?: boolean;
@@ -13,9 +15,9 @@ export function SaveBar({
 }: SaveBarProps) {
   return (
     <div className="save-bar">
-      <button type="button" className="btn-primary" onClick={onSave} disabled={disabled || pending}>
+      <Button type="button" onClick={onSave} disabled={disabled || pending}>
         {pending ? "保存中" : label}
-      </button>
+      </Button>
     </div>
   );
 }
