@@ -93,10 +93,7 @@ export function cookieHeaderFrom(response: Response): string {
     .join("; ");
 }
 
-export async function signUp(
-  app: TestApp,
-  input: TestUserInput,
-) {
+export async function signUp(app: TestApp, input: TestUserInput) {
   return app.request("/api/auth/sign-up/email", {
     method: "POST",
     headers: authHeaders(app),
