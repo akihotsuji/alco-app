@@ -30,6 +30,8 @@ describe("isPublicApiRoute", () => {
 
   it("業務ルートは非公開", () => {
     expect(isPublicApiRoute("GET", "/api/me")).toBe(false);
+    expect(isPublicApiRoute("POST", "/api/photos")).toBe(false);
+    expect(isPublicApiRoute("GET", "/api/photos/1/content")).toBe(false);
     expect(isPublicApiRoute("GET", "/api/drink-logs")).toBe(false);
     expect(isPublicApiRoute("GET", "/api")).toBe(false);
   });

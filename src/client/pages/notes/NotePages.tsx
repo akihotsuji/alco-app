@@ -26,18 +26,23 @@ export function NoteFormPage({ mode }: { mode: "new" | "edit" }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { openPhotoEdit } = usePhotoEdit();
+  const { startCapture, attachments, retryUpload, clearAttachment } = usePhotoEdit();
   const camera = searchParams.get("camera") === "1";
 
   useEffect(() => {
     if (mode === "new" && camera) {
-      openPhotoEdit("note");
+      void startCapture("note");
     }
-  }, [camera, mode, openPhotoEdit]);
+  }, [camera, mode, startCapture]);
 
   return (
     <div className="form-page">
-      <PhotoTile onClick={() => openPhotoEdit("note")} />
+      <PhotoTile
+        onClick={() => void startCapture("note")}
+        attachment={attachments.note}
+        onRetry={() => void retryUpload("note")}
+        onClear={() => void clearAttachment("note")}
+      />
       <p className="form-placeholder">入力項目は Phase 5 で実装します</p>
       <SaveBar
         onSave={() => {

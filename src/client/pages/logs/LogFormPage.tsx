@@ -14,18 +14,23 @@ export function LogFormPage({ mode }: LogFormPageProps) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { openPhotoEdit } = usePhotoEdit();
+  const { startCapture, attachments, retryUpload, clearAttachment } = usePhotoEdit();
   const camera = searchParams.get("camera") === "1";
 
   useEffect(() => {
     if (mode === "new" && camera) {
-      openPhotoEdit("log");
+      void startCapture("log");
     }
-  }, [camera, mode, openPhotoEdit]);
+  }, [camera, mode, startCapture]);
 
   return (
     <div className="form-page">
-      <PhotoTile onClick={() => openPhotoEdit("log")} />
+      <PhotoTile
+        onClick={() => void startCapture("log")}
+        attachment={attachments.log}
+        onRetry={() => void retryUpload("log")}
+        onClear={() => void clearAttachment("log")}
+      />
       <p className="form-placeholder">入力項目は Phase 3 で実装します</p>
       <SaveBar
         onSave={() => {
