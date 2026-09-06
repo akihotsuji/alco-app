@@ -147,7 +147,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 3-01 | `spec/features/drink-log.md` 作成 | [01-spec-drink-log.md](phase-03-drink-log/01-spec-drink-log.md) | 未着手 |
+| 3-01 | `spec/features/drink-log.md` 作成 | [01-spec-drink-log.md](phase-03-drink-log/01-spec-drink-log.md) | レビュー待ち（2026-09-06 作成） |
 | 3-02 | 記録入力画面 | [02-log-input-screen.md](phase-03-drink-log/02-log-input-screen.md) | 未着手 |
 | 3-03 | マイドリンク | [03-my-drinks.md](phase-03-drink-log/03-my-drinks.md) | 未着手 |
 | 3-04 | 純アルコール量計算ロジック | [04-alcohol-calc-logic.md](phase-03-drink-log/04-alcohol-calc-logic.md) | 未着手 |

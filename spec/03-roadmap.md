@@ -124,7 +124,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 
 ### タスク
 
-- [ ] `spec/features/drink-log.md` 作成（画面項目・バリデーション・計算仕様。[screen-designs/03-log.md](screen-designs/03-log.md) を写す）
+- [ ] `spec/features/drink-log.md` 作成（画面項目・バリデーション・計算仕様。[screen-designs/03-log.md](screen-designs/03-log.md) を写す）→ [features/drink-log.md](features/drink-log.md)（2026-09-06 作成。承認待ち）
 - [ ] 記録入力画面: 種類選択→量・度数プリセット→保存 を最短タップ数で。最上部に**写真タイル**（任意）、ボトル紐付け行、`?camera=1`
 - [ ] マイドリンク（プリセット）の登録・1タップ記録（ホームと日別の両方）
 - [ ] 純アルコール量計算ロジック（単体テスト必須）

@@ -21,5 +21,6 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | features/ | 機能ごとの詳細仕様（画面項目・バリデーション） | 各実装フェーズで作成 |
 | [features/health.md](features/health.md) | 公開 `GET /api/health`（認証なし） | 作成済み（0-04） |
 | [features/alcohol-calculation.md](features/alcohol-calculation.md) | 純アルコール量計算・グラスプリセット・休肝日 | 承認済み（1-06。2026-09-04） |
+| [features/drink-log.md](features/drink-log.md) | 飲酒記録（入力・編集・日別・マイドリンク・週/月サマリー・ホーム）の画面項目・バリデーション・API・エッジケース | 作成済み（3-01。承認待ち） |
 | release-checklist.md | リリース前チェックリスト | Phase 7で作成 |
 | operations.md | 運用手順（バックアップ復元・障害対応） | Phase 7で作成 |

@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 3 飲酒記録 |
-| ステータス | **未着手**（`spec/features/drink-log.md` なし。計算の正本は [alcohol-calculation.md](../../spec/features/alcohol-calculation.md)） |
+| ステータス | **レビュー待ち**（2026-09-06 に [spec/features/drink-log.md](../../spec/features/drink-log.md) を作成。計算の正本は [alcohol-calculation.md](../../spec/features/alcohol-calculation.md)） |
 | 要件 | 1.2 飲酒記録 MVP |
 | ソース | Phase 3 先頭タスク。feature-dev Step 1 |
 
