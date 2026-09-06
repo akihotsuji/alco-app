@@ -11,13 +11,14 @@ import { useLocation } from "react-router";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { agentDebug } from "@/client/lib/agent-debug.ts";
 import { hidesTabBar } from "@/client/lib/app-routes.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import { TOAST_DURATION_MS, type ToastInput, toastShowsCheer } from "@/client/lib/toast.ts";
 
 type ToastPhase = "enter" | "idle" | "leave";
 
-type ToastState = ToastInput & { id: number; phase: ToastPhase };
+type ToastState = ToastInput & { id: number; phase: ToastPhase; shownAt: number };
 
 type ToastContextValue = {
   showToast: (input: ToastInput) => void;
@@ -74,7 +75,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       idRef.current += 1;
       const id = idRef.current;
       const mount = () => {
-        setToast({ ...input, id, phase: "enter" });
+        setToast({ ...input, id, phase: "enter", shownAt: Date.now() });
         stayTimer.current = setTimeout(() => {
           stayTimer.current = null;
           beginLeave(() => setToast(null));
@@ -142,7 +143,41 @@ function ToastCard({ toast, onEntered }: { toast: ToastState; onEntered: (id: nu
       {cheer ? <Mascot pose="cheer" size={32} pour={!reduceMotion} aria-hidden /> : null}
       <p className="app-toast-message">{toast.message}</p>
       {toast.action ? (
-        <button type="button" className="app-toast-action" onClick={toast.action.onSelect}>
+        <button
+          type="button"
+          className="app-toast-action"
+          onPointerDown={() => {
+            // #region agent log
+            agentDebug({
+              hypothesisId: "F|G",
+              location: "ToastProvider.tsx:action:pointerdown",
+              message: "Toast action pointer down received",
+              data: {
+                toastId: toast.id,
+                phase: toast.phase,
+                elapsedMs: Date.now() - toast.shownAt,
+              },
+              timestamp: Date.now(),
+            });
+            // #endregion
+          }}
+          onClick={() => {
+            // #region agent log
+            agentDebug({
+              hypothesisId: "F|G",
+              location: "ToastProvider.tsx:action:click",
+              message: "Toast action click received",
+              data: {
+                toastId: toast.id,
+                phase: toast.phase,
+                elapsedMs: Date.now() - toast.shownAt,
+              },
+              timestamp: Date.now(),
+            });
+            // #endregion
+            toast.action?.onSelect();
+          }}
+        >
           {toast.action.label}
         </button>
       ) : null}
