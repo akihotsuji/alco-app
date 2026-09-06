@@ -96,7 +96,13 @@ pnpm exec wrangler d1 execute alco-app-dev --local --env dev --command "PRAGMA t
 
 ## リモート適用
 
-2-01 の範囲では **リモートに適用しない**。dev リモートは Phase 3-07、本番は Phase 7-01 で手順を決める。`--remote` を付けるコマンドをこの skill に増やすときはオーナー承認を得る。
+dev リモート（3-07）はオーナーが次を実行する。手順の正本は [spec/dev-deploy.md](../../../spec/dev-deploy.md)。本番は Phase 7-01。
+
+```powershell
+pnpm exec wrangler d1 migrations apply alco-app-dev --remote --env dev
+```
+
+エージェントはデプロイトークンの値を受け取らない。GitHub Secrets の `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` を使う。
 
 ## Better Auth スキーマの再生成
 
