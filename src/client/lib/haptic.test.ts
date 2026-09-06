@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHaptic, HAPTIC_MAX_TOTAL_MS, HAPTIC_PATTERNS } from "./haptic.ts";
+import { createHaptic, HAPTIC_MAX_TOTAL_MS, HAPTIC_PATTERNS, isHapticSupported } from "./haptic.ts";
 
 describe("haptic", () => {
   it("パターンは light 10ms / success 10-40-10ms で、合計 100ms 以内", () => {
@@ -31,6 +31,13 @@ describe("haptic", () => {
   it("未対応端末（vibrate 無し）では no-op", () => {
     const haptic = createHaptic({ isEnabled: () => true, getVibrate: () => undefined });
     expect(haptic("success")).toBe(false);
+  });
+
+  it("vibrate が無い環境では未対応", () => {
+    const original = navigator.vibrate;
+    Object.defineProperty(navigator, "vibrate", { configurable: true, value: undefined });
+    expect(isHapticSupported()).toBe(false);
+    Object.defineProperty(navigator, "vibrate", { configurable: true, value: original });
   });
 
   it("vibrate が投げても握って false", () => {

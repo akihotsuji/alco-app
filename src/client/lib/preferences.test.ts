@@ -1,14 +1,19 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { PHOTO_PREF_KEYS } from "@/shared/constants.ts";
+import { PHOTO_PREF_KEYS, UI_PREF_KEYS } from "@/shared/constants.ts";
 import {
   getCellarRecognizePref,
   getColorCorrectionPref,
   getComposeMascotPref,
   getCutoutPref,
+  getHapticPref,
+  getReduceMotionPref,
+  parseReduceMotionPref,
   setCellarRecognizePref,
   setColorCorrectionPref,
   setComposeMascotPref,
   setCutoutPref,
+  setHapticPref,
+  setReduceMotionPref,
 } from "./preferences.ts";
 
 const memory = new Map<string, string>();
@@ -71,5 +76,38 @@ describe("flag preferences", () => {
     });
     memory.set(PHOTO_PREF_KEYS.mascot, "1");
     expect(getComposeMascotPref()).toBe(true);
+  });
+});
+
+describe("UI 操作設定", () => {
+  afterEach(() => {
+    memory.clear();
+  });
+
+  it("触感フィードバックは既定 OFF で、キーは ui.haptic", () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: localStorageStub,
+    });
+    expect(UI_PREF_KEYS.haptic).toBe("ui.haptic");
+    expect(getHapticPref()).toBe(false);
+    setHapticPref(true);
+    expect(memory.get(UI_PREF_KEYS.haptic)).toBe("true");
+    expect(getHapticPref()).toBe(true);
+    setHapticPref(false);
+    expect(memory.get(UI_PREF_KEYS.haptic)).toBe("false");
+  });
+
+  it("動きを減らすは既定 system、always を保存できる", () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: localStorageStub,
+    });
+    expect(UI_PREF_KEYS.reduceMotion).toBe("ui.reduce-motion");
+    expect(getReduceMotionPref()).toBe("system");
+    setReduceMotionPref("always");
+    expect(memory.get(UI_PREF_KEYS.reduceMotion)).toBe("always");
+    expect(getReduceMotionPref()).toBe("always");
+    expect(parseReduceMotionPref("broken")).toBe("system");
   });
 });

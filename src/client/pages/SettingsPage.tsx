@@ -3,6 +3,9 @@ import { endSession } from "@/client/auth/end-session.ts";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { DisplayNameRow } from "@/client/components/settings/DisplayNameRow.tsx";
+import { HapticPrefRow } from "@/client/components/settings/HapticPrefRow.tsx";
+import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPrefRow.tsx";
 import { Switch } from "@/client/components/ui/switch.tsx";
 import { useMe } from "@/client/hooks/use-me.ts";
 import {
@@ -30,10 +33,7 @@ export function SettingsPage() {
         {me.isError ? <QueryError onRetry={() => me.refetch()} retrying={me.isFetching} /> : null}
         {me.data ? (
           <>
-            <div className="settings-row">
-              <span>表示名</span>
-              <span className="settings-value">{me.data.name || "未設定"}</span>
-            </div>
+            <DisplayNameRow name={me.data.name} />
             <div className="settings-row">
               <span>メール</span>
               <span className="settings-value">{me.data.email}</span>
@@ -84,6 +84,12 @@ export function SettingsPage() {
           </span>
           <span className="settings-caption">写真を Cloudflare の AI に送ります</span>
         </div>
+      </section>
+
+      <section className="settings-section">
+        <h2 className="settings-heading">操作</h2>
+        <HapticPrefRow />
+        <ReduceMotionPrefRow />
         <button
           type="button"
           className="settings-row settings-logout"
