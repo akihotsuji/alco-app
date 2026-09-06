@@ -11,9 +11,9 @@
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-09、1-01〜1-08（1-07 / 1-08 と data-model / api-design / design-system の 1-07 改訂は 2026-09-06 承認）、2-01〜2-08、3-01（`spec/features/drink-log.md` 2026-09-06 承認）、3-04（`src/shared/alcohol.ts`）。`protect-main` は 2026-09-05 適用（id `22315799`） |
+| **完了** | 0-01〜0-09、1-01〜1-08（1-07 / 1-08 と data-model / api-design / design-system の 1-07 改訂は 2026-09-06 承認）、2-01〜2-08、3-01（`spec/features/drink-log.md` 2026-09-06 承認）、3-04（`src/shared/alcohol.ts`）、3-02（`log-new` + `POST /api/drink-logs` + モーション共通基盤）。`protect-main` は 2026-09-05 適用（id `22315799`） |
 | **レビュー待ち** | なし |
-| **進行中** | Phase 3（3-04 完了。次は 3-02 / 3-03） |
+| **進行中** | Phase 3（3-04 / 3-02 完了。次は 3-03 → 3-05） |
 | **未着手** | Phase 4 以降 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
@@ -103,7 +103,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 完了 |
 | Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 完了（1-01〜06 は 2026-09-04、1-07 / 08 は 2026-09-06 承認） |
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 完了（2-01〜2-08） |
-| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 進行中（3-01 / 3-04 完了。次は 3-02 / 3-03） |
+| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 進行中（3-01 / 3-04 / 3-02 完了。次は 3-03 → 3-05） |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と開栓・貯蔵庫・ラベル AI 読み取り | 未着手 |
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 未着手 |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
@@ -160,7 +160,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
 | 3-01 | `spec/features/drink-log.md` 作成 | [01-spec-drink-log.md](phase-03-drink-log/01-spec-drink-log.md) | 完了（2026-09-06 作成・承認） |
-| 3-02 | 記録入力画面 | [02-log-input-screen.md](phase-03-drink-log/02-log-input-screen.md) | 未着手 |
+| 3-02 | 記録入力画面 | [02-log-input-screen.md](phase-03-drink-log/02-log-input-screen.md) | 完了（2026-09-06） |
 | 3-03 | マイドリンク | [03-my-drinks.md](phase-03-drink-log/03-my-drinks.md) | 未着手 |
 | 3-04 | 純アルコール量計算ロジック | [04-alcohol-calc-logic.md](phase-03-drink-log/04-alcohol-calc-logic.md) | 完了 |
 | 3-05 | 日別ビュー | [05-daily-view.md](phase-03-drink-log/05-daily-view.md) | 未着手 |

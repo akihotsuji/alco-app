@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 3 飲酒記録 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-06。`src/client/components/logs/LogNewForm.tsx`、`src/server/routes/drink-logs.ts`） |
 | 要件 | 種類選択→量・度数プリセット→保存を最短タップ数で |
 | ソース | Phase 3 記録入力画面 |
 
@@ -84,13 +84,13 @@ API: `POST /api/drink-logs`（api-design どおり）
 
 ## 8. 受け入れ条件
 
-- [ ] 仕様の項目が揃っている（[03-log.md](../../spec/screen-designs/03-log.md) の受け入れチェックを PR に貼る）
-- [ ] 最短タップ数が仕様どおり（写真なしで保存 1 タップ）
-- [ ] 写真タイル → `photo-edit` → 保存で `drink_log_id` が付く。未保存で戻ると写真が削除される
-- [ ] 単体（計算）と API（認可含む）テスト
-- [ ] lint / typecheck / test
-- [ ] spec 同期
-- [ ] security-audit Critical/High ゼロ
+- [x] 仕様の項目が揃っている（[03-log.md](../../spec/screen-designs/03-log.md) の受け入れチェックを PR に貼る。ボトル行 N8 は drink-log.md 9 章どおり Phase 4-02 まで非表示）
+- [x] 最短タップ数が仕様どおり（写真なしで保存 1 タップ）
+- [x] 写真タイル → `photo-edit` → 保存で `drink_log_id` が付く（D1 batch）。未保存で戻ると確認のうえ写真が削除される
+- [x] 単体（`log-form.ts` の規則、Zod、JST 変換、haptic、reduced motion）と API（401 / 他人 404 / 400 fields）テスト
+- [x] lint / typecheck / test
+- [x] spec 同期（`spec/03-roadmap.md`、`spec/features/drink-log.md` 6 章の担当タスク）
+- [x] security-audit Critical/High ゼロ（PR 本文に結果）
 
 ## 9. セキュリティ観点
 
