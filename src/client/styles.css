@@ -645,7 +645,8 @@
   left: 20px;
   right: 20px;
   bottom: calc(var(--tab-h) + 12px + 16px + env(safe-area-inset-bottom));
-  z-index: 20;
+  z-index: 25;
+  pointer-events: auto;
   min-height: 52px;
   padding: 0 16px;
   border-radius: var(--radius);
@@ -683,12 +684,15 @@
 }
 
 .app-toast-action {
+  position: relative;
+  z-index: 1;
   border: none;
   background: transparent;
   color: var(--primary);
   font: inherit;
   font-weight: 600;
   min-height: var(--tap-min);
+  pointer-events: auto;
 }
 
 .empty-state,
@@ -701,6 +705,11 @@
   gap: var(--space-4);
   text-align: center;
   padding: var(--space-6) 0;
+}
+
+/* 空セラー CTA がタブ上のトースト（高さ 52px）と重ならない */
+.cellar-empty {
+  padding-bottom: calc(52px + 16px + var(--space-6));
 }
 
 .empty-state-message {

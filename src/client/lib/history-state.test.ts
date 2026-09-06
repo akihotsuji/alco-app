@@ -1,16 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   bottleConsumeState,
   bottlePlacedState,
+  captureCellarVisit,
   consumeLeftEvent,
   consumeUndoRequested,
+  currentCellarVisit,
   historyHasFlag,
   historyIdx,
+  isCellarListPath,
   isPhotoHandoff,
+  markCellarVisitToastShown,
+  nextBottleSearchParams,
   PHOTO_HANDOFF_FLAG,
   photoHandoffState,
   placedBottleEvent,
+  releaseCellarVisit,
   rememberShelfEvent,
+  replaceSearchKeepState,
+  takeRememberedIntoVisit,
   takeRememberedShelfEvent,
   withHistoryFlag,
 } from "./history-state.ts";
@@ -102,5 +110,72 @@ describe("bottle consume / placed state", () => {
     rememberShelfEvent({ kind: "placed", ...left });
     expect(takeRememberedShelfEvent()).toEqual({ kind: "placed", ...left });
     expect(takeRememberedShelfEvent()).toBeNull();
+  });
+});
+
+describe("cellar visit hold / search params", () => {
+  const left = {
+    bottleId: "11111111-1111-4111-8111-111111111111",
+    createdAt: "2026-09-06T00:00:00.000Z",
+  };
+
+  afterEach(() => {
+    releaseCellarVisit();
+  });
+
+  it("同じ開栓イベントはトースト表示後も保持する", () => {
+    const first = captureCellarVisit({ kind: "left", ...left });
+    markCellarVisitToastShown();
+    const again = captureCellarVisit({ kind: "left", ...left });
+
+    expect(again).toBe(first);
+    expect(currentCellarVisit()?.toastShown).toBe(true);
+    expect(currentCellarVisit()?.event).toEqual({ kind: "left", ...left });
+  });
+
+  it("sessionStorage の take は visit があると二重消費しない", () => {
+    const memory = new Map<string, string>();
+    Object.defineProperty(globalThis, "sessionStorage", {
+      configurable: true,
+      value: {
+        getItem(key: string) {
+          return memory.get(key) ?? null;
+        },
+        setItem(key: string, value: string) {
+          memory.set(key, value);
+        },
+        removeItem(key: string) {
+          memory.delete(key);
+        },
+      },
+    });
+    rememberShelfEvent({ kind: "left", ...left });
+    expect(takeRememberedIntoVisit()).toEqual({ kind: "left", ...left });
+    expect(takeRememberedIntoVisit()).toEqual({ kind: "left", ...left });
+    expect(takeRememberedShelfEvent()).toBeNull();
+  });
+
+  it("q が同じなら search を更新しない", () => {
+    expect(nextBottleSearchParams(new URLSearchParams(), "")).toBeNull();
+    expect(nextBottleSearchParams(new URLSearchParams("q=赤"), "赤")).toBeNull();
+    expect(nextBottleSearchParams(new URLSearchParams("drinkType=wine"), "")).toBeNull();
+  });
+
+  it("q が変わったときだけ search を返し、他のキーを残す", () => {
+    const next = nextBottleSearchParams(new URLSearchParams("drinkType=wine"), "赤");
+    expect(next?.get("q")).toBe("赤");
+    expect(next?.get("drinkType")).toBe("wine");
+  });
+
+  it("replace 時に location.state を保持する", () => {
+    const state = bottleConsumeState(left);
+    expect(replaceSearchKeepState(state)).toEqual({ replace: true, state });
+    expect(replaceSearchKeepState(undefined)).toEqual({ replace: true, state: null });
+  });
+
+  it("セラー一覧パスだけ visit を残す判定になる", () => {
+    expect(isCellarListPath("/cellar")).toBe(true);
+    expect(isCellarListPath("/cellar/archive")).toBe(false);
+    expect(isCellarListPath("/cellar/bf7b96a1-0c2a-4035-8dba-55188f4473cb")).toBe(false);
   });
 });

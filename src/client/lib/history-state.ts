@@ -120,6 +120,101 @@ export function clearRouterLocationState(): void {
   }
 }
 
+export type CellarVisit = {
+  event: RememberedShelfEvent;
+  toastShown: boolean;
+  leavePlayed: boolean;
+  placedPlayed: boolean;
+};
+
+let cellarVisit: CellarVisit | null = null;
+
+function sameShelfEvent(left: RememberedShelfEvent, right: RememberedShelfEvent): boolean {
+  return (
+    left.kind === right.kind &&
+    left.bottleId === right.bottleId &&
+    left.createdAt === right.createdAt
+  );
+}
+
+/** 開栓 / 復元の棚イベントを 1 訪問ぶん保持する。トースト表示後も消さない */
+export function captureCellarVisit(event: RememberedShelfEvent): CellarVisit {
+  if (cellarVisit && sameShelfEvent(cellarVisit.event, event)) {
+    return cellarVisit;
+  }
+  cellarVisit = {
+    event,
+    toastShown: false,
+    leavePlayed: false,
+    placedPlayed: false,
+  };
+  return cellarVisit;
+}
+
+export function currentCellarVisit(): CellarVisit | null {
+  return cellarVisit;
+}
+
+export function markCellarVisitToastShown(): void {
+  if (cellarVisit) {
+    cellarVisit.toastShown = true;
+  }
+}
+
+export function markCellarVisitLeavePlayed(): void {
+  if (cellarVisit) {
+    cellarVisit.leavePlayed = true;
+  }
+}
+
+export function markCellarVisitPlacedPlayed(): void {
+  if (cellarVisit) {
+    cellarVisit.placedPlayed = true;
+  }
+}
+
+export function releaseCellarVisit(): void {
+  cellarVisit = null;
+}
+
+export function isCellarListPath(pathname: string): boolean {
+  return pathname === "/cellar";
+}
+
+/**
+ * sessionStorage は 1 回だけ取る。すでに visit があればストレージを触らない
+ * （Strict Mode の再マウントで二重消費しない）。
+ */
+export function takeRememberedIntoVisit(): RememberedShelfEvent | null {
+  if (cellarVisit) {
+    return cellarVisit.event;
+  }
+  const taken = takeRememberedShelfEvent();
+  if (!taken) {
+    return null;
+  }
+  return captureCellarVisit(taken).event;
+}
+
+/** q が現在の URL と同じなら null（navigate しない） */
+export function nextBottleSearchParams(
+  current: URLSearchParams,
+  q: string,
+): URLSearchParams | null {
+  const next = new URLSearchParams(current);
+  if (q) {
+    next.set("q", q);
+  } else {
+    next.delete("q");
+  }
+  return next.toString() === current.toString() ? null : next;
+}
+
+/** `setSearchParams` の replace で location.state を落とさない */
+export function replaceSearchKeepState(locationState: unknown): { replace: true; state: unknown } {
+  return { replace: true, state: locationState ?? null };
+}
+
 export function takeRememberedShelfEvent(): RememberedShelfEvent | null {
   try {
     const raw = sessionStorage.getItem(CELLAR_MOTION_STORAGE_KEY);
