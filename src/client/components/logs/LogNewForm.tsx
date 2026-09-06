@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
@@ -16,6 +16,7 @@ import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-qu
 import { deleteDrinkLog, useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
 import { haptic } from "@/client/lib/haptic.ts";
+import { isPhotoHandoff } from "@/client/lib/history-state.ts";
 import {
   applyDrinkType,
   canSubmitLogForm,
@@ -44,6 +45,7 @@ const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真�
  */
 export function LogNewForm() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const { showToast, dismissToast } = useToast();
@@ -74,10 +76,11 @@ export function LogNewForm() {
   const dirty = isLogFormDirty(state, initial) || attachment !== undefined;
   const grams = liveAlcoholGrams(state);
 
-  // 前回開いたときの未紐付け写真が残っていたら破棄する（ブラウザ戻りで確認を通らなかった分）
+  // 前回開いたときの未紐付け写真が残っていたら破棄する（ブラウザ戻りで確認を通らなかった分）。
+  // 中央タブ / ホームのカメラで撮って「使う」した直後（handoff）はその写真が本命なので消さない
   const clearRef = useRef(clearAttachment);
   clearRef.current = clearAttachment;
-  const hadStaleAttachment = useRef(attachment !== undefined);
+  const hadStaleAttachment = useRef(attachment !== undefined && !isPhotoHandoff(location.state));
   useEffect(() => {
     if (hadStaleAttachment.current) {
       hadStaleAttachment.current = false;

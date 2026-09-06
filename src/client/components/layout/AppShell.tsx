@@ -5,6 +5,7 @@ import { BottomTabBar } from "@/client/components/layout/BottomTabBar.tsx";
 import { LeaveGuardProvider } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { PhotoEdit } from "@/client/components/photo/PhotoEdit.tsx";
+import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { hidesTabBar, resolveAppRoute, type TabDef } from "@/client/lib/app-routes.ts";
 
@@ -14,6 +15,7 @@ export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const photoEdit = usePhotoEdit();
+  const captureLog = useCaptureLog();
   const reduceMotion = useReducedMotion();
   const contentRef = useRef<HTMLDivElement>(null);
   const route = resolveAppRoute(location.pathname, new Date(), location.search);
@@ -33,6 +35,11 @@ export function AppShell() {
   }, [reduceMotion]);
 
   function onSelectTab(tab: TabDef) {
+    if (tab.root === null) {
+      // 中央タブ「記録」は着地せず撮影を始める（(c)）。再タップも毎回ここから
+      captureLog();
+      return;
+    }
     const behavior: ScrollBehavior = reduceMotion ? "auto" : "smooth";
     if (route.parentTab === tab.id) {
       if (location.pathname !== tab.root || location.search) {

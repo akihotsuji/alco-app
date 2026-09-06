@@ -5,6 +5,7 @@ import {
   logFormHrefs,
   parentTabOf,
   resolveAppRoute,
+  TABS,
 } from "./app-routes.ts";
 
 const NOW = new Date("2026-09-04T15:00:00.000Z");
@@ -17,14 +18,41 @@ describe("isValidLogDateParam", () => {
   });
 });
 
+describe("TABS", () => {
+  it("中央タブ「記録」だけ根を持たない（撮影開始の動作。00-common 1.2 (c)）", () => {
+    expect(TABS.map((tab) => tab.id)).toEqual(["home", "cellar", "log", "notes", "settings"]);
+    expect(TABS.find((tab) => tab.id === "log")?.root).toBeNull();
+    for (const tab of TABS.filter((tab) => tab.id !== "log")) {
+      expect(tab.root).toMatch(/^\//);
+    }
+  });
+});
+
 describe("resolveAppRoute", () => {
   it("タブの根と親タブを対応させる", () => {
     expect(resolveAppRoute("/", NOW).parentTab).toBe("home");
     expect(resolveAppRoute("/summary/week", NOW).parentTab).toBe("home");
     expect(resolveAppRoute("/cellar/archive", NOW).parentTab).toBe("cellar");
-    expect(resolveAppRoute("/logs", NOW).parentTab).toBe("log");
     expect(resolveAppRoute("/notes/abc/edit", NOW).parentTab).toBe("notes");
     expect(resolveAppRoute("/settings", NOW).parentTab).toBe("settings");
+  });
+
+  it("/logs 配下の親タブはすべてホーム（中央タブは現在地を持たない）", () => {
+    for (const path of [
+      "/logs",
+      "/logs/2026-09-04",
+      "/logs/new",
+      "/logs/entries/x/edit",
+      "/logs/my-drinks",
+      "/logs/my-drinks/new",
+      "/logs/my-drinks/m1/edit",
+    ]) {
+      expect(resolveAppRoute(path, NOW).parentTab, path).toBe("home");
+    }
+    expect(resolveAppRoute("/logs/my-drinks", NOW).header.left).toEqual({
+      kind: "back",
+      fallback: "/",
+    });
   });
 
   it("作成・編集ではタブバーを隠す", () => {
