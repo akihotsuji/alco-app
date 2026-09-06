@@ -89,19 +89,33 @@ describe("DRINK_TYPE_PRESETS", () => {
   });
 
   it("種類デフォルトから計算した保存値が 8.1 と一致する", () => {
-    const expected = {
-      wine: 12,
-      beer: 14,
-      whisky: 9.6,
-      sake: 21.6,
-      shochu: 12,
-      cocktail: 14.4,
-    } as const;
-
-    for (const [type, grams] of Object.entries(expected)) {
-      const preset = DRINK_TYPE_PRESETS[type as keyof typeof expected];
-      expect(calculateAlcoholGrams(preset.volumeMl, preset.abvPercent)).toBe(grams);
-    }
+    expect(
+      calculateAlcoholGrams(DRINK_TYPE_PRESETS.wine.volumeMl, DRINK_TYPE_PRESETS.wine.abvPercent),
+    ).toBe(12);
+    expect(
+      calculateAlcoholGrams(DRINK_TYPE_PRESETS.beer.volumeMl, DRINK_TYPE_PRESETS.beer.abvPercent),
+    ).toBe(14);
+    expect(
+      calculateAlcoholGrams(
+        DRINK_TYPE_PRESETS.whisky.volumeMl,
+        DRINK_TYPE_PRESETS.whisky.abvPercent,
+      ),
+    ).toBe(9.6);
+    expect(
+      calculateAlcoholGrams(DRINK_TYPE_PRESETS.sake.volumeMl, DRINK_TYPE_PRESETS.sake.abvPercent),
+    ).toBe(21.6);
+    expect(
+      calculateAlcoholGrams(
+        DRINK_TYPE_PRESETS.shochu.volumeMl,
+        DRINK_TYPE_PRESETS.shochu.abvPercent,
+      ),
+    ).toBe(12);
+    expect(
+      calculateAlcoholGrams(
+        DRINK_TYPE_PRESETS.cocktail.volumeMl,
+        DRINK_TYPE_PRESETS.cocktail.abvPercent,
+      ),
+    ).toBe(14.4);
     expect(DRINK_TYPE_PRESETS.other.volumeMl).toBeNull();
     expect(DRINK_TYPE_PRESETS.other.abvPercent).toBeNull();
   });
