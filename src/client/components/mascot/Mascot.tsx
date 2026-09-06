@@ -6,8 +6,15 @@ export type MascotPose = (typeof MASCOT_POSES)[number];
 type MascotProps = {
   pose?: MascotPose;
   size: number;
+  /** M-25: `cheer` のときだけ水面が 45% → 60% に 1 回上がる。他のポーズでは無視する */
+  pour?: boolean;
   "aria-hidden"?: boolean;
 };
+
+/** `pour` が効くのは cheer だけ（character.md 6 章） */
+export function pourApplies(pose: MascotPose, pour: boolean | undefined): boolean {
+  return pose === "cheer" && pour === true;
+}
 
 const BOWL = "M26 22 C26 72 40 98 60 98 C80 98 94 72 94 22 Z";
 
@@ -37,7 +44,11 @@ function BowlOutline() {
   );
 }
 
-function PoseContent({ pose, clipId }: { pose: MascotPose; clipId: string }) {
+/* cheer の水面 60%。既定（45%）の上に重ね、clip-path で下から出す。目・星は動かさない */
+const CHEER_POUR_FILL = "M20 48 Q40 36 60 46 Q80 56 100 42 V110 H20 Z";
+const CHEER_POUR_HIGHLIGHT = "M20 48 Q40 36 60 46 Q80 56 100 42 V46 Q80 60 60 50 Q40 40 20 52 Z";
+
+function PoseContent({ pose, clipId, pour }: { pose: MascotPose; clipId: string; pour: boolean }) {
   switch (pose) {
     case "rest":
       return (
@@ -93,6 +104,11 @@ function PoseContent({ pose, clipId }: { pose: MascotPose; clipId: string }) {
               dFill="M20 62 Q40 48 60 60 Q80 72 100 56 V110 H20 Z"
               dHighlight="M20 62 Q40 48 60 60 Q80 72 100 56 V60 Q80 76 60 64 Q40 52 20 66 Z"
             />
+            {pour ? (
+              <g className="mascot-pour">
+                <Wine dFill={CHEER_POUR_FILL} dHighlight={CHEER_POUR_HIGHLIGHT} />
+              </g>
+            ) : null}
           </g>
           <BowlOutline />
           <ellipse
@@ -187,7 +203,7 @@ function GlassStem() {
   );
 }
 
-export function Mascot({ pose = "default", size, "aria-hidden": ariaHidden }: MascotProps) {
+export function Mascot({ pose = "default", size, pour, "aria-hidden": ariaHidden }: MascotProps) {
   const clipId = useId();
   const width = (size * 120) / 160;
 
@@ -207,7 +223,7 @@ export function Mascot({ pose = "default", size, "aria-hidden": ariaHidden }: Ma
           <path d={BOWL} />
         </clipPath>
       </defs>
-      <PoseContent pose={pose} clipId={clipId} />
+      <PoseContent pose={pose} clipId={clipId} pour={pourApplies(pose, pour)} />
     </svg>
   );
 }

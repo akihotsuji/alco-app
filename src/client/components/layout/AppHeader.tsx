@@ -1,5 +1,6 @@
 import { Archive, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import {
   type HeaderLeft,
@@ -48,10 +49,14 @@ function HeaderLeftSlot({
   left: HeaderLeft;
   navigate: ReturnType<typeof useNavigate>;
 }) {
+  const { requestLeave } = useLeaveGuard();
   switch (left.kind) {
     case "back":
       return (
-        <IconButton label="戻る" onClick={() => goBack(navigate, left.fallback)}>
+        <IconButton
+          label="戻る"
+          onClick={() => requestLeave(() => goBack(navigate, left.fallback))}
+        >
           <ChevronLeft size={22} />
         </IconButton>
       );

@@ -1,4 +1,19 @@
-import { PHOTO_PREF_KEYS } from "@/shared/constants.ts";
+import {
+  PHOTO_PREF_KEYS,
+  REDUCE_MOTION_PREFS,
+  type ReduceMotionPref,
+  UI_PREF_KEYS,
+} from "@/shared/constants.ts";
+
+/** 設定画面での変更を同一タブ内の購読者（useReducedMotion 等）へ伝える。storage イベントは別タブ用 */
+export const PREF_CHANGE_EVENT = "alco:pref-change";
+
+function notifyPrefChange(key: string): void {
+  if (typeof window === "undefined" || typeof CustomEvent !== "function") {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(PREF_CHANGE_EVENT, { detail: { key } }));
+}
 
 function readFlag(key: string, fallback: boolean): boolean {
   try {
@@ -18,6 +33,7 @@ function writeFlag(key: string, value: boolean): void {
   } catch {
     // プライベートモード等では保存できない。既定値のまま動かす
   }
+  notifyPrefChange(key);
 }
 
 function flagPref(key: string, fallback: boolean) {
@@ -40,3 +56,35 @@ export const getCutoutPref = cutout.get;
 export const setCutoutPref = cutout.set;
 export const getCellarRecognizePref = cellarRecognize.get;
 export const setCellarRecognizePref = cellarRecognize.set;
+
+/** 触感フィードバック（06-settings S8）。既定 OFF */
+const hapticPref = flagPref(UI_PREF_KEYS.haptic, false);
+export const getHapticPref = hapticPref.get;
+export const setHapticPref = hapticPref.set;
+
+export function parseReduceMotionPref(raw: string | null): ReduceMotionPref {
+  for (const value of REDUCE_MOTION_PREFS) {
+    if (raw === value) {
+      return value;
+    }
+  }
+  return "system";
+}
+
+/** 動きを減らす（06-settings S9）。`system` = OS 設定に従う（既定）/ `always` = 常に減らす */
+export function getReduceMotionPref(): ReduceMotionPref {
+  try {
+    return parseReduceMotionPref(localStorage.getItem(UI_PREF_KEYS.reduceMotion));
+  } catch {
+    return "system";
+  }
+}
+
+export function setReduceMotionPref(value: ReduceMotionPref): void {
+  try {
+    localStorage.setItem(UI_PREF_KEYS.reduceMotion, value);
+  } catch {
+    // 保存できなくても既定値で動く
+  }
+  notifyPrefChange(UI_PREF_KEYS.reduceMotion);
+}

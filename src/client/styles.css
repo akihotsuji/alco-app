@@ -69,6 +69,24 @@
   --shelf-h: 10px;
   --photo-ratio-log: 4 / 5;
   --photo-ratio-bottle: 2 / 3;
+  /* モーション（正本: spec/motion-design.md 6 章）。その場の秒数は書かずこのトークンだけ使う */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-settle: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --ease-fill: cubic-bezier(0.3, 0, 0.2, 1);
+  --dur-press: 90ms;
+  --dur-release: 160ms;
+  --dur-state: 200ms;
+  --dur-enter: 240ms;
+  --dur-open: 300ms;
+  --dur-fill: 400ms;
+  --dur-toast-in: 180ms;
+  --dur-toast-out: 150ms;
+  --dur-stagger: 80ms;
+  /* ループを許す唯一の例外（写真アップロードのスピナー） */
+  --dur-spin: 800ms;
+  --fill-tint: rgba(255, 255, 255, 0.14);
+  --fill-tint-surface: rgba(122, 53, 56, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -77,13 +95,14 @@
     --surface: #2c2926;
     --foreground: #f4ede4;
     --muted: #c9bdb0;
-    --primary: #c47878;
+    --primary: #cc8484;
     --primary-fg: #2a1818;
     --danger: #e07070;
     --danger-fg: #2a1818;
     --rest: #8fcb9e;
-    --score: #c47878;
-    --ring: #c47878;
+    --score: #cc8484;
+    --ring: #cc8484;
+    --fill-tint-surface: rgba(0, 0, 0, 0.25);
     --neu-light: #3a3632;
     --neu-dark: #1a1816;
     --shadow-outset: 6px 6px 14px #1a1816, -5px -5px 12px #3a3632;
@@ -154,6 +173,143 @@
 
 @utility shadow-primary-pressed {
   box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fill-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes mascot-pour {
+  to {
+    clip-path: inset(0);
+  }
+}
+
+/*
+  押下（M-01 / M-02）と水位線（M-04〜M-06）。影は outset ↔ inset を補間できないので
+  ::after の不透明度で切り替え、水位線は ::before で描く。DOM は変えない（motion-design 6.7）。
+*/
+.app-btn {
+  position: relative;
+  isolation: isolate;
+  transition:
+    transform var(--dur-release) var(--ease-settle),
+    filter var(--dur-release) var(--ease-settle),
+    color var(--dur-state) var(--ease-out),
+    background-color var(--dur-state) var(--ease-out);
+}
+
+.app-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-release) var(--ease-settle);
+}
+
+.app-btn:active:not(:disabled) {
+  box-shadow: none;
+  transition-duration: var(--dur-press);
+  transition-timing-function: var(--ease-out);
+}
+
+.app-btn:active:not(:disabled)::after {
+  opacity: 1;
+  transition-duration: var(--dur-press);
+  transition-timing-function: var(--ease-out);
+}
+
+.btn-primary::after {
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.985) translateY(1px);
+  filter: brightness(0.92);
+}
+
+.btn-soft::after {
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--fill-tint);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn-primary[data-state="loading"]::before {
+  opacity: 1;
+  animation: fill-rise var(--dur-fill) var(--ease-fill) forwards;
+}
+
+.btn-primary[data-state="loading"]:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+
+.btn-primary[data-state="error"]::before {
+  transform: scaleY(1);
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease-in);
 }
 
 @layer base {
@@ -327,10 +483,31 @@
   border-radius: var(--radius);
 }
 
+/* M-20: 現在地の色と inset-sm が --dur-state で移る。アイコンは動かさない */
+.tab-item {
+  position: relative;
+  isolation: isolate;
+  transition: color var(--dur-state) var(--ease-out);
+}
+
+.tab-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-inset-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-state) var(--ease-out);
+}
+
 .tab-item.is-current {
   color: var(--primary);
   font-weight: 600;
-  box-shadow: var(--shadow-inset-sm);
+}
+
+.tab-item.is-current::after {
+  opacity: 1;
 }
 
 .tab-label {
@@ -366,11 +543,45 @@
   box-shadow: var(--shadow-primary);
   display: grid;
   place-items: center;
+  isolation: isolate;
+  transition:
+    transform var(--dur-release) var(--ease-settle),
+    filter var(--dur-release) var(--ease-settle);
+}
+
+/* M-21: 中央タブの押下は主ボタンと同じ沈み */
+.tab-center-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-release) var(--ease-settle);
+}
+
+.tab-center:active .tab-center-btn {
+  transform: scale(0.985) translateY(1px);
+  filter: brightness(0.92);
+  box-shadow: none;
+  transition-duration: var(--dur-press);
+  transition-timing-function: var(--ease-out);
+}
+
+.tab-center:active .tab-center-btn::after {
+  opacity: 1;
+  transition-duration: var(--dur-press);
+  transition-timing-function: var(--ease-out);
 }
 
 .tab-center.is-current .tab-center-btn {
   filter: brightness(0.88);
   box-shadow: none;
+}
+
+.tab-center.is-current .tab-center-btn::after {
+  opacity: 1;
 }
 
 .tab-center-label {
@@ -402,6 +613,22 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--dur-toast-in) var(--ease-out),
+    transform var(--dur-toast-in) var(--ease-out);
+}
+
+/* M-23 / M-24: 下 8px から現れ、不透明度だけで消える */
+.app-toast[data-state="enter"] {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.app-toast[data-state="leave"] {
+  opacity: 0;
+  transition: opacity var(--dur-toast-out) var(--ease-in);
 }
 
 .app-toast-no-tabs {
@@ -440,9 +667,51 @@
   font-size: var(--text-body);
 }
 
+.empty-state-mascot {
+  display: inline-flex;
+}
+
+/* M-29: スケルトンから本体へのクロスフェード。到着した本体側に付ける */
+.skeleton-fade {
+  animation: fade-in var(--dur-state) var(--ease-out) both;
+}
+
+/* M-13 / M-30: ダイアログの出入り（Radix の data-state に反応） */
+.app-dialog-scrim[data-state="open"] {
+  animation: fade-in var(--dur-enter) var(--ease-out);
+}
+
+.app-dialog-scrim[data-state="closed"] {
+  animation: fade-out var(--dur-state) var(--ease-in) forwards;
+}
+
+.app-dialog-panel[data-state="open"] {
+  animation: dialog-in var(--dur-enter) var(--ease-out);
+}
+
+.app-dialog-panel[data-state="closed"] {
+  animation: dialog-out var(--dur-state) var(--ease-in) forwards;
+}
+
+/* M-25: cheer の水面が 45% → 60% に 1 回上がる（pour） */
+.mascot-pour {
+  clip-path: inset(100% 0 0 0);
+  animation: mascot-pour var(--dur-fill) var(--ease-fill) forwards;
+}
+
 .empty-state .empty-action,
 .cellar-empty .empty-action {
   width: min(100%, 280px);
+}
+
+/* M-26 / M-27: 初回描画で 1 回だけ。キャラ → 80ms 後に主ボタン */
+.empty-state[data-enter="1"] .empty-state-mascot {
+  animation: rise-in var(--dur-enter) var(--ease-out) both;
+}
+
+.empty-state[data-enter="1"] .empty-action {
+  animation: rise-in var(--dur-enter) var(--ease-out) both;
+  animation-delay: var(--dur-stagger);
 }
 
 .shelf-stage {
@@ -602,7 +871,7 @@
   border: 3px solid color-mix(in srgb, var(--primary-fg) 40%, transparent);
   border-top-color: var(--primary-fg);
   border-radius: 50%;
-  animation: photo-spin 0.8s linear infinite;
+  animation: photo-spin var(--dur-spin) linear infinite;
 }
 
 .photo-tile-retry {
@@ -721,7 +990,7 @@
   width: 22%;
   opacity: 1;
   pointer-events: none;
-  transition: opacity 200ms ease-out;
+  transition: opacity var(--dur-state) var(--ease-out);
 }
 
 .photo-edit-mascot.is-off {
@@ -749,6 +1018,9 @@
 }
 
 .chip {
+  position: relative;
+  isolation: isolate;
+  flex-shrink: 0;
   height: 40px;
   padding: 0 14px;
   border: none;
@@ -757,12 +1029,92 @@
   box-shadow: var(--shadow-outset-sm);
   color: var(--foreground);
   font-size: var(--text-body);
+  white-space: nowrap;
+  scroll-snap-align: start;
+  transition: color var(--dur-press) var(--ease-out);
+}
+
+/* M-31: 選択は ::after の inset-sm を --dur-press で入れる。文字色・字重も同時 */
+.chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-inset-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-press) var(--ease-out);
 }
 
 .chip.is-on {
-  box-shadow: var(--shadow-inset-sm);
+  box-shadow: none;
   color: var(--primary);
   font-weight: 600;
+}
+
+.chip.is-on::after,
+.chip:active:not(:disabled)::after {
+  opacity: 1;
+}
+
+.chip:active:not(:disabled) {
+  box-shadow: none;
+}
+
+.chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* M-07: 送信中は inset を維持し文字を muted に */
+.chip[data-state="loading"] {
+  color: var(--muted);
+}
+
+/* M-08: 成功で水位線が 1 回上がって消える */
+.chip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--fill-tint-surface);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chip[data-state="success"]::before {
+  opacity: 1;
+  animation:
+    fill-rise var(--dur-fill) var(--ease-fill) forwards,
+    fade-out var(--dur-state) var(--ease-in) calc(var(--dur-fill) + var(--dur-state)) forwards;
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* 影（3px + ぼかし 6px）が overflow で切れないよう内側に余白を取り、外側で相殺する */
+.chip-row {
+  display: flex;
+  gap: 10px 12px;
+  padding: 10px 8px;
+  margin: -10px -8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-row-wrap {
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 .home-page,
@@ -980,3 +1332,48 @@
 .switch.is-on::after {
   left: 23px;
 }
+
+/* biome-ignore-start lint/complexity/noImportantStyles: 仕様（motion-design 6.8）が !important で一括無効化を定める */
+/*
+  reduced motion（motion-design 6.8）。OS の prefers-reduced-motion と設定「常に減らす」を
+  AppShell が 1 つの属性にまとめる。移動・拡縮・キーフレームを止め、不透明度のフェードだけ残す。
+*/
+html[data-reduce-motion="1"] *,
+html[data-reduce-motion="1"] *::before,
+html[data-reduce-motion="1"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-reduce-motion="1"] .app-toast {
+  transform: none !important;
+  transition-property: opacity !important;
+  transition-duration: var(--dur-toast-out) !important;
+}
+
+html[data-reduce-motion="1"] .app-dialog-panel[data-state="open"],
+html[data-reduce-motion="1"] .app-dialog-scrim[data-state="open"] {
+  animation: fade-in var(--dur-toast-out) var(--ease-out) !important;
+}
+
+html[data-reduce-motion="1"] .app-dialog-panel[data-state="closed"],
+html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
+  animation: fade-out var(--dur-toast-out) var(--ease-in) forwards !important;
+}
+
+html[data-reduce-motion="1"] .empty-state[data-enter="1"] .empty-state-mascot,
+html[data-reduce-motion="1"] .empty-state[data-enter="1"] .empty-action,
+html[data-reduce-motion="1"] .skeleton-fade,
+html[data-reduce-motion="1"] .log-row-enter {
+  animation-name: fade-in !important;
+  animation-duration: var(--dur-toast-out) !important;
+  animation-delay: initial !important;
+}
+
+html[data-reduce-motion="1"] .photo-tile-progress::after {
+  animation-duration: var(--dur-spin) !important;
+  animation-iteration-count: infinite !important;
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: reduced motion ブロックの終わり */

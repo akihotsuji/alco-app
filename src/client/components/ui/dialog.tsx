@@ -15,7 +15,7 @@ export function DialogOverlay({
   return (
     <DialogPrimitive.Overlay
       className={cn(
-        "fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--foreground)_40%,transparent)]",
+        "app-dialog-scrim fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--foreground)_40%,transparent)]",
         className,
       )}
       {...props}
@@ -33,7 +33,7 @@ export function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          "fixed right-5 bottom-[calc(var(--space-5)+env(safe-area-inset-bottom))] left-5 z-40 flex flex-col gap-4 rounded-[var(--radius-card)] bg-background p-6 text-foreground shadow-outset outline-none",
+          "app-dialog-panel fixed right-5 bottom-[calc(var(--space-5)+env(safe-area-inset-bottom))] left-5 z-40 flex flex-col gap-4 rounded-[var(--radius-card)] bg-background p-6 text-foreground shadow-outset outline-none",
           className,
         )}
         {...props}
