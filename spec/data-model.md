@@ -2,7 +2,7 @@
 
 Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzle 実装・マイグレーション）の正本。
 
-- 状態: 1-04 は **承認済み**（main マージ）。**1-07 の改訂（下表「1-07 改訂」行）はオーナー承認待ち**
+- 状態: 1-04 は **承認済み**（main マージ）。**1-07 の改訂（下表「1-07 改訂」行）も承認済み**（2026-09-06）
 - ソース: [spec/01-requirements.md](01-requirements.md)、[roadmap/phase-01-design/04-er-drizzle-schema.md](../roadmap/phase-01-design/04-er-drizzle-schema.md)
 - 実装ルール: [`.cursor/rules/database.mdc`](../.cursor/rules/database.mdc)
 
@@ -35,7 +35,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 開栓日 | `opened_on`（日付、任意） | 4-03。無ければメモ運用になるのを避ける |
 | `user_id` + `id` 複合 PK | **採用しない**。PK は `id`、アクセスは必ず `id AND user_id` | FK を単純に保つ。認可は API |
 
-### 1-07 改訂（2026-09-05。承認待ち）
+### 1-07 改訂（2026-09-05。2026-09-06 承認）
 
 [screen-designs/](screen-designs/README.md) の「追加と消費」「写真を撮って記録」に合わせた変更。
 
@@ -322,7 +322,7 @@ erDiagram
 | drunkAt | drunk_at | integer | NO | | 飲酒日時（UTC ms）。デフォルトは現在時刻 |
 | drunkOn | drunk_on | text | NO | | JST 日付。サーバー算出 |
 | drinkType | drink_type | text | NO | CHECK enum | 7 種 |
-| drinkName | drink_name | text | YES | ≦40 | マイドリンク名のスナップショット |
+| drinkName | drink_name | text | YES | ≦100 | マイドリンク名（≦40）またはボトル名（≦100）のスナップショット。上限は 3-01 で 100 に統一 |
 | volumeMl | volume_ml | integer | NO | 1〜5000 | ml |
 | abvPercent | abv_percent | real | NO | 0〜100 | %。0 は可 |
 | alcoholG | alcohol_g | real | NO | 小数第 2 位 | サーバー再計算 |
@@ -768,7 +768,7 @@ Drizzle の `enum` オプションは TS 上の制約のみ。CHECK は `drizzle
 - [x] enum が要件の 7 種類・ボトルステータス 3 種と一致
 - [x] 写真の所有者が `user_id` で辿れる
 - [x] `database` ルール（`.cursor/rules/database.mdc`）を同梱
-- [ ] 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id` / `photos.kind` / `ai_usage`）のオーナー承認
+- [x] 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id` / `photos.kind` / `ai_usage`）のオーナー承認（2026-09-06）
 
 ---
 

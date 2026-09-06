@@ -1,0 +1,432 @@
+# 飲酒記録（drink-log）
+
+Phase 3-01 の成果物。飲酒記録機能（記録入力・編集・日別・マイドリンク・週/月サマリー・ホームの今日カード）の **機能仕様**。3-02〜3-07 の実装はこのファイルと画面設計のとおりに作る。
+
+- 状態: **オーナー承認済み**（2026-09-06。9 章の決定事項を含む。3-02 以降に着手できる）
+- 要件: [01-requirements.md](../01-requirements.md) 1.2 / 1.5 / 1.6
+- 画面の正本: [screen-designs/03-log.md](../screen-designs/03-log.md)（日別・入力・編集・マイドリンク）、[screen-designs/02-home.md](../screen-designs/02-home.md)（ホーム・週/月サマリー）。**要素表・状態・遷移・モックは画面設計が正**。本ファイルは項目・規則・API・エッジケースを 1 か所にまとめる
+- 計算の正本: [alcohol-calculation.md](alcohol-calculation.md)（式・丸め・範囲・プリセット・休肝日）。**本ファイルは数値を変えない**
+- API の正本: [api-design.md](../api-design.md) 4.3 / 4.4。列は [data-model.md](../data-model.md) 6.1 / 6.2
+- 写真: [photos.md](photos.md) / [screen-designs/07-photo-capture.md](../screen-designs/07-photo-capture.md)。キャラクター: [character.md](../character.md)
+- ロードマップ: [roadmap/phase-03-drink-log/](../../roadmap/phase-03-drink-log/00-phase.md)
+
+---
+
+## 1. 目的
+
+毎日使うコア機能。**最短タップ数で 1 杯を記録できる**ことを最重要の UX 要件とし、写真・ボトル・メモは任意の上乗せにする。
+
+| ゴール | 数値 |
+|---|---|
+| 1 タップ記録 | ホーム / 日別のマイドリンクチップ → 保存（遷移なし） |
+| 2 タップ記録 | 中央タブ → 日別「記録する」→ 保存（`log-new` は初期値ワイン 125ml / 12% で即保存できる） |
+| 写真付き | 撮る → 使う → 保存 = 3 タップ（OS の撮影操作を除く） |
+| 記録操作のレスポンス | 1 秒以内（[01-requirements.md](../01-requirements.md) 非機能） |
+
+### 対象外（本フェーズで作らない）
+
+| 項目 | 時期 |
+|---|---|
+| 目標設定（週あたり純アルコール上限・休肝日目標）と達成表示 | v1.x |
+| ボトルピッカー UI（`log-new` の「ボトル」行の中身）。API の `bottleId` 受け付けは 3-02 で作る。行は Phase 4-02 まで **非表示** | Phase 4-02 |
+| 消費 → 記録の自動作成（`POST /api/bottles/:id/consume`） | Phase 4-03（記録側は本仕様の行表示・`?highlight=` で受ける） |
+| 写真パイプライン本体（撮影・編集・合成・`POST /api/photos`） | 2-08 で完了。本フェーズは `photoIds` の紐付けと UI 配置のみ |
+| マイドリンクの並び替え DnD | 後回し。3-03 は上下矢印 |
+| 種類別内訳・CSV エクスポート | 将来構想 |
+| オフライン記録・複数タイムゾーン | 対象外 |
+| Idempotency-Key | 見送り（ボタン disable + undo。[api-design.md](../api-design.md) 7 章） |
+
+---
+
+## 2. 用語
+
+| 用語 | 意味 |
+|---|---|
+| 記録（ログ） | `drink_logs` の 1 行。**1 行 = 1 杯**。量の大小は問わない（750ml を 1 記録にしても 1 杯） |
+| グラス | 記録の単位。グラス / 缶 / ショットなど。ボトル丸ごとも量チップ（375 / 750 / 1500）か手入力で 1 杯として記録する |
+| 種類 | 7 種（ワイン / ビール / ウイスキー / 日本酒 / 焼酎 / カクテル / その他）。DB 値は [data-model.md](../data-model.md) 5.3 |
+| デフォルト | 種類を選んだときに投入する量・度数（[alcohol-calculation.md](alcohol-calculation.md) 4 章）。**保存されるのはその記録の値** |
+| 純アルコール量（g） | `volume_ml × abv_percent / 100 × 0.8`。保存は小数第 2 位、表示は第 1 位 |
+| マイドリンク | よく飲む 1 杯のプリセット（名前 + 種類 + 量 + 度数）。1 タップで記録。ユーザーあたり最大 30 件、ホームと日別には上位 4 件 |
+| 1 タップ記録 | マイドリンクチップのタップ。サーバーがプリセットを読み、値をコピーして記録を作る（`POST /api/my-drinks/:id/log`） |
+| 今日 / 対象日 / 表示日 | すべて **Asia/Tokyo のカレンダー日**（`YYYY-MM-DD`）。今日 = `tokyoToday()`。対象日 = 記録の `drunkOn`。表示日 = `log-day` が開いている日 |
+| 休肝日 | その JST 日の記録が **0 件**。0g の記録（0% など）があっても休肝にしない。未来日は数えない |
+| 週 | ISO 週（**月曜始まり**、JST）。月 = 暦月（JST） |
+| ハイライト | `log-day?highlight=<logId>` で該当行を 2 秒だけ強調（保存・消費の直後） |
+| undo | 保存成功トーストの「取り消す」（5 秒）。`DELETE /api/drink-logs/:id` |
+
+---
+
+## 3. 画面と項目
+
+画面 ID・ルート・タブ・ヘッダー文言は [screens.md](../screens.md) と各画面設計に従う。ここでは **入出力項目と規則** を写す。要素番号（D1 / N1 / H1 …）は画面設計の要素表と同じ。
+
+### 3.1 `log-day` 日別記録（`/logs`, `/logs/:date`。中央タブの着地）
+
+| # | 項目 | 内容 | データ |
+|---|---|---|---|
+| D1 | 日送り | 前日 / 翌日。**翌日が今日より後なら右を無効**。URL 直打ちの未来日は表示できるが D3 / D4 / D5 を無効にする | `/logs/:date` |
+| D2 | 合計 | 「N 杯 ・ X g」。杯数 = `totalCount`、g = `displayAlcoholGrams(totalAlcoholG)`。0 件は「休肝」ピル | `GET /api/drink-logs?date=` |
+| D3 | 記録する | `/logs/new`（表示日が今日）/ `/logs/new?date=<表示日>`（過去日） | — |
+| D4 | カメラ | D3 と同じ遷移先に `&camera=1` | — |
+| D5 | マイドリンクチップ | `sortOrder` 順の上位 **4 件** + 「管理」。1 タップで保存、遷移なし。`drunkAt` は 3.7 の規則 | `GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
+| D6 | 記録行 | 1 行目: 名前（`drinkName` があればそれ、無ければ種類の表示名）+ 「量ml」、右端に表示丸めの g。2 行目: 「HH:MM ・ 度数% ・ ボトル名（`bottleId` があれば）」。左にサムネ 48px（`thumbPhotoId` があれば `GET /api/photos/:id/content`、無ければ種類アイコン） | `items[]` |
+| D7 | 行タップ | `log-edit` | — |
+| D8 | ハイライト | `?highlight=<logId>` の行を 2 秒だけ強調。該当 id が一覧に無ければ何もしない。表示後にクエリを `replace` で消す | — |
+
+- `:date` が `^\d{4}-\d{2}-\d{2}$` に一致しない、または暦上存在しない（`2026-02-30`）なら `not-found`
+- 一覧の並びは `drunkAt` 降順（API 既定）。1 日の件数が `limit` を超えた場合は `nextCursor` を辿って全件を連結する（追加 UI は置かない。`limit=100`）
+- 合計は API の `totalCount` / `totalAlcoholG` を使う。クライアントで行を足さない
+- 空状態: 合計「休肝」+「この日の記録はまだありません」。キャラは出さない（上のボタン群が主アクション）
+- ヘッダーの日付は今日なら「今日」、それ以外は「9月4日」（`formatMonthDay`）
+
+### 3.2 `log-new` 記録入力（`/logs/new?date=&camera=1&bottleId=`）
+
+| # | 項目 | 入力 | 初期値 | 規則 |
+|---|---|---|---|---|
+| N1 | 写真タイル | `photo-edit`（4:5、プリセット `table`、キャラ合成トグルあり） | なし | 1 枚のみ。「使う」直後に未紐付けで `POST /api/photos` → `photoId` を保持。`?camera=1` ならマウント直後に開く（× で閉じても本画面は残る） |
+| N2 | 撮影後サムネ | 96×120 + 「編集」「削除」 | — | 「編集」は元の Blob から再編集（旧 `photoId` は削除して新規アップロード）。「削除」は確認なしで即 `DELETE /api/photos/:id` |
+| N3 | 種類 | Chip ×7（横スクロール） | **ワイン** | 選択で量・度数を **その種類のデフォルトで上書き**（触った値は捨てる）。「その他」は両方空 |
+| N4 | 量 | スコア + 量チップ + 手入力 | 125 | チップ = 種類の量チップ + ボトル量 **375 / 750 / 1500**（全種類共通）+「手入力」。整数 1〜5000 |
+| N5 | 度数 | スコア + ステッパー（0.1 刻み。長押しで連続）+ 手入力 | 12 | 0〜100、小数第 1 位。0 可 |
+| N6 | ライブ g | テキスト | 12.0 g | `displayAlcoholGrams(calculateAlcoholGrams(volume, abv))`。量または度数が空なら「—」。保存値の丸めと一致する |
+| N7 | 日時 | 行 → ネイティブ `datetime-local` | 今日: 「今日 HH:MM」（いま）。`?date=` あり: 「9月4日 20:00」 | JST 固定で解釈（3.7）。現在 +15 分まで |
+| N8 | ボトル | 行「選ぶ ›」→ ボトルピッカー | `?bottleId=` があれば事前選択 | **Phase 4-02 まで行を非表示**。選ぶとボトルの種類・名前を反映（3.8） |
+| N9 | メモ | 折りたたみ + Textarea、残数表示 | 空 | 0〜500 文字。前後空白を除いて空なら `null` |
+| N10 | 保存する | 固定バー | 有効 | 無効条件: 量または度数が空 / 範囲外、日時が範囲外、写真アップロード中・失敗中、保存中 |
+
+- 初期状態（ワイン 125 / 12、日時いま、写真なし）で **すぐ保存できる**（保存 1 タップ）
+- 成功: 対象日（応答の `drunkOn`）の `log-day?highlight=<id>` へ `replace`。トースト「記録しました  取り消す」（`cheer` 32px、5 秒）
+- 保存失敗: フォーム上部にインライン汎用文「保存できませんでした。もう一度試してください」。入力は保持
+- 戻る（未保存）: 入力を触っていれば確認ダイアログ「入力を破棄しますか」。破棄時、アップロード済みの未紐付け写真は `DELETE /api/photos/:id`
+- 戻り先: 履歴があれば戻る。無ければ（ディープリンク）対象日の `log-day` へ `replace`
+- キャラクター: 撮影前の写真タイル右下に `surprised` 48px のみ。撮影後・他の場所には出さない
+
+### 3.3 `log-edit` 記録編集（`/logs/entries/:logId/edit`）
+
+`log-new` と同じレイアウト。差分:
+
+| 項目 | 規則 |
+|---|---|
+| 初期値 | `GET /api/drink-logs/:id` の値。写真があれば N2 のサムネ |
+| 種類変更 | 量・度数を **上書きしない**（編集中の値を守る）。変えたいときは量チップで |
+| 保存 | `PATCH /api/drink-logs/:id` に **変えたフィールドのみ**。成功 → 保存後の `drunkOn` の `log-day?highlight=<id>`（日付を跨いだ編集なら移動先の日）。トースト「保存しました」（`cheer`） |
+| 写真の付け替え | 「削除」→ `DELETE /api/photos/:id` → 撮り直し（未紐付けアップロード）→ `PATCH { photoIds: [新 id] }`。`photoIds` は差し替え（送った集合にする） |
+| 削除 | 保存バー下のテキストボタン「この記録を削除」→ 確認ダイアログ（danger。キャラなし）→ `DELETE /api/drink-logs/:id` → 元の `drunkOn` の `log-day`。トースト「削除しました」（キャラなし、undo なし） |
+| 404 | 他人・不在の `:logId` は `not-found` |
+
+### 3.4 `mydrink-list` / `mydrink-new` / `mydrink-edit`
+
+| # | 項目 | 入力 | 規則 |
+|---|---|---|---|
+| — | 一覧行 | 種類アイコン 48px + 名前 / 右に「量ml 度数%」、2 行目「種類 ・ g」 | `sortOrder` 昇順。最大 30。並び替えは上下矢印（`PATCH { sortOrder }`） |
+| — | 注記 | 「上位 4 つがホームと日別に出ます」 | 13px muted |
+| — | 空状態 | 「よく飲む一杯を登録すると 1 タップで記録できます」+「追加」 | キャラ `default` 96px |
+| — | 上限 | 30 件で「追加」を無効化し「上限は 30 件です」 | サーバーも 400（`fields.count`） |
+| M1 | 名前 | Input | 1〜40 文字、必須。同名を許可 |
+| M2 | 種類 | Chip ×7 | 選択で量・度数をデフォルトで上書き（`log-new` と同じ） |
+| M3 | 量 / 度数 | `log-new` と同じ部品 | 「その他」も値必須。範囲は記録と同じ |
+| M4 | 保存 | `POST` / `PATCH /api/my-drinks` | 成功 → 一覧。トースト「保存しました」（`cheer`） |
+| M5 | 削除（edit のみ） | 確認ダイアログ「過去の記録は残ります」 | `DELETE /api/my-drinks/:id` → 一覧。過去ログは `myDrinkId` が null になるだけで値は不変 |
+
+写真・キャラは置かない（数値の画面）。編集はそれ以降の 1 タップにだけ影響する。
+
+### 3.5 `home` ホーム（`/`）
+
+| # | 項目 | 内容 | データ |
+|---|---|---|---|
+| H1 | 日付 | 「9月5日 土曜」（`formatHomeDateLabel(tokyoToday())`） | クライアント |
+| H2〜H5 | 今日カード | 杯数 `totalCount`、g `displayAlcoholGrams(totalAlcoholG)`、0 件なら「休肝」ピル。タップで `summary-week` | `GET /api/drink-logs/summary?period=day&date=<今日>` |
+| H6 | 週マス | 月〜日の 7 マス。記録あり / なし / 今日 / 未来の 4 状態。タップで `summary-week` | `GET /api/drink-logs/summary?period=week&date=<今日>` |
+| H7 | キャラクター | 72px。記録あり `default`、0 件 `rest`。1 タップ直後 `cheer` 300ms → `default` | `totalCount` |
+| H8 / H9 | 記録する / カメラ | `/logs/new`、`/logs/new?camera=1` | — |
+| H10 / H11 | マイドリンク見出し + チップ | 上位 4 件、「管理」→ `/logs/my-drinks`。1 タップ保存、遷移なし | `GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
+| H12 | トースト | 「記録しました  取り消す」5 秒、`cheer` 付き | `DELETE /api/drink-logs/:id` |
+
+- **楽観更新しない**。サーバー応答後に day / week サマリーを再取得して数字を更新する
+- 記録 0 / マイドリンク 0 の空状態: スコア 0 / 0、休肝ピル、`rest`。チップ欄は「よく飲む一杯を登録すると、ここを 1 回タップで記録できます」+ Button 副「登録」→ `/logs/my-drinks/new`
+- 1 タップ失敗: トースト「保存できませんでした。もう一度試してください」（キャラなし）。数字は変えない
+- キャラの文言は出さない（休肝はピルが示す）。飲酒を促す文言は禁止
+
+### 3.6 `summary-week` / `summary-month`（`/summary/week?date=`, `/summary/month?date=`）
+
+| # | 項目 | 内容 | データ |
+|---|---|---|---|
+| W1 | 週送り / 月送り | 前へ / 次へ。**未来の週・月へは進めない**（今日を含む期間が上限） | `GET /api/drink-logs/summary?period=week\|month&date=` |
+| W2 | 小スコア | 杯数 `totalCount`、g `displayAlcoholGrams(totalAlcoholG)`、休肝 `dryDayCount` 日 | 同上 |
+| W3 | 棒グラフ | 日ごとの `days[].alcoholG`（表示丸め）。今日は primary、未来は薄い。軸ラベルなし。SVG の軽量ライブラリ（選定は 3-06。バンドルサイズを PR に書く） | `days[]` |
+| W4 | 日別行 | 「日付 曜日 N 杯 ・ g」。`isDryDay` は「休肝」（`--rest`）。`isFuture` は「—」。タップで `/logs/:date` | `days[]` |
+| W5 | 相互リンク | 週 → ヘッダー右「今月」、月 → 「今週」 | — |
+
+- 月サマリーの行は **週ごとに畳む**。月をまたぐ週は **月内の日だけ**で集計して 1 行にし、タップで開く `summary-week` はその週全体を出す
+- ヘッダー: 今日を含む週は「今週」、他は「9月1日〜9月7日」。月は「今月」/「2026年8月」
+- `date` クエリが無ければ今日。形式不正・暦に無い日は `not-found`
+- キャラクターは出さない（数値の画面）
+- a11y: グラフの値は W4 の行で読めるようにする（グラフ自体は `aria-hidden`）。詳細は Phase 6-04
+
+### 3.7 日時の扱い（全画面共通）
+
+| 場面 | `drunkAt` |
+|---|---|
+| `log-new`（`?date=` なし） | 開いた時点の現在時刻。ユーザーが N7 で変更可 |
+| `log-new?date=<過去日>` | その日の **20:00 JST**（`<date>T11:00:00.000Z`）。変更可 |
+| `log-new?date=<未来日>` | `date` を無視し、今日扱い（未来の記録は作れない） |
+| 1 タップ（ホーム / 今日の日別） | `drunkAt` を **送らない**（サーバーの現在時刻） |
+| 1 タップ（過去日の日別） | その日の **20:00 JST** を送る |
+| 1 タップ（未来日の日別） | チップを無効にする |
+| 消費ダイアログ（Phase 4） | 既定いま。[screen-designs/04-cellar.md](../screen-designs/04-cellar.md) K4 |
+
+- `datetime-local` の値（`YYYY-MM-DDTHH:MM`）は **常に Asia/Tokyo として解釈** し、UTC ISO に変換して送る。端末のタイムゾーン設定に依存しない。表示も JST 固定
+- 未来は **サーバー現在時刻 +15 分**まで（時計ズレのみ）。クライアントも同じ判定で N10 を無効にし、サーバーの 400 を最終判定にする
+- 過去は制限なし
+- `drunkOn`（JST 日）はサーバーが `drunkAt` から算出する。クライアントは送らない。遷移先の対象日は **応答の `drunkOn`** を使う
+
+### 3.8 ボトル紐付け（API は 3-02、UI は Phase 4-02）
+
+| 場面 | 規則 |
+|---|---|
+| `log-new` の「ボトル」行 | ピッカーで自分のボトル（貯蔵庫含む。`GET /api/bottles?view=all&q=`）を選ぶ。選ぶと **種類をボトルの種類にし、名前を表示** する。種類が変わる場合は N3 と同じ規則でその種類のデフォルト量・度数を投入する（同じ種類なら量・度数は維持） |
+| `?bottleId=` | 事前選択（ボトル詳細「1 杯を記録」から）。上と同じ反映 |
+| サーバー | `bottleId` が自分のボトルでなければ 404。`drinkName` にボトル名、`drinkType` をボトルの種類で上書きして保存（量・度数はリクエストが正） |
+| 解除 | ピッカーで「なし」。`PATCH { bottleId: null }` でも `drinkName` は残す |
+| `myDrinkId` と同時 | 可。`drinkName` はボトル名が優先 |
+| 表示 | 日別の行 1 行目にボトル名（`drinkName`）、2 行目にもボトル名を出す（[screen-designs/03-log.md](../screen-designs/03-log.md) D6） |
+
+---
+
+## 4. バリデーションとエラー文
+
+Zod は `src/shared` に置き、クライアント（即時表示）とサーバー（`@hono/zod-validator`。最終判定）で同じスキーマを使う。サーバーの 400 は `{ "error": "validation_error", "fields": { "<field>": ["<文>"] } }`（[api-design.md](../api-design.md) 2.6）。範囲の正本は [alcohol-calculation.md](alcohol-calculation.md) 5 章。
+
+### 4.1 記録（`POST` / `PATCH /api/drink-logs`）
+
+| フィールド | 規則 | エラー文 |
+|---|---|---|
+| `drinkType` | 7 種の enum。POST 必須 | 「種類を選んでください」 |
+| `volumeMl` | 整数 1〜5000。POST 必須 | 「1以上5000以下で入力してください」（小数も同文） |
+| `abvPercent` | 0〜100、小数第 1 位まで。POST 必須。`multipleOf` ではなく refine で判定 | 「0以上100以下で入力してください」。第 2 位以下があれば「小数点以下は1桁までです」 |
+| `drunkAt` | ISO 8601（UTC）。省略時はサーバー現在時刻。サーバー現在 +15 分を超えたら 400 | 「未来の日時は指定できません」。形式不正は「日時の形式が正しくありません」 |
+| `memo` | 0〜500 文字。trim 後に空なら `null` | 「500文字以内で入力してください」 |
+| `myDrinkId` | UUID。自分のもの以外は **404**（400 ではない） | 画面では「マイドリンクが見つかりません」 |
+| `bottleId` | UUID。自分のもの以外は **404** | 「ボトルが見つかりません」 |
+| `photoIds` | 配列、**最大 1**。自分の未紐付け写真のみ。他人・紐付け済み・不明は 404 | 2 枚以上は「写真は1枚まで添付できます」。404 は「写真をもう一度撮ってください」 |
+| `alcoholG` / `drunkOn` / `userId` / `id` | **受け取らない**。含まれていれば未知キーとして 400（`fields[""]`） | — |
+
+PATCH は全フィールド任意（送ったものだけ更新）。空オブジェクトは 400。
+
+### 4.2 マイドリンク（`POST` / `PATCH /api/my-drinks`）
+
+| フィールド | 規則 | エラー文 |
+|---|---|---|
+| `name` | 1〜40 文字（trim 後）。必須 | 「1文字以上40文字以内で入力してください」 |
+| `drinkType` | 7 種。必須 | 「種類を選んでください」 |
+| `volumeMl` / `abvPercent` | 記録と同じ。`other` でも必須 | 記録と同じ |
+| `sortOrder` | 整数 0 以上。省略時は末尾 | 「並び順が正しくありません」 |
+| 件数 | ユーザーあたり 30 件。31 件目の POST は 400、キー `count` | 「上限は30件です」 |
+
+### 4.3 1 タップ（`POST /api/my-drinks/:id/log`）
+
+| フィールド | 規則 |
+|---|---|
+| `drunkAt` | 任意。4.1 と同じ |
+| `memo` | 任意。4.1 と同じ |
+| `volumeMl` / `abvPercent` / `drinkType` | **受け取らない**（未知キーは 400） |
+| `:id` | 自分のマイドリンク以外は 404。ログは作らない |
+
+### 4.4 クエリ
+
+| クエリ | 規則 | エラー文 |
+|---|---|---|
+| `date` / `from` / `to` / `summary.date` | `YYYY-MM-DD` かつ暦上存在する日 | 「日付の形式が正しくありません」 |
+| `from` / `to` | 両方必須、`from <= to`、`to - from` ≦ 31 日。`date` との同時指定は 400 | 「期間は31日以内で指定してください」 |
+| `period` | `day` \| `week` \| `month` | 「期間の種類が正しくありません」 |
+| `limit` | 整数 1〜100（既定 50） | 「件数は1以上100以下で指定してください」 |
+| `cursor` | サーバー発行値のみ。改ざんは 400 | 「ページ情報が正しくありません」 |
+| `bottleId` | UUID。自分のもの以外は 404 | — |
+
+### 4.5 クライアント側の表示
+
+- 範囲外はフィールド直下にインライン表示し、N10 / M4 を無効にする（サーバーを叩かない）
+- サーバーの 400 は `fields` のキーで該当欄へ、キー `""` はフォーム上部の汎用文
+- 404（マイドリンク / ボトル / 写真）は該当欄の文言 + 選択の解除。記録 `:logId` の 404 は `not-found`
+- 401 は `RequireAuth` に任せる（画面で個別に扱わない）
+
+---
+
+## 5. 計算
+
+正本は [alcohol-calculation.md](alcohol-calculation.md)。**本ファイルに差分はない**。以下は参照のみ。
+
+| 項目 | 値 |
+|---|---|
+| 式 | `alcohol_g = volume_ml × abv_percent / 100 × 0.8` |
+| 保存丸め | 小数第 2 位（四捨五入）。`drink_logs.alcohol_g`、API の行 `alcoholG` |
+| 合計 | 保存値を合算して第 2 位（`totalAlcoholG`）。行の表示値を足さない |
+| 表示丸め | 第 1 位（`displayAlcoholGrams`）。「12.0 g」。末尾 `.0` の省略は見た目の自由 |
+| 杯数 | 行数（`totalCount`） |
+| 信頼境界 | サーバーが `src/shared` の同一関数で再計算して保存。クライアントの `alcoholG` は受け取らない。ライブ表示（N6）は同じ関数 |
+| デフォルト表 | [alcohol-calculation.md](alcohol-calculation.md) 4 章 `DRINK_TYPE_PRESETS`（3-04 で `src/shared` に置く） |
+| 休肝日 | JST 日の記録 0 件。0g の行がある日は休肝にしない。未来日は数えない |
+| 週 / 月 | ISO 週（月曜始まり、JST）/ 暦月（JST） |
+
+例題（テストの種）は同ファイル 8 章。3-04 の単体テストはそこを正とする。
+
+---
+
+## 6. API 対応表
+
+契約の正本は [api-design.md](../api-design.md) 4.3 / 4.4。本フェーズで実装するのは以下（bottles は Phase 4）。
+
+| 画面・操作 | API | 実装タスク |
+|---|---|---|
+| `log-day` 一覧・合計 | `GET /api/drink-logs?date=&limit=&cursor=` | 3-05 |
+| `log-new` 保存 | `POST /api/drink-logs`（`photoIds`, `bottleId`, `myDrinkId`） | 3-02 |
+| `log-edit` 初期値 / 保存 / 削除 | `GET` / `PATCH` / `DELETE /api/drink-logs/:id` | 3-05 |
+| 写真（撮影 → 使う / 破棄） | `POST /api/photos`（未紐付け）/ `DELETE /api/photos/:id`（2-08 済み） | 3-02（呼び出しのみ） |
+| 行サムネ | `GET /api/photos/:id/content`（2-08 済み） | 3-05 |
+| マイドリンク CRUD | `GET` / `POST /api/my-drinks`、`GET` / `PATCH` / `DELETE /api/my-drinks/:id` | 3-03 |
+| 1 タップ記録 | `POST /api/my-drinks/:id/log` | 3-03 |
+| undo（トースト） | `DELETE /api/drink-logs/:id` | 3-03 / 3-02 |
+| ホーム今日カード / 週マス | `GET /api/drink-logs/summary?period=day\|week&date=` | 3-03（カード）/ 3-06（API） |
+| 週 / 月サマリー | `GET /api/drink-logs/summary?period=week\|month&date=` | 3-06 |
+| ボトルピッカー | `GET /api/bottles?view=all&q=` | Phase 4-02 |
+| 消費 → 記録 | `POST /api/bottles/:id/consume` | Phase 4-03 |
+
+サーバー側の規則（[api-design.md](../api-design.md) 2 章の要点）:
+
+- 全エンドポイント認証必須。`c.get("user").id` のみで所有をスコープする。Zod に `userId` を置かない
+- 更新・削除は `id AND user_id`。他人・不在は同じ 404 本文。403 は使わない
+- 参照 ID（`myDrinkId` / `bottleId` / `photoIds`）が他人のものなら 404 で **作成しない**（トランザクション内で確認）
+- `POST /api/drink-logs` は `photoIds` の紐付け（`photos.drink_log_id`）を同一トランザクション（D1 batch）で行う
+- `PATCH` の `photoIds` は差し替え。外れた写真は R2 も削除
+- `DELETE /api/drink-logs/:id` は写真 CASCADE + R2 削除（失敗分は日次 GC が再試行）
+- `GET /api/drink-logs/summary` は `/:id` より **先に登録**
+- 日次フィルタは `drunk_on = :date`（JST 日を保存済み）。期間は `drunk_on BETWEEN :from AND :to`。UTC 日付で切らない
+- 1 タップは **サーバーがプリセットを読んでコピー**（`drinkType` / `volumeMl` / `abvPercent` / `drinkName` = `my_drinks.name` / `myDrinkId`）。`alcoholG` 再計算、`drunkOn` 算出
+- マイドリンク 31 件目は 400（`fields.count`）。件数チェックとロックは同一トランザクション
+
+---
+
+## 7. エッジケース
+
+| # | ケース | 振る舞い |
+|---|---|---|
+| E1 | 日付を跨いだ編集（昨日 23:50 の記録を今日 0:10 に変える） | サーバーが `drunkOn` を再計算。昨日の合計から抜け、今日に入る。昨日が 0 件になれば休肝日になる。保存後の遷移先は **新しい `drunkOn`** の `log-day?highlight=` |
+| E2 | JST 0:00 前後の記録 | `drunkAt` 23:59 JST（`14:59Z`）は前日、0:00 JST（`15:00Z`）は当日。休肝日・週・月も同じ境界 |
+| E3 | 未来時刻 | +15 分超は 400「未来の日時は指定できません」。クライアントも N10 を無効にする。翌日予約はできない |
+| E4 | 未来日の `log-day` | URL 直打ちでは表示できる（空 / 休肝と同じ見え方）が D3 / D4 / D5 は無効。D1 の右は今日で止まる |
+| E5 | `log-new?date=<未来日>` | `date` を無視して今日扱い |
+| E6 | 二重タップ（保存 / 1 タップ） | ボタンを応答まで無効にする。Idempotency-Key は持たない。それでも 2 件できたら undo / 削除で直す |
+| E7 | 1 タップ undo（5 秒以内） | `DELETE /api/drink-logs/:id`。ホームは再取得で数字が戻る（0 に戻れば `rest`）。日別は行が消える |
+| E8 | undo が 5 秒を過ぎた | トーストは消える。日別の行から `log-edit` → 削除 |
+| E9 | undo の DELETE 失敗 | トースト「保存できませんでした。もう一度試してください」（キャラなし）。記録は残る |
+| E10 | 1 タップの対象が削除済み（別端末など） | 404。ログは作らない。トーストにエラー文を出し、チップ一覧を再取得する |
+| E11 | マイドリンク編集後の過去ログ | 過去ログの量・度数・`alcoholG`・`drinkName` は **不変**（保存時スナップショット）。1 タップは編集後の値 |
+| E12 | マイドリンク削除後の過去ログ | `myDrinkId` は `SET NULL`。行の名前は `drinkName` のスナップショットのまま表示 |
+| E13 | 種類デフォルトの変更（将来、仕様で値を変えた場合） | 過去ログには影響しない（保存値が正） |
+| E14 | ボトル削除後の記録 | `bottleId` は `SET NULL`。`drinkName` は残る。行 2 行目のボトル名は `drinkName` から出す |
+| E15 | メモに HTML / スクリプト | テキストとして描く（`dangerouslySetInnerHTML` 禁止）。改行は `white-space: pre-wrap`。URL の自動リンク化はしない |
+| E16 | メモが空白のみ | trim 後に空なら `null` として保存。行には出さない |
+| E17 | 0% の記録 | 保存可。`alcoholG` 0.00、表示「0.0 g」。1 杯として数え、その日は休肝にしない |
+| E18 | 「その他」で量・度数が空 | N10 無効。両方入るまで保存不可。マイドリンクの「その他」も値必須 |
+| E19 | 種類チップを変える → 手入力していた量が消える | 仕様どおり（デフォルト上書き）。`log-edit` では上書きしない |
+| E20 | 写真アップロード中に保存 | N10 は「写真を保存中」で無効 |
+| E21 | 写真アップロード失敗 | サムネに「!」+「再試行」（同じ Blob を再送）。写真なしでは進めない。「削除」すれば進める |
+| E22 | 未保存で戻る（写真あり） | 確認ダイアログ → 破棄で `DELETE /api/photos/:id`。失敗しても 24h 後の日次 GC が消す |
+| E23 | 保存後にブラウザ再読み込み | `?highlight=` は表示後に `replace` で消しているので再強調しない |
+| E24 | `?highlight=` の id が一覧に無い（別日の記録など） | 何もしない |
+| E25 | 1 日に 100 件超の記録 | `nextCursor` を辿って連結する。合計は API の値（全件） |
+| E26 | 一覧期間 32 日以上 | 400。月サマリーは list ではなく summary API を使う |
+| E27 | `:date` が不正（`2026-13-01`、`2026-02-30`、`abc`） | `not-found` |
+| E28 | 他人の `logId` / `myDrinkId` / `bottleId` / `photoId` | すべて 404（不在と同じ本文）。一覧には他人の行が混ざらない |
+| E29 | 週マス・サマリーの未来日 | `isFuture: true`。休肝に数えない。表示は「—」/ 45% |
+| E30 | 月をまたぐ週（月サマリーの畳み） | 月内の日だけで 1 行。タップで開く週サマリーは週全体 |
+| E31 | 今週の休肝日数 | 今日までの日で数える（`dryDayCount` は `isFuture` を除く） |
+| E32 | 端末のタイムゾーンが JST 以外 | 表示・入力とも Asia/Tokyo 固定。端末 TZ に依存しない |
+| E33 | セッション切れ（401） | `RequireAuth` がログインへ送る。入力中の内容は失われる（MVP では保持しない） |
+| E34 | 消費ダイアログから来た `log-day?highlight=`（Phase 4） | D8 でハイライト + トースト「貯蔵庫へ移しました  取り消す」。undo は `restore` + `DELETE /api/drink-logs/:id`（[screen-designs/04-cellar.md](../screen-designs/04-cellar.md)） |
+
+---
+
+## 8. セキュリティ
+
+正本は [`.cursor/rules/security.mdc`](../../.cursor/rules/security.mdc) と [api-design.md](../api-design.md) 2 章。本機能で特に守る点:
+
+| 観点 | 規則 |
+|---|---|
+| 認可 | 全 API はセッションの `user.id` でスコープ。一覧・集計も同様。`userId` をクエリ・ボディに置かない。他人・不在は 404 同一本文。認可を緩める例外は **作らない** |
+| 参照 ID | `myDrinkId` / `bottleId` / `photoIds` は自分のもののみ。他人なら 404 で作成せず、存在を漏らさない |
+| 改ざん | `alcoholG` / `drunkOn` はサーバー計算。1 タップの量・度数はサーバーコピー。クライアント値を採用しない |
+| 入力検証 | すべて `src/shared` の Zod。範囲: 量 1〜5000、度数 0〜100（第 1 位）、メモ ≦500、名前 1〜40、件数 30、`photoIds` ≦1、期間 ≦31 日、`limit` ≦100。極端値でグラフ・整数を壊さない |
+| XSS | メモ・マイドリンク名・ボトル名（`drinkName`）はテキストとして描く。`dangerouslySetInnerHTML` 禁止。URL 化しない |
+| SQL | Drizzle のみ。`drunk_on` の範囲もプレースホルダ |
+| 写真 | 実体検証・キー生成・配信認可は 2-08 のまま。紐付けは `photos.user_id` 一致が必須 |
+| エラー | 400 の `fields` に内部パス・Zod コードを出さない。500 はスタックを出さない |
+| ログ | メモ本文・写真をサーバーログに出さない（メソッドとパスだけ） |
+| レート制限 | アプリ全体は Phase 8。本フェーズは二重送信のボタン disable のみ |
+
+---
+
+## 9. 決定事項（本仕様で確定した「要確認」）
+
+ロードマップの各タスクに残っていた「要確認」を以下のとおり確定する。異議があれば本 PR のレビューで指摘する。
+
+| 出典 | 項目 | 決定 | 根拠 |
+|---|---|---|---|
+| 3-01 | 二重 POST の idempotency | **持たない**。ボタン disable + undo | [api-design.md](../api-design.md) 7 章で見送り済み |
+| 3-01 | 「最短タップ」と「確認ダイアログ」 | 保存・1 タップに確認なし。**削除**（記録 / マイドリンク）と **未保存で戻る**だけ確認 | 誤タップは undo で戻せる。削除は戻せない |
+| 3-01 | セラー連携のスコープ | API の `bottleId` は 3-02 で受け付け、**行の UI は Phase 4-02 で有効化**（Phase 3 中は非表示） | 1-07 で MVP 入り。`bottles` API が無いとピッカーが動かない |
+| 3-03 | マイドリンク名の最大長 | **40** | [data-model.md](../data-model.md) 5.6 |
+| 3-03 | ホームに出す件数 | **4**（`sortOrder` 上位）。日別も同じ | [screen-designs/02-home.md](../screen-designs/02-home.md) H11 |
+| 3-03 | 誤タップの undo | トースト「取り消す」**5 秒**、`DELETE /api/drink-logs/:id`。楽観更新なし | [screen-designs/00-common.md](../screen-designs/00-common.md) 2.1 |
+| 3-03 | 1 タップの実装 | **サーバーがプリセットを読んでコピー**（`POST /api/my-drinks/:id/log`） | [api-design.md](../api-design.md) 4.4 |
+| 3-05 | 日付ピッカーの UX | **前日 / 翌日の日送りのみ**（D1）。カレンダーピッカーは置かない。任意日は週 / 月サマリーの行から | [screen-designs/03-log.md](../screen-designs/03-log.md) |
+| 3-05 | 編集で種類を変えたときの上書き | **上書きしない**（`log-new` だけ上書き） | 同上 `log-edit` |
+| 3-06 | 週の始まり | **月曜（ISO 8601、JST）** | 1-05 / 1-06 |
+| 3-06 | チャートライブラリ | 3-06 で選定（軽量・SVG・依存理由を PR に書く）。仕様上の制約は「軸ラベルなし、7 本 / 28〜31 本の棒、今日 primary、未来は薄い」 | 実装時の判断。Lighthouse は Phase 6 |
+| 本仕様 | 過去日の 1 タップ / `?date=` の既定時刻 | その日の **20:00 JST** | [screen-designs/03-log.md](../screen-designs/03-log.md) D5 / N7 |
+| 本仕様 | `log-new?date=<未来日>` | 無視して今日扱い | 未来の記録は作れない（E3） |
+| 本仕様 | ボトル選択で種類が変わるとき | 種類チップと同じくデフォルト量・度数を投入。同じ種類なら維持 | N3 の規則を流用。ボトル詳細「1 杯を記録」から来たときに即保存できる |
+| 本仕様 | 月サマリーの週の畳み | 月内の日だけ。タップ先の週サマリーは週全体 | E30 |
+| 本仕様 | `datetime-local` の解釈 | 常に Asia/Tokyo。端末 TZ 非依存 | 日付境界の FIX（2026-08-13） |
+| 本仕様 | 1 日の件数が `limit` 超 | `nextCursor` を自動で辿る。UI は増やさない | 個人利用で稀。合計は API |
+| 本仕様 | `drink_logs.drink_name` の長さ | **≦100**（マイドリンク名 40 とボトル名 100 の両方が入る） | [data-model.md](../data-model.md) 6.1 の「≦40」は 1-07 のボトル名スナップショットと矛盾していたため、同じ変更で直した |
+
+未決事項は **残さない**。上表以外に判断が必要になったら、本ファイルを更新して承認を得てから実装する。
+
+---
+
+## 10. 実装タスクとの対応
+
+| タスク | 本ファイルの節 | 画面設計 |
+|---|---|---|
+| 3-02 記録入力 | 3.2 / 3.7 / 3.8 / 4.1 / 6 | [03-log.md](../screen-designs/03-log.md) `log-new` |
+| 3-03 マイドリンク・ホーム | 3.4 / 3.5 / 4.2 / 4.3 | [03-log.md](../screen-designs/03-log.md) `mydrink-*`、[02-home.md](../screen-designs/02-home.md) `home` |
+| 3-04 計算 | 5 | — |
+| 3-05 日別・編集・削除 | 3.1 / 3.3 / 4.4 | [03-log.md](../screen-designs/03-log.md) `log-day` / `log-edit` |
+| 3-06 週 / 月サマリー | 3.6 | [02-home.md](../screen-designs/02-home.md) `summary-*` |
+| 3-07 dev デプロイ | — | — |
+
+推奨順は 3-01（承認）→ 3-04 → 3-02 と 3-03 → 3-05 → 3-06 → 3-07（[00-phase.md](../../roadmap/phase-03-drink-log/00-phase.md)）。各実装 PR は該当画面設計の **受け入れチェックを本文に貼る**。
+
+---
+
+## 11. 受け入れ（3-01）
+
+- [x] ファイルが存在し、画面項目・バリデーション・計算・API がある
+- [x] [01-requirements.md](../01-requirements.md) 1.2 / [alcohol-calculation.md](alcohol-calculation.md) と矛盾しない（数値は変えていない。`drink_name` の長さは data-model 側を直した）
+- [x] 未決を残さず、決定事項を 9 章に列挙した
+- [x] 実装ファイル（`src/`）を含まない
+- [x] オーナー承認（2026-09-06）
+
+---
+
+## 12. 関連
+
+- [01-requirements.md](../01-requirements.md) 1.2
+- [alcohol-calculation.md](alcohol-calculation.md)
+- [api-design.md](../api-design.md) 4.3 / 4.4
+- [data-model.md](../data-model.md) 6.1 / 6.2
+- [screens.md](../screens.md)、[screen-designs/02-home.md](../screen-designs/02-home.md)、[screen-designs/03-log.md](../screen-designs/03-log.md)
+- [photos.md](photos.md)、[character.md](../character.md)
+- [roadmap/phase-03-drink-log/01-spec-drink-log.md](../../roadmap/phase-03-drink-log/01-spec-drink-log.md)

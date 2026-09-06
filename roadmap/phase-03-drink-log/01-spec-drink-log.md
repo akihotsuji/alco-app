@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 3 飲酒記録 |
-| ステータス | **未着手**（`spec/features/drink-log.md` なし。計算の正本は [alcohol-calculation.md](../../spec/features/alcohol-calculation.md)） |
+| ステータス | **完了**（2026-09-06 に [spec/features/drink-log.md](../../spec/features/drink-log.md) を作成・オーナー承認。計算の正本は [alcohol-calculation.md](../../spec/features/alcohol-calculation.md)） |
 | 要件 | 1.2 飲酒記録 MVP |
 | ソース | Phase 3 先頭タスク。feature-dev Step 1 |
 
@@ -80,10 +80,10 @@
 
 ## 8. 受け入れ条件
 
-- [ ] ファイルが存在し、画面・バリデーション・計算・API がある
-- [ ] オーナー承認（development-workflow）
-- [ ] 01-requirements / 1-06 と矛盾しない。矛盾したら同じ変更で親 spec を直す
-- [ ] 実装ファイルを含まない
+- [x] ファイルが存在し、画面・バリデーション・計算・API がある
+- [x] オーナー承認（2026-09-06。9 章の決定事項を含む）
+- [x] 01-requirements / 1-06 と矛盾しない（`drink_name` の長さは data-model 側を 100 に修正）
+- [x] 実装ファイルを含まない
 
 ## 9. セキュリティ観点
 
