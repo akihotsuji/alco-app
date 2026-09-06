@@ -14,11 +14,19 @@ import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { agentDebug } from "@/client/lib/agent-debug.ts";
 import { hidesTabBar } from "@/client/lib/app-routes.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
-import { TOAST_DURATION_MS, type ToastInput, toastShowsCheer } from "@/client/lib/toast.ts";
+import {
+  TOAST_DURATION_MS,
+  type ToastAction,
+  type ToastInput,
+  type ToastTimerState,
+  toastShowsCheer,
+  transitionToastTimer,
+} from "@/client/lib/toast.ts";
 
 type ToastPhase = "enter" | "idle" | "leave";
 
 type ToastState = ToastInput & { id: number; phase: ToastPhase; shownAt: number };
+type ActiveToastTimer = { id: number; state: ToastTimerState };
 
 type ToastContextValue = {
   showToast: (input: ToastInput) => void;
@@ -48,6 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   toastRef.current = toast;
   const stayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerStateRef = useRef<ActiveToastTimer | null>(null);
   const idRef = useRef(0);
 
   const clearTimers = useCallback(() => {
@@ -69,16 +78,34 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, MOTION_MS.toastOut);
   }, []);
 
+  const expireToast = useCallback(
+    (id: number) => {
+      const timerState = timerStateRef.current;
+      if (!timerState || timerState.id !== id) {
+        return;
+      }
+      const transition = transitionToastTimer(timerState.state, "timeout");
+      timerStateRef.current = { id, state: transition.state };
+      if (transition.effect === "dismiss") {
+        beginLeave(() =>
+          setToast((current) => (current?.id === id ? null : current)),
+        );
+      }
+    },
+    [beginLeave],
+  );
+
   const showToast = useCallback(
     (input: ToastInput) => {
       clearTimers();
       idRef.current += 1;
       const id = idRef.current;
       const mount = () => {
+        timerStateRef.current = { id, state: "running" };
         setToast({ ...input, id, phase: "enter", shownAt: Date.now() });
         stayTimer.current = setTimeout(() => {
           stayTimer.current = null;
-          beginLeave(() => setToast(null));
+          expireToast(id);
         }, TOAST_DURATION_MS);
       };
       const current = toastRef.current;
@@ -88,13 +115,46 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       }
       mount();
     },
-    [beginLeave, clearTimers],
+    [beginLeave, clearTimers, expireToast],
   );
 
   const dismissToast = useCallback(() => {
     clearTimers();
     beginLeave(() => setToast(null));
   }, [beginLeave, clearTimers]);
+
+  const startActionInteraction = useCallback((id: number) => {
+    const timerState = timerStateRef.current;
+    if (!timerState || timerState.id !== id) {
+      return;
+    }
+    const transition = transitionToastTimer(timerState.state, "interaction-start");
+    timerStateRef.current = { id, state: transition.state };
+    if (transition.state === "interacting" && stayTimer.current !== null) {
+      clearTimeout(stayTimer.current);
+      stayTimer.current = null;
+    }
+  }, []);
+
+  const selectAction = useCallback(
+    (id: number, action: ToastAction) => {
+      const timerState = timerStateRef.current;
+      if (!timerState || timerState.id !== id) {
+        return;
+      }
+      const transition = transitionToastTimer(timerState.state, "select");
+      timerStateRef.current = { id, state: transition.state };
+      if (transition.effect !== "select") {
+        return;
+      }
+      clearTimers();
+      beginLeave(() =>
+        setToast((current) => (current?.id === id ? null : current)),
+      );
+      action.onSelect();
+    },
+    [beginLeave, clearTimers],
+  );
 
   const onEntered = useCallback((id: number) => {
     setToast((current) =>
@@ -109,12 +169,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast, dismissToast }}>
       {children}
-      {toast ? <ToastCard key={toast.id} toast={toast} onEntered={onEntered} /> : null}
+      {toast ? (
+        <ToastCard
+          key={toast.id}
+          toast={toast}
+          onEntered={onEntered}
+          onActionStart={startActionInteraction}
+          onActionSelect={selectAction}
+        />
+      ) : null}
     </ToastContext.Provider>
   );
 }
 
-function ToastCard({ toast, onEntered }: { toast: ToastState; onEntered: (id: number) => void }) {
+function ToastCard({
+  toast,
+  onEntered,
+  onActionStart,
+  onActionSelect,
+}: {
+  toast: ToastState;
+  onEntered: (id: number) => void;
+  onActionStart: (id: number) => void;
+  onActionSelect: (id: number, action: ToastAction) => void;
+}) {
   const location = useLocation();
   const photoEdit = usePhotoEdit();
   const reduceMotion = useReducedMotion();
@@ -160,7 +238,9 @@ function ToastCard({ toast, onEntered }: { toast: ToastState; onEntered: (id: nu
               timestamp: Date.now(),
             });
             // #endregion
+            onActionStart(toast.id);
           }}
+          onFocus={() => onActionStart(toast.id)}
           onClick={() => {
             // #region agent log
             agentDebug({
@@ -175,7 +255,9 @@ function ToastCard({ toast, onEntered }: { toast: ToastState; onEntered: (id: nu
               timestamp: Date.now(),
             });
             // #endregion
-            toast.action?.onSelect();
+            if (toast.action) {
+              onActionSelect(toast.id, toast.action);
+            }
           }}
         >
           {toast.action.label}

@@ -33,7 +33,7 @@ export function MyDrinkQuickList({
 }: MyDrinkQuickListProps) {
   const mutation = useLogMyDrink();
   const queryClient = useQueryClient();
-  const { showToast, dismissToast } = useToast();
+  const { showToast } = useToast();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeState, setActiveState] = useState<MotionState>("idle");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,7 +57,6 @@ export function MyDrinkQuickList({
       timestamp: Date.now(),
     });
     // #endregion
-    dismissToast();
     try {
       const result = await deleteDrinkLog(logId);
       // #region agent log

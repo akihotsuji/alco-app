@@ -48,7 +48,7 @@ export function LogNewForm() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const { showToast, dismissToast } = useToast();
+  const { showToast } = useToast();
   const { setGuard } = useLeaveGuard();
   const { releaseAttachment, editAttachment } = usePhotoEdit();
   const { startCapture, attachments, retryUpload, clearAttachment } = useCaptureOnCameraQuery(
@@ -109,7 +109,6 @@ export function LogNewForm() {
 
   const undo = useCallback(
     async (logId: string) => {
-      dismissToast();
       try {
         await deleteDrinkLog(logId);
         await queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs });
@@ -117,7 +116,7 @@ export function LogNewForm() {
         showToast({ message: TOAST_MESSAGES.saveFailed });
       }
     },
-    [dismissToast, queryClient, showToast],
+    [queryClient, showToast],
   );
 
   function submit() {
