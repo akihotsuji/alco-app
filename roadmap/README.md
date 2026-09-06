@@ -19,7 +19,8 @@
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
 | **FIX（2026-09-06）** | **モーション**は [spec/motion-design.md](../spec/motion-design.md) を全採用（状態変化の瞬間だけ動く `M-01`〜`M-32`、開栓は「少し凝った」段階、記録成功は A + B + C、haptic 既定 OFF + 設定スイッチ、X1〜X8）。ダークの `--primary` / `--score` / `--ring` を `#CC8484` に。共通基盤は 3-02 に同梱 |
-| **要確認（残）** | **中央タブの着地**のみ（(a) 今日の日別 `/logs` / (b) 直接 `log-new`。既定 (a) で実装中。[spec/screen-designs/README.md](../spec/screen-designs/README.md) 要確認表）。可視性は public（Free + ruleset）。private にするなら Pro |
+| **FIX（2026-09-06。中央タブ）** | **中央タブの挙動は (c) 撮影開始**。タップで記録用 `photo-edit`、「使う」で写真付き `log-new`、キャンセルは元の画面。着地画面・現在地ハイライトなし。写真なし記録はホームの「記録する」。日別（`/logs`）はホーム配下（今日カード / 週マス / 保存後 / 週サマリーの行から入る。主ボタン群は置かない）。(a) 今日の日別 / (b) 直接 `log-new` は不採用。正本は [spec/screen-designs/README.md](../spec/screen-designs/README.md) と [spec/screens.md](../spec/screens.md)。実装は 3-03（タブ・ホーム）/ 3-05（日別） |
+| **要確認（残）** | なし。可視性は public（Free + ruleset）。private にするなら Pro |
 
 ## オーナー決定（2026-08-13 FIX）
 
@@ -66,7 +67,7 @@
 | キャラクター | **1 体**（赤ワインの入ったグラスに Nani!? 風の目。**名前は付けない**（2026-09-06））。ホーム・ログイン・空状態・保存トーストに。写真右下に「驚き」ポーズを合成できる |
 | 画像処理 | すべて端末内（Canvas / WASM）。加工後 1 枚だけ R2。切り抜きも端末内（フォールバックあり） |
 | デザイン崩れ | 週マスの薄赤（塗りに inset を重ねていた）とチップの被り（影が大きすぎ）はトークンで修正。影を部品サイズで 2 段階化。実機での微調整は 2-06 |
-| 要確認 | 2026-09-06 決定: 本数上限 **12**、ノート写真枚数 **6**、キャラの名前は **付けない**。残りは **中央タブの着地**（既定 (a) 今日の日別）のみ |
+| 要確認 | 2026-09-06 決定: 本数上限 **12**、ノート写真枚数 **6**、キャラの名前は **付けない**、中央タブの挙動は **(c) 撮影開始**（同日。上の FIX 表）。残りなし |
 
 ## オーナー指示（2026-09-06。セラー詳細の操作）
 
@@ -138,7 +139,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 完了（1-07 改訂は 2026-09-06 承認） |
 | 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 完了（1-07 改訂は 2026-09-06 承認） |
 | 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | 完了 |
-| 1-07 | 詳細画面設計 → `spec/screen-designs/` | [07-detailed-screen-design.md](phase-01-design/07-detailed-screen-design.md) | 完了（2026-09-06 承認。中央タブの着地のみ回答待ち） |
+| 1-07 | 詳細画面設計 → `spec/screen-designs/` | [07-detailed-screen-design.md](phase-01-design/07-detailed-screen-design.md) | 完了（2026-09-06 承認。中央タブの挙動は同日 (c) で確定） |
 | 1-08 | キャラクター → `spec/character.md` | [08-character-mascot.md](phase-01-design/08-character-mascot.md) | 完了（2026-09-06 承認） |
 | 1-09 | モーション・マイクロインタラクション → `spec/motion-design.md` | 手順書なし（成果物は spec そのもの。実装は 3-02 / 3-03 / 3-05 / 3-06 / 3-07 / 4-03 / 4-04 に同梱） | 完了（2026-09-06 追加・同日承認） |
 
