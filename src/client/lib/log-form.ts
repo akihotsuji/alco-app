@@ -36,9 +36,11 @@ export type LogFormState = {
   /** UTC ISO。表示・入力は Asia/Tokyo 固定 */
   drunkAt: string;
   memo: string;
+  bottleId: string | null;
+  bottleName: string | null;
 };
 
-export type LogFormField = "volumeMl" | "abvPercent" | "drunkAt" | "memo" | "photoIds";
+export type LogFormField = "volumeMl" | "abvPercent" | "drunkAt" | "memo" | "photoIds" | "bottleId";
 
 export type LogFormErrors = Partial<Record<LogFormField, string>>;
 
@@ -73,6 +75,8 @@ export function initialLogFormState(dateParam: string | null | undefined, now: D
     abvPercent: preset.abvPercent,
     drunkAt: initialDrunkAt(dateParam, now),
     memo: "",
+    bottleId: null,
+    bottleName: null,
   };
 }
 
@@ -80,6 +84,20 @@ export function initialLogFormState(dateParam: string | null | undefined, now: D
 export function applyDrinkType(state: LogFormState, drinkType: DrinkType): LogFormState {
   const preset = DRINK_TYPE_PRESETS[drinkType];
   return { ...state, drinkType, volumeMl: preset.volumeMl, abvPercent: preset.abvPercent };
+}
+
+/** N8: ボトルを選ぶと種類を合わせ、違う種類なら量・度数もデフォルト投入 */
+export function applySelectedBottle(
+  state: LogFormState,
+  bottle: { id: string; name: string; drinkType: DrinkType },
+): LogFormState {
+  const next =
+    bottle.drinkType === state.drinkType ? state : applyDrinkType(state, bottle.drinkType);
+  return { ...next, bottleId: bottle.id, bottleName: bottle.name };
+}
+
+export function clearSelectedBottle(state: LogFormState): LogFormState {
+  return { ...state, bottleId: null, bottleName: null };
 }
 
 /** N4 のチップ列。種類の量 + ボトル量 375 / 750 / 1500 */
@@ -207,6 +225,9 @@ export function toCreateDrinkLogBody(
   if (photoId) {
     body.photoIds = [photoId];
   }
+  if (state.bottleId) {
+    body.bottleId = state.bottleId;
+  }
   return body;
 }
 
@@ -217,6 +238,8 @@ export function logFormStateFromDrinkLog(log: DrinkLog): LogFormState {
     abvPercent: log.abvPercent,
     drunkAt: log.drunkAt,
     memo: log.memo ?? "",
+    bottleId: log.bottleId,
+    bottleName: log.bottleId ? (log.drinkName ?? null) : null,
   };
 }
 
@@ -245,6 +268,9 @@ export function toUpdateDrinkLogBody(
   if (replacementPhotoId) {
     body.photoIds = [replacementPhotoId];
   }
+  if (state.bottleId !== initial.bottleId) {
+    body.bottleId = state.bottleId;
+  }
   return Object.keys(body).length > 0 ? body : null;
 }
 
@@ -255,7 +281,8 @@ export function isLogFormDirty(state: LogFormState, initial: LogFormState): bool
     state.volumeMl !== initial.volumeMl ||
     state.abvPercent !== initial.abvPercent ||
     state.drunkAt !== initial.drunkAt ||
-    state.memo.trim().length > 0
+    state.memo.trim().length > 0 ||
+    state.bottleId !== initial.bottleId
   );
 }
 
@@ -266,6 +293,8 @@ export type SaveFailure = {
   fieldErrors: LogFormErrors;
   /** 写真の選択を解除すべきか（404） */
   dropPhoto: boolean;
+  /** ボトルの選択を解除すべきか（404） */
+  dropBottle: boolean;
 };
 
 const FIELD_KEYS: readonly LogFormField[] = [
@@ -274,6 +303,7 @@ const FIELD_KEYS: readonly LogFormField[] = [
   "drunkAt",
   "memo",
   "photoIds",
+  "bottleId",
 ];
 
 function isFormField(key: string): key is LogFormField {
@@ -285,16 +315,35 @@ function isFormField(key: string): key is LogFormField {
  * 400 の `fields` は該当欄へ、キー `""` や未知キーは汎用文。404 は写真の解除 + 文言。
  * オフラインなら文言を差し替える。それ以外の理由は区別しない。
  */
-export function describeSaveFailure(error: unknown, online: boolean): SaveFailure {
+export function describeSaveFailure(
+  error: unknown,
+  online: boolean,
+  context: { hasPhoto?: boolean; hasBottle?: boolean } = {},
+): SaveFailure {
   if (!online) {
-    return { formMessage: FORM_ERROR_MESSAGES.offline, fieldErrors: {}, dropPhoto: false };
+    return {
+      formMessage: FORM_ERROR_MESSAGES.offline,
+      fieldErrors: {},
+      dropPhoto: false,
+      dropBottle: false,
+    };
   }
   if (isApiClientError(error)) {
     if (error.code === "not_found") {
+      const hasPhoto = context.hasPhoto ?? true;
+      const hasBottle = context.hasBottle ?? false;
+      const fieldErrors: LogFormErrors = {};
+      if (hasPhoto) {
+        fieldErrors.photoIds = DRINK_LOG_MESSAGES.photoNotFound;
+      }
+      if (hasBottle) {
+        fieldErrors.bottleId = DRINK_LOG_MESSAGES.bottleNotFound;
+      }
       return {
-        formMessage: null,
-        fieldErrors: { photoIds: DRINK_LOG_MESSAGES.photoNotFound },
-        dropPhoto: true,
+        formMessage: Object.keys(fieldErrors).length === 0 ? FORM_ERROR_MESSAGES.generic : null,
+        fieldErrors,
+        dropPhoto: hasPhoto,
+        dropBottle: hasBottle,
       };
     }
     if (error.code === "validation_error" && error.fields) {
@@ -313,8 +362,14 @@ export function describeSaveFailure(error: unknown, online: boolean): SaveFailur
           generic || Object.keys(fieldErrors).length === 0 ? FORM_ERROR_MESSAGES.generic : null,
         fieldErrors,
         dropPhoto: false,
+        dropBottle: false,
       };
     }
   }
-  return { formMessage: FORM_ERROR_MESSAGES.generic, fieldErrors: {}, dropPhoto: false };
+  return {
+    formMessage: FORM_ERROR_MESSAGES.generic,
+    fieldErrors: {},
+    dropPhoto: false,
+    dropBottle: false,
+  };
 }

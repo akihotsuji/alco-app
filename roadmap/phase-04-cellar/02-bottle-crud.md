@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 4 セラー管理 |
-| ステータス | **未着手** |
+| ステータス | **完了** |
 | 要件 | 撮って追加（本数 N → N 行）、詳細（主「開栓する」）、編集、削除 |
 | ソース | Phase 4 ボトル CRUD。画面は [spec/screen-designs/04-cellar.md](../../spec/screen-designs/04-cellar.md) `bottle-new` / `bottle-detail` / `bottle-edit` |
 
@@ -68,11 +68,11 @@ LIKE 検索は `%` `_` をエスケープ。
 
 ## 8. 受け入れ条件
 
-- [ ] 撮って登録〜検索〜編集〜削除が実機でできる。N 本が N 行になる
-- [ ] [04-cellar.md](../../spec/screen-designs/04-cellar.md) の受け入れチェックのうち `bottle-new` / `bottle-detail` / `bottle-edit` 項目
-- [ ] 認可テスト
-- [ ] DoD 5 項
-- [ ] ユーザー入力はテキスト表示
+- [x] 撮って登録〜検索〜編集〜削除が API / 画面でできる。N 本が N 行になる
+- [x] [04-cellar.md](../../spec/screen-designs/04-cellar.md) の受け入れチェックのうち `bottle-new` / `bottle-detail` / `bottle-edit` 項目（棚・開栓・ラベル読み取りは 4-03 / 4-04 / 4-07）
+- [x] 認可テスト
+- [x] DoD 5 項
+- [x] ユーザー入力はテキスト表示
 
 ## 9. セキュリティ観点
 

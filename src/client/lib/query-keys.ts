@@ -14,4 +14,9 @@ export const queryKeys = {
     ["drink-log-summaries", { period, date }] as const,
   myDrinks: ["my-drinks"] as const,
   myDrink: (id: string) => ["my-drinks", id] as const,
+  bottles: ["bottles"] as const,
+  bottlesList: (query: { view?: string; q?: string; drinkType?: string }) =>
+    ["bottles", query] as const,
+  bottle: (id: string) => ["bottles", id] as const,
+  drinkLogsByBottle: (bottleId: string) => ["drink-logs", { bottleId }] as const,
 } as const;

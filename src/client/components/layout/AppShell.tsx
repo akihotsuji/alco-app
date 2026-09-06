@@ -2,6 +2,10 @@ import { useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { AppHeader } from "@/client/components/layout/AppHeader.tsx";
 import { BottomTabBar } from "@/client/components/layout/BottomTabBar.tsx";
+import {
+  HeaderOverrideProvider,
+  useHeaderOverride,
+} from "@/client/components/layout/header-override-context.tsx";
 import { LeaveGuardProvider } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { PhotoEdit } from "@/client/components/photo/PhotoEdit.tsx";
@@ -12,14 +16,30 @@ import { hidesTabBar, resolveAppRoute, type TabDef } from "@/client/lib/app-rout
 export const REDUCE_MOTION_ATTR = "data-reduce-motion";
 
 export function AppShell() {
+  return (
+    <LeaveGuardProvider>
+      <HeaderOverrideProvider>
+        <AppShellFrame />
+      </HeaderOverrideProvider>
+    </LeaveGuardProvider>
+  );
+}
+
+function AppShellFrame() {
   const location = useLocation();
   const navigate = useNavigate();
   const photoEdit = usePhotoEdit();
   const captureLog = useCaptureLog();
   const reduceMotion = useReducedMotion();
+  const { override } = useHeaderOverride();
   const contentRef = useRef<HTMLDivElement>(null);
   const route = resolveAppRoute(location.pathname, new Date(), location.search);
   const hideTabs = hidesTabBar(location.pathname, photoEdit.open);
+  const header = {
+    ...route.header,
+    title: override.title ?? route.header.title,
+    titleMuted: override.titleMuted ?? route.header.titleMuted,
+  };
 
   // CSS 側の reduced motion はこの属性 1 つに集約する（motion-design 6.8）
   useEffect(() => {
@@ -54,15 +74,13 @@ export function AppShell() {
   }
 
   return (
-    <LeaveGuardProvider>
-      <div className={hideTabs ? "app-shell app-shell-no-tabs" : "app-shell"}>
-        <AppHeader header={route.header} />
-        <div ref={contentRef} className="app-content">
-          <Outlet />
-        </div>
-        {hideTabs ? null : <BottomTabBar activeTab={route.parentTab} onSelect={onSelectTab} />}
-        <PhotoEdit />
+    <div className={hideTabs ? "app-shell app-shell-no-tabs" : "app-shell"}>
+      <AppHeader header={header} />
+      <div ref={contentRef} className="app-content">
+        <Outlet />
       </div>
-    </LeaveGuardProvider>
+      {hideTabs ? null : <BottomTabBar activeTab={route.parentTab} onSelect={onSelectTab} />}
+      <PhotoEdit />
+    </div>
   );
 }

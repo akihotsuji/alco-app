@@ -7,6 +7,7 @@ import type { AppEnv } from "./app-env.ts";
 import { type Auth, createAuthFromEnv } from "./auth.ts";
 import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
+import { createBottlesRoute } from "./routes/bottles.ts";
 import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
 import { healthRoute } from "./routes/health.ts";
 import { meRoute } from "./routes/me.ts";
@@ -77,6 +78,7 @@ export function createApp(options: CreateAppOptions = {}) {
   const photosRoute = createPhotosRoute(routeDeps);
   const drinkLogsRoute = createDrinkLogsRoute(routeDeps);
   const myDrinksRoute = createMyDrinksRoute(routeDeps);
+  const bottlesRoute = createBottlesRoute(routeDeps);
 
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app
@@ -84,7 +86,8 @@ export function createApp(options: CreateAppOptions = {}) {
     .route("/api/me", meRoute)
     .route("/api/drink-logs", drinkLogsRoute)
     .route("/api/my-drinks", myDrinksRoute)
-    .route("/api/photos", photosRoute);
+    .route("/api/photos", photosRoute)
+    .route("/api/bottles", bottlesRoute);
 }
 
 export type AppType = ReturnType<typeof createApp>;

@@ -3,6 +3,7 @@ import { DRINK_LOG_MESSAGES, type DrinkLog } from "@/shared/drink-logs.ts";
 import { ApiClientError } from "./api.ts";
 import {
   applyDrinkType,
+  applySelectedBottle,
   canSubmitLogForm,
   describeSaveFailure,
   FORM_ERROR_MESSAGES,
@@ -36,6 +37,8 @@ describe("initial state", () => {
       abvPercent: 12,
       drunkAt: NOW.toISOString(),
       memo: "",
+      bottleId: null,
+      bottleName: null,
     });
     expect(canSubmitLogForm(state, validateLogForm(state, NOW), "none")).toBe(true);
   });
@@ -57,6 +60,24 @@ describe("drink type", () => {
     expect(beer.abvPercent).toBe(5);
     expect(beer.memo).toBe("");
     expect(applyDrinkType(beer, "whisky")).toMatchObject({ volumeMl: 30, abvPercent: 40 });
+  });
+
+  it("ボトル選択は種類が違うときだけ量・度数を上書きする", () => {
+    const state = { ...initialLogFormState(null, NOW), volumeMl: 150 };
+    const same = applySelectedBottle(state, {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "サンプル赤",
+      drinkType: "wine",
+    });
+    expect(same.volumeMl).toBe(150);
+    expect(same.bottleName).toBe("サンプル赤");
+    const beer = applySelectedBottle(state, {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "ラガー",
+      drinkType: "beer",
+    });
+    expect(beer.volumeMl).toBe(350);
+    expect(beer.drinkType).toBe("beer");
   });
 
   it("「その他」は量・度数が空になり保存できない（E18）", () => {
@@ -184,6 +205,12 @@ describe("body", () => {
       memo: "旨い",
       photoIds: ["11111111-1111-4111-8111-111111111111"],
     });
+    expect(
+      toCreateDrinkLogBody(
+        { ...state, bottleId: "11111111-1111-4111-8111-111111111111", bottleName: "サンプル赤" },
+        null,
+      )?.bottleId,
+    ).toBe("11111111-1111-4111-8111-111111111111");
     expect(toCreateDrinkLogBody({ ...state, memo: "   " }, null)).toEqual({
       drinkType: "wine",
       volumeMl: 125,

@@ -13,10 +13,11 @@ const SUCCESS_WITH_CHEER = new Set<string>([
   TOAST_MESSAGES.saved,
   TOAST_MESSAGES.opened,
   TOAST_MESSAGES.deleted,
+  "棚に並べました",
 ]);
 
 export function toastShowsCheer(message: string): boolean {
-  return SUCCESS_WITH_CHEER.has(message);
+  return SUCCESS_WITH_CHEER.has(message) || /^棚に \d+ 本並べました$/.test(message);
 }
 
 export type ToastAction = {
