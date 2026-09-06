@@ -98,12 +98,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       idRef.current += 1;
       const id = idRef.current;
       const mount = () => {
-        timerStateRef.current = { id, state: "running" };
+        timerStateRef.current = { id, state: "entering" };
         setToast({ ...input, id, phase: "enter" });
-        stayTimer.current = setTimeout(() => {
-          stayTimer.current = null;
-          expireToast(id);
-        }, TOAST_DURATION_MS);
       };
       const current = toastRef.current;
       if (current && current.phase !== "leave") {
@@ -112,7 +108,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       }
       mount();
     },
-    [beginLeave, clearTimers, expireToast],
+    [beginLeave, clearTimers],
+  );
+
+  const completeEntry = useCallback(
+    (id: number) => {
+      const timerState = timerStateRef.current;
+      if (!timerState || timerState.id !== id) {
+        return;
+      }
+      const transition = transitionToastTimer(timerState.state, "entry-complete");
+      timerStateRef.current = { id, state: transition.state };
+      if (transition.effect !== "start-timer") {
+        return;
+      }
+      stayTimer.current = setTimeout(() => {
+        stayTimer.current = null;
+        expireToast(id);
+      }, TOAST_DURATION_MS);
+    },
+    [expireToast],
   );
 
   const dismissToast = useCallback(() => {
@@ -169,6 +184,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           key={toast.id}
           toast={toast}
           onEntered={onEntered}
+          onEntryComplete={completeEntry}
           onActionStart={startActionInteraction}
           onActionSelect={selectAction}
         />
@@ -180,11 +196,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 function ToastCard({
   toast,
   onEntered,
+  onEntryComplete,
   onActionStart,
   onActionSelect,
 }: {
   toast: ToastState;
   onEntered: (id: number) => void;
+  onEntryComplete: (id: number) => void;
   onActionStart: (id: number) => void;
   onActionSelect: (id: number, action: ToastAction) => void;
 }) {
@@ -192,7 +210,7 @@ function ToastCard({
   const photoEdit = usePhotoEdit();
   const reduceMotion = useReducedMotion();
   const tabsHidden = hidesTabBar(location.pathname, photoEdit.open);
-  const cheer = toastShowsCheer(toast.message);
+  const cheer = toast.cheer ?? toastShowsCheer(toast.message);
 
   // 初回描画は enter（下 8px・不透明 0）で置き、1 フレーム描かせてから idle に戻して transition を走らせる
   useEffect(() => {
@@ -212,6 +230,15 @@ function ToastCard({
       data-state={toast.phase === "idle" ? undefined : toast.phase}
       role="status"
       aria-live="polite"
+      onTransitionEnd={(event) => {
+        if (
+          toast.phase === "idle" &&
+          event.target === event.currentTarget &&
+          event.propertyName === "opacity"
+        ) {
+          onEntryComplete(toast.id);
+        }
+      }}
     >
       {cheer ? <Mascot pose="cheer" size={32} pour={!reduceMotion} aria-hidden /> : null}
       <p className="app-toast-message">{toast.message}</p>

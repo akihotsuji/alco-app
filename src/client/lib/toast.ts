@@ -27,11 +27,13 @@ export type ToastAction = {
 export type ToastInput = {
   message: string;
   action?: ToastAction;
+  /** 削除など、仕様上キャラクターを出さない成功通知では false。 */
+  cheer?: boolean;
 };
 
-export type ToastTimerState = "running" | "interacting" | "expired" | "selected";
-export type ToastTimerEvent = "interaction-start" | "timeout" | "select";
-export type ToastTimerEffect = "none" | "dismiss" | "select";
+export type ToastTimerState = "entering" | "running" | "interacting" | "expired" | "selected";
+export type ToastTimerEvent = "entry-complete" | "interaction-start" | "timeout" | "select";
+export type ToastTimerEffect = "none" | "start-timer" | "dismiss" | "select";
 
 export type ToastTimerTransition = {
   state: ToastTimerState;
@@ -48,6 +50,11 @@ export function transitionToastTimer(
 ): ToastTimerTransition {
   if (state === "expired" || state === "selected") {
     return { state, effect: "none" };
+  }
+  if (event === "entry-complete") {
+    return state === "entering"
+      ? { state: "running", effect: "start-timer" }
+      : { state, effect: "none" };
   }
   if (event === "interaction-start") {
     return { state: "interacting", effect: "none" };

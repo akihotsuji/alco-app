@@ -83,6 +83,8 @@ export const MOTION_TOKENS = {
   "--dur-toast-in": "180ms",
   "--dur-toast-out": "150ms",
   "--dur-stagger": "80ms",
+  "--dur-highlight-hold": "1400ms",
+  "--dur-highlight-fade": "600ms",
   "--fill-tint": "rgba(255, 255, 255, 0.14)",
   "--fill-tint-surface": "rgba(122, 53, 56, 0.14)",
 } as const;

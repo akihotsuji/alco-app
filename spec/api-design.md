@@ -335,11 +335,13 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
   "items": [ { "...": "drink-log" } ],
   "nextCursor": null,
   "totalCount": 3,
-  "totalAlcoholG": 36.0
+  "totalAlcoholG": 36.0,
+  "hasAnyLogs": true
 }
 ```
 
 `totalCount` / `totalAlcoholG` は**フィルタ全体**（ページ内ではない）。`totalCount` は杯数（行数）。`totalAlcoholG` は各行の保存値（第 2 位）を合算したあと第 2 位。表示は第 1 位（[alcohol-calculation.md](features/alcohol-calculation.md)）。
+`hasAnyLogs` は指定フィルタに関係なく、認証ユーザー本人に記録が 1 件以上あるかを示す。`log-day` の空状態で、全期間 0 件の初回だけ X7 の案内を出すために使う。
 
 #### GET /api/drink-logs/summary
 

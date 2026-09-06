@@ -44,3 +44,15 @@ export function photoHandoffState(): Record<string, true> {
 export function isPhotoHandoff(locationState: unknown): boolean {
   return historyHasFlag(locationState, PHOTO_HANDOFF_FLAG);
 }
+
+const UNDO_DRINK_LOG_ID = "undoDrinkLogId";
+
+/** `log-new` から日別へ、到着先でだけ undo トーストを組み立てるための一時状態。 */
+export function drinkLogUndoState(logId: string): Record<string, string> {
+  return { [UNDO_DRINK_LOG_ID]: logId };
+}
+
+export function undoDrinkLogId(locationState: unknown): string | null {
+  const value = readProperty(locationState, UNDO_DRINK_LOG_ID);
+  return typeof value === "string" ? value : null;
+}

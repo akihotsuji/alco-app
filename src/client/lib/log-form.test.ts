@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DRINK_LOG_MESSAGES } from "@/shared/drink-logs.ts";
+import { DRINK_LOG_MESSAGES, type DrinkLog } from "@/shared/drink-logs.ts";
 import { ApiClientError } from "./api.ts";
 import {
   applyDrinkType,
@@ -14,10 +14,12 @@ import {
   isLogFormDirty,
   isManualVolume,
   liveAlcoholGrams,
+  logFormStateFromDrinkLog,
   SAVE_LABELS,
   saveButtonLabel,
   stepAbv,
   toCreateDrinkLogBody,
+  toUpdateDrinkLogBody,
   validateLogForm,
   volumeChipValues,
 } from "./log-form.ts";
@@ -189,6 +191,42 @@ describe("body", () => {
       drunkAt: NOW.toISOString(),
     });
     expect(toCreateDrinkLogBody({ ...state, volumeMl: null }, null)).toBeNull();
+  });
+
+  it("編集は変更したフィールドだけを送り、空メモは null、写真は差し替えにする", () => {
+    const log = {
+      id: "log",
+      drunkAt: NOW.toISOString(),
+      drunkOn: "2026-09-05",
+      drinkType: "wine",
+      drinkName: null,
+      volumeMl: 125,
+      abvPercent: 12,
+      alcoholG: 12,
+      memo: "元",
+      myDrinkId: null,
+      bottleId: null,
+      thumbPhotoId: null,
+      photos: [],
+      createdAt: NOW.toISOString(),
+      updatedAt: NOW.toISOString(),
+    } satisfies DrinkLog;
+    const initial = logFormStateFromDrinkLog(log);
+    expect(toUpdateDrinkLogBody(initial, initial, null)).toBeNull();
+    expect(
+      toUpdateDrinkLogBody(
+        { ...initial, drinkType: "beer", memo: "   " },
+        initial,
+        "11111111-1111-4111-8111-111111111111",
+      ),
+    ).toEqual({
+      drinkType: "beer",
+      memo: null,
+      photoIds: ["11111111-1111-4111-8111-111111111111"],
+    });
+    expect(toUpdateDrinkLogBody({ ...initial, volumeMl: 350 }, initial, null)).toEqual({
+      volumeMl: 350,
+    });
   });
 });
 

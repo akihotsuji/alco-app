@@ -19,6 +19,22 @@ describe("toastShowsCheer", () => {
 });
 
 describe("transitionToastTimer", () => {
+  it("入場完了後に5秒タイマーを開始する", () => {
+    expect(transitionToastTimer("entering", "entry-complete")).toEqual({
+      state: "running",
+      effect: "start-timer",
+    });
+  });
+
+  it("入場中に操作を始めた場合は入場完了でタイマーを再開しない", () => {
+    const started = transitionToastTimer("entering", "interaction-start");
+
+    expect(transitionToastTimer(started.state, "entry-complete")).toEqual({
+      state: "interacting",
+      effect: "none",
+    });
+  });
+
   it("通常の action click は onSelect を1回だけ実行する", () => {
     let state: ToastTimerState = "running";
     const onSelect = vi.fn();
