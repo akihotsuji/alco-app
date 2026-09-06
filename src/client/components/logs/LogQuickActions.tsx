@@ -10,6 +10,8 @@ type LogQuickActionsProps = {
   onCamera?: () => void;
   cameraHref?: string;
   disabled?: boolean;
+  primaryEnter?: boolean;
+  onPrimary?: () => void;
 };
 
 export function LogQuickActions({
@@ -17,6 +19,8 @@ export function LogQuickActions({
   onCamera,
   cameraHref,
   disabled = false,
+  primaryEnter = false,
+  onPrimary,
 }: LogQuickActionsProps) {
   return (
     <div className="home-actions">
@@ -25,7 +29,11 @@ export function LogQuickActions({
           記録する
         </Button>
       ) : (
-        <Link className={cn(buttonVariants(), "home-log-btn")} to={newHref}>
+        <Link
+          className={cn(buttonVariants(), "home-log-btn", primaryEnter && "home-log-btn-enter")}
+          to={newHref}
+          onClick={onPrimary}
+        >
           記録する
         </Link>
       )}

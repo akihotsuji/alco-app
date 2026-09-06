@@ -1,53 +1,168 @@
+import { ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import { AnimatedNumber } from "@/client/components/feedback/AnimatedNumber.tsx";
+import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
+import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { LogQuickActions } from "@/client/components/logs/LogQuickActions.tsx";
+import { MyDrinkQuickList } from "@/client/components/logs/MyDrinkQuickList.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Card } from "@/client/components/ui/card.tsx";
 import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
+import { useDrinkLogSummary } from "@/client/hooks/use-drink-log-summary.ts";
+import { useMyDrinks } from "@/client/hooks/use-my-drinks.ts";
 import { logFormHrefs } from "@/client/lib/app-routes.ts";
-import {
-  formatHomeDateLabel,
-  isoWeekDates,
-  tokyoToday,
-  WEEKDAY_LABELS_MON_SUN,
-} from "@/shared/tokyo-date.ts";
+import { haptic } from "@/client/lib/haptic.ts";
+import { MOTION_MS } from "@/client/lib/motion.ts";
+import { displayAlcoholGrams } from "@/shared/alcohol.ts";
+import { formatHomeDateLabel, tokyoToday, WEEKDAY_LABELS_MON_SUN } from "@/shared/tokyo-date.ts";
+
+let homePrimaryEntered = false;
 
 export function HomePage() {
   const today = tokyoToday();
-  const week = isoWeekDates(today);
   // H8「記録する」は写真なしで log-new。H9 カメラは中央タブと同じ「撮ってから入力へ」
   const { newHref } = logFormHrefs();
   const captureLog = useCaptureLog();
+  const daySummary = useDrinkLogSummary("day", today);
+  const weekSummary = useDrinkLogSummary("week", today);
+  const myDrinks = useMyDrinks();
+  const [cheering, setCheering] = useState(false);
+  const [todayFilling, setTodayFilling] = useState(false);
+  const previousTodayCount = useRef<number | null>(null);
+  const cheerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fillTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playPrimaryEnter = useRef(!homePrimaryEntered);
+  homePrimaryEntered = true;
+
+  const todayCount = daySummary.data?.totalCount ?? 0;
+  useEffect(() => {
+    if (previousTodayCount.current === 0 && todayCount > 0) {
+      setTodayFilling(true);
+      if (fillTimer.current !== null) {
+        clearTimeout(fillTimer.current);
+      }
+      fillTimer.current = setTimeout(() => setTodayFilling(false), MOTION_MS.fill);
+    }
+    previousTodayCount.current = todayCount;
+  }, [todayCount]);
+
+  useEffect(
+    () => () => {
+      if (cheerTimer.current !== null) {
+        clearTimeout(cheerTimer.current);
+      }
+      if (fillTimer.current !== null) {
+        clearTimeout(fillTimer.current);
+      }
+    },
+    [],
+  );
+
+  function cheer() {
+    setCheering(true);
+    if (cheerTimer.current !== null) {
+      clearTimeout(cheerTimer.current);
+    }
+    cheerTimer.current = setTimeout(() => setCheering(false), MOTION_MS.open);
+  }
 
   return (
     <div className="home-page">
       <p className="home-date">{formatHomeDateLabel(today)}</p>
-      <Card className="overflow-visible">
-        <Link className="today-card" to="/summary/week">
-          <div className="today-scores">
-            <div className="today-score">
-              <span className="today-score-num">0</span>
-              <span className="today-score-unit">杯</span>
+      {daySummary.isPending || weekSummary.isPending ? <CardSkeleton /> : null}
+      {daySummary.isError || weekSummary.isError ? (
+        <Card>
+          <QueryError
+            onRetry={() => {
+              void daySummary.refetch();
+              void weekSummary.refetch();
+            }}
+            retrying={daySummary.isFetching || weekSummary.isFetching}
+          />
+        </Card>
+      ) : null}
+      {daySummary.data && weekSummary.data ? (
+        <Card className="overflow-visible">
+          <div className="today-card">
+            <div className="today-card-head">
+              <span>今日</span>
+              <Link className="today-week-link" to={`/summary/week?date=${today}`}>
+                今週
+                <ChevronRight size={16} aria-hidden />
+              </Link>
             </div>
-            <span className="rest-pill">休肝</span>
-            <div className="today-score">
-              <span className="today-score-num">0</span>
-              <span className="today-score-unit">g 純アルコール</span>
-            </div>
+            <Link className="today-card-main" to="/logs" aria-label="今日の記録を見る">
+              <div className="today-scores">
+                <div className="today-score">
+                  <AnimatedNumber className="today-score-num" value={daySummary.data.totalCount} />
+                  <span className="today-score-unit">杯</span>
+                </div>
+                {daySummary.data.totalCount === 0 ? <span className="rest-pill">休肝</span> : null}
+                <div className="today-score">
+                  <AnimatedNumber
+                    className="today-score-num"
+                    value={displayAlcoholGrams(daySummary.data.totalAlcoholG)}
+                    decimals={1}
+                  />
+                  <span className="today-score-unit">g 純アルコール</span>
+                </div>
+              </div>
+            </Link>
+            <nav className="week-dots" aria-label="今週の記録">
+              {weekSummary.data.days.map((item, index) => {
+                const filled = item.count > 0;
+                const className = [
+                  "week-dot",
+                  item.date === today && "week-dot-today",
+                  filled && "week-dot-filled",
+                  item.date === today && todayFilling && "week-dot-filling",
+                  item.isFuture && "week-dot-future",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                const label = `${WEEKDAY_LABELS_MON_SUN[index] ?? ""}曜日 ${
+                  item.isFuture ? "未来" : filled ? `${item.count}杯` : "記録なし"
+                }`;
+                return item.isFuture ? (
+                  <button
+                    key={item.date}
+                    type="button"
+                    className={className}
+                    aria-label={label}
+                    disabled
+                  >
+                    <span className="week-dot-label">{WEEKDAY_LABELS_MON_SUN[index] ?? ""}</span>
+                  </button>
+                ) : (
+                  <Link
+                    key={item.date}
+                    className={className}
+                    to={`/logs/${item.date}`}
+                    aria-label={label}
+                  >
+                    <span className="week-dot-label">{WEEKDAY_LABELS_MON_SUN[index] ?? ""}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+            <span className="today-mascot" data-cheer={cheering ? "1" : undefined}>
+              <Mascot
+                pose={cheering ? "cheer" : daySummary.data.totalCount > 0 ? "default" : "rest"}
+                size={72}
+                aria-hidden
+              />
+            </span>
           </div>
-          <div className="week-dots" aria-hidden>
-            {week.map((date, index) => (
-              <span key={date} className={date === today ? "week-dot week-dot-today" : "week-dot"}>
-                <span className="week-dot-label">{WEEKDAY_LABELS_MON_SUN[index] ?? ""}</span>
-              </span>
-            ))}
-          </div>
-          <span className="today-mascot">
-            <Mascot pose="rest" size={72} aria-hidden />
-          </span>
-        </Link>
-      </Card>
-      <LogQuickActions newHref={newHref} onCamera={captureLog} />
+        </Card>
+      ) : null}
+      <LogQuickActions
+        newHref={newHref}
+        onCamera={captureLog}
+        primaryEnter={playPrimaryEnter.current}
+        onPrimary={() => haptic("light")}
+      />
       <div className="home-mydrinks">
         <div className="home-mydrinks-head">
           <h2 className="section-title">マイドリンク</h2>
@@ -55,12 +170,29 @@ export function HomePage() {
             管理
           </Link>
         </div>
-        <p className="home-mydrinks-empty">
-          よく飲む一杯を登録すると、ここを 1 回タップで記録できます
-        </p>
-        <Link className={buttonVariants({ variant: "secondary" })} to="/logs/my-drinks/new">
-          登録
-        </Link>
+        {myDrinks.isPending ? (
+          <div className="mydrink-chip-skeletons" role="status">
+            <span className="visually-hidden">マイドリンクを読み込み中</span>
+            <span />
+            <span />
+          </div>
+        ) : null}
+        {myDrinks.isError ? (
+          <QueryError onRetry={() => myDrinks.refetch()} retrying={myDrinks.isFetching} />
+        ) : null}
+        {myDrinks.data?.items.length ? (
+          <MyDrinkQuickList items={myDrinks.data.items} onLogged={cheer} />
+        ) : null}
+        {myDrinks.data && myDrinks.data.items.length === 0 ? (
+          <>
+            <p className="home-mydrinks-empty">
+              よく飲む一杯を登録すると、ここを 1 回タップで記録できます
+            </p>
+            <Link className={buttonVariants({ variant: "secondary" })} to="/logs/my-drinks/new">
+              登録
+            </Link>
+          </>
+        ) : null}
       </div>
     </div>
   );

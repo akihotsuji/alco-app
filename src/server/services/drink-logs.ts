@@ -1,15 +1,23 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { AppBatchDb } from "@/db/index.ts";
 import { bottles, drinkLogs, myDrinks, photos } from "@/db/schema.ts";
-import { calculateAlcoholGrams } from "@/shared/alcohol.ts";
+import { calculateAlcoholGrams, isDryDay, sumAlcoholGrams } from "@/shared/alcohol.ts";
 import type { DrinkType } from "@/shared/constants.ts";
 import {
   type CreateDrinkLogInput,
   DRINK_LOG_PHOTO_MAX,
   type DrinkLog,
+  type DrinkLogSummary,
+  type DrinkLogSummaryQuery,
   normalizeMemo,
 } from "@/shared/drink-logs.ts";
-import { tokyoToday } from "@/shared/tokyo-date.ts";
+import {
+  addCalendarDays,
+  isoWeekDates,
+  parseCalendarDate,
+  TOKYO_TIME_ZONE,
+  tokyoToday,
+} from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
@@ -182,6 +190,83 @@ export async function getOwnDrinkLog(
     .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
     .orderBy(asc(photos.sortOrder), asc(photos.createdAt));
   return toDrinkLog(row, photoRows);
+}
+
+function datesForSummary(query: DrinkLogSummaryQuery): string[] {
+  if (query.period === "day") {
+    return [query.date];
+  }
+  if (query.period === "week") {
+    return isoWeekDates(query.date);
+  }
+  const anchor = parseCalendarDate(query.date);
+  if (!anchor) {
+    throw new ApiError("validation_error");
+  }
+  const first = `${anchor.year}-${String(anchor.month).padStart(2, "0")}-01`;
+  const dates: string[] = [];
+  let date = first;
+  while (parseCalendarDate(date)?.month === anchor.month) {
+    dates.push(date);
+    date = addCalendarDays(date, 1);
+  }
+  return dates;
+}
+
+export async function getDrinkLogSummary(input: {
+  db: AppBatchDb;
+  userId: string;
+  query: DrinkLogSummaryQuery;
+  now?: Date;
+}): Promise<DrinkLogSummary> {
+  const dates = datesForSummary(input.query);
+  const from = dates[0];
+  const to = dates.at(-1);
+  if (!from || !to) {
+    throw new ApiError("internal_error");
+  }
+
+  const rows = await input.db
+    .select({ drunkOn: drinkLogs.drunkOn, alcoholG: drinkLogs.alcoholG })
+    .from(drinkLogs)
+    .where(
+      and(
+        eq(drinkLogs.userId, input.userId),
+        gte(drinkLogs.drunkOn, from),
+        lte(drinkLogs.drunkOn, to),
+      ),
+    );
+
+  const rowsByDate = new Map<string, number[]>();
+  for (const row of rows) {
+    const values = rowsByDate.get(row.drunkOn) ?? [];
+    values.push(row.alcoholG);
+    rowsByDate.set(row.drunkOn, values);
+  }
+
+  const today = tokyoToday(input.now);
+  const days = dates.map((date) => {
+    const alcoholValues = rowsByDate.get(date) ?? [];
+    const isFuture = date > today;
+    return {
+      date,
+      count: alcoholValues.length,
+      alcoholG: sumAlcoholGrams(alcoholValues),
+      isDryDay: isDryDay(alcoholValues.length, isFuture),
+      isFuture,
+    };
+  });
+
+  return {
+    period: input.query.period,
+    from,
+    to,
+    timezone: TOKYO_TIME_ZONE,
+    totalCount: rows.length,
+    totalAlcoholG: sumAlcoholGrams(rows.map((row) => row.alcoholG)),
+    dryDayCount: days.filter((day) => day.isDryDay).length,
+    days,
+  };
 }
 
 /**

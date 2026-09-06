@@ -7,4 +7,9 @@ export const queryKeys = {
   me: ["me"] as const,
   photos: ["photos"] as const,
   drinkLogs: ["drink-logs"] as const,
+  drinkLogSummaries: ["drink-log-summaries"] as const,
+  drinkLogSummary: (period: "day" | "week" | "month", date: string) =>
+    ["drink-log-summaries", { period, date }] as const,
+  myDrinks: ["my-drinks"] as const,
+  myDrink: (id: string) => ["my-drinks", id] as const,
 } as const;

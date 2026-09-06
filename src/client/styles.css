@@ -210,6 +210,15 @@
   }
 }
 
+@keyframes week-fill {
+  from {
+    clip-path: inset(100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
 @keyframes dialog-in {
   from {
     opacity: 0;
@@ -231,6 +240,28 @@
 @keyframes mascot-pour {
   to {
     clip-path: inset(0);
+  }
+}
+
+@keyframes home-primary-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+    box-shadow: none;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    box-shadow: var(--shadow-primary);
+  }
+}
+
+@keyframes home-mascot-cheer {
+  from {
+    transform: translateY(-4px);
+  }
+  to {
+    transform: none;
   }
 }
 
@@ -1337,8 +1368,51 @@
   display: block;
   padding: var(--space-4) var(--space-4) 28px;
   color: inherit;
-  text-decoration: none;
   overflow: visible;
+}
+
+.today-card-main {
+  color: inherit;
+  text-decoration: none;
+}
+
+.today-card-main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+}
+
+.today-card-main:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+.today-card-head {
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.today-week-link {
+  position: relative;
+  z-index: 1;
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.today-week-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius);
 }
 
 .today-scores {
@@ -1377,18 +1451,28 @@
 }
 
 .week-dots {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 10px;
   margin-top: var(--space-4);
 }
 
 .week-dot {
+  position: relative;
   width: 28px;
   height: 28px;
+  padding: 0;
+  border: 0;
   border-radius: 8px;
+  background: transparent;
   box-shadow: var(--shadow-inset-sm);
   display: grid;
   place-items: center;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  overflow: hidden;
 }
 
 .week-dot-today {
@@ -1397,9 +1481,42 @@
     0 0 0 2px var(--primary);
 }
 
+.week-dot-filled {
+  background: var(--primary);
+  box-shadow: none;
+}
+
+.week-dot-filled.week-dot-today {
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--primary);
+}
+
+.week-dot-filling {
+  background: transparent;
+}
+
+.week-dot-filling::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--primary);
+  clip-path: inset(100% 0 0);
+  animation: week-fill var(--dur-fill) var(--ease-fill) forwards;
+}
+
+.week-dot-future {
+  opacity: 0.45;
+}
+
 .week-dot-label {
   font-size: 10px;
   color: var(--muted);
+}
+
+.week-dot-filled .week-dot-label {
+  color: var(--primary-fg);
 }
 
 .today-mascot {
@@ -1407,6 +1524,10 @@
   right: 8px;
   bottom: -12px;
   pointer-events: none;
+}
+
+.today-mascot[data-cheer="1"] {
+  animation: home-mascot-cheer var(--dur-open) var(--ease-out);
 }
 
 .home-actions {
@@ -1417,6 +1538,10 @@
 
 .home-log-btn {
   flex: 1;
+}
+
+.home-log-btn-enter {
+  animation: home-primary-enter var(--dur-enter) var(--ease-out);
 }
 
 .home-mydrinks-head {
@@ -1437,8 +1562,145 @@
   color: var(--muted);
 }
 
+.home-mydrinks,
+.mydrink-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mydrink-quick-list {
+  margin-top: calc(var(--space-1) * -1);
+}
+
+.mydrink-quick-chip {
+  max-width: 100%;
+  gap: var(--space-1);
+}
+
+.mydrink-quick-name {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mydrink-chip-skeletons {
+  display: flex;
+  gap: var(--space-3);
+  padding: 10px 8px;
+  margin: -10px -8px;
+}
+
+.mydrink-chip-skeletons > span:not(.visually-hidden) {
+  width: 124px;
+  height: var(--tap-min);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-inset-sm);
+}
+
 .log-day-total {
   margin: 0;
+}
+
+.mydrink-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.mydrink-row {
+  min-height: 76px;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-outset);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mydrink-row-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+}
+
+.mydrink-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inset-sm);
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+}
+
+.mydrink-row-copy,
+.mydrink-row-top {
+  min-width: 0;
+  display: flex;
+}
+
+.mydrink-row-copy {
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.mydrink-row-top {
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.mydrink-row-top strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mydrink-row-top > span,
+.mydrink-row-sub,
+.mydrink-list-note,
+.mydrink-limit {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.mydrink-order-buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.mydrink-list-note,
+.mydrink-limit {
+  margin: 0;
+}
+
+.mydrink-limit {
+  color: var(--danger);
+}
+
+.mydrink-form {
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+}
+
+.mydrink-delete {
+  min-height: var(--tap-min);
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  font: inherit;
+  font-weight: 600;
+}
+
+.mydrink-delete:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .settings-heading {

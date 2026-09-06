@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   createDrinkLogSchema,
   DRINK_LOG_MESSAGES,
+  DRINK_LOG_SUMMARY_MESSAGES,
   DRUNK_AT_FUTURE_TOLERANCE_MS,
+  drinkLogSummaryQuerySchema,
   hasAtMostOneDecimal,
   isDrunkAtAllowed,
   normalizeMemo,
@@ -136,5 +138,41 @@ describe("helpers", () => {
     expect(normalizeMemo(null)).toBeNull();
     expect(normalizeMemo("   \n ")).toBeNull();
     expect(normalizeMemo("  美味しい  ")).toBe("美味しい");
+  });
+});
+
+describe("drinkLogSummaryQuerySchema", () => {
+  it("day / week / month と実在する日付だけ受ける", () => {
+    for (const period of ["day", "week", "month"]) {
+      expect(drinkLogSummaryQuerySchema.safeParse({ period, date: "2026-09-06" }).success).toBe(
+        true,
+      );
+    }
+    const period = drinkLogSummaryQuerySchema.safeParse({
+      period: "year",
+      date: "2026-09-06",
+    });
+    expect(period.success).toBe(false);
+    if (!period.success) {
+      expect(period.error.issues[0]?.message).toBe(DRINK_LOG_SUMMARY_MESSAGES.period);
+    }
+    const date = drinkLogSummaryQuerySchema.safeParse({
+      period: "day",
+      date: "2026-02-30",
+    });
+    expect(date.success).toBe(false);
+    if (!date.success) {
+      expect(date.error.issues[0]?.message).toBe(DRINK_LOG_SUMMARY_MESSAGES.date);
+    }
+  });
+
+  it("未知キーを拒否する", () => {
+    expect(
+      drinkLogSummaryQuerySchema.safeParse({
+        period: "day",
+        date: "2026-09-06",
+        userId: "x",
+      }).success,
+    ).toBe(false);
   });
 });

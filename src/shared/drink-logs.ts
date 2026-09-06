@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ABV_PERCENT_MAX, ABV_PERCENT_MIN, VOLUME_ML_MAX, VOLUME_ML_MIN } from "./alcohol.ts";
 import { DRINK_TYPES } from "./constants.ts";
 import { photoMetaSchema } from "./photos.ts";
+import { parseCalendarDate, TOKYO_TIME_ZONE } from "./tokyo-date.ts";
 
 /**
  * 飲酒記録の入力スキーマ。クライアント（即時表示）とサーバー（最終判定）で同じものを使う。
@@ -86,6 +87,49 @@ export const drinkLogIdParamSchema = z
     id: z.string().uuid(),
   })
   .strict();
+
+export const DRINK_LOG_SUMMARY_MESSAGES = {
+  period: "期間の種類が正しくありません",
+  date: "日付の形式が正しくありません",
+} as const;
+
+export const drinkLogSummaryQuerySchema = z
+  .object({
+    period: z.enum(["day", "week", "month"], {
+      error: DRINK_LOG_SUMMARY_MESSAGES.period,
+    }),
+    date: z
+      .string({ error: DRINK_LOG_SUMMARY_MESSAGES.date })
+      .refine((value) => parseCalendarDate(value) !== null, {
+        error: DRINK_LOG_SUMMARY_MESSAGES.date,
+      }),
+  })
+  .strict();
+export type DrinkLogSummaryQuery = z.infer<typeof drinkLogSummaryQuerySchema>;
+
+export const drinkLogSummaryDaySchema = z
+  .object({
+    date: z.string(),
+    count: z.number().int().min(0),
+    alcoholG: z.number().min(0),
+    isDryDay: z.boolean(),
+    isFuture: z.boolean(),
+  })
+  .strict();
+
+export const drinkLogSummarySchema = z
+  .object({
+    period: z.enum(["day", "week", "month"]),
+    from: z.string(),
+    to: z.string(),
+    timezone: z.literal(TOKYO_TIME_ZONE),
+    totalCount: z.number().int().min(0),
+    totalAlcoholG: z.number().min(0),
+    dryDayCount: z.number().int().min(0),
+    days: z.array(drinkLogSummaryDaySchema),
+  })
+  .strict();
+export type DrinkLogSummary = z.infer<typeof drinkLogSummarySchema>;
 
 /** `GET /:id` と作成応答の形（spec/api-design.md 4.3 共通オブジェクト + `photos`） */
 export const drinkLogSchema = z.object({
