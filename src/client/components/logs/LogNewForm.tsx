@@ -193,12 +193,14 @@ export function LogNewForm() {
         }}
       />
       <VolumeField
+        key={`volume-${state.drinkType}`}
         drinkType={state.drinkType}
         value={state.volumeMl}
         error={errors.volumeMl}
         onChange={(volumeMl) => update({ volumeMl })}
       />
       <AbvField
+        key={`abv-${state.drinkType}`}
         value={state.abvPercent}
         error={errors.abvPercent}
         onChange={(abvPercent) => update({ abvPercent })}

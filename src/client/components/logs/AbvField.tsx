@@ -41,7 +41,9 @@ export function AbvField({ value, error, onChange }: AbvFieldProps) {
 
   useEffect(() => {
     if (manualOpen && focusRequested) {
+      // 手入力に切り替えた直後は現在値を全選択し、そのまま打ち直せるようにする
       inputRef.current?.focus();
+      inputRef.current?.select();
       setFocusRequested(false);
     }
   }, [manualOpen, focusRequested]);

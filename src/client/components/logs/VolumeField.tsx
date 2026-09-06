@@ -21,19 +21,16 @@ function parseVolume(raw: string): number | null {
 
 /** N4: スコア 40px + 種類の量チップ + ボトル量 375 / 750 / 1500 + 「手入力」（数値キーボード、1〜5000 整数） */
 export function VolumeField({ drinkType, value, error, onChange }: VolumeFieldProps) {
-  const manual = isManualVolume(drinkType, value);
-  const [manualOpen, setManualOpen] = useState(manual);
+  // 呼び元が drinkType を key にして再マウントするので、種類変更時はここで初期化される
+  const [manualOpen, setManualOpen] = useState(() => isManualVolume(drinkType, value));
   const [focusRequested, setFocusRequested] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 種類が変わってチップ値になったら手入力欄を閉じ、チップに無い値になれば開く
-  useEffect(() => {
-    setManualOpen(manual);
-  }, [manual]);
-
   useEffect(() => {
     if (manualOpen && focusRequested) {
+      // 手入力に切り替えた直後は現在値を全選択し、そのまま打ち直せるようにする
       inputRef.current?.focus();
+      inputRef.current?.select();
       setFocusRequested(false);
     }
   }, [manualOpen, focusRequested]);
