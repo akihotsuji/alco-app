@@ -1,12 +1,13 @@
 import "@/shared/zod-config.ts";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
-import type { AppSqliteDb } from "@/db/index.ts";
+import type { AppBatchDb } from "@/db/index.ts";
 import { createD1Db } from "@/db/index.ts";
 import type { AppEnv } from "./app-env.ts";
 import { type Auth, createAuthFromEnv } from "./auth.ts";
 import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
+import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
 import { healthRoute } from "./routes/health.ts";
 import { meRoute } from "./routes/me.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
@@ -15,7 +16,7 @@ import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
 
 export type CreateAppOptions = {
   auth?: Auth;
-  db?: AppSqliteDb;
+  db?: AppBatchDb;
   photos?: PhotoBucket;
 };
 
@@ -68,15 +69,18 @@ export function createApp(options: CreateAppOptions = {}) {
   const getDb = (c: { env: Env }) => options.db ?? createD1Db(c.env.DB);
   const getBucket = (c: { env: Env }) => options.photos ?? wrapR2Bucket(c.env.PHOTOS);
 
-  const photosRoute = createPhotosRoute({
-    getDb: (c) => getDb(c),
-    getBucket: (c) => getBucket(c),
-  });
+  const routeDeps = {
+    getDb: (c: { env: Env }) => getDb(c),
+    getBucket: (c: { env: Env }) => getBucket(c),
+  };
+  const photosRoute = createPhotosRoute(routeDeps);
+  const drinkLogsRoute = createDrinkLogsRoute(routeDeps);
 
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app
     .route("/api/health", healthRoute)
     .route("/api/me", meRoute)
+    .route("/api/drink-logs", drinkLogsRoute)
     .route("/api/photos", photosRoute);
 }
 

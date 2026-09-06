@@ -15,6 +15,17 @@ export const DRINK_TYPES = [
 
 export type DrinkType = (typeof DRINK_TYPES)[number];
 
+/** 画面表示名（spec/screen-designs/03-log.md N3 のチップ順 = DRINK_TYPES の順） */
+export const DRINK_TYPE_LABELS: Record<DrinkType, string> = {
+  wine: "ワイン",
+  beer: "ビール",
+  whisky: "ウイスキー",
+  sake: "日本酒",
+  shochu: "焼酎",
+  cocktail: "カクテル",
+  other: "その他",
+};
+
 /** sealed = 未開栓（棚） / consumed = 開栓（貯蔵庫） */
 export const BOTTLE_STATUSES = ["sealed", "consumed"] as const;
 
@@ -92,3 +103,13 @@ export const PHOTO_PREF_KEYS = {
   cutout: "photo.cutout",
   recognize: "cellar.recognize",
 } as const;
+
+/** 操作設定の localStorage キー（spec/screen-designs/06-settings.md S8 / S9、motion-design 6.5 / 6.7） */
+export const UI_PREF_KEYS = {
+  haptic: "ui.haptic",
+  reduceMotion: "ui.reduce-motion",
+} as const;
+
+export const REDUCE_MOTION_PREFS = ["system", "always"] as const;
+
+export type ReduceMotionPref = (typeof REDUCE_MOTION_PREFS)[number];

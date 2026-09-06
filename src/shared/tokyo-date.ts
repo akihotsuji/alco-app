@@ -103,3 +103,53 @@ export function formatHomeDateLabel(date: string): string {
 }
 
 export const WEEKDAY_LABELS_MON_SUN = ["月", "火", "水", "木", "金", "土", "日"] as const;
+
+/** Asia/Tokyo は DST が無く常に +09:00。 */
+const TOKYO_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+const LOCAL_DATETIME_RE = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/;
+
+const tokyoTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: TOKYO_TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/**
+ * `datetime-local` の値（`YYYY-MM-DDTHH:MM`）を **常に Asia/Tokyo として**解釈し UTC ISO にする。
+ * 端末のタイムゾーンには依存しない（spec/features/drink-log.md 3.7）。不正なら null。
+ */
+export function tokyoLocalToIso(local: string): string | null {
+  const matched = LOCAL_DATETIME_RE.exec(local);
+  if (!matched?.[1] || !matched[2] || !matched[3]) {
+    return null;
+  }
+  const date = parseCalendarDate(matched[1]);
+  const hour = Number(matched[2]);
+  const minute = Number(matched[3]);
+  if (!date || hour > 23 || minute > 59) {
+    return null;
+  }
+  const utcMs = Date.UTC(date.year, date.month - 1, date.day, hour, minute) - TOKYO_OFFSET_MS;
+  return new Date(utcMs).toISOString();
+}
+
+/** 瞬間を Asia/Tokyo の `HH:MM`（24 時間）にする。 */
+export function formatTokyoTime(instant: Date): string {
+  return tokyoTimeFormatter.format(instant);
+}
+
+/** 瞬間を `datetime-local` 用の `YYYY-MM-DDTHH:MM`（Asia/Tokyo）にする。 */
+export function instantToTokyoLocal(instant: Date): string {
+  return `${tokyoToday(instant)}T${formatTokyoTime(instant)}`;
+}
+
+/** 過去日の既定時刻 20:00 JST（`<date>T11:00:00.000Z`）。 */
+export function tokyoEveningIso(date: string): string {
+  const iso = tokyoLocalToIso(`${date}T20:00`);
+  if (!iso) {
+    throw new Error(`invalid calendar date: ${date}`);
+  }
+  return iso;
+}
