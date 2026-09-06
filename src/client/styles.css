@@ -246,6 +246,26 @@
   }
 }
 
+@keyframes shelf-edge-run {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(500%);
+  }
+}
+
+@keyframes bottle-place {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes home-primary-enter {
   from {
     opacity: 0;
@@ -625,7 +645,8 @@
   left: 20px;
   right: 20px;
   bottom: calc(var(--tab-h) + 12px + 16px + env(safe-area-inset-bottom));
-  z-index: 20;
+  z-index: 25;
+  pointer-events: auto;
   min-height: 52px;
   padding: 0 16px;
   border-radius: var(--radius);
@@ -663,12 +684,15 @@
 }
 
 .app-toast-action {
+  position: relative;
+  z-index: 1;
   border: none;
   background: transparent;
   color: var(--primary);
   font: inherit;
   font-weight: 600;
   min-height: var(--tap-min);
+  pointer-events: auto;
 }
 
 .empty-state,
@@ -681,6 +705,11 @@
   gap: var(--space-4);
   text-align: center;
   padding: var(--space-6) 0;
+}
+
+/* 空セラー CTA がタブ上のトースト（高さ 52px）と重ならない */
+.cellar-empty {
+  padding-bottom: calc(52px + 16px + var(--space-6));
 }
 
 .empty-state-message {
@@ -742,6 +771,8 @@
 }
 
 .shelf-board {
+  position: relative;
+  overflow: hidden;
   width: min(100%, 220px);
   height: var(--shelf-h);
   margin-top: -4px;
@@ -750,6 +781,23 @@
   box-shadow:
     var(--shelf-glass-shadow),
     inset 0 1px 0 var(--shelf-glass-edge);
+}
+
+.shelf-board::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24%;
+  height: 1px;
+  background: var(--shelf-glass-edge);
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.shelf-row[data-highlight="1"] .shelf-board::before,
+.shelf-stage[data-highlight="1"] .shelf-board::before {
+  animation: shelf-edge-run var(--dur-open) var(--ease-out) both;
 }
 
 .query-error {
@@ -2218,61 +2266,134 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
   color: var(--muted);
 }
 
-.cellar-temp-list {
+.shelf {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  gap: var(--space-5);
 }
 
-.cellar-temp-row {
-  min-height: 72px;
-  padding: var(--space-3);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-outset);
-  color: inherit;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.cellar-temp-thumb {
-  width: 48px;
-  height: 72px;
-  flex: 0 0 48px;
-  border-radius: 8px;
-  object-fit: cover;
-  box-shadow: var(--shadow-inset-sm);
-  background: var(--surface);
-}
-
-.cellar-temp-thumb.is-empty {
-  display: block;
-}
-
-.cellar-temp-copy {
-  min-width: 0;
-  flex: 1;
+.shelf-row {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.cellar-temp-copy strong {
+.shelf-row .shelf-board {
+  width: 100%;
+  margin-top: 0;
+}
+
+.shelf-row-items {
+  display: grid;
+  grid-template-columns: repeat(var(--shelf-cols, 3), minmax(0, 1fr));
+  gap: var(--space-2) var(--space-3);
+  align-items: end;
+}
+
+.bottle-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.bottle-tile[data-enter="1"] {
+  animation: bottle-place var(--dur-enter) var(--ease-out) both;
+}
+
+.bottle-tile-frame {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  max-width: 100px;
+  height: 150px;
+}
+
+.bottle-tile-img,
+.bottle-tile-silhouette {
+  width: 100%;
+  height: 100%;
+}
+
+.bottle-tile-img.is-cutout,
+.bottle-tile-silhouette {
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.bottle-tile-img.is-photo {
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.bottle-tile-frame.is-archived .bottle-tile-img,
+.bottle-tile-frame.is-archived .bottle-tile-silhouette {
+  filter: saturate(0.5) brightness(0.9);
+}
+
+.bottle-tile-date {
+  position: absolute;
+  top: var(--space-1);
+  right: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-outset-sm);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.bottle-tile-name,
+.bottle-tile-sub {
   overflow: hidden;
+  max-width: 100%;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cellar-temp-copy span {
-  overflow: hidden;
+.bottle-tile-name {
+  margin-top: var(--space-1);
+  font-size: 13px;
+}
+
+.bottle-tile-sub {
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+
+.bottle-tile-skeleton {
+  width: 100%;
+  max-width: 100px;
+  height: 150px;
+  margin-inline: auto;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.cellar-month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cellar-month-title {
+  margin: 0;
   color: var(--muted);
   font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 600;
+}
+
+.cellar-archive-sentinel {
+  height: 1px;
 }
 
 .cellar-empty[data-enter="1"] .empty-state-mascot,
@@ -2518,10 +2639,16 @@ html[data-reduce-motion="1"] .empty-state[data-enter="1"] .empty-action,
 html[data-reduce-motion="1"] .cellar-empty[data-enter="1"] .empty-state-mascot,
 html[data-reduce-motion="1"] .cellar-empty[data-enter="1"] .empty-action,
 html[data-reduce-motion="1"] .skeleton-fade,
-html[data-reduce-motion="1"] .log-row-enter {
+html[data-reduce-motion="1"] .log-row-enter,
+html[data-reduce-motion="1"] .bottle-tile[data-enter="1"] {
   animation-name: fade-in !important;
   animation-duration: var(--dur-toast-out) !important;
   animation-delay: initial !important;
+}
+
+html[data-reduce-motion="1"] .shelf-row[data-highlight="1"] .shelf-board::before,
+html[data-reduce-motion="1"] .shelf-stage[data-highlight="1"] .shelf-board::before {
+  animation: none !important;
 }
 
 html[data-reduce-motion="1"] .photo-tile-progress::after {

@@ -13,13 +13,18 @@ export function interpolateNumber(from: number, to: number, progress: number): n
   return from + (to - from) * (1 - (1 - clamped) ** 3);
 }
 
-export function AnimatedNumber({ value, decimals = 0, className }: AnimatedNumberProps) {
+export function useAnimatedNumber(value: number | undefined): number | undefined {
   const reduceMotion = useReducedMotion();
   const [shown, setShown] = useState(value);
   const shownRef = useRef(value);
 
   useEffect(() => {
-    if (reduceMotion || shownRef.current === value) {
+    if (value === undefined) {
+      shownRef.current = undefined;
+      setShown(undefined);
+      return;
+    }
+    if (reduceMotion || shownRef.current === undefined || shownRef.current === value) {
       shownRef.current = value;
       setShown(value);
       return;
@@ -43,6 +48,11 @@ export function AnimatedNumber({ value, decimals = 0, className }: AnimatedNumbe
     return () => cancelAnimationFrame(frame);
   }, [reduceMotion, value]);
 
+  return shown;
+}
+
+export function AnimatedNumber({ value, decimals = 0, className }: AnimatedNumberProps) {
+  const shown = useAnimatedNumber(value) ?? value;
   return (
     <span className={className} aria-live="polite">
       {shown.toFixed(decimals)}

@@ -164,6 +164,9 @@ export const bottleIdParamSchema = z
   })
   .strict();
 
+/** consume / restore。ボディなし、または空オブジェクト。未知キー（log 等）は 400 */
+export const emptyJsonBodySchema = z.object({}).strict();
+
 export const bottleStatusSchema = z.enum(BOTTLE_STATUSES);
 
 export const bottleItemSchema = z

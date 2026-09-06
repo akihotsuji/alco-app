@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type { BottleView, CreateBottleInput, UpdateBottleInput } from "@/shared/bottles.ts";
@@ -42,6 +42,14 @@ export function deleteBottle(id: string, client: ApiClient = api) {
   return unwrap(client.api.bottles[":id"].$delete({ param: { id } }));
 }
 
+export function consumeBottle(id: string, client: ApiClient = api) {
+  return unwrap(client.api.bottles[":id"].consume.$post({ param: { id } }));
+}
+
+export function restoreBottle(id: string, client: ApiClient = api) {
+  return unwrap(client.api.bottles[":id"].restore.$post({ param: { id } }));
+}
+
 export function useBottles(query: BottlesListQuery = {}) {
   return useQuery({
     queryKey: queryKeys.bottlesList({
@@ -50,6 +58,19 @@ export function useBottles(query: BottlesListQuery = {}) {
       drinkType: query.drinkType,
     }),
     queryFn: () => getBottles(query),
+  });
+}
+
+export function useInfiniteBottles(query: BottlesListQuery = {}) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.bottlesList({
+      view: query.view,
+      q: query.q,
+      drinkType: query.drinkType,
+    }),
+    queryFn: ({ pageParam }) => getBottles({ ...query, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 }
 
@@ -85,5 +106,21 @@ export function useDeleteBottle() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs });
     },
+  });
+}
+
+export function useConsumeBottle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => consumeBottle(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.bottles }),
+  });
+}
+
+export function useRestoreBottle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreBottle(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.bottles }),
   });
 }

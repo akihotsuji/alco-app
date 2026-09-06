@@ -5,7 +5,7 @@ import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import "@/shared/zod-config.ts";
 import type { AppEnv } from "./app-env.ts";
 import { errorHandler } from "./middleware/error.ts";
-import { validate } from "./validation.ts";
+import { validate, validateJsonAllowingEmpty } from "./validation.ts";
 
 // spec/api-design.md 2.2: 入力スキーマに userId を置かない。送られてきたら strict で 400
 const createSchema = z
@@ -97,5 +97,40 @@ describe("validate()", () => {
     expect(tooLarge.status).toBe(400);
     const body = apiErrorBodySchema.parse(await tooLarge.json());
     expect(Object.keys(body.fields ?? {})).toEqual(["limit"]);
+  });
+});
+
+describe("validateJsonAllowingEmpty()", () => {
+  const schema = z.object({}).strict();
+
+  function buildEmptyApp() {
+    const app = new Hono<AppEnv>();
+    app.onError(errorHandler);
+    return app.post("/action", validateJsonAllowingEmpty(schema), (c) => c.json({ ok: true }));
+  }
+
+  it("ボディなしと空オブジェクトは通る", async () => {
+    const app = buildEmptyApp();
+    const missing = await app.request("/action", { method: "POST" });
+    expect(missing.status).toBe(200);
+    const empty = await app.request("/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    expect(empty.status).toBe(200);
+  });
+
+  it("未知キーは 400", async () => {
+    const app = buildEmptyApp();
+    const res = await app.request("/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ log: true }),
+    });
+    expect(res.status).toBe(400);
+    const body = apiErrorBodySchema.parse(await res.json());
+    expect(body.error).toBe("validation_error");
+    expect(body.fields?.[""]).toBeDefined();
   });
 });

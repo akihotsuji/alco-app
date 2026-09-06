@@ -20,6 +20,7 @@ import {
 } from "@/shared/bottles.ts";
 import type { DrinkType, PhotoContentType, PhotoKind } from "@/shared/constants.ts";
 import { DEFAULT_BOTTLE_STATUS, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
+import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
@@ -621,6 +622,62 @@ export async function updateBottle(input: {
     );
   }
 
+  return getOwnBottle(db, userId, bottleId);
+}
+
+export async function consumeBottle(input: {
+  db: AppBatchDb;
+  userId: string;
+  bottleId: string;
+  now?: Date;
+}): Promise<Bottle> {
+  const { db, userId, bottleId } = input;
+  const now = input.now ?? new Date();
+  const [current] = await db
+    .select({ id: bottles.id, status: bottles.status })
+    .from(bottles)
+    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
+  if (current?.status !== "sealed") {
+    throw new ApiError("not_found");
+  }
+  await db
+    .update(bottles)
+    .set({
+      status: "consumed",
+      consumedAt: now,
+      consumedOn: tokyoToday(now),
+      updatedAt: now,
+    })
+    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId), eq(bottles.status, "sealed")));
+  return getOwnBottle(db, userId, bottleId);
+}
+
+export async function restoreBottle(input: {
+  db: AppBatchDb;
+  userId: string;
+  bottleId: string;
+  now?: Date;
+}): Promise<Bottle> {
+  const { db, userId, bottleId } = input;
+  const now = input.now ?? new Date();
+  const [current] = await db
+    .select({ id: bottles.id, status: bottles.status })
+    .from(bottles)
+    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
+  if (current?.status !== "consumed") {
+    throw new ApiError("not_found");
+  }
+  await db
+    .update(bottles)
+    .set({
+      status: "sealed",
+      consumedAt: null,
+      consumedOn: null,
+      updatedAt: now,
+    })
+    .where(
+      and(eq(bottles.id, bottleId), eq(bottles.userId, userId), eq(bottles.status, "consumed")),
+    );
   return getOwnBottle(db, userId, bottleId);
 }
 

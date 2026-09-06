@@ -6,6 +6,7 @@ import {
   bottlesQuerySchema,
   createBottleSchema,
   emptyCountsByType,
+  emptyJsonBodySchema,
   escapeLike,
   formatBottleCount,
   isPurchasedOnAllowed,
@@ -139,6 +140,27 @@ describe("bottlesQuerySchema", () => {
     expect(q.success).toBe(false);
   });
 });
+
+describe("emptyJsonBodySchema", () => {
+  it("空オブジェクトと未知キー", () => {
+    expect(emptyJsonBodySchema.safeParse({}).success).toBe(true);
+    expect(messagesOfEmpty({ log: true })[""]).toBeDefined();
+    expect(messagesOfEmpty({ status: "consumed" })[""]).toBeDefined();
+  });
+});
+
+function messagesOfEmpty(input: unknown) {
+  const result = emptyJsonBodySchema.safeParse(input);
+  if (result.success) {
+    return {};
+  }
+  const fields: Record<string, string[]> = {};
+  for (const issue of result.error.issues) {
+    const key = issue.path.map(String).join(".") || "";
+    fields[key] = [...(fields[key] ?? []), issue.message];
+  }
+  return fields;
+}
 
 describe("escapeLike / helpers", () => {
   it("% と _ と \\ をリテラルにする", () => {

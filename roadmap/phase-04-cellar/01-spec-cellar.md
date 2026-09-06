@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 4 セラー管理 |
-| ステータス | **レビュー待ち**（2026-09-06 に [spec/features/cellar.md](../../spec/features/cellar.md) を作成。オーナー承認後に完了） |
+| ステータス | **完了**（2026-09-06 作成。#39 マージで承認） |
 | 要件 | [spec/01-requirements.md](../../spec/01-requirements.md) 1.3 |
 | ソース | Phase 4 先頭。feature-dev Step 1 |
 
