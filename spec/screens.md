@@ -97,7 +97,7 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂）。アプリに存在�
 
 | ID | 画面 | パス | 親タブ | タブバー | 備考 |
 |---|---|---|---|---|---|
-| log-day | 日別記録 | `/logs`（今日）、`/logs/:date` | log | 表示 | `:date` は JST の `YYYY-MM-DD` のみ。`?highlight=<logId>` で行を 2 秒強調 |
+| log-day | 日別記録 | `/logs`（今日）、`/logs/:date` | log | 表示 | `:date` は JST の `YYYY-MM-DD` のみ。`?highlight=<logId>` で行を挿入 + 2 秒強調（[motion-design.md](motion-design.md) M-14〜M-16）。ホームの週マスからも入る（X6） |
 | log-new | 記録入力 | `/logs/new` | log | 隠す | 任意クエリ `?date=YYYY-MM-DD`（過去日）、`?camera=1`（撮影から）、`?bottleId=`（ボトル事前選択） |
 | log-edit | 記録編集 | `/logs/entries/:logId/edit` | log | 隠す | 削除もこの画面（確認ダイアログ） |
 | mydrink-list | マイドリンク一覧 | `/logs/my-drinks` | log | 表示 | |
@@ -152,9 +152,9 @@ API が 404 を返した詳細（他ユーザーのボトル、存在しない I
 | auth-login | 直接、ガード、サインアップからのリンク | — | `/` または安全な `redirect` |
 | auth-signup | ログインからのリンク | ログイン | 登録成功後はログイン済みなら `/` |
 | home | タブ、ログイン後のデフォルト | — | — |
-| summary-week | ホームの週次バー / リンク | ホーム | — |
+| summary-week | ホームの今日カード / リンク（週マスは各日の `log-day` へ。X6） | ホーム | — |
 | summary-month | ホームまたは週サマリーからのリンク | ホーム | — |
-| log-day | 中央タブ、入力保存後、消費後、日送り | タブの根（今日）以外は履歴戻り | — |
+| log-day | 中央タブ、入力保存後、消費後、日送り、ホームの週マス | タブの根（今日）以外は履歴戻り | — |
 | log-new | ホーム / 日別の「記録する」「カメラ」、ボトル詳細「1 杯を記録」、ディープリンク | 履歴戻り（無ければその日の `log-day`） | 対象日の `log-day?highlight=` |
 | log-edit | 日別の行タップ、ボトル詳細の記録行 | 対象日の `log-day` | 対象日の `log-day` |
 | mydrink-list | 日別またはホームからの「管理」 | 記録タブの日別 | — |

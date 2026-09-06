@@ -52,7 +52,7 @@ Phase 3-01 の成果物。飲酒記録機能（記録入力・編集・日別・
 | 今日 / 対象日 / 表示日 | すべて **Asia/Tokyo のカレンダー日**（`YYYY-MM-DD`）。今日 = `tokyoToday()`。対象日 = 記録の `drunkOn`。表示日 = `log-day` が開いている日 |
 | 休肝日 | その JST 日の記録が **0 件**。0g の記録（0% など）があっても休肝にしない。未来日は数えない |
 | 週 | ISO 週（**月曜始まり**、JST）。月 = 暦月（JST） |
-| ハイライト | `log-day?highlight=<logId>` で該当行を 2 秒だけ強調（保存・消費の直後） |
+| ハイライト | `log-day?highlight=<logId>` で該当行を **その位置に挿入**し 2 秒だけ強調（保存・消費・1 タップ・undo 復元の直後。[motion-design.md](../motion-design.md) M-14〜M-16、`useHighlightRow`） |
 | undo | 保存成功トーストの「取り消す」（5 秒）。`DELETE /api/drink-logs/:id` |
 
 ---
@@ -67,12 +67,12 @@ Phase 3-01 の成果物。飲酒記録機能（記録入力・編集・日別・
 |---|---|---|---|
 | D1 | 日送り | 前日 / 翌日。**翌日が今日より後なら右を無効**。URL 直打ちの未来日は表示できるが D3 / D4 / D5 を無効にする | `/logs/:date` |
 | D2 | 合計 | 「N 杯 ・ X g」。杯数 = `totalCount`、g = `displayAlcoholGrams(totalAlcoholG)`。0 件は「休肝」ピル | `GET /api/drink-logs?date=` |
-| D3 | 記録する | `/logs/new`（表示日が今日）/ `/logs/new?date=<表示日>`（過去日） | — |
+| D3 | 記録する | `/logs/new`（表示日が今日）/ `/logs/new?date=<表示日>`（過去日）。中央タブから着地したときだけ 1 回出現（M-03、X3） | — |
 | D4 | カメラ | D3 と同じ遷移先に `&camera=1` | — |
 | D5 | マイドリンクチップ | `sortOrder` 順の上位 **4 件** + 「管理」。1 タップで保存、遷移なし。`drunkAt` は 3.7 の規則 | `GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
 | D6 | 記録行 | 1 行目: 名前（`drinkName` があればそれ、無ければ種類の表示名）+ 「量ml」、右端に表示丸めの g。2 行目: 「HH:MM ・ 度数% ・ ボトル名（`bottleId` があれば）」。左にサムネ 48px（`thumbPhotoId` があれば `GET /api/photos/:id/content`、無ければ種類アイコン） | `items[]` |
 | D7 | 行タップ | `log-edit` | — |
-| D8 | ハイライト | `?highlight=<logId>` の行を 2 秒だけ強調。該当 id が一覧に無ければ何もしない。表示後にクエリを `replace` で消す | — |
+| D8 | ハイライト | `?highlight=<logId>` の行を挿入アニメ（M-14）+ 画面外なら中央へスクロール（M-16）+ 2 秒の枠（最後 600ms でフェード。M-15）。該当 id が一覧に無ければ何もしない。表示後にクエリを `replace` で消す | — |
 
 - `:date` が `^\d{4}-\d{2}-\d{2}$` に一致しない、または暦上存在しない（`2026-02-30`）なら `not-found`
 - 一覧の並びは `drunkAt` 降順（API 既定）。1 日の件数が `limit` を超えた場合は `nextCursor` を辿って全件を連結する（追加 UI は置かない。`limit=100`）
@@ -96,7 +96,7 @@ Phase 3-01 の成果物。飲酒記録機能（記録入力・編集・日別・
 | N10 | 保存する | 固定バー | 有効 | 無効条件: 量または度数が空 / 範囲外、日時が範囲外、写真アップロード中・失敗中、保存中 |
 
 - 初期状態（ワイン 125 / 12、日時いま、写真なし）で **すぐ保存できる**（保存 1 タップ）
-- 成功: 対象日（応答の `drunkOn`）の `log-day?highlight=<id>` へ `replace`。トースト「記録しました  取り消す」（`cheer` 32px、5 秒）
+- 成功: 対象日（応答の `drunkOn`）の `log-day?highlight=<id>` へ **即** `replace`（ボタン側の成功表示は無し。M-05）。トースト「記録しました  取り消す」（`cheer` 32px + 水面 M-25、5 秒）。保存中はボタンに水位線（M-04）、失敗で静かに戻す（M-06）
 - 保存失敗: フォーム上部にインライン汎用文「保存できませんでした。もう一度試してください」。入力は保持
 - 戻る（未保存）: 入力を触っていれば確認ダイアログ「入力を破棄しますか」。破棄時、アップロード済みの未紐付け写真は `DELETE /api/photos/:id`
 - 戻り先: 履歴があれば戻る。無ければ（ディープリンク）対象日の `log-day` へ `replace`
@@ -137,13 +137,13 @@ Phase 3-01 の成果物。飲酒記録機能（記録入力・編集・日別・
 |---|---|---|---|
 | H1 | 日付 | 「9月5日 土曜」（`formatHomeDateLabel(tokyoToday())`） | クライアント |
 | H2〜H5 | 今日カード | 杯数 `totalCount`、g `displayAlcoholGrams(totalAlcoholG)`、0 件なら「休肝」ピル。タップで `summary-week` | `GET /api/drink-logs/summary?period=day&date=<今日>` |
-| H6 | 週マス | 月〜日の 7 マス。記録あり / なし / 今日 / 未来の 4 状態。タップで `summary-week` | `GET /api/drink-logs/summary?period=week&date=<今日>` |
-| H7 | キャラクター | 72px。記録あり `default`、0 件 `rest`。1 タップ直後 `cheer` 300ms → `default` | `totalCount` |
+| H6 | 週マス | 月〜日の 7 マス。記録あり / なし / 今日 / 未来の 4 状態。**マスのタップでその日の `/logs/:date`**（X6。未来は無効）。今日が 0 → 記録ありになる瞬間に塗りが下から満ちる（M-17） | `GET /api/drink-logs/summary?period=week&date=<今日>` |
+| H7 | キャラクター | 72px。記録あり `default`、0 件 `rest`。1 タップ直後 `cheer` 300ms → `default`、切替の瞬間に上 4px → 0 を 1 回（[character.md](../character.md) 6 章） | `totalCount` |
 | H8 / H9 | 記録する / カメラ | `/logs/new`、`/logs/new?camera=1` | — |
 | H10 / H11 | マイドリンク見出し + チップ | 上位 4 件、「管理」→ `/logs/my-drinks`。1 タップ保存、遷移なし | `GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
-| H12 | トースト | 「記録しました  取り消す」5 秒、`cheer` 付き | `DELETE /api/drink-logs/:id` |
+| H12 | トースト | 「記録しました  取り消す」5 秒、`cheer` 付き（水面 M-25。出入り M-23 / M-24） | `DELETE /api/drink-logs/:id` |
 
-- **楽観更新しない**。サーバー応答後に day / week サマリーを再取得して数字を更新する
+- **楽観更新しない**。サーバー応答後に day / week サマリーを再取得して数字を更新する（旧値 → 新値のカウント M-09。休肝ピルは M-18 でフェード。チップは送信中 inset 維持 → 成功で水位線 M-07 / M-08。`haptic("success")` は設定 ON のみ）
 - 記録 0 / マイドリンク 0 の空状態: スコア 0 / 0、休肝ピル、`rest`。チップ欄は「よく飲む一杯を登録すると、ここを 1 回タップで記録できます」+ Button 副「登録」→ `/logs/my-drinks/new`
 - 1 タップ失敗: トースト「保存できませんでした。もう一度試してください」（キャラなし）。数字は変えない
 - キャラの文言は出さない（休肝はピルが示す）。飲酒を促す文言は禁止
@@ -405,7 +405,9 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 | 3-04 計算 | 5 | — |
 | 3-05 日別・編集・削除 | 3.1 / 3.3 / 4.4 | [03-log.md](../screen-designs/03-log.md) `log-day` / `log-edit` |
 | 3-06 週 / 月サマリー | 3.6 | [02-home.md](../screen-designs/02-home.md) `summary-*` |
-| 3-07 dev デプロイ | — | — |
+| 3-07 dev デプロイ・設定 | — | [06-settings.md](../screen-designs/06-settings.md) S8 / S9（触感フィードバック・動きを減らす） |
+
+モーション（`M-xx`）と体験改善（`X1`〜`X8`）の正本は [motion-design.md](../motion-design.md)。共通トークン・`Button` / `Chip` の `data-state`・`useReducedMotion()`・`haptic.ts` は **3-02 で作り**、3-03 / 3-05 / 3-06 / 3-07 が各画面の演出を載せる。3-02 では同じ PR でダークの `--primary` / `--score` / `--ring` を `#CC8484` に直す（X8）。
 
 推奨順は 3-01（承認）→ 3-04 → 3-02 と 3-03 → 3-05 → 3-06 → 3-07（[00-phase.md](../../roadmap/phase-03-drink-log/00-phase.md)）。各実装 PR は該当画面設計の **受け入れチェックを本文に貼る**。
 
@@ -428,5 +430,6 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 - [api-design.md](../api-design.md) 4.3 / 4.4
 - [data-model.md](../data-model.md) 6.1 / 6.2
 - [screens.md](../screens.md)、[screen-designs/02-home.md](../screen-designs/02-home.md)、[screen-designs/03-log.md](../screen-designs/03-log.md)
+- [motion-design.md](../motion-design.md)（演出 `M-xx`、体験改善 `X1`〜`X8`）
 - [photos.md](photos.md)、[character.md](../character.md)
 - [roadmap/phase-03-drink-log/01-spec-drink-log.md](../../roadmap/phase-03-drink-log/01-spec-drink-log.md)
