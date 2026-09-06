@@ -36,13 +36,20 @@
 |---|---|---|---|---|
 | 1 | home | ホーム | `house` | `/` |
 | 2 | cellar | セラー | `wine`（ボトル） | `/cellar` |
-| 3（中央） | log | 記録 | `glass-water` 相当のグラス。primary 円 60px | `/logs` |
+| 3（中央） | log | 記録 | `glass-water` 相当のグラス。primary 円 60px | **なし**（動作。下記） |
 | 4 | notes | ノート | `notebook-pen` | `/notes` |
 | 5 | settings | 設定 | `settings` | `/settings` |
 
 - 通常タブ: 高さ 48px、アイコン 20px + ラベル 12px。現在地は inset + primary 色。切替は inset-sm と色が `--dur-state` で移る（M-20。アイコンは動かさない）
-- **中央タブ**: 直径 `--tab-center-size`（60px）の円。`--primary` 塗り、アイコン 26px `--primary-fg`、`--shadow-primary`。タブバー上端から 12px 上に出す。ラベル「記録」は円の下 12px。現在地のときは円が inset（少し暗く沈む）＋ラベル primary。押下は主ボタンと同じ `scale(0.985) translateY(1px)` + pressed inset（M-21）
-- タブ再タップ: そのタブの根へ戻し、スクロールを先頭へ（`scrollTo({ top: 0, behavior: "smooth" })`。reduced motion では `auto`。M-22）
+- **中央タブ**: 直径 `--tab-center-size`（60px）の円。`--primary` 塗り、アイコン 26px `--primary-fg`、`--shadow-primary`。タブバー上端から 12px 上に出す。ラベル「記録」は円の下 12px。押下は主ボタンと同じ `scale(0.985) translateY(1px)` + pressed inset（M-21）
+- **中央タブは「動作」であり着地画面を持たない**（2026-09-06 オーナー確定 (c)）:
+  - タップで記録用の `photo-edit`（[07-photo-capture.md](07-photo-capture.md)。比率 4:5、プリセット `table`、キャラ合成トグルあり）を **その場で開く**。`/logs` へは行かない
+  - 「使う」→ `/logs/new` を開き、撮影結果（サムネ・`photoId`・アップロード進捗）を [03-log.md](03-log.md) `log-new` の N2 として渡す。写真は `photo-edit` の共有状態（`attachments.log`）が保持し、URL に `photoId` やクエリは付けない
+  - × / 撮り直しの取りやめ / OS カメラ・ピッカーのキャンセル → **何もしない**。タップ前の画面にそのまま留まる。空の `log-new` は開かない
+  - 現在地ハイライトは付けない（円は常に outset。inset になるのは押下中の M-21 だけ）。`/logs` 配下の画面はホームタブを現在地にする（[../screens.md](../screens.md) 親タブ）
+  - 再タップも毎回撮影から始める（タブ再タップの「根へ戻す」は適用しない）
+  - 写真なしで記録したいときはホームの「記録する」（[02-home.md](02-home.md) H8）から `log-new` を開く
+- タブ再タップ（通常タブのみ）: そのタブの根へ戻し、スクロールを先頭へ（`scrollTo({ top: 0, behavior: "smooth" })`。reduced motion では `auto`。M-22）
 - タブバー自体・アイコンの跳ね・バッジは動かさない
 - 作成・編集画面（`*-new` / `*-edit`）と `photo-edit` では **タブバーを隠す**
 - safe-area: `padding-bottom: env(safe-area-inset-bottom)` をタブ内側に足す
@@ -172,7 +179,8 @@
 ## 受け入れチェック（2-05 / 2-06）
 
 - [ ] タブ順がホーム / セラー / 記録（中央） / ノート / 設定
-- [ ] 中央タブが円形 primary で 12px 浮き、現在地で inset になる
+- [ ] 中央タブが円形 primary で 12px 浮き、**現在地ハイライトを持たない**（`/logs` 配下ではホームタブが現在地）
+- [ ] 中央タブのタップで記録用 `photo-edit` が開き、「使う」で写真付きの `log-new`（N2 の状態）が開く。× / OS キャンセルではタップ前の画面に留まり、空の `log-new` を開かない。再タップも撮影から
 - [ ] 作成・編集・`photo-edit` でタブバーが消え、保存バーがキーボードで隠れない
 - [ ] トーストが 5 秒、保存成功時だけ `cheer` 32px が付く
 - [ ] 空状態 = キャラ 96px + 1 行 + 主ボタン、エラーにキャラが出ない

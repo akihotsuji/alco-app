@@ -36,8 +36,9 @@
     .tab.center { height: auto; box-shadow: none; gap: 4px; margin-top: -24px; }
     .tab.center .circle { width: var(--tab-center-size); height: var(--tab-center-size); border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; box-shadow: var(--shadow-primary); }
     .tab.center .circle svg { width: 26px; height: 26px; }
-    .tab.center.on .circle { box-shadow: inset 3px 3px 6px rgba(0,0,0,0.25); }
-    .tab.center.on { color: var(--primary); }
+    /* 中央タブは着地画面を持たないため現在地（.on）状態は無い（2026-09-06 (c)） */
+    .card-head { display: flex; justify-content: space-between; align-items: center; }
+    .card-head .link { font-size: 13px; font-weight: 600; color: var(--primary); }
     .btn { width: 100%; min-height: 52px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-weight: 600; }
     .btn-primary { background: var(--primary); color: var(--primary-fg); box-shadow: var(--shadow-primary); }
     .btn-secondary { box-shadow: var(--shadow-outset-sm); }
@@ -297,7 +298,7 @@
     <div class="body">
       <p class="eyebrow">9月5日 土曜</p>
       <div class="card">
-        <div class="tiny muted">今日</div>
+        <div class="card-head"><span class="tiny muted">今日</span><span class="link">今週 ›</span></div>
         <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
           <div><div class="score">2</div><div class="tiny muted" style="margin-top:6px">杯</div></div>
           <div style="text-align:right"><div class="score">28</div><div class="tiny muted" style="margin-top:6px">g 純アルコール</div></div>
@@ -334,7 +335,7 @@
     <div class="body">
       <p class="eyebrow">9月5日 土曜</p>
       <div class="card">
-        <div class="tiny muted">今日</div>
+        <div class="card-head"><span class="tiny muted">今日</span><span class="link">今週 ›</span></div>
         <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
           <div style="display:flex;align-items:flex-end;gap:12px"><div><div class="score">0</div><div class="tiny muted" style="margin-top:6px">杯</div></div><span class="badge" style="margin-bottom:26px">休肝</span></div>
           <div style="text-align:right"><div class="score">0</div><div class="tiny muted" style="margin-top:6px">g 純アルコール</div></div>
@@ -372,7 +373,7 @@
     <div class="body">
       <p class="eyebrow">9月5日 土曜</p>
       <div class="card">
-        <div class="tiny muted">今日</div>
+        <div class="card-head"><span class="tiny muted">今日</span><span class="link">今週 ›</span></div>
         <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
           <div><div class="score">3</div><div class="tiny muted" style="margin-top:6px">杯</div></div>
           <div style="text-align:right"><div class="score">40</div><div class="tiny muted" style="margin-top:6px">g 純アルコール</div></div>
@@ -413,12 +414,7 @@
       <button class="icon-btn" style="opacity:.4"><svg><use href="#i-fwd"/></svg></button>
     </header>
     <div class="body">
-      <p class="eyebrow">2 杯 ・ 28 g</p>
-      <div class="actions" style="margin:4px 0 14px">
-        <button class="btn btn-primary">記録する</button>
-        <button class="btn-circle"><svg class="ico"><use href="#i-cam"/></svg></button>
-      </div>
-      <div class="chips" style="margin-bottom:6px"><span class="chip">赤ラベル 125ml</span><span class="chip">ハイボール 350ml</span><span class="chip" style="box-shadow:none;color:var(--primary);padding:0 6px">管理</span></div>
+      <p class="eyebrow" style="margin-bottom:14px">2 杯 ・ 28 g</p>
       <div class="row hl">
         <div class="thumb photo p-table"><svg class="glass-sil" viewBox="0 0 60 100"><use href="#i-glass-sil"/></svg></div>
         <div class="grow"><div class="ellip">サンプル赤 125ml</div><div class="sub ellip">13:05 ・ 12% ・ セラーから</div></div>
@@ -432,9 +428,9 @@
     </div>
     <div class="toast"><span class="mascot" style="width:24px;height:32px"><svg><use href="#m-cheer"/></svg></span><span>記録しました</span><span class="act">取り消す</span></div>
     <nav class="tabs">
-      <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
+      <div class="tab on"><svg><use href="#i-home"/></svg>ホーム</div>
       <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
-      <div class="tab center on"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
+      <div class="tab center"><div class="circle"><svg><use href="#i-glass"/></svg></div>記録</div>
       <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>

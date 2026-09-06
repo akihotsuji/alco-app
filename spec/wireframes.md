@@ -18,7 +18,7 @@ Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何�
 
 ## 質感モック
 
-デザインシステムの CSS 変数（[mocks/tokens.css](wireframes/mocks/tokens.css)）で描いた実装レベルの質感確認。アプリ本体は含まない。ソースは [mocks/preview.html](wireframes/mocks/preview.html)（`?s=<id>&theme=dark`）。**画像は 1-07 の設計に更新済み**（要素表と食い違えば screen-designs が正）。
+デザインシステムの CSS 変数（[mocks/tokens.css](wireframes/mocks/tokens.css)）で描いた実装レベルの質感確認。アプリ本体は含まない。ソースは [mocks/preview.html](wireframes/mocks/preview.html)（`?s=<id>&theme=dark`）。**画像は 1-07 の設計に更新済み**（要素表と食い違えば screen-designs が正）。2026-09-06 の中央タブ (c) 確定で、ホーム（今日カード右上に「今週 ›」）と日別（最上部のボタン群・チップを外し、現在地はホーム）の画像を差し替えた。
 
 | 画面 | ファイル | 設計 |
 |---|---|---|
@@ -26,7 +26,7 @@ Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何�
 | ホーム（ダーク） | [mocks/home-dark.png](wireframes/mocks/home-dark.png) | 同上 |
 | ホーム（記録 0・休肝） | [mocks/home-rest.png](wireframes/mocks/home-rest.png) | 同上 |
 | ホーム（1 タップ後トースト） | [mocks/home-toast.png](wireframes/mocks/home-toast.png) | 同上 |
-| 日別記録（消費直後） | [mocks/log-day.png](wireframes/mocks/log-day.png) | [03-log](screen-designs/03-log.md) |
+| 日別記録（保存直後。ホーム配下、一覧・合計のみ） | [mocks/log-day.png](wireframes/mocks/log-day.png) | [03-log](screen-designs/03-log.md) |
 | 記録入力（撮影前） | [mocks/log-new.png](wireframes/mocks/log-new.png) | 同上 |
 | 記録入力（撮影後） | [mocks/log-new-photo.png](wireframes/mocks/log-new-photo.png) | 同上 |
 | 写真を編集 | [mocks/photo-edit.png](wireframes/mocks/photo-edit.png) | [07-photo-capture](screen-designs/07-photo-capture.md) |

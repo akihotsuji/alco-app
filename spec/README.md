@@ -12,7 +12,7 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [02-tech-stack.md](02-tech-stack.md) | 技術選定と理由・リポジトリ構成・TypeScript/Biome・テスト・CI・ブランチ運用・Cloudflare 環境・コスト見積り | 作成済み |
 | [03-roadmap.md](03-roadmap.md) | Phase 0〜8 の開発ロードマップ | 作成済み |
 | [screens.md](screens.md) | 画面一覧・下部タブ（記録中央）・認証境界・入場経路（Phase 2-05 の正本） | 作成済み（1-01。1-07 で改訂） |
-| [screen-designs/](screen-designs/README.md) | **詳細画面設計**（全画面の要素表・状態・遷移・モック。実装はこのとおりに作る） | 承認済み（1-07。2026-09-06。中央タブの着地のみ回答待ち） |
+| [screen-designs/](screen-designs/README.md) | **詳細画面設計**（全画面の要素表・状態・遷移・モック。実装はこのとおりに作る） | 承認済み（1-07。2026-09-06。中央タブの挙動は同日 (c) 撮影開始で確定） |
 | [character.md](character.md) | キャラクター（マスコット）仕様・ポーズ・写真合成ルール。SVG は [assets/character/](assets/character/) | 承認済み（1-08。2026-09-06） |
 | [wireframes.md](wireframes.md) | 主要画面の骨格（1-02）。配置の正本は screen-designs へ移行。質感モックの一覧 | 作成済み（1-02。履歴） |
 | [design-system.md](design-system.md) | 配色・タイポグラフィ・コンポーネント方針（ニューモーフィズム、OS追従、キャラクター・陳列・写真トークン） | 作成済み（1-03。1-07/08 で追補） |
