@@ -173,6 +173,8 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 
 効果音・バイブは MVP では入れない。
 
+**提案中**: 上表を置き換えるマイクロインタラクション仕様を [motion-design.md](motion-design.md) に起案（2026-09-06。承認待ち）。承認されるまで本表が正。
+
 ---
 
 ## コンポーネント方針（shadcn）
@@ -333,6 +335,7 @@ shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`de
 
 - [screen-designs/](screen-designs/README.md)（詳細画面設計。配置の正本）
 - [character.md](character.md)
+- [motion-design.md](motion-design.md)（モーション・マイクロインタラクションの提案。承認待ち）
 - [wireframes.md](wireframes.md)（1-02 の骨格。履歴）
 - [screens.md](screens.md)
 - 手順: [roadmap/phase-01-design/03-design-system.md](../roadmap/phase-01-design/03-design-system.md)
