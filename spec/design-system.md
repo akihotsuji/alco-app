@@ -125,6 +125,7 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 | `--text-body` | 16px | 1.5 | 本文・入力・チップ |
 | `--text-title` | 20px | 1.3 | 画面タイトル |
 | `--text-score` | 40px | 1.0 | 杯数・g のみ |
+| `--text-score-sm` | 24px | 1.0 | 週/月サマリーの小スコア（3-06） |
 
 字重: 本文 400、タイトル 600、スコア 650。イタリックなし。字間は広げすぎない。
 

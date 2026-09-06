@@ -85,6 +85,30 @@ export function isoWeekDates(date: string): string[] {
   return [0, 1, 2, 3, 4, 5, 6].map((offset) => addCalendarDays(monday, offset));
 }
 
+/** ISO 週の月曜（JST 暦日）。 */
+export function isoWeekMonday(date: string): string {
+  const monday = isoWeekDates(date)[0];
+  if (!monday) {
+    throw new Error(`invalid calendar date: ${date}`);
+  }
+  return monday;
+}
+
+/** 暦月としての加減。結果は常に 1 日（月送りのアンカー用）。 */
+export function addCalendarMonths(date: string, months: number): string {
+  const parsed = requireCalendarDate(date);
+  const shifted = utcDateFromParts({
+    year: parsed.year,
+    month: parsed.month + months,
+    day: 1,
+  });
+  return formatCalendarDate({
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: 1,
+  });
+}
+
 const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
 function weekdayIndex(date: string): number {
@@ -100,6 +124,27 @@ export function formatMonthDay(date: string): string {
 /** 例: 9月5日 土曜 */
 export function formatHomeDateLabel(date: string): string {
   return `${formatMonthDay(date)} ${WEEKDAY_JA[weekdayIndex(date)]}曜`;
+}
+
+/** 例: 9/5 */
+export function formatShortMonthDay(date: string): string {
+  const parsed = requireCalendarDate(date);
+  return `${parsed.month}/${parsed.day}`;
+}
+
+/** 例: 土 */
+export function formatWeekdayShort(date: string): string {
+  const label = WEEKDAY_JA[weekdayIndex(date)];
+  if (!label) {
+    throw new Error(`invalid calendar date: ${date}`);
+  }
+  return label;
+}
+
+/** 例: 2026年8月 */
+export function formatYearMonth(date: string): string {
+  const parsed = requireCalendarDate(date);
+  return `${parsed.year}年${parsed.month}月`;
 }
 
 export const WEEKDAY_LABELS_MON_SUN = ["月", "火", "水", "木", "金", "土", "日"] as const;

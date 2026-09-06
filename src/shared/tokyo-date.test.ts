@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   addCalendarDays,
+  addCalendarMonths,
   formatHomeDateLabel,
   formatMonthDay,
+  formatShortMonthDay,
   formatTokyoTime,
+  formatWeekdayShort,
+  formatYearMonth,
   instantToTokyoLocal,
   isoWeekDates,
+  isoWeekMonday,
   parseCalendarDate,
   tokyoEveningIso,
   tokyoLocalToIso,
@@ -57,6 +62,14 @@ describe("isoWeekDates", () => {
       "2026-09-12",
       "2026-09-13",
     ]);
+    expect(isoWeekMonday("2026-09-05")).toBe("2026-08-31");
+  });
+});
+
+describe("addCalendarMonths", () => {
+  it("常に翌月・前月の1日を返す", () => {
+    expect(addCalendarMonths("2026-01-31", -1)).toBe("2025-12-01");
+    expect(addCalendarMonths("2026-08-15", 1)).toBe("2026-09-01");
   });
 });
 
@@ -64,6 +77,9 @@ describe("format labels", () => {
   it("ホームと日別の見出しを JST 暦日で出す", () => {
     expect(formatHomeDateLabel("2026-09-05")).toBe("9月5日 土曜");
     expect(formatMonthDay("2026-09-05")).toBe("9月5日");
+    expect(formatShortMonthDay("2026-09-05")).toBe("9/5");
+    expect(formatWeekdayShort("2026-09-05")).toBe("土");
+    expect(formatYearMonth("2026-08-01")).toBe("2026年8月");
   });
 
   it("不正な暦日は投げる", () => {

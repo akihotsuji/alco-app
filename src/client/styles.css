@@ -41,6 +41,7 @@
   --text-body: 16px;
   --text-title: 20px;
   --text-score: 40px;
+  --text-score-sm: 24px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -1352,7 +1353,8 @@
 
 .home-page,
 .log-day,
-.settings-page {
+.settings-page,
+.summary-page {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -1769,6 +1771,134 @@
 .log-row:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+.summary-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.summary-pager-label {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.summary-scores {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.summary-score {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.summary-score-num {
+  font-size: var(--text-score-sm);
+  font-weight: 650;
+  line-height: 1;
+  color: var(--score);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-score-unit {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.summary-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.summary-chart {
+  display: block;
+  width: 100%;
+  height: calc(var(--space-8) * 2);
+}
+
+.summary-chart rect {
+  fill: var(--score);
+  transform-box: fill-box;
+  transform-origin: bottom;
+}
+
+.summary-chart rect.is-today {
+  fill: var(--primary);
+}
+
+.summary-chart rect.is-future {
+  fill: var(--muted);
+  opacity: 0.45;
+}
+
+.summary-chart[data-enter="1"] rect {
+  animation: fill-rise var(--dur-enter) var(--ease-out) both;
+}
+
+.summary-chart-labels {
+  display: flex;
+}
+
+.summary-chart-labels span {
+  flex: 1;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summary-results,
+.summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.summary-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.summary-row {
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.summary-row-rest {
+  color: var(--rest);
+}
+
+.summary-row-future {
+  color: var(--muted);
+  opacity: 0.45;
+}
+
+.summary-row:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius);
 }
 
 .mydrink-list {

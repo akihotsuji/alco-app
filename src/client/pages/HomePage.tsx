@@ -12,7 +12,7 @@ import { Card } from "@/client/components/ui/card.tsx";
 import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
 import { useDrinkLogSummary } from "@/client/hooks/use-drink-log-summary.ts";
 import { useMyDrinks } from "@/client/hooks/use-my-drinks.ts";
-import { logFormHrefs } from "@/client/lib/app-routes.ts";
+import { logFormHrefs, summaryWeekHref } from "@/client/lib/app-routes.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import { displayAlcoholGrams } from "@/shared/alcohol.ts";
@@ -88,7 +88,7 @@ export function HomePage() {
           <div className="today-card">
             <div className="today-card-head">
               <span>今日</span>
-              <Link className="today-week-link" to={`/summary/week?date=${today}`}>
+              <Link className="today-week-link" to={summaryWeekHref(today)}>
                 今週
                 <ChevronRight size={16} aria-hidden />
               </Link>
