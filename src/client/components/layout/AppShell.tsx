@@ -16,7 +16,7 @@ export function AppShell() {
   const photoEdit = usePhotoEdit();
   const reduceMotion = useReducedMotion();
   const contentRef = useRef<HTMLDivElement>(null);
-  const route = resolveAppRoute(location.pathname);
+  const route = resolveAppRoute(location.pathname, new Date(), location.search);
   const hideTabs = hidesTabBar(location.pathname, photoEdit.open);
 
   // CSS 側の reduced motion はこの属性 1 つに集約する（motion-design 6.8）

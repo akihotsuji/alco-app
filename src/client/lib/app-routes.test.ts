@@ -77,6 +77,23 @@ describe("resolveAppRoute", () => {
       left: { kind: "back", fallback: "/logs" },
       right: { kind: "spacer" },
     });
+    // ?date= の過去日はその日の log-day へ戻る。今日・未来・不正は今日
+    expect(resolveAppRoute("/logs/new", NOW, "?date=2026-09-04&camera=1").header.left).toEqual({
+      kind: "back",
+      fallback: "/logs/2026-09-04",
+    });
+    expect(resolveAppRoute("/logs/new", NOW, "?date=2026-09-05").header.left).toEqual({
+      kind: "back",
+      fallback: "/logs",
+    });
+    expect(resolveAppRoute("/logs/new", NOW, "?date=2026-09-09").header.left).toEqual({
+      kind: "back",
+      fallback: "/logs",
+    });
+    expect(resolveAppRoute("/logs/new", NOW, "?date=2026-02-30").header.left).toEqual({
+      kind: "back",
+      fallback: "/logs",
+    });
     expect(resolveAppRoute("/cellar/b1", NOW).header.right).toEqual({
       kind: "edit",
       to: "/cellar/b1/edit",
