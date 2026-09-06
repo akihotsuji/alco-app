@@ -4,6 +4,7 @@ import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import { deleteDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { type MyDrink, useLogMyDrink } from "@/client/hooks/use-my-drinks.ts";
+import { agentDebug } from "@/client/lib/agent-debug.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { MOTION_MS, type MotionState } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
@@ -47,20 +48,56 @@ export function MyDrinkQuickList({
   );
 
   async function undo(logId: string) {
+    // #region agent log
+    agentDebug({
+      hypothesisId: "B|C",
+      location: "MyDrinkQuickList.tsx:undo:entry",
+      message: "Undo action entered",
+      data: { logId },
+      timestamp: Date.now(),
+    });
+    // #endregion
     dismissToast();
     try {
-      await deleteDrinkLog(logId);
+      const result = await deleteDrinkLog(logId);
+      // #region agent log
+      agentDebug({
+        hypothesisId: "C|D|E",
+        location: "MyDrinkQuickList.tsx:undo:delete-success",
+        message: "Delete request resolved",
+        data: { logId, ok: result.ok },
+        timestamp: Date.now(),
+      });
+      // #endregion
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs }),
         queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogSummaries }),
       ]);
       onUndone?.();
-    } catch {
+    } catch (error) {
+      // #region agent log
+      agentDebug({
+        hypothesisId: "C|E",
+        location: "MyDrinkQuickList.tsx:undo:error",
+        message: "Undo operation rejected",
+        data: { logId, errorType: error instanceof Error ? error.name : typeof error },
+        timestamp: Date.now(),
+      });
+      // #endregion
       showToast({ message: TOAST_MESSAGES.saveFailed });
     }
   }
 
   function log(item: MyDrink) {
+    // #region agent log
+    agentDebug({
+      hypothesisId: "A",
+      location: "MyDrinkQuickList.tsx:log:entry",
+      message: "Quick log handler entered",
+      data: { myDrinkId: item.id, disabled, mutationPending: mutation.isPending },
+      timestamp: Date.now(),
+    });
+    // #endregion
     if (disabled || mutation.isPending) {
       return;
     }
@@ -70,6 +107,15 @@ export function MyDrinkQuickList({
       { id: item.id, body: drunkAt ? { drunkAt } : {} },
       {
         onSuccess: (created) => {
+          // #region agent log
+          agentDebug({
+            hypothesisId: "A|C",
+            location: "MyDrinkQuickList.tsx:log:success",
+            message: "Quick log mutation succeeded",
+            data: { myDrinkId: item.id, logId: created.id },
+            timestamp: Date.now(),
+          });
+          // #endregion
           haptic("success");
           setActiveState("success");
           onLogged?.(created);
