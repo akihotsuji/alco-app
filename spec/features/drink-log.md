@@ -280,12 +280,12 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 |---|---|---|
 | `log-day` 一覧・合計 | `GET /api/drink-logs?date=&limit=&cursor=` | 3-05 |
 | `log-new` 保存 | `POST /api/drink-logs`（`photoIds`, `bottleId`, `myDrinkId`） | 3-02 |
-| `log-edit` 初期値 / 保存 / 削除 | `GET` / `PATCH` / `DELETE /api/drink-logs/:id` | 3-05 |
+| `log-edit` 初期値 / 保存 / 削除 | `GET` / `PATCH` / `DELETE /api/drink-logs/:id` | `GET` / `DELETE` は 3-02（undo と写真紐付けの確認に必要）、`PATCH` は 3-05 |
 | 写真（撮影 → 使う / 破棄） | `POST /api/photos`（未紐付け）/ `DELETE /api/photos/:id`（2-08 済み） | 3-02（呼び出しのみ） |
 | 行サムネ | `GET /api/photos/:id/content`（2-08 済み） | 3-05 |
 | マイドリンク CRUD | `GET` / `POST /api/my-drinks`、`GET` / `PATCH` / `DELETE /api/my-drinks/:id` | 3-03 |
 | 1 タップ記録 | `POST /api/my-drinks/:id/log` | 3-03 |
-| undo（トースト） | `DELETE /api/drink-logs/:id` | 3-03 / 3-02 |
+| undo（トースト） | `DELETE /api/drink-logs/:id` | 3-02（API と `log-new` 保存後のトースト）/ 3-03（1 タップ） |
 | ホーム今日カード / 週マス | `GET /api/drink-logs/summary?period=day\|week&date=` | 3-03（カード）/ 3-06（API） |
 | 週 / 月サマリー | `GET /api/drink-logs/summary?period=week\|month&date=` | 3-06 |
 | ボトルピッカー | `GET /api/bottles?view=all&q=` | Phase 4-02 |

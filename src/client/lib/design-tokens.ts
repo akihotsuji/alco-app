@@ -55,13 +55,34 @@ export const DARK_COLOR_TOKENS = {
   "--surface": "#2c2926",
   "--foreground": "#f4ede4",
   "--muted": "#c9bdb0",
-  "--primary": "#c47878",
+  // 2026-09-06 X8: #c47878 → #cc8484（地に対して 4.96、主ボタン上の文字 5.80）
+  "--primary": "#cc8484",
   "--primary-fg": "#2a1818",
   "--danger": "#e07070",
   "--danger-fg": "#2a1818",
   "--rest": "#8fcb9e",
-  "--score": "#c47878",
-  "--ring": "#c47878",
+  "--score": "#cc8484",
+  "--ring": "#cc8484",
   "--neu-light": "#3a3632",
   "--neu-dark": "#1a1816",
+  "--fill-tint-surface": "rgba(0, 0, 0, 0.25)",
+} as const;
+
+/** spec/motion-design.md 6.1 / 6.2 / 6.4b。値は styles.css の :root が正で、テストが一致を確認する。 */
+export const MOTION_TOKENS = {
+  "--ease-out": "cubic-bezier(0.2, 0, 0, 1)",
+  "--ease-in": "cubic-bezier(0.4, 0, 1, 1)",
+  "--ease-settle": "cubic-bezier(0.2, 0.9, 0.3, 1)",
+  "--ease-fill": "cubic-bezier(0.3, 0, 0.2, 1)",
+  "--dur-press": "90ms",
+  "--dur-release": "160ms",
+  "--dur-state": "200ms",
+  "--dur-enter": "240ms",
+  "--dur-open": "300ms",
+  "--dur-fill": "400ms",
+  "--dur-toast-in": "180ms",
+  "--dur-toast-out": "150ms",
+  "--dur-stagger": "80ms",
+  "--fill-tint": "rgba(255, 255, 255, 0.14)",
+  "--fill-tint-surface": "rgba(122, 53, 56, 0.14)",
 } as const;

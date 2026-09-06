@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { MASCOT_POSES } from "./Mascot.tsx";
+import { MASCOT_POSES, pourApplies } from "./Mascot.tsx";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const component = readFileSync(join(here, "Mascot.tsx"), "utf8");
@@ -31,6 +31,20 @@ describe("Mascot", () => {
   it("clipPath を useId で一意化する", () => {
     expect(component).toContain("useId()");
     expect(component).toMatch(/clipPath=\{`url\(#\$\{clipId\}\)`\}/);
+  });
+
+  it("pour は cheer のときだけ有効（M-25）", () => {
+    expect(pourApplies("cheer", true)).toBe(true);
+    expect(pourApplies("cheer", false)).toBe(false);
+    expect(pourApplies("cheer", undefined)).toBe(false);
+    for (const pose of ["default", "surprised", "rest"] as const) {
+      expect(pourApplies(pose, true)).toBe(false);
+    }
+  });
+
+  it("水面の上段は CSS clip-path（SMIL <animate> は使わない）", () => {
+    expect(component).toContain('className="mascot-pour"');
+    expect(component).not.toContain("<animate");
   });
 
   it("黒目がテーマ非依存の --mascot-ink である", () => {

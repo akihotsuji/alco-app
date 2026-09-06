@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { deletePhoto, uploadPhoto } from "@/client/hooks/use-photos.ts";
@@ -34,7 +35,12 @@ type PhotoEditValue = {
   closePhotoEdit: () => void;
   applyProcessed: (processed: ProcessedPhoto) => void;
   retryUpload: (kind: PhotoEditContextKind) => Promise<void>;
+  /** 「削除」。未紐付けの `photoId` があれば `DELETE /api/photos/:id` してローカルも消す */
   clearAttachment: (kind: PhotoEditContextKind) => Promise<void>;
+  /** 保存成功後。写真は記録に紐付いたので削除せず、フォーム側の保持だけ外す */
+  releaseAttachment: (kind: PhotoEditContextKind) => void;
+  /** 「編集」。元の画像がメモリに残っていれば再編集、無ければ撮り直し */
+  editAttachment: (kind: PhotoEditContextKind) => Promise<void>;
 };
 
 const PhotoEditContext = createContext<PhotoEditValue>({
@@ -49,6 +55,8 @@ const PhotoEditContext = createContext<PhotoEditValue>({
   applyProcessed: () => {},
   retryUpload: async () => {},
   clearAttachment: async () => {},
+  releaseAttachment: () => {},
+  editAttachment: async () => {},
 });
 
 const HISTORY_FLAG = "alcoPhotoEdit";
@@ -101,7 +109,9 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     (nextKind: PhotoEditContextKind, bitmap: ImageBitmap | null, error: string | null) => {
       setKind(nextKind);
       setSource((prev) => {
-        prev?.close();
+        if (prev && prev !== bitmap) {
+          prev.close();
+        }
         return bitmap;
       });
       setDecodeError(error);
@@ -143,8 +153,16 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     setDecodeError(decoded.error);
   }, []);
 
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
+
   const beginUpload = useCallback(
     async (targetKind: PhotoEditContextKind, processed: ProcessedPhoto) => {
+      // 再編集で置き換わる旧写真は未紐付けのまま残るので先に消す（失敗しても 24h GC）
+      const previous = attachmentsRef.current[targetKind];
+      if (previous?.photoId && previous.previewUrl !== processed.previewUrl) {
+        void deletePhoto(previous.photoId).catch(() => {});
+      }
       setAttachments((current) => {
         const previous = current[targetKind];
         if (previous && previous.previewUrl !== processed.previewUrl) {
@@ -235,6 +253,30 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     [attachments],
   );
 
+  const releaseAttachment = useCallback((targetKind: PhotoEditContextKind) => {
+    setAttachments((value) => {
+      const current = value[targetKind];
+      if (!current) {
+        return value;
+      }
+      URL.revokeObjectURL(current.previewUrl);
+      const next = { ...value };
+      delete next[targetKind];
+      return next;
+    });
+  }, []);
+
+  const editAttachment = useCallback(
+    async (targetKind: PhotoEditContextKind) => {
+      if (source && kind === targetKind) {
+        openWithSource(targetKind, source, null);
+        return;
+      }
+      await startCapture(targetKind);
+    },
+    [kind, openWithSource, source, startCapture],
+  );
+
   const value = useMemo<PhotoEditValue>(
     () => ({
       open,
@@ -248,6 +290,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       applyProcessed,
       retryUpload,
       clearAttachment,
+      releaseAttachment,
+      editAttachment,
     }),
     [
       open,
@@ -261,6 +305,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       applyProcessed,
       retryUpload,
       clearAttachment,
+      releaseAttachment,
+      editAttachment,
     ],
   );
 

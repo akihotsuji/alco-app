@@ -118,7 +118,20 @@ function logDayPath(date: string, today: string): string {
   return date === today ? "/logs" : `/logs/${date}`;
 }
 
-export function resolveAppRoute(pathname: string, now: Date = new Date()): AppRoute {
+/** `log-new?date=` の戻り先。過去日なら その日の `log-day`、それ以外（今日・未来・不正）は今日 */
+function logNewFallback(search: string, today: string): string {
+  const date = new URLSearchParams(search).get("date");
+  if (date && isValidLogDateParam(date) && date < today) {
+    return logDayPath(date, today);
+  }
+  return "/logs";
+}
+
+export function resolveAppRoute(
+  pathname: string,
+  now: Date = new Date(),
+  search: string = "",
+): AppRoute {
   const segments = splitPath(pathname);
   const today = tokyoToday(now);
 
@@ -148,7 +161,7 @@ export function resolveAppRoute(pathname: string, now: Date = new Date()): AppRo
       return found("log-day", "log", logDayHeader(today, today));
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return formRoute("log-new", "log", "記録する", "/logs");
+      return formRoute("log-new", "log", "記録する", logNewFallback(search, today));
     }
     if (segments[1] === "my-drinks") {
       if (segments.length === 2) {

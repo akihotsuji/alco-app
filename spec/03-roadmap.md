@@ -126,7 +126,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 ### タスク
 
 - [x] `spec/features/drink-log.md` 作成（画面項目・バリデーション・計算仕様。[screen-designs/03-log.md](screen-designs/03-log.md) を写す）→ [features/drink-log.md](features/drink-log.md)（2026-09-06 作成・承認）
-- [ ] 記録入力画面: 種類選択→量・度数プリセット→保存 を最短タップ数で。最上部に**写真タイル**（任意）、ボトル紐付け行、`?camera=1`。**モーション共通基盤を同梱**（[motion-design.md](motion-design.md): トークン、`Button` / `Chip` の `data-state`、水位線 M-04〜M-06、`useReducedMotion()`、`haptic.ts`、ダーク `--primary` `#CC8484`）
+- [x] 記録入力画面: 種類選択→量・度数プリセット→保存 を最短タップ数で。最上部に**写真タイル**（任意）、ボトル紐付け行（API の `bottleId` のみ。行の UI は Phase 4-02）、`?camera=1`。**モーション共通基盤を同梱**（[motion-design.md](motion-design.md): トークン、`Button` / `Chip` の `data-state`、水位線 M-04〜M-06、`useReducedMotion()`、`haptic.ts`、ダーク `--primary` `#CC8484`）→ `POST /api/drink-logs`、`GET` / `DELETE /api/drink-logs/:id`、`src/client/components/logs/`（3-02。2026-09-06）
 - [ ] マイドリンク（プリセット）の登録・1タップ記録（ホームと日別の両方。チップの水位線 M-07 / M-08、数字カウント M-09、週マス M-17、休肝ピル M-18）
 - [x] 純アルコール量計算ロジック（単体テスト必須）→ `src/shared/alcohol.ts`（3-04）
 - [ ] 日別ビュー（**中央タブの着地**）: 最上部に記録・カメラ・マイドリンク、当日の記録一覧（写真サムネ）・合計、編集・削除、`?highlight=`（行の挿入 + リング + スクロールを `useHighlightRow` に。M-14〜M-16、X1〜X3、X7）

@@ -3,8 +3,12 @@ import {
   addCalendarDays,
   formatHomeDateLabel,
   formatMonthDay,
+  formatTokyoTime,
+  instantToTokyoLocal,
   isoWeekDates,
   parseCalendarDate,
+  tokyoEveningIso,
+  tokyoLocalToIso,
   tokyoToday,
 } from "./tokyo-date.ts";
 
@@ -66,5 +70,35 @@ describe("format labels", () => {
     expect(() => isoWeekDates("new")).toThrow("invalid calendar date: new");
     expect(() => formatMonthDay("2026-09-31")).toThrow("invalid calendar date: 2026-09-31");
     expect(() => addCalendarDays("2026-13-01", 1)).toThrow("invalid calendar date: 2026-13-01");
+  });
+});
+
+describe("datetime-local と JST", () => {
+  it("datetime-local の値を常に Asia/Tokyo として UTC ISO にする", () => {
+    expect(tokyoLocalToIso("2026-09-04T20:00")).toBe("2026-09-04T11:00:00.000Z");
+    expect(tokyoLocalToIso("2026-09-05T00:00")).toBe("2026-09-04T15:00:00.000Z");
+    expect(tokyoLocalToIso("2026-09-04T23:59")).toBe("2026-09-04T14:59:00.000Z");
+    expect(tokyoLocalToIso("2026-09-04T20:00:30")).toBe("2026-09-04T11:00:00.000Z");
+  });
+
+  it("不正な datetime-local は null", () => {
+    expect(tokyoLocalToIso("2026-02-30T20:00")).toBeNull();
+    expect(tokyoLocalToIso("2026-09-04T24:00")).toBeNull();
+    expect(tokyoLocalToIso("2026-09-04T20:60")).toBeNull();
+    expect(tokyoLocalToIso("2026-09-04 20:00")).toBeNull();
+    expect(tokyoLocalToIso("")).toBeNull();
+  });
+
+  it("瞬間を JST の HH:MM / datetime-local に戻す（往復）", () => {
+    const instant = new Date("2026-09-04T14:59:00.000Z");
+    expect(formatTokyoTime(instant)).toBe("23:59");
+    expect(instantToTokyoLocal(instant)).toBe("2026-09-04T23:59");
+    expect(instantToTokyoLocal(new Date("2026-09-04T15:00:00.000Z"))).toBe("2026-09-05T00:00");
+    expect(tokyoLocalToIso(instantToTokyoLocal(instant))).toBe(instant.toISOString());
+  });
+
+  it("過去日の既定時刻は 20:00 JST", () => {
+    expect(tokyoEveningIso("2026-09-04")).toBe("2026-09-04T11:00:00.000Z");
+    expect(() => tokyoEveningIso("2026-13-01")).toThrow("invalid calendar date: 2026-13-01");
   });
 });

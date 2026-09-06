@@ -45,6 +45,7 @@ export function BottleFormPage({ mode }: { mode: "new" | "edit" }) {
       <PhotoTile
         onClick={() => void startCapture("cellar")}
         showMascot={false}
+        ratio="bottle"
         attachment={attachments.cellar}
         onRetry={() => void retryUpload("cellar")}
         onClear={() => void clearAttachment("cellar")}
