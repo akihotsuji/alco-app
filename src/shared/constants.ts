@@ -105,7 +105,8 @@ export const PHOTO_PREF_KEYS = {
 } as const;
 
 /** 棚の表示切替（04-cellar C4）。API の `view=cellar|archive|all` とは別 */
-export const CELLAR_LIST_VIEWS = ["one", "type"] as const;
+/** 画面上の並びは種類ごと → 1 本ずつ（spec/screen-designs/04-cellar.md bottle-list） */
+export const CELLAR_LIST_VIEWS = ["type", "one"] as const;
 
 export type CellarListView = (typeof CELLAR_LIST_VIEWS)[number];
 
