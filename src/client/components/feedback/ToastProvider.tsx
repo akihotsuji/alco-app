@@ -215,6 +215,23 @@ function ToastCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLButtonElement>(null);
 
+  useEffect(() => {
+    // #region agent log
+    agentDebug({
+      hypothesisId: "K|L",
+      location: "ToastProvider.tsx:ToastCard:phase-rendered",
+      message: "Toast phase rendered",
+      data: {
+        toastId: toast.id,
+        phase: toast.phase,
+        elapsedMs: Date.now() - toast.shownAt,
+        hasAction: toast.action !== undefined,
+      },
+      timestamp: Date.now(),
+    });
+    // #endregion
+  }, [toast.action, toast.id, toast.phase, toast.shownAt]);
+
   // 初回描画は enter（下 8px・不透明 0）で置き、1 フレーム描かせてから idle に戻して transition を走らせる
   useEffect(() => {
     let inner = 0;
