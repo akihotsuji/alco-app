@@ -17,15 +17,19 @@ function readJournal(): Journal {
   return JSON.parse(readFileSync(path.join(migrationsDir, "meta", "_journal.json"), "utf8"));
 }
 
+function applyMigration(db: DatabaseSync, tag: string) {
+  const sqlText = readFileSync(path.join(migrationsDir, `${tag}.sql`), "utf8");
+  for (const statement of sqlText.split("--> statement-breakpoint")) {
+    if (statement.trim() !== "") db.exec(statement);
+  }
+}
+
 /** journal の順に全マイグレーション SQL を空の SQLite に適用する（wrangler d1 migrations apply の再現） */
 function openMigratedDb(): DatabaseSync {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON;");
   for (const entry of readJournal().entries) {
-    const sqlText = readFileSync(path.join(migrationsDir, `${entry.tag}.sql`), "utf8");
-    for (const statement of sqlText.split("--> statement-breakpoint")) {
-      if (statement.trim() !== "") db.exec(statement);
-    }
+    applyMigration(db, entry.tag);
   }
   return db;
 }
@@ -111,6 +115,25 @@ describe("マイグレーション（src/db/migrations）", () => {
       .sort();
     expect(journal.entries.map((e) => e.tag).sort()).toEqual(sqlFiles);
     expect(journal.entries.map((e) => e.idx)).toEqual(journal.entries.map((_, i) => i));
+  });
+
+  it("0002 は opened を sealed に直し opened_on を落とす", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    applyMigration(db, "0000_init");
+    applyMigration(db, "0001_better_auth_account_issuer");
+    insertUser(db, "u1");
+    db.prepare(
+      "INSERT INTO bottles (id, user_id, name, drink_type, status, opened_on, created_at, updated_at) VALUES ('b1', 'u1', 'b', 'wine', 'opened', '2026-09-01', ?, ?)",
+    ).run(NOW, NOW);
+    applyMigration(db, "0002_bottles_drop_opened");
+    const row = db.prepare("SELECT status FROM bottles WHERE id = 'b1'").get() as {
+      status: string;
+    };
+    expect(row.status).toBe("sealed");
+    const cols = db.prepare("PRAGMA table_info('bottles')").all() as { name: string }[];
+    expect(cols.map((c) => c.name)).not.toContain("opened_on");
+    db.close();
   });
 
   it("Auth 4 テーブル + アプリ 6 テーブルが作成される", () => {
@@ -217,7 +240,7 @@ describe("制約の挙動", () => {
     expect(() => insertBottle(db, "bad", "u1", "Wine")).toThrow(/CHECK/);
   });
 
-  it("bottles.status は 3 値のみ許可し、デフォルトは sealed", () => {
+  it("bottles.status は 2 値のみ許可し、デフォルトは sealed", () => {
     insertBottle(db, "b1", "u1");
     const row = db.prepare("SELECT status FROM bottles WHERE id = 'b1'").get() as {
       status: string;
@@ -228,7 +251,9 @@ describe("制約の挙動", () => {
         db.prepare("UPDATE bottles SET status = ? WHERE id = 'b1'").run(status),
       ).not.toThrow();
     }
-    // 1-07 で finished は consumed に改名された
+    expect(() => db.prepare("UPDATE bottles SET status = 'opened' WHERE id = 'b1'").run()).toThrow(
+      /CHECK/,
+    );
     expect(() =>
       db.prepare("UPDATE bottles SET status = 'finished' WHERE id = 'b1'").run(),
     ).toThrow(/CHECK/);

@@ -15,8 +15,8 @@ export const DRINK_TYPES = [
 
 export type DrinkType = (typeof DRINK_TYPES)[number];
 
-/** sealed = 未開栓（棚） / opened = 開栓済み（棚） / consumed = 消費（貯蔵庫） */
-export const BOTTLE_STATUSES = ["sealed", "opened", "consumed"] as const;
+/** sealed = 未開栓（棚） / consumed = 開栓（貯蔵庫） */
+export const BOTTLE_STATUSES = ["sealed", "consumed"] as const;
 
 export type BottleStatus = (typeof BOTTLE_STATUSES)[number];
 

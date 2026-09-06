@@ -20,7 +20,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | Auth テーブル名 | ライブラリ既定（`user` / `session` / `account` / `verification`）に従う。**名前は凍結しない** | CLI 生成物を正とする |
 | アプリ主キー | **UUID v4**（`crypto.randomUUID()`）、型は `text` | Workers で利用可能。推測耐性 |
 | 日時（瞬間） | **INTEGER（Unix ミリ秒、UTC）** | 範囲検索が容易。表示・集計は Asia/Tokyo |
-| 日付のみ | **TEXT `YYYY-MM-DD`（Asia/Tokyo のカレンダー日）** | 購入日・飲んだ日・開栓日。UTC 日付に変換しない |
+| 日付のみ | **TEXT `YYYY-MM-DD`（Asia/Tokyo のカレンダー日）** | 購入日・飲んだ日・開栓日（`consumed_on`）。UTC 日付に変換しない |
 | 日次集計キー | `drink_logs.drunk_on` をサーバーが `drunk_at` から算出して保存 | D1/SQLite の TZ 関数に頼らない |
 | 純アルコール量 | **`alcohol_g` を保存**。クライアント値は信じず、サーバーが再計算 | サマリー負荷と改ざん防止。式の正は要件 1.2 / [alcohol-calculation.md](features/alcohol-calculation.md) |
 | 記録メモ上限 | 500 文字 | モバイルの短メモ |
@@ -32,7 +32,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | ノートの銘柄 | **スナップショット必須**（`drink_name` / `drink_type`）+ 任意の `bottle_id` | ボトル改名後も当時の記録を残す |
 | ボトル削除時のノート | **`bottle_id` を SET NULL**。ノートは残す | テイスティング履歴を消さない |
 | 削除方針 | アプリエンティティは **物理削除** | 個人アプリ。監査用論理削除は不要 |
-| 開栓日 | `opened_on`（日付、任意） | 4-03。無ければメモ運用になるのを避ける |
+| 開栓日 | `consumed_on`（JST 日。`consumed` のとき必須） | 2026-09-06。棚に残す開栓済みは持たないため `opened_on` は廃止 |
 | `user_id` + `id` 複合 PK | **採用しない**。PK は `id`、アクセスは必ず `id AND user_id` | FK を単純に保つ。認可は API |
 
 ### 1-07 改訂（2026-09-05。2026-09-06 承認）
@@ -42,9 +42,9 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 項目 | 決定 | 根拠 |
 |---|---|---|
 | 1 行 = 1 本 | `bottles.quantity` を **廃止**。登録時の本数 N は API が **N 行に展開**（上限 12） | 棚に N 本並ぶ。消費は常に 1 本（[04-cellar.md](screen-designs/04-cellar.md)） |
-| ボトルステータス | `sealed` / `opened` / **`consumed`**（`finished` を改名）。`consumed` = 貯蔵庫 | 「消費 → 貯蔵庫」の語彙 |
-| 消費日時 | `consumed_at`（UTC ms、任意）と `consumed_on`（JST 日、サーバー算出）。復元で両方 NULL | 貯蔵庫の月見出し・undo |
-| 記録とボトル | `drink_logs.bottle_id`（任意、SET NULL）。消費で自動、`log-new` の「ボトル」行で手動。`drink_name` にボトル名をスナップショット | 何を飲んだかを残す |
+| ボトルステータス | `sealed` / **`consumed`**（`finished` を改名。`opened` は 2026-09-06 に廃止）。`consumed` = 貯蔵庫（開栓後） | 棚に残す開栓済みは不要 |
+| 開栓日時 | `consumed_at`（UTC ms）と `consumed_on`（JST 日、サーバー算出）。「開栓する」でセット。復元で両方 NULL | 貯蔵庫の月見出し・undo |
+| 記録とボトル | `drink_logs.bottle_id`（任意、SET NULL）。`log-new` の「ボトル」行で手動。`drink_name` にボトル名をスナップショット。開栓では記録を作らない | 何を飲んだかを残す |
 | 記録の写真 | `photos.drink_log_id`（任意、CASCADE）。1 記録につき **1 枚** | 写真を撮って記録する UX |
 | 写真の所有者 | `bottle_id` / `tasting_note_id` / `drink_log_id` は **最大 1 つ**（CHECK）。3 つとも NULL は未紐付け | 排他を 3 way に拡張 |
 | 未紐付け写真 | 作成 24 時間で GC（Cron Trigger 日次）。R2 と D1 の両方を消す | 「使う」直後にアップロードするため放棄分が出る |
@@ -177,7 +177,6 @@ erDiagram
         text storage
         text memo
         text status
-        text opened_on
         integer consumed_at
         text consumed_on
         integer created_at
@@ -269,10 +268,9 @@ erDiagram
 | DB 値 | 表示 | 画面 | 初期値 |
 |---|---|---|---|
 | `sealed` | 未開栓 | 棚 | 新規登録のデフォルト |
-| `opened` | 開栓済み | 棚 | 「開栓する」で `opened_on` = 今日 |
-| `consumed` | 消費（貯蔵庫） | 貯蔵庫 | 「消費する」で `consumed_at` = 今、`consumed_on` = その JST 日 |
+| `consumed` | 開栓（貯蔵庫） | 貯蔵庫 | 「開栓する」で `consumed_at` = 今、`consumed_on` = その JST 日 |
 
-遷移: `sealed → opened`（開栓）、`sealed | opened → consumed`（消費）、`consumed → sealed | opened`（復元。`opened_on` があれば `opened`、無ければ `sealed`。`consumed_at` / `consumed_on` は NULL に戻す）。`opened → sealed` の戻しは編集画面から不可（誤操作は削除して再登録）。DB は 3 値のみ許可する。詳細は [screen-designs/04-cellar.md](screen-designs/04-cellar.md)。
+遷移: `sealed → consumed`（開栓）、`consumed → sealed`（復元。`consumed_at` / `consumed_on` は NULL に戻す）。DB は 2 値のみ許可する。詳細は [screen-designs/04-cellar.md](screen-designs/04-cellar.md)。
 
 ### 5.5 評価（rating_x10）
 
@@ -328,13 +326,13 @@ erDiagram
 | alcoholG | alcohol_g | real | NO | 小数第 2 位 | サーバー再計算 |
 | memo | memo | text | YES | ≦500 | 任意メモ |
 | myDrinkId | my_drink_id | text | YES | FK → my_drinks.id SET NULL | 参照は任意。値の正はスナップショット列 |
-| bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携（1-07）。消費で自動、`log-new` で手動。他人の id は 404 |
+| bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携（1-07）。`log-new` で手動。他人の id は 404 |
 | createdAt | created_at | integer | NO | | UTC ms |
 | updatedAt | updated_at | integer | NO | | UTC ms |
 
 **スナップショット:** 1 タップ記録時、サーバーが `my_drinks` を読み、`drink_type` / `volume_ml` / `abv_percent` / `drink_name` をコピーして `alcohol_g` を計算する。クライアントが量を上書きして 1 タップ API に混ぜることはしない（3-03）。
 
-**ボトル紐付け（1-07）:** `bottle_id` を付けるとき、サーバーは自ユーザーのボトルを読み `drink_name` にボトル名、`drink_type` にボトルの種類をコピーする（量・度数はリクエストが正。消費ダイアログは種類デフォルトを初期値にする）。ボトル削除後も `drink_name` は残る。写真は `photos.drink_log_id` で 1 枚。
+**ボトル紐付け（1-07）:** `bottle_id` を付けるとき、サーバーは自ユーザーのボトルを読み `drink_name` にボトル名、`drink_type` にボトルの種類をコピーする（量・度数はリクエストが正）。ボトル削除後も `drink_name` は残る。写真は `photos.drink_log_id` で 1 枚。開栓 API は記録を作らない（2026-09-06）。
 
 ### 6.2 my_drinks
 
@@ -372,10 +370,9 @@ erDiagram
 | shop | shop | text | YES | ≦100 | 購入場所 |
 | storage | storage | text | YES | ≦100 | 保管場所 |
 | memo | memo | text | YES | ≦2000 | メモ |
-| status | status | text | NO | CHECK enum, default `sealed` | 未開栓 / 開栓済み / 消費（貯蔵庫） |
-| openedOn | opened_on | text | YES | `YYYY-MM-DD` | 開栓日（JST）。「開栓する」で今日 |
-| consumedAt | consumed_at | integer | YES | | 消費日時（UTC ms）。`consumed` のとき必須、それ以外 NULL |
-| consumedOn | consumed_on | text | YES | `YYYY-MM-DD` | 消費日（JST）。`consumed_at` からサーバー算出。貯蔵庫の月見出し |
+| status | status | text | NO | CHECK enum, default `sealed` | 未開栓（棚） / 開栓（貯蔵庫） |
+| consumedAt | consumed_at | integer | YES | | 開栓日時（UTC ms）。`consumed` のとき必須、それ以外 NULL |
+| consumedOn | consumed_on | text | YES | `YYYY-MM-DD` | 開栓日（JST）。`consumed_at` からサーバー算出。貯蔵庫の月見出し |
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
 
@@ -557,7 +554,7 @@ const drinkTypeEnum = [
   "other",
 ] as const;
 
-const bottleStatusEnum = ["sealed", "opened", "consumed"] as const;
+const bottleStatusEnum = ["sealed", "consumed"] as const;
 
 export const myDrinks = sqliteTable(
   "my_drinks",
@@ -624,7 +621,6 @@ export const bottles = sqliteTable(
     storage: text("storage"),
     memo: text("memo"),
     status: text("status", { enum: bottleStatusEnum }).notNull().default("sealed"),
-    openedOn: text("opened_on"),
     consumedAt: integer("consumed_at", { mode: "timestamp_ms" }),
     consumedOn: text("consumed_on"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
@@ -711,7 +707,7 @@ CHECK の書き方（マイグレーション SQL）:
 
 ```sql
 CHECK (drink_type IN ('wine','beer','whisky','sake','shochu','cocktail','other'))
-CHECK (status IN ('sealed','opened','consumed'))
+CHECK (status IN ('sealed','consumed'))
 CHECK ((bottle_id IS NOT NULL) + (tasting_note_id IS NOT NULL) + (drink_log_id IS NOT NULL) <= 1)
 CHECK (kind IN ('photo','cutout'))
 ```
@@ -755,7 +751,7 @@ Drizzle の `enum` オプションは TS 上の制約のみ。CHECK は `drizzle
 - 目標設定（週あたり純アルコール上限、休肝日目標）
 - 飲み頃メモ・アラート、在庫金額サマリー
 - 種類別テイスティングテンプレート
-- ノートと飲酒記録の同時作成（**消費 → 記録** は 1-07 で MVP に入った）
+- ノートと飲酒記録の同時作成。開栓 → 記録も作らない（2026-09-06）
 - 切り抜き（`kind = cutout`）と長方形の両方を同時に持つこと。MVP はどちらか 1 枚
 - CSV エクスポート用の追加テーブル
 
@@ -765,7 +761,7 @@ Drizzle の `enum` オプションは TS 上の制約のみ。CHECK は `drizzle
 
 - [x] `spec/data-model.md` を作成（1-04 承認済み）
 - [x] 全アプリテーブルに `user_id`。Auth テーブルはライブラリ管理と明記
-- [x] enum が要件の 7 種類・ボトルステータス 3 種と一致
+- [x] enum が要件の 7 種類・ボトルステータス 2 種（`sealed` / `consumed`）と一致
 - [x] 写真の所有者が `user_id` で辿れる
 - [x] `database` ルール（`.cursor/rules/database.mdc`）を同梱
 - [x] 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id` / `photos.kind` / `ai_usage`）のオーナー承認（2026-09-06）

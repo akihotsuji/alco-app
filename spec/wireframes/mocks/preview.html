@@ -430,7 +430,7 @@
         <div class="meta">19.6 g</div>
       </div>
     </div>
-    <div class="toast"><span class="mascot" style="width:24px;height:32px"><svg><use href="#m-cheer"/></svg></span><span>貯蔵庫へ移しました</span><span class="act">取り消す</span></div>
+    <div class="toast"><span class="mascot" style="width:24px;height:32px"><svg><use href="#m-cheer"/></svg></span><span>記録しました</span><span class="act">取り消す</span></div>
     <nav class="tabs">
       <div class="tab"><svg><use href="#i-home"/></svg>ホーム</div>
       <div class="tab"><svg><use href="#i-cellar"/></svg>セラー</div>
@@ -511,7 +511,7 @@
   <section class="screen" id="cellar-shelf">
     <header class="header"><button class="icon-btn"><svg><use href="#i-archive"/></svg></button><h1>セラー<small>12 本</small></h1><button class="icon-btn"><svg><use href="#i-plus"/></svg></button></header>
     <div class="body">
-      <div class="chips"><span class="seg2"><span>種類ごと</span><span class="on">1 本ずつ</span></span><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">種類 ▾</span><span class="chip">未開栓</span></div>
+      <div class="chips"><span class="seg2"><span>種類ごと</span><span class="on">1 本ずつ</span></span><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">種類 ▾</span></div>
       <div class="shelf">
         <div class="rowb">
           <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-wine"/></svg></div>
@@ -519,7 +519,7 @@
           <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-white"/></svg></div>
         </div>
         <div class="rail"></div>
-        <div class="caps"><div><div class="n">サンプル赤</div><div class="s">2020</div></div><div><div class="n">サンプルモルト</div><div class="s"><span class="pill">開栓</span></div></div><div><div class="n">サンプル白</div><div class="s">NV</div></div></div>
+        <div class="caps"><div><div class="n">サンプル赤</div><div class="s">2020</div></div><div><div class="n">サンプルモルト</div><div class="s">NV</div></div><div><div class="n">サンプル白</div><div class="s">NV</div></div></div>
         <div class="rowb" style="margin-top:22px">
           <div class="cut"><svg viewBox="0 0 60 150"><use href="#b-sake"/></svg></div>
           <div class="cut empty"><svg viewBox="0 0 60 120"><use href="#i-bottle-sil"/></svg></div>
@@ -547,7 +547,7 @@
   <section class="screen" id="cellar-by-type">
     <header class="header"><button class="icon-btn"><svg><use href="#i-archive"/></svg></button><h1>セラー<small>12 本</small></h1><button class="icon-btn"><svg><use href="#i-plus"/></svg></button></header>
     <div class="body">
-      <div class="chips"><span class="seg2"><span class="on">種類ごと</span><span>1 本ずつ</span></span><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span><span class="chip">未開栓</span></div>
+      <div class="chips"><span class="seg2"><span class="on">種類ごと</span><span>1 本ずつ</span></span><span class="chip" style="padding:0 12px"><svg class="ico" style="margin:0"><use href="#i-search"/></svg></span></div>
       <div class="shelf" style="margin-top:34px">
         <div class="ghost">ワイン<small>6 本</small></div>
         <div class="rowb h">
@@ -675,9 +675,12 @@
         <div class="rail"></div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin:16px 0 16px"><span class="pill">未開栓</span><span class="tiny muted">ワイン ・ 2020 ・ フランス</span></div>
-      <button class="btn btn-primary">消費する</button>
-      <div class="actions" style="margin-top:14px"><button class="btn btn-secondary" style="min-height:44px">開栓する</button><button class="btn btn-secondary" style="min-height:44px">1 杯を記録</button></div>
+      <button class="btn btn-primary">開栓する</button>
       <div style="margin-top:8px">
+        <div class="prop"><span class="muted">銘柄名</span><span style="font-weight:600">サンプル赤</span></div>
+        <div class="prop"><span class="muted">種類</span><span style="font-weight:600">ワイン</span></div>
+        <div class="prop"><span class="muted">年</span><span style="font-weight:600">2020</span></div>
+        <div class="prop"><span class="muted">産地</span><span style="font-weight:600">フランス</span></div>
         <div class="prop"><span class="muted">生産者</span><span style="font-weight:600">サンプル生産者</span></div>
         <div class="prop"><span class="muted">購入日</span><span style="font-weight:600">2026-06-01</span></div>
         <div class="prop"><span class="muted">価格</span><span style="font-weight:600">¥3,800</span></div>
@@ -692,29 +695,6 @@
       <div class="tab"><svg><use href="#i-note"/></svg>ノート</div>
       <div class="tab"><svg><use href="#i-set"/></svg>設定</div>
     </nav>
-  </section>
-
-  <section class="screen" id="cellar-consume">
-    <header class="header"><button class="icon-btn"><svg><use href="#i-back"/></svg></button><h1>サンプル赤</h1><div class="tiny" style="width:40px;text-align:right;color:var(--primary);font-weight:600">編集</div></header>
-    <div class="body">
-      <div class="shelf" style="margin-top:4px">
-        <div style="display:flex;justify-content:center;position:relative;z-index:1"><svg viewBox="0 0 60 150" style="width:96px;height:240px"><use href="#b-wine"/></svg></div>
-        <div class="rail"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;margin:16px 0 16px"><span class="pill">未開栓</span><span class="tiny muted">ワイン ・ 2020 ・ フランス</span></div>
-      <button class="btn btn-primary">消費する</button>
-    </div>
-    <div class="scrim">
-      <div class="dialog">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><svg viewBox="0 0 60 150" style="width:24px;height:60px"><use href="#b-wine"/></svg><div><div style="font-weight:600">サンプル赤</div><div class="tiny muted">2020 ・ フランス</div></div></div>
-        <h2>消費して貯蔵庫へ移します</h2>
-        <div class="check"><span class="box"><svg class="ico"><use href="#i-check"/></svg></span>今日の記録に 1 杯を追加</div>
-        <div class="chips" style="margin-left:32px"><span class="chip on" style="min-height:36px">125</span><span class="chip" style="min-height:36px">150</span><span class="chip" style="min-height:36px">375</span><span class="chip" style="min-height:36px">750</span></div>
-        <div style="display:flex;gap:16px;margin:0 0 12px 32px;align-items:center"><span class="tiny muted">度数</span><span style="font-weight:650;font-size:20px">12 %</span><span class="tiny muted" style="margin-left:auto">日時 いま ›</span></div>
-        <button class="btn btn-primary">記録して貯蔵庫へ</button>
-        <div class="center tiny" style="margin-top:14px;font-weight:600">キャンセル</div>
-      </div>
-    </div>
   </section>
 
   <!-- ============ NOTES ============ -->
