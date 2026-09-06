@@ -76,7 +76,7 @@ alcohol_g = volume_ml * abv_percent / 100 * 0.8
 
 - [x] 単体テストが境界値を含む
 - [x] クライアントとサーバーが同じ関数を import
-- [ ] CI グリーン
+- [x] CI グリーン
 - [x] 式が spec と一致
 
 ## 9. セキュリティ観点
