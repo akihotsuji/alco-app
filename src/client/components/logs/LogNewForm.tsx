@@ -8,6 +8,7 @@ import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
+import { BottlePickerRow, usePrefillBottle } from "@/client/components/logs/BottlePickerRow.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
@@ -17,7 +18,9 @@ import { haptic } from "@/client/lib/haptic.ts";
 import { drinkLogUndoState, isPhotoHandoff } from "@/client/lib/history-state.ts";
 import {
   applyDrinkType,
+  applySelectedBottle,
   canSubmitLogForm,
+  clearSelectedBottle,
   describeSaveFailure,
   formatGrams,
   initialLogFormState,
@@ -29,6 +32,7 @@ import {
   toCreateDrinkLogBody,
   validateLogForm,
 } from "@/client/lib/log-form.ts";
+import { DRINK_LOG_MESSAGES } from "@/shared/drink-logs.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 
 const DISCARD_TITLE = "入力を破棄しますか";
@@ -37,7 +41,7 @@ const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真�
 
 /**
  * `log-new`（spec/screen-designs/03-log.md）。種類 → 保存の 2 タップを守り、写真・メモは任意の上乗せ。
- * ボトル行（N8）は Phase 4-02 まで非表示（spec/features/drink-log.md 3.2 / 9 章）。
+ * ボトル行（N8）は 4-02 で有効（spec/features/drink-log.md 3.8）。
  */
 export function LogNewForm() {
   const navigate = useNavigate();
@@ -55,6 +59,7 @@ export function LogNewForm() {
   const [now] = useState(() => new Date());
   const [initial] = useState(() => initialLogFormState(searchParams.get("date"), now));
   const [state, setState] = useState(initial);
+  const queryBottleId = searchParams.get("bottleId");
   const [formError, setFormError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<LogFormErrors>({});
   const [saveState, setSaveState] = useState<MotionState>("idle");
@@ -95,6 +100,17 @@ export function LogNewForm() {
     return () => setGuard(null);
   }, [dirty, setGuard]);
 
+  usePrefillBottle(
+    queryBottleId,
+    (bottle) => {
+      if (!bottle) {
+        return;
+      }
+      setState((current) => applySelectedBottle(current, bottle));
+    },
+    () => setServerErrors({ bottleId: DRINK_LOG_MESSAGES.bottleNotFound }),
+  );
+
   function update(patch: Partial<typeof state>) {
     setState((current) => ({ ...current, ...patch }));
     setServerErrors({});
@@ -122,12 +138,18 @@ export function LogNewForm() {
         });
       },
       onError: (error) => {
-        const failure = describeSaveFailure(error, navigator.onLine);
+        const failure = describeSaveFailure(error, navigator.onLine, {
+          hasPhoto: Boolean(attachment?.photoId),
+          hasBottle: Boolean(state.bottleId),
+        });
         setSaveState("error");
         setFormError(failure.formMessage);
         setServerErrors(failure.fieldErrors);
         if (failure.dropPhoto) {
           releaseAttachment("log");
+        }
+        if (failure.dropBottle) {
+          setState((current) => clearSelectedBottle(current));
         }
       },
     });
@@ -196,6 +218,16 @@ export function LogNewForm() {
         now={now}
         error={errors.drunkAt}
         onChange={(drunkAt) => update({ drunkAt })}
+      />
+      <BottlePickerRow
+        bottleId={state.bottleId}
+        bottleName={state.bottleName}
+        error={errors.bottleId}
+        onSelect={(bottle) => {
+          setState((current) => (bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current)));
+          setServerErrors({});
+          setFormError(null);
+        }}
       />
       <MemoField value={state.memo} error={errors.memo} onChange={(memo) => update({ memo })} />
       <SaveBar

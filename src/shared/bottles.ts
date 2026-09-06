@@ -1,0 +1,251 @@
+import { z } from "zod";
+import { BOTTLE_STATUSES, DRINK_TYPES, type DrinkType, PHOTO_KINDS } from "./constants.ts";
+import { drinkTypeSchema } from "./drink-logs.ts";
+import { photoMetaSchema } from "./photos.ts";
+import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
+
+/**
+ * ボトルの入力スキーマ。クライアントとサーバーで同じものを使う。
+ * 規則とエラー文の正本: spec/features/cellar.md 4 章
+ */
+
+export const BOTTLE_NAME_MAX_LENGTH = 100;
+export const BOTTLE_TEXT_MAX_LENGTH = 100;
+export const BOTTLE_MEMO_MAX_LENGTH = 2000;
+export const BOTTLE_COUNT_MIN = 1;
+export const BOTTLE_COUNT_MAX = 12;
+export const BOTTLE_VINTAGE_MIN = 1800;
+export const BOTTLE_VINTAGE_MAX = 2100;
+export const BOTTLE_PHOTO_MAX = 1;
+export const BOTTLE_SEARCH_MAX_LENGTH = 100;
+
+export const BOTTLE_VIEWS = ["cellar", "archive", "all"] as const;
+export type BottleView = (typeof BOTTLE_VIEWS)[number];
+
+export const BOTTLE_MESSAGES = {
+  name: `1文字以上${BOTTLE_NAME_MAX_LENGTH}文字以内で入力してください`,
+  drinkType: "種類を選んでください",
+  text: `${BOTTLE_TEXT_MAX_LENGTH}文字以内で入力してください`,
+  vintage: `${BOTTLE_VINTAGE_MIN}以上${BOTTLE_VINTAGE_MAX}以下の年を入力してください`,
+  purchasedOn: "日付の形式が正しくありません",
+  purchasedOnFuture: "未来の日付は指定できません",
+  priceJpy: "0以上の整数で入力してください",
+  memo: `${BOTTLE_MEMO_MAX_LENGTH}文字以内で入力してください`,
+  count: `${BOTTLE_COUNT_MIN}以上${BOTTLE_COUNT_MAX}以下で入力してください`,
+  photoIdsMax: `写真は${BOTTLE_PHOTO_MAX}枚まで添付できます`,
+  photoNotFound: "写真をもう一度撮ってください",
+  patchEmpty: "変更する項目を指定してください",
+  view: "一覧の種類が正しくありません",
+  q: `${BOTTLE_SEARCH_MAX_LENGTH}文字以内で入力してください`,
+  limit: "件数は1以上100以下で指定してください",
+  cursor: "ページ情報が正しくありません",
+} as const;
+
+const referenceId = z.string().uuid();
+
+export function escapeLike(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+}
+
+export function isPurchasedOnAllowed(value: string, now: Date = new Date()): boolean {
+  return parseCalendarDate(value) !== null && value <= tokyoToday(now);
+}
+
+export const bottleNameSchema = z
+  .string({ error: BOTTLE_MESSAGES.name })
+  .trim()
+  .min(1, { error: BOTTLE_MESSAGES.name })
+  .max(BOTTLE_NAME_MAX_LENGTH, { error: BOTTLE_MESSAGES.name });
+
+export const bottleTextSchema = z
+  .string({ error: BOTTLE_MESSAGES.text })
+  .max(BOTTLE_TEXT_MAX_LENGTH, { error: BOTTLE_MESSAGES.text });
+
+export const bottleMemoSchema = z
+  .string({ error: BOTTLE_MESSAGES.memo })
+  .max(BOTTLE_MEMO_MAX_LENGTH, { error: BOTTLE_MESSAGES.memo });
+
+export const vintageSchema = z
+  .number({ error: BOTTLE_MESSAGES.vintage })
+  .int({ error: BOTTLE_MESSAGES.vintage })
+  .min(BOTTLE_VINTAGE_MIN, { error: BOTTLE_MESSAGES.vintage })
+  .max(BOTTLE_VINTAGE_MAX, { error: BOTTLE_MESSAGES.vintage });
+
+export const purchasedOnSchema = z
+  .string({ error: BOTTLE_MESSAGES.purchasedOn })
+  .refine((value) => parseCalendarDate(value) !== null, { error: BOTTLE_MESSAGES.purchasedOn })
+  .refine((value) => isPurchasedOnAllowed(value), { error: BOTTLE_MESSAGES.purchasedOnFuture });
+
+export const priceJpySchema = z
+  .number({ error: BOTTLE_MESSAGES.priceJpy })
+  .int({ error: BOTTLE_MESSAGES.priceJpy })
+  .min(0, { error: BOTTLE_MESSAGES.priceJpy });
+
+export const bottleCountSchema = z
+  .number({ error: BOTTLE_MESSAGES.count })
+  .int({ error: BOTTLE_MESSAGES.count })
+  .min(BOTTLE_COUNT_MIN, { error: BOTTLE_MESSAGES.count })
+  .max(BOTTLE_COUNT_MAX, { error: BOTTLE_MESSAGES.count });
+
+const bottleFields = {
+  name: bottleNameSchema,
+  drinkType: drinkTypeSchema,
+  producer: bottleTextSchema.nullable().optional(),
+  origin: bottleTextSchema.nullable().optional(),
+  vintage: vintageSchema.nullable().optional(),
+  purchasedOn: purchasedOnSchema.nullable().optional(),
+  priceJpy: priceJpySchema.nullable().optional(),
+  shop: bottleTextSchema.nullable().optional(),
+  storage: bottleTextSchema.nullable().optional(),
+  memo: bottleMemoSchema.nullable().optional(),
+  photoIds: z
+    .array(referenceId)
+    .max(BOTTLE_PHOTO_MAX, { error: BOTTLE_MESSAGES.photoIdsMax })
+    .optional(),
+};
+
+export const createBottleSchema = z
+  .object({
+    ...bottleFields,
+    count: bottleCountSchema.optional(),
+  })
+  .strict();
+
+export type CreateBottleInput = z.infer<typeof createBottleSchema>;
+
+export const updateBottleSchema = z
+  .object({
+    name: bottleFields.name.optional(),
+    drinkType: bottleFields.drinkType.optional(),
+    producer: bottleFields.producer,
+    origin: bottleFields.origin,
+    vintage: bottleFields.vintage,
+    purchasedOn: bottleFields.purchasedOn,
+    priceJpy: bottleFields.priceJpy,
+    shop: bottleFields.shop,
+    storage: bottleFields.storage,
+    memo: bottleFields.memo,
+    photoIds: bottleFields.photoIds,
+  })
+  .strict()
+  .refine((body) => Object.keys(body).length > 0, { error: BOTTLE_MESSAGES.patchEmpty });
+
+export type UpdateBottleInput = z.infer<typeof updateBottleSchema>;
+
+export const bottlesQuerySchema = z
+  .object({
+    view: z.enum(BOTTLE_VIEWS, { error: BOTTLE_MESSAGES.view }).default("cellar"),
+    q: z
+      .string({ error: BOTTLE_MESSAGES.q })
+      .max(BOTTLE_SEARCH_MAX_LENGTH, { error: BOTTLE_MESSAGES.q })
+      .optional(),
+    drinkType: drinkTypeSchema.optional(),
+    limit: z.coerce
+      .number({ error: BOTTLE_MESSAGES.limit })
+      .int({ error: BOTTLE_MESSAGES.limit })
+      .min(1, { error: BOTTLE_MESSAGES.limit })
+      .max(100, { error: BOTTLE_MESSAGES.limit })
+      .default(50),
+    cursor: z
+      .string({ error: BOTTLE_MESSAGES.cursor })
+      .min(1, { error: BOTTLE_MESSAGES.cursor })
+      .max(256, { error: BOTTLE_MESSAGES.cursor })
+      .optional(),
+  })
+  .strict();
+
+export type BottlesQuery = z.infer<typeof bottlesQuerySchema>;
+
+export const bottleIdParamSchema = z
+  .object({
+    id: z.string().uuid(),
+  })
+  .strict();
+
+export const bottleStatusSchema = z.enum(BOTTLE_STATUSES);
+
+export const bottleItemSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    drinkType: drinkTypeSchema,
+    producer: z.string().nullable(),
+    origin: z.string().nullable(),
+    vintage: z.number().int().nullable(),
+    purchasedOn: z.string().nullable(),
+    priceJpy: z.number().int().nullable(),
+    shop: z.string().nullable(),
+    storage: z.string().nullable(),
+    memo: z.string().nullable(),
+    status: bottleStatusSchema,
+    consumedAt: z.string().nullable(),
+    consumedOn: z.string().nullable(),
+    thumbPhotoId: z.string().nullable(),
+    thumbPhotoKind: z.enum(PHOTO_KINDS).nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  })
+  .strict();
+
+export type BottleItem = z.infer<typeof bottleItemSchema>;
+
+export const bottleSchema = bottleItemSchema.extend({
+  photos: z.array(photoMetaSchema),
+});
+
+export type Bottle = z.infer<typeof bottleSchema>;
+
+const countsByTypeShape = Object.fromEntries(
+  DRINK_TYPES.map((type) => [type, z.number().int().min(0)]),
+) as Record<DrinkType, z.ZodNumber>;
+
+export const countsByTypeSchema = z.object(countsByTypeShape).strict();
+export type CountsByType = z.infer<typeof countsByTypeSchema>;
+
+export const bottlesResponseSchema = z
+  .object({
+    items: z.array(bottleItemSchema),
+    nextCursor: z.string().nullable(),
+    totalCount: z.number().int().min(0),
+    countsByType: countsByTypeSchema,
+  })
+  .strict();
+
+export type BottlesResponse = z.infer<typeof bottlesResponseSchema>;
+
+export const createBottlesResponseSchema = z
+  .object({
+    items: z.array(bottleSchema),
+  })
+  .strict();
+
+export type CreateBottlesResponse = z.infer<typeof createBottlesResponseSchema>;
+
+export function emptyCountsByType(): CountsByType {
+  return {
+    wine: 0,
+    beer: 0,
+    whisky: 0,
+    sake: 0,
+    shochu: 0,
+    cocktail: 0,
+    other: 0,
+  };
+}
+
+/** 前後空白を除いて空なら null（cellar.md 4.1） */
+export function normalizeOptionalText(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+export function formatBottleCount(count: number): string {
+  return `${count} 本`;
+}
+
+export function arrangedToastMessage(count: number): string {
+  return count >= 2 ? `棚に ${count} 本並べました` : "棚に並べました";
+}

@@ -372,6 +372,26 @@ describe("GET /api/drink-logs", () => {
     expect((await getLogs(ctx.app, a.cookie, "from=2026-08-01&to=2026-09-04")).status).toBe(400);
     expect((await getLogs(ctx.app, a.cookie, "date=2026-09-04&cursor=broken")).status).toBe(400);
   });
+
+  it("bottleId は自分のボトルの記録だけ。他人の id は 404", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    await seedBottle(ctx, OWN_BOTTLE, a.userId, "自分の赤");
+    await seedBottle(ctx, OTHER_BOTTLE, b.userId, "他人の赤");
+    await postLog(ctx.app, a.cookie, { ...BASE, bottleId: OWN_BOTTLE, drunkAt: "2026-09-04T10:00:00.000Z" });
+    await postLog(ctx.app, a.cookie, { ...BASE, drunkAt: "2026-09-04T11:00:00.000Z" });
+
+    const own = drinkLogsResponseSchema.parse(
+      await (await getLogs(ctx.app, a.cookie, `bottleId=${OWN_BOTTLE}&limit=3`)).json(),
+    );
+    expect(own.items).toHaveLength(1);
+    expect(own.items[0]?.bottleId).toBe(OWN_BOTTLE);
+    expect(own.totalCount).toBe(1);
+
+    expect((await getLogs(ctx.app, a.cookie, `bottleId=${OTHER_BOTTLE}`)).status).toBe(404);
+    expect((await getLogs(ctx.app, b.cookie, `bottleId=${OWN_BOTTLE}`)).status).toBe(404);
+  });
 });
 
 describe("PATCH /api/drink-logs/:id", () => {

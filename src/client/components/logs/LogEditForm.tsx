@@ -12,6 +12,7 @@ import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
+import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import {
@@ -24,7 +25,9 @@ import { isApiClientError } from "@/client/lib/api.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import {
+  applySelectedBottle,
   canSubmitLogForm,
+  clearSelectedBottle,
   describeSaveFailure,
   formatGrams,
   isLogFormDirty,
@@ -129,12 +132,18 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           showToast({ message: TOAST_MESSAGES.saved });
         },
         onError: (error) => {
-          const failure = describeSaveFailure(error, navigator.onLine);
+          const failure = describeSaveFailure(error, navigator.onLine, {
+            hasPhoto: Boolean(attachment?.photoId),
+            hasBottle: Boolean(state.bottleId),
+          });
           setSaveState("error");
           setFormError(failure.formMessage);
           setServerErrors(failure.fieldErrors);
           if (failure.dropPhoto) {
             releaseAttachment("log");
+          }
+          if (failure.dropBottle) {
+            setState((current) => clearSelectedBottle(current));
           }
         },
       },
@@ -244,6 +253,16 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         now={new Date()}
         error={errors.drunkAt}
         onChange={(drunkAt) => update({ drunkAt })}
+      />
+      <BottlePickerRow
+        bottleId={state.bottleId}
+        bottleName={state.bottleName}
+        error={errors.bottleId}
+        onSelect={(bottle) => {
+          setState((current) => (bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current)));
+          setServerErrors({});
+          setFormError(null);
+        }}
       />
       <MemoField value={state.memo} error={errors.memo} onChange={(memo) => update({ memo })} />
       <SaveBar

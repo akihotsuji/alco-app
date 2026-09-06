@@ -74,6 +74,22 @@ export function useDrinkLogsDay(date: string) {
   });
 }
 
+export function getDrinkLogsByBottle(bottleId: string, client: ApiClient = api) {
+  return unwrap(
+    client.api["drink-logs"].$get({
+      query: { bottleId, limit: "3" },
+    }),
+  );
+}
+
+export function useDrinkLogsByBottle(bottleId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.drinkLogsByBottle(bottleId ?? ""),
+    queryFn: () => getDrinkLogsByBottle(bottleId ?? ""),
+    enabled: Boolean(bottleId),
+  });
+}
+
 export function useDrinkLog(id: string | undefined) {
   return useQuery({
     queryKey: queryKeys.drinkLog(id ?? ""),
