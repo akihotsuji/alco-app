@@ -158,7 +158,7 @@ export function resolveAppRoute(
         "home",
         backHeader(weekSummaryTitle(date, today), "/", {
           kind: "text",
-          to: summaryMonthHref(date),
+          to: summaryMonthHref(today),
           label: WEEK_TO_MONTH_LABEL,
         }),
       );

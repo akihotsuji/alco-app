@@ -51,6 +51,11 @@ describe("resolveAppRoute", () => {
 
     const pastWeek = resolveAppRoute("/summary/week", NOW, "?date=2026-08-10");
     expect(pastWeek.header.title).toBe("8月10日〜8月16日");
+    expect(pastWeek.header.right).toEqual({
+      kind: "text",
+      to: "/summary/month?date=2026-09-05",
+      label: "今月 ›",
+    });
 
     const thisMonth = resolveAppRoute("/summary/month", NOW);
     expect(thisMonth.header.title).toBe("今月");
