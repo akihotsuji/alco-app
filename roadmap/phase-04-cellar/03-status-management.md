@@ -28,7 +28,8 @@ sealed ──開栓──► opened
 
 - `POST /api/bottles/:id/consume`（api-design 4.5.1。ボトル更新 + drink-log 作成を D1 batch で）
 - `POST /api/bottles/:id/restore`（4.5.2）
-- `PATCH { status: "opened" }`（開栓。`openedOn` 既定今日）
+- `PATCH { status: "opened" }`（開栓。`openedOn` 既定今日）。開栓のモーション「少し凝った」段階（[spec/motion-design.md](../../spec/motion-design.md) 9 章）: ピルのラベルが上へ抜けて新ラベルが入り inset → outset（M-10）、「開栓する」の退場（M-11）、棚板の上辺ハイライト（M-12。`Shelf` 共通部品の `data-highlight`）、トーストの `cheer` 水面（M-25）、`haptic("success")`。写真は動かさない
+- 一覧へ戻ったときの棚板ハイライト（M-32）は 4-04 の `Shelf` に載せ、ここでは `history.state` に操作した ID を渡す
 - `bottle-consume` ダイアログ（記録チェック既定 ON、量チップ + ボトル量、度数、日時）
 - 成功後の遷移とトースト「貯蔵庫へ移しました 取り消す」（undo = restore → DELETE log）
 - `bottle-archive`（`/cellar/archive`。月見出し、減彩、消費日ピル）
