@@ -149,7 +149,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 
 ### タスク
 
-- [ ] `spec/features/cellar.md` 作成（[screen-designs/04-cellar.md](screen-designs/04-cellar.md) を写す）
+- [ ] `spec/features/cellar.md` 作成（[screen-designs/04-cellar.md](screen-designs/04-cellar.md) を写す）→ [features/cellar.md](features/cellar.md)（4-01。作成済み・オーナー承認待ち）
 - [ ] ボトルの追加・詳細・編集・削除: 「+」は撮影から（2:3、`cellar` プリセット、キャラ合成なし）、本数 N で N 行、詳細のプロパティ・ノート節・記録節
 - [ ] **棚（陳列）**: 地色の上に **ガラス風の棚板**、**種類ごと / 1 本ずつ**の表示切替、`kind`（切り抜き / 長方形）の描き分け、写真なしは種類別シルエット、種類・検索フィルタ、空状態（棚板ハイライト M-28、直前に操作した本の M-32、戻った本の出現 M-11）
 - [ ] **開栓・貯蔵庫・復元**: 「開栓する」（記録は作らない → 棚へ戻りトースト undo。到着時に本数カウントダウン + 抜けた段の棚板ハイライト M-10）、`/cellar/archive`（月見出し・減彩）、「セラーに戻す」
