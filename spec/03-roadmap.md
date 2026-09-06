@@ -134,7 +134,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] 週/月サマリー: 推移グラフ（自前 SVG。初回 1 回だけ伸びる M-19）、休肝日表示。入口はホームの「今週 ›」→ 週、週の「今月 ›」→ 月、月の行 → 週、週の行 → 日別。**3-06**（2026-09-06）
 - [ ] ホームのキャラクター（`default` / `rest` / 1 タップ後 `cheer` + 4px 移動。週マスのタップ先はその日の日別 X6）
 - [x] 設定「操作」節: 表示名インライン編集、触感フィードバック（既定 OFF）・動きを減らす（[screen-designs/06-settings.md](screen-designs/06-settings.md) S1 / S8 / S9。3-07。2026-09-06）
-- [ ] この時点でdev環境にデプロイし、オーナーの日常利用を開始（手順は [dev-deploy.md](dev-deploy.md)。`wrangler secret` / `deploy` はオーナー操作）
+- [x] この時点でdev環境にデプロイし、オーナーの日常利用を開始（手順は [dev-deploy.md](dev-deploy.md)。2026-09-06 オーナーがリモート migrate / `BETTER_AUTH_SECRET` / `wrangler deploy --env dev` を実行。公開 URL はドキュメントに書かない）
 
 ### 完了条件（DoD）
 
