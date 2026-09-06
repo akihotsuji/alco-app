@@ -11,7 +11,6 @@ import { useLocation } from "react-router";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
-import { agentDebug } from "@/client/lib/agent-debug.ts";
 import { hidesTabBar } from "@/client/lib/app-routes.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import {
@@ -25,7 +24,7 @@ import {
 
 type ToastPhase = "enter" | "idle" | "leave";
 
-type ToastState = ToastInput & { id: number; phase: ToastPhase; shownAt: number };
+type ToastState = ToastInput & { id: number; phase: ToastPhase };
 type ActiveToastTimer = { id: number; state: ToastTimerState };
 
 type ToastContextValue = {
@@ -100,7 +99,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const id = idRef.current;
       const mount = () => {
         timerStateRef.current = { id, state: "running" };
-        setToast({ ...input, id, phase: "enter", shownAt: Date.now() });
+        setToast({ ...input, id, phase: "enter" });
         stayTimer.current = setTimeout(() => {
           stayTimer.current = null;
           expireToast(id);
@@ -137,28 +136,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const selectAction = useCallback(
     (id: number, action: ToastAction) => {
       const timerState = timerStateRef.current;
-      const transition =
-        timerState && timerState.id === id
-          ? transitionToastTimer(timerState.state, "select")
-          : null;
-      // #region agent log
-      agentDebug({
-        hypothesisId: "A",
-        location: "ToastProvider.tsx:selectAction",
-        message: "Toast action selection evaluated",
-        data: {
-          toastId: id,
-          actionLabel: action.label,
-          activeToastId: timerState?.id ?? null,
-          timerState: timerState?.state ?? "missing",
-          transitionEffect: transition?.effect ?? "ignored",
-        },
-        timestamp: Date.now(),
-      });
-      // #endregion
-      if (!timerState || timerState.id !== id || !transition) {
+      if (!timerState || timerState.id !== id) {
         return;
       }
+      const transition = transitionToastTimer(timerState.state, "select");
       timerStateRef.current = { id, state: transition.state };
       if (transition.effect !== "select") {
         return;
@@ -212,25 +193,6 @@ function ToastCard({
   const reduceMotion = useReducedMotion();
   const tabsHidden = hidesTabBar(location.pathname, photoEdit.open);
   const cheer = toastShowsCheer(toast.message);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const actionRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    // #region agent log
-    agentDebug({
-      hypothesisId: "K|L",
-      location: "ToastProvider.tsx:ToastCard:phase-rendered",
-      message: "Toast phase rendered",
-      data: {
-        toastId: toast.id,
-        phase: toast.phase,
-        elapsedMs: Date.now() - toast.shownAt,
-        hasAction: toast.action !== undefined,
-      },
-      timestamp: Date.now(),
-    });
-    // #endregion
-  }, [toast.action, toast.id, toast.phase, toast.shownAt]);
 
   // 初回描画は enter（下 8px・不透明 0）で置き、1 フレーム描かせてから idle に戻して transition を走らせる
   useEffect(() => {
@@ -244,175 +206,8 @@ function ToastCard({
     };
   }, [onEntered, toast.id]);
 
-  useEffect(() => {
-    const captureHitTest = (event: PointerEvent) => {
-      const cardRect = cardRef.current?.getBoundingClientRect();
-      const actionRect = actionRef.current?.getBoundingClientRect();
-      const hitTarget = document.elementFromPoint(event.clientX, event.clientY);
-      const eventTarget = event.target;
-      // #region agent log
-      agentDebug({
-        hypothesisId: "F|G|H|J",
-        location: "ToastProvider.tsx:document:pointerdown-hit-test",
-        message: "Pointer hit-tested while toast was mounted",
-        data: {
-          toastId: toast.id,
-          phase: toast.phase,
-          elapsedMs: Date.now() - toast.shownAt,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          eventTargetTag: eventTarget instanceof Element ? eventTarget.tagName : "unknown",
-          eventTargetClass:
-            eventTarget instanceof Element && typeof eventTarget.className === "string"
-              ? eventTarget.className
-              : "",
-          hitTargetTag: hitTarget?.tagName ?? "missing",
-          hitTargetClass: typeof hitTarget?.className === "string" ? hitTarget.className : "",
-          toastTop: cardRect?.top ?? null,
-          toastBottom: cardRect?.bottom ?? null,
-          actionLeft: actionRect?.left ?? null,
-          actionTop: actionRect?.top ?? null,
-          actionRight: actionRect?.right ?? null,
-          actionBottom: actionRect?.bottom ?? null,
-          insideAction:
-            actionRect !== undefined &&
-            event.clientX >= actionRect.left &&
-            event.clientX <= actionRect.right &&
-            event.clientY >= actionRect.top &&
-            event.clientY <= actionRect.bottom,
-        },
-        timestamp: Date.now(),
-      });
-      // #endregion
-    };
-    document.addEventListener("pointerdown", captureHitTest, true);
-    return () => document.removeEventListener("pointerdown", captureHitTest, true);
-  }, [toast.id, toast.phase, toast.shownAt]);
-
-  useEffect(() => {
-    if (toast.phase !== "idle") {
-      return;
-    }
-    const actionRect = actionRef.current?.getBoundingClientRect();
-    const centerX = actionRect ? actionRect.left + actionRect.width / 2 : null;
-    const centerY = actionRect ? actionRect.top + actionRect.height / 2 : null;
-    const hitTarget =
-      centerX !== null && centerY !== null ? document.elementFromPoint(centerX, centerY) : null;
-    const hitStack =
-      centerX !== null && centerY !== null
-        ? document
-            .elementsFromPoint(centerX, centerY)
-            .slice(0, 5)
-            .map((element) => `${element.tagName}.${String(element.className)}`)
-            .join(" > ")
-        : "";
-    // #region agent log
-    agentDebug({
-      hypothesisId: "F|G|H",
-      location: "ToastProvider.tsx:ToastCard:idle-center-hit-test",
-      message: "Toast action center hit-tested after idle render",
-      data: {
-        toastId: toast.id,
-        centerX,
-        centerY,
-        hitTargetTag: hitTarget?.tagName ?? "missing",
-        hitTargetClass: typeof hitTarget?.className === "string" ? hitTarget.className : "",
-        hitStack,
-        actionPointerEvents: actionRef.current
-          ? getComputedStyle(actionRef.current).pointerEvents
-          : "missing",
-        cardPointerEvents: cardRef.current
-          ? getComputedStyle(cardRef.current).pointerEvents
-          : "missing",
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-        devicePixelRatio: window.devicePixelRatio,
-        visualViewportScale: window.visualViewport?.scale ?? null,
-        visualViewportOffsetLeft: window.visualViewport?.offsetLeft ?? null,
-        visualViewportOffsetTop: window.visualViewport?.offsetTop ?? null,
-      },
-      timestamp: Date.now(),
-    });
-    // #endregion
-  }, [toast.id, toast.phase]);
-
-  useEffect(() => {
-    const captureInput = (event: Event) => {
-      const firstTouch = event instanceof TouchEvent ? event.touches.item(0) : null;
-      const point =
-        event instanceof MouseEvent
-          ? { clientX: event.clientX, clientY: event.clientY }
-          : firstTouch
-            ? { clientX: firstTouch.clientX, clientY: firstTouch.clientY }
-            : null;
-      const hitTarget = point ? document.elementFromPoint(point.clientX, point.clientY) : null;
-      const eventTarget = event.target;
-      // #region agent log
-      agentDebug({
-        hypothesisId: "F|G|H|J",
-        location: "ToastProvider.tsx:window:input-capture",
-        message: "Window captured input while toast was mounted",
-        data: {
-          toastId: toast.id,
-          eventType: event.type,
-          clientX: point?.clientX ?? null,
-          clientY: point?.clientY ?? null,
-          eventTargetTag: eventTarget instanceof Element ? eventTarget.tagName : "unknown",
-          eventTargetClass:
-            eventTarget instanceof Element && typeof eventTarget.className === "string"
-              ? eventTarget.className
-              : "",
-          hitTargetTag: hitTarget?.tagName ?? "missing",
-          hitTargetClass: typeof hitTarget?.className === "string" ? hitTarget.className : "",
-        },
-        timestamp: Date.now(),
-      });
-      // #endregion
-    };
-    const eventTypes = ["pointerdown", "mousedown", "mouseup", "click", "touchstart"] as const;
-    for (const eventType of eventTypes) {
-      window.addEventListener(eventType, captureInput, true);
-    }
-    return () => {
-      for (const eventType of eventTypes) {
-        window.removeEventListener(eventType, captureInput, true);
-      }
-    };
-  }, [toast.id]);
-
-  useEffect(() => {
-    const capturePageExit = (event: Event) => {
-      // #region agent log
-      agentDebug({
-        hypothesisId: "G|J",
-        location: "ToastProvider.tsx:window:page-exit",
-        message: "Page focus or visibility changed while toast was mounted",
-        data: {
-          toastId: toast.id,
-          eventType: event.type,
-          visibilityState: document.visibilityState,
-          hasFocus: document.hasFocus(),
-          activeElementTag: document.activeElement?.tagName ?? "missing",
-          activeElementClass:
-            typeof document.activeElement?.className === "string"
-              ? document.activeElement.className
-              : "",
-        },
-        timestamp: Date.now(),
-      });
-      // #endregion
-    };
-    window.addEventListener("blur", capturePageExit);
-    document.addEventListener("visibilitychange", capturePageExit);
-    return () => {
-      window.removeEventListener("blur", capturePageExit);
-      document.removeEventListener("visibilitychange", capturePageExit);
-    };
-  }, [toast.id]);
-
   return (
     <div
-      ref={cardRef}
       className={tabsHidden ? "app-toast app-toast-no-tabs" : "app-toast"}
       data-state={toast.phase === "idle" ? undefined : toast.phase}
       role="status"
@@ -422,7 +217,6 @@ function ToastCard({
       <p className="app-toast-message">{toast.message}</p>
       {toast.action ? (
         <button
-          ref={actionRef}
           type="button"
           className="app-toast-action"
           onPointerDown={() => onActionStart(toast.id)}
