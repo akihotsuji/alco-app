@@ -1,9 +1,18 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 import type { AppBatchDb } from "@/db/index.ts";
-import { createDrinkLogSchema, drinkLogIdParamSchema } from "@/shared/drink-logs.ts";
+import {
+  createDrinkLogSchema,
+  drinkLogIdParamSchema,
+  drinkLogSummaryQuerySchema,
+} from "@/shared/drink-logs.ts";
 import type { AppEnv } from "../app-env.ts";
-import { createDrinkLog, deleteDrinkLog, getOwnDrinkLog } from "../services/drink-logs.ts";
+import {
+  createDrinkLog,
+  deleteDrinkLog,
+  getDrinkLogSummary,
+  getOwnDrinkLog,
+} from "../services/drink-logs.ts";
 import type { PhotoBucket } from "../services/photos.ts";
 import { validate } from "../validation.ts";
 
@@ -13,11 +22,20 @@ export type DrinkLogRouteDeps = {
 };
 
 /**
- * 3-02 では作成・詳細・削除（undo）だけ。一覧 / summary / PATCH は 3-05 / 3-06 で足す
- * （`/summary` は `/:id` より前に登録する）。
+ * 一覧 / PATCH は 3-05 で足す。固定パスの `/summary` は `/:id` より前に登録する。
  */
 export function createDrinkLogsRoute(deps: DrinkLogRouteDeps) {
   return new Hono<AppEnv>()
+    .get("/summary", validate("query", drinkLogSummaryQuerySchema), async (c) => {
+      const user = c.get("user");
+      const query = c.req.valid("query");
+      const summary = await getDrinkLogSummary({
+        db: deps.getDb(c),
+        userId: user.id,
+        query,
+      });
+      return c.json(summary);
+    })
     .post("/", validate("json", createDrinkLogSchema), async (c) => {
       const user = c.get("user");
       const body = c.req.valid("json");

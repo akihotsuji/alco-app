@@ -28,3 +28,34 @@ export type ToastInput = {
   message: string;
   action?: ToastAction;
 };
+
+export type ToastTimerState = "running" | "interacting" | "expired" | "selected";
+export type ToastTimerEvent = "interaction-start" | "timeout" | "select";
+export type ToastTimerEffect = "none" | "dismiss" | "select";
+
+export type ToastTimerTransition = {
+  state: ToastTimerState;
+  effect: ToastTimerEffect;
+};
+
+/**
+ * アクション操作の開始後は click が完了するまで期限切れにしない。
+ * effect を分離し、タイマーとイベントの競合を React 外で決定的に検証できるようにする。
+ */
+export function transitionToastTimer(
+  state: ToastTimerState,
+  event: ToastTimerEvent,
+): ToastTimerTransition {
+  if (state === "expired" || state === "selected") {
+    return { state, effect: "none" };
+  }
+  if (event === "interaction-start") {
+    return { state: "interacting", effect: "none" };
+  }
+  if (event === "timeout") {
+    return state === "interacting"
+      ? { state, effect: "none" }
+      : { state: "expired", effect: "dismiss" };
+  }
+  return { state: "selected", effect: "select" };
+}

@@ -10,6 +10,7 @@ import { errorHandler, notFoundHandler } from "./middleware/error.ts";
 import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
 import { healthRoute } from "./routes/health.ts";
 import { meRoute } from "./routes/me.ts";
+import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
@@ -75,12 +76,14 @@ export function createApp(options: CreateAppOptions = {}) {
   };
   const photosRoute = createPhotosRoute(routeDeps);
   const drinkLogsRoute = createDrinkLogsRoute(routeDeps);
+  const myDrinksRoute = createMyDrinksRoute(routeDeps);
 
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app
     .route("/api/health", healthRoute)
     .route("/api/me", meRoute)
     .route("/api/drink-logs", drinkLogsRoute)
+    .route("/api/my-drinks", myDrinksRoute)
     .route("/api/photos", photosRoute);
 }
 

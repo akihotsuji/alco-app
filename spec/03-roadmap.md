@@ -128,7 +128,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] `spec/features/drink-log.md` 作成（画面項目・バリデーション・計算仕様。[screen-designs/03-log.md](screen-designs/03-log.md) を写す）→ [features/drink-log.md](features/drink-log.md)（2026-09-06 作成・承認）
 - [x] 記録入力画面: 種類選択→量・度数プリセット→保存 を最短タップ数で。最上部に**写真タイル**（任意）、ボトル紐付け行（API の `bottleId` のみ。行の UI は Phase 4-02）、`?camera=1`。**モーション共通基盤を同梱**（[motion-design.md](motion-design.md): トークン、`Button` / `Chip` の `data-state`、水位線 M-04〜M-06、`useReducedMotion()`、`haptic.ts`、ダーク `--primary` `#CC8484`）→ `POST /api/drink-logs`、`GET` / `DELETE /api/drink-logs/:id`、`src/client/components/logs/`（3-02。2026-09-06）
 - [x] **中央タブ「記録」とホームのカメラ円ボタンを撮影開始に**（(c)）: タップで記録用 `photo-edit`、「使う」で写真付き `log-new`、× / OS キャンセルは元の画面。着地・現在地ハイライトなし、`/logs` 配下の親タブはホーム（[screen-designs/00-common.md](screen-designs/00-common.md) 1.2、[02-home.md](screen-designs/02-home.md) H9）→ `useCaptureLog`、`photo-edit-context` の `CaptureIntent`（2026-09-06）
-- [ ] マイドリンク（プリセット）の登録・1タップ記録（**ホームのみ**。チップの水位線 M-07 / M-08、数字カウント M-09、週マス M-17、休肝ピル M-18）。同じタスクで **ホームの残りの導線**を (c) に合わせる: 今日カード → 今日の `/logs`、カード内「今週 ›」→ 週サマリー（[02-home.md](screen-designs/02-home.md) H2 / H13）
+- [x] マイドリンク（プリセット）の登録・1タップ記録（**ホームのみ**。チップの水位線 M-07 / M-08、数字カウント M-09、週マス M-17、休肝ピル M-18）。同じタスクで **ホームの残りの導線**を (c) に合わせる: 今日カード → 今日の `/logs`、カード内「今週 ›」→ 週サマリー（[02-home.md](screen-designs/02-home.md) H2 / H13）（3-03。2026-09-06）
 - [x] 純アルコール量計算ロジック（単体テスト必須）→ `src/shared/alcohol.ts`（3-04）
 - [ ] 日別ビュー（**ホームの今日カード / 週マス / 保存後 / 週サマリーの行から入る。中央タブの着地ではない**）: 当日の記録一覧（写真サムネ）・合計、編集・削除、`?highlight=`（行の挿入 + リング + スクロールを `useHighlightRow` に。M-14〜M-16、X1、X2、X7）。最上部の記録・カメラ・マイドリンクは置かない
 - [ ] 週/月サマリー: 推移グラフ（軽量なチャートライブラリ。初回 1 回だけ伸びる M-19）、休肝日表示。入口はホームの「今週 ›」→ 週、週の「今月 ›」→ 月、月の行 → 週、週の行 → 日別
