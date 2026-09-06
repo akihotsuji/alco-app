@@ -289,6 +289,126 @@ function ToastCard({
     return () => document.removeEventListener("pointerdown", captureHitTest, true);
   }, [toast.id, toast.phase, toast.shownAt]);
 
+  useEffect(() => {
+    if (toast.phase !== "idle") {
+      return;
+    }
+    const actionRect = actionRef.current?.getBoundingClientRect();
+    const centerX = actionRect ? actionRect.left + actionRect.width / 2 : null;
+    const centerY = actionRect ? actionRect.top + actionRect.height / 2 : null;
+    const hitTarget =
+      centerX !== null && centerY !== null ? document.elementFromPoint(centerX, centerY) : null;
+    const hitStack =
+      centerX !== null && centerY !== null
+        ? document
+            .elementsFromPoint(centerX, centerY)
+            .slice(0, 5)
+            .map((element) => `${element.tagName}.${String(element.className)}`)
+            .join(" > ")
+        : "";
+    // #region agent log
+    agentDebug({
+      hypothesisId: "F|G|H",
+      location: "ToastProvider.tsx:ToastCard:idle-center-hit-test",
+      message: "Toast action center hit-tested after idle render",
+      data: {
+        toastId: toast.id,
+        centerX,
+        centerY,
+        hitTargetTag: hitTarget?.tagName ?? "missing",
+        hitTargetClass: typeof hitTarget?.className === "string" ? hitTarget.className : "",
+        hitStack,
+        actionPointerEvents: actionRef.current
+          ? getComputedStyle(actionRef.current).pointerEvents
+          : "missing",
+        cardPointerEvents: cardRef.current ? getComputedStyle(cardRef.current).pointerEvents : "missing",
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+        visualViewportScale: window.visualViewport?.scale ?? null,
+        visualViewportOffsetLeft: window.visualViewport?.offsetLeft ?? null,
+        visualViewportOffsetTop: window.visualViewport?.offsetTop ?? null,
+      },
+      timestamp: Date.now(),
+    });
+    // #endregion
+  }, [toast.id, toast.phase]);
+
+  useEffect(() => {
+    const captureInput = (event: Event) => {
+      const point =
+        event instanceof MouseEvent
+          ? { clientX: event.clientX, clientY: event.clientY }
+          : event instanceof TouchEvent && event.touches.length > 0
+            ? { clientX: event.touches[0].clientX, clientY: event.touches[0].clientY }
+            : null;
+      const hitTarget = point
+        ? document.elementFromPoint(point.clientX, point.clientY)
+        : null;
+      const eventTarget = event.target;
+      // #region agent log
+      agentDebug({
+        hypothesisId: "F|G|H|J",
+        location: "ToastProvider.tsx:window:input-capture",
+        message: "Window captured input while toast was mounted",
+        data: {
+          toastId: toast.id,
+          eventType: event.type,
+          clientX: point?.clientX ?? null,
+          clientY: point?.clientY ?? null,
+          eventTargetTag: eventTarget instanceof Element ? eventTarget.tagName : "unknown",
+          eventTargetClass:
+            eventTarget instanceof Element && typeof eventTarget.className === "string"
+              ? eventTarget.className
+              : "",
+          hitTargetTag: hitTarget?.tagName ?? "missing",
+          hitTargetClass: typeof hitTarget?.className === "string" ? hitTarget.className : "",
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
+    };
+    const eventTypes = ["pointerdown", "mousedown", "mouseup", "click", "touchstart"] as const;
+    for (const eventType of eventTypes) {
+      window.addEventListener(eventType, captureInput, true);
+    }
+    return () => {
+      for (const eventType of eventTypes) {
+        window.removeEventListener(eventType, captureInput, true);
+      }
+    };
+  }, [toast.id]);
+
+  useEffect(() => {
+    const capturePageExit = (event: Event) => {
+      // #region agent log
+      agentDebug({
+        hypothesisId: "G|J",
+        location: "ToastProvider.tsx:window:page-exit",
+        message: "Page focus or visibility changed while toast was mounted",
+        data: {
+          toastId: toast.id,
+          eventType: event.type,
+          visibilityState: document.visibilityState,
+          hasFocus: document.hasFocus(),
+          activeElementTag: document.activeElement?.tagName ?? "missing",
+          activeElementClass:
+            typeof document.activeElement?.className === "string"
+              ? document.activeElement.className
+              : "",
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
+    };
+    window.addEventListener("blur", capturePageExit);
+    document.addEventListener("visibilitychange", capturePageExit);
+    return () => {
+      window.removeEventListener("blur", capturePageExit);
+      document.removeEventListener("visibilitychange", capturePageExit);
+    };
+  }, [toast.id]);
+
   return (
     <div
       ref={cardRef}
