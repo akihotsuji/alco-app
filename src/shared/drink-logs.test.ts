@@ -4,10 +4,12 @@ import {
   DRINK_LOG_MESSAGES,
   DRINK_LOG_SUMMARY_MESSAGES,
   DRUNK_AT_FUTURE_TOLERANCE_MS,
+  drinkLogsQuerySchema,
   drinkLogSummaryQuerySchema,
   hasAtMostOneDecimal,
   isDrunkAtAllowed,
   normalizeMemo,
+  updateDrinkLogSchema,
 } from "./drink-logs.ts";
 import "./zod-config.ts";
 
@@ -138,6 +140,50 @@ describe("helpers", () => {
     expect(normalizeMemo(null)).toBeNull();
     expect(normalizeMemo("   \n ")).toBeNull();
     expect(normalizeMemo("  美味しい  ")).toBe("美味しい");
+  });
+});
+
+describe("updateDrinkLogSchema", () => {
+  it("部分更新を受け、空・未知キー・範囲外を拒否する", () => {
+    expect(updateDrinkLogSchema.parse({ drinkType: "beer" })).toEqual({ drinkType: "beer" });
+    expect(updateDrinkLogSchema.safeParse({}).success).toBe(false);
+    expect(updateDrinkLogSchema.safeParse({ alcoholG: 99 }).success).toBe(false);
+    expect(updateDrinkLogSchema.safeParse({ volumeMl: 0 }).success).toBe(false);
+  });
+});
+
+describe("drinkLogsQuerySchema", () => {
+  it("単一日または31日以内の期間を受ける", () => {
+    expect(drinkLogsQuerySchema.parse({ date: "2026-09-06" })).toMatchObject({
+      date: "2026-09-06",
+      limit: 50,
+    });
+    expect(
+      drinkLogsQuerySchema.safeParse({ from: "2026-08-06", to: "2026-09-06" }).success,
+    ).toBe(true);
+  });
+
+  it("日付と期間の混在・片側だけ・逆転・32日超・日付なしを拒否する", () => {
+    const invalid = [
+      {},
+      { date: "2026-09-06", from: "2026-09-01", to: "2026-09-06" },
+      { from: "2026-09-01" },
+      { from: "2026-09-06", to: "2026-09-01" },
+      { from: "2026-08-05", to: "2026-09-06" },
+      { date: "2026-02-30" },
+    ];
+    for (const query of invalid) {
+      expect(drinkLogsQuerySchema.safeParse(query).success, JSON.stringify(query)).toBe(false);
+    }
+  });
+
+  it("ボトル指定は期間を省略でき、limit と cursor を制限する", () => {
+    expect(drinkLogsQuerySchema.safeParse({ bottleId: UUID }).success).toBe(true);
+    expect(drinkLogsQuerySchema.safeParse({ date: "2026-09-06", limit: "100" }).success).toBe(true);
+    expect(drinkLogsQuerySchema.safeParse({ date: "2026-09-06", limit: "101" }).success).toBe(
+      false,
+    );
+    expect(drinkLogsQuerySchema.safeParse({ date: "2026-09-06", cursor: "" }).success).toBe(false);
   });
 });
 

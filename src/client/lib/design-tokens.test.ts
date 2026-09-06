@@ -97,6 +97,8 @@ describe("design tokens", () => {
       toastIn: "--dur-toast-in",
       toastOut: "--dur-toast-out",
       stagger: "--dur-stagger",
+      highlightHold: "--dur-highlight-hold",
+      highlightFade: "--dur-highlight-fade",
     };
     for (const [key, token] of Object.entries(byName)) {
       expect(tokenValue(block, token)).toBe(`${MOTION_MS[key as keyof typeof MOTION_MS]}ms`);

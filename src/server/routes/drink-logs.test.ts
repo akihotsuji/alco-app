@@ -5,6 +5,7 @@ import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import {
   DRINK_LOG_MESSAGES,
   DRUNK_AT_FUTURE_TOLERANCE_MS,
+  drinkLogsResponseSchema,
   drinkLogSchema,
 } from "@/shared/drink-logs.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
@@ -35,6 +36,18 @@ function postLog(app: Ctx["app"], cookie: string, body: unknown, raw = false) {
     method: "POST",
     headers: { Cookie: cookie, "Content-Type": "application/json" },
     body: raw && typeof body === "string" ? body : JSON.stringify(body),
+  });
+}
+
+function getLogs(app: Ctx["app"], cookie: string, search: string) {
+  return app.request(`/api/drink-logs?${search}`, { headers: { Cookie: cookie } });
+}
+
+function patchLog(app: Ctx["app"], cookie: string, id: string, body: unknown) {
+  return app.request(`/api/drink-logs/${id}`, {
+    method: "PATCH",
+    headers: { Cookie: cookie, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
 }
 
@@ -277,6 +290,173 @@ describe("POST /api/drink-logs", () => {
     });
     expect(res.status).toBe(201);
     expect(drinkLogSchema.parse(await res.json()).drinkName).toBe("サンプル赤");
+  });
+});
+
+describe("GET /api/drink-logs", () => {
+  it("未認証は 401、日付なしは 400", async () => {
+    const ctx = await createTestApp();
+    expect((await getLogs(ctx.app, "", "date=2026-09-04")).status).toBe(401);
+    const a = await session(ctx.app, "a@example.com");
+    const missing = await getLogs(ctx.app, a.cookie, "");
+    expect(missing.status).toBe(400);
+    expect((await fields(missing))[""]).toBeDefined();
+  });
+
+  it("本人の指定日だけを降順で返し、合計はページ全体ではなくフィルタ全体", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    const photo = await uploadPhoto(ctx.app, a.cookie);
+    const inputs = [
+      { ...BASE, drunkAt: "2026-09-04T10:00:00.000Z", abvPercent: 10 },
+      { ...BASE, drunkAt: "2026-09-04T11:00:00.000Z", abvPercent: 11 },
+      {
+        ...BASE,
+        drunkAt: "2026-09-04T12:00:00.000Z",
+        abvPercent: 12,
+        photoIds: [photo.id],
+      },
+    ];
+    const ids: string[] = [];
+    for (const input of inputs) {
+      const created = drinkLogSchema.parse(await (await postLog(ctx.app, a.cookie, input)).json());
+      ids.push(created.id);
+    }
+    await postLog(ctx.app, a.cookie, { ...BASE, drunkAt: "2026-09-03T12:00:00.000Z" });
+    await postLog(ctx.app, b.cookie, { ...BASE, drunkAt: "2026-09-04T12:30:00.000Z" });
+
+    const first = await getLogs(ctx.app, a.cookie, "date=2026-09-04&limit=2");
+    expect(first.status).toBe(200);
+    const firstBody = drinkLogsResponseSchema.parse(await first.json());
+    expect(firstBody.items.map((item) => item.id)).toEqual([ids[2], ids[1]]);
+    expect(firstBody.items[0]?.thumbPhotoId).toBe(photo.id);
+    expect(firstBody.totalCount).toBe(3);
+    expect(firstBody.totalAlcoholG).toBe(33);
+    expect(firstBody.hasAnyLogs).toBe(true);
+    expect(firstBody.nextCursor).not.toBeNull();
+    expect(JSON.stringify(firstBody)).not.toContain("userId");
+
+    const second = await getLogs(
+      ctx.app,
+      a.cookie,
+      `date=2026-09-04&limit=2&cursor=${encodeURIComponent(firstBody.nextCursor ?? "")}`,
+    );
+    const secondBody = drinkLogsResponseSchema.parse(await second.json());
+    expect(secondBody.items.map((item) => item.id)).toEqual([ids[0]]);
+    expect(secondBody.totalCount).toBe(3);
+    expect(secondBody.nextCursor).toBeNull();
+  });
+
+  it("空の日でも全期間の記録有無を返し、期間・cursor を検証する", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const empty = drinkLogsResponseSchema.parse(
+      await (await getLogs(ctx.app, a.cookie, "date=2026-09-04")).json(),
+    );
+    expect(empty).toMatchObject({
+      items: [],
+      totalCount: 0,
+      totalAlcoholG: 0,
+      hasAnyLogs: false,
+    });
+
+    await postLog(ctx.app, a.cookie, { ...BASE, drunkAt: "2026-09-03T12:00:00.000Z" });
+    const anotherEmpty = drinkLogsResponseSchema.parse(
+      await (await getLogs(ctx.app, a.cookie, "date=2026-09-04")).json(),
+    );
+    expect(anotherEmpty.hasAnyLogs).toBe(true);
+
+    const range = await getLogs(ctx.app, a.cookie, "from=2026-09-03&to=2026-09-04");
+    expect(drinkLogsResponseSchema.parse(await range.json()).totalCount).toBe(1);
+    expect((await getLogs(ctx.app, a.cookie, "from=2026-08-01&to=2026-09-04")).status).toBe(400);
+    expect((await getLogs(ctx.app, a.cookie, "date=2026-09-04&cursor=broken")).status).toBe(400);
+  });
+});
+
+describe("PATCH /api/drink-logs/:id", () => {
+  it("未認証は 401、本人は部分更新でき、日付と alcoholG を再計算する", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const created = drinkLogSchema.parse(
+      await (
+        await postLog(ctx.app, a.cookie, {
+          ...BASE,
+          drunkAt: "2026-09-04T11:00:00.000Z",
+          memo: "元",
+        })
+      ).json(),
+    );
+
+    expect((await patchLog(ctx.app, "", created.id, { volumeMl: 350 })).status).toBe(401);
+    const res = await patchLog(ctx.app, a.cookie, created.id, {
+      drinkType: "beer",
+      volumeMl: 350,
+      abvPercent: 5,
+      drunkAt: "2026-09-05T15:00:00.000Z",
+      memo: "  <script>文字列</script>  ",
+    });
+    expect(res.status).toBe(200);
+    const body = drinkLogSchema.parse(await res.json());
+    expect(body).toMatchObject({
+      drinkType: "beer",
+      volumeMl: 350,
+      abvPercent: 5,
+      alcoholG: 14,
+      drunkOn: "2026-09-06",
+      memo: "<script>文字列</script>",
+    });
+  });
+
+  it("他人・不在は同じ 404 で、他人の行を変更しない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    const created = drinkLogSchema.parse(await (await postLog(ctx.app, a.cookie, BASE)).json());
+
+    const other = await patchLog(ctx.app, b.cookie, created.id, { volumeMl: 500 });
+    expect(other.status).toBe(404);
+    expect(await other.json()).toEqual({ error: "not_found" });
+    const missing = await patchLog(ctx.app, a.cookie, MISSING, { volumeMl: 500 });
+    expect(missing.status).toBe(404);
+    const unchanged = await ctx.app.request(`/api/drink-logs/${created.id}`, {
+      headers: { Cookie: a.cookie },
+    });
+    expect(drinkLogSchema.parse(await unchanged.json()).volumeMl).toBe(125);
+  });
+
+  it("空・未知キーは 400。写真差し替えは所有者を検証して旧実体を削除する", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    const oldPhoto = await uploadPhoto(ctx.app, a.cookie);
+    const created = drinkLogSchema.parse(
+      await (
+        await postLog(ctx.app, a.cookie, {
+          ...BASE,
+          photoIds: [oldPhoto.id],
+        })
+      ).json(),
+    );
+    expect((await patchLog(ctx.app, a.cookie, created.id, {})).status).toBe(400);
+    expect((await patchLog(ctx.app, a.cookie, created.id, { userId: b.userId })).status).toBe(400);
+
+    const otherPhoto = await uploadPhoto(ctx.app, b.cookie);
+    const forbidden = await patchLog(ctx.app, a.cookie, created.id, {
+      photoIds: [otherPhoto.id],
+    });
+    expect(forbidden.status).toBe(404);
+
+    const replacement = await uploadPhoto(ctx.app, a.cookie);
+    const replaced = await patchLog(ctx.app, a.cookie, created.id, {
+      photoIds: [replacement.id],
+    });
+    expect(replaced.status).toBe(200);
+    const body = drinkLogSchema.parse(await replaced.json());
+    expect(body.thumbPhotoId).toBe(replacement.id);
+    expect(body.photos.map((photo) => photo.id)).toEqual([replacement.id]);
+    expect((await ctx.db.select().from(photos).where(eq(photos.id, oldPhoto.id))).length).toBe(0);
+    expect(ctx.photos.keys()).toHaveLength(2);
   });
 });
 

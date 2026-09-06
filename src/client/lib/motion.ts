@@ -13,6 +13,8 @@ export const MOTION_MS = {
   toastIn: 180,
   toastOut: 150,
   stagger: 80,
+  highlightHold: 1400,
+  highlightFade: 600,
 } as const;
 
 /** `Button` / `Chip` の `data-state`。CSS がこれに反応し、React は状態を置くだけ（motion-design 6.7） */

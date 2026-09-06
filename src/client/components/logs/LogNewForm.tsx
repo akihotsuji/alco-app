@@ -1,8 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
-import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
@@ -13,10 +11,10 @@ import { MemoField } from "@/client/components/logs/MemoField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
-import { deleteDrinkLog, useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
+import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
 import { haptic } from "@/client/lib/haptic.ts";
-import { isPhotoHandoff } from "@/client/lib/history-state.ts";
+import { drinkLogUndoState, isPhotoHandoff } from "@/client/lib/history-state.ts";
 import {
   applyDrinkType,
   canSubmitLogForm,
@@ -32,8 +30,6 @@ import {
   validateLogForm,
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
-import { queryKeys } from "@/client/lib/query-keys.ts";
-import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 
 const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";
@@ -46,9 +42,7 @@ const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真�
 export function LogNewForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const { showToast } = useToast();
   const { setGuard } = useLeaveGuard();
   const { releaseAttachment, editAttachment } = usePhotoEdit();
   const { startCapture, attachments, retryUpload, clearAttachment } = useCaptureOnCameraQuery(
@@ -107,18 +101,6 @@ export function LogNewForm() {
     setFormError(null);
   }
 
-  const undo = useCallback(
-    async (logId: string) => {
-      try {
-        await deleteDrinkLog(logId);
-        await queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs });
-      } catch {
-        showToast({ message: TOAST_MESSAGES.saveFailed });
-      }
-    },
-    [queryClient, showToast],
-  );
-
   function submit() {
     const body = toCreateDrinkLogBody(state, attachment?.photoId ?? null);
     if (!body || !canSubmit || create.isPending) {
@@ -134,10 +116,9 @@ export function LogNewForm() {
         haptic("success");
         releaseAttachment("log");
         // M-05: 成功表示は置かず即遷移。到着先で行の挿入とトーストが成功を示す
-        navigate(`${logDayHref(log.drunkOn)}?highlight=${log.id}`, { replace: true });
-        showToast({
-          message: TOAST_MESSAGES.logged,
-          action: { label: "取り消す", onSelect: () => void undo(log.id) },
+        navigate(`${logDayHref(log.drunkOn)}?highlight=${log.id}`, {
+          replace: true,
+          state: drinkLogUndoState(log.id),
         });
       },
       onError: (error) => {

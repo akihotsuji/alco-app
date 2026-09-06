@@ -9,9 +9,11 @@ import type { DrinkType } from "@/shared/constants.ts";
 import {
   abvPercentSchema,
   type CreateDrinkLogInput,
+  type DrinkLog,
   DRINK_LOG_MESSAGES,
   isDrunkAtAllowed,
   memoSchema,
+  type UpdateDrinkLogInput,
   volumeMlSchema,
 } from "@/shared/drink-logs.ts";
 import {
@@ -206,6 +208,44 @@ export function toCreateDrinkLogBody(
     body.photoIds = [photoId];
   }
   return body;
+}
+
+export function logFormStateFromDrinkLog(log: DrinkLog): LogFormState {
+  return {
+    drinkType: log.drinkType,
+    volumeMl: log.volumeMl,
+    abvPercent: log.abvPercent,
+    drunkAt: log.drunkAt,
+    memo: log.memo ?? "",
+  };
+}
+
+/** log-edit は変更したフィールドだけ送り、種類変更でも量・度数を上書きしない。 */
+export function toUpdateDrinkLogBody(
+  state: LogFormState,
+  initial: LogFormState,
+  replacementPhotoId: string | null,
+): UpdateDrinkLogInput | null {
+  const body: UpdateDrinkLogInput = {};
+  if (state.drinkType !== initial.drinkType) {
+    body.drinkType = state.drinkType;
+  }
+  if (state.volumeMl !== initial.volumeMl && state.volumeMl !== null) {
+    body.volumeMl = state.volumeMl;
+  }
+  if (state.abvPercent !== initial.abvPercent && state.abvPercent !== null) {
+    body.abvPercent = state.abvPercent;
+  }
+  if (state.drunkAt !== initial.drunkAt) {
+    body.drunkAt = state.drunkAt;
+  }
+  if (state.memo.trim() !== initial.memo.trim()) {
+    body.memo = state.memo.trim() || null;
+  }
+  if (replacementPhotoId) {
+    body.photoIds = [replacementPhotoId];
+  }
+  return Object.keys(body).length > 0 ? body : null;
 }
 
 /** 初期状態から触ったか（戻るの確認に使う）。写真の有無は呼び元が足す */

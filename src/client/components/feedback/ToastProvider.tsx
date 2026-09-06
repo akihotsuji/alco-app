@@ -192,7 +192,7 @@ function ToastCard({
   const photoEdit = usePhotoEdit();
   const reduceMotion = useReducedMotion();
   const tabsHidden = hidesTabBar(location.pathname, photoEdit.open);
-  const cheer = toastShowsCheer(toast.message);
+  const cheer = toast.cheer ?? toastShowsCheer(toast.message);
 
   // 初回描画は enter（下 8px・不透明 0）で置き、1 フレーム描かせてから idle に戻して transition を走らせる
   useEffect(() => {

@@ -27,6 +27,8 @@ export type ToastAction = {
 export type ToastInput = {
   message: string;
   action?: ToastAction;
+  /** 削除など、仕様上キャラクターを出さない成功通知では false。 */
+  cheer?: boolean;
 };
 
 export type ToastTimerState = "running" | "interacting" | "expired" | "selected";
