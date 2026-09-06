@@ -81,6 +81,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const expireToast = useCallback(
     (id: number) => {
       const timerState = timerStateRef.current;
+      // #region agent log
+      agentDebug({
+        hypothesisId: "H",
+        location: "ToastProvider.tsx:expire:entry",
+        message: "Toast expiry timer fired",
+        data: {
+          toastId: id,
+          activeToastId: timerState?.id ?? null,
+          timerState: timerState?.state ?? "missing",
+          elapsedMs:
+            toastRef.current?.id === id ? Date.now() - toastRef.current.shownAt : null,
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
       if (!timerState || timerState.id !== id) {
         return;
       }
@@ -137,6 +152,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const selectAction = useCallback(
     (id: number, action: ToastAction) => {
       const timerState = timerStateRef.current;
+      // #region agent log
+      agentDebug({
+        hypothesisId: "G|I",
+        location: "ToastProvider.tsx:select:entry",
+        message: "Toast action selection entered",
+        data: {
+          toastId: id,
+          activeToastId: timerState?.id ?? null,
+          timerState: timerState?.state ?? "missing",
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
       if (!timerState || timerState.id !== id) {
         return;
       }
@@ -213,6 +241,25 @@ function ToastCard({
       data-state={toast.phase === "idle" ? undefined : toast.phase}
       role="status"
       aria-live="polite"
+      onPointerDownCapture={(event) => {
+        const target = event.target;
+        // #region agent log
+        agentDebug({
+          hypothesisId: "F|H",
+          location: "ToastProvider.tsx:toast:pointerdown-capture",
+          message: "Toast pointer down captured",
+          data: {
+            toastId: toast.id,
+            phase: toast.phase,
+            elapsedMs: Date.now() - toast.shownAt,
+            targetTag: target instanceof Element ? target.tagName : "unknown",
+            actionTarget:
+              target instanceof Element && target.closest(".app-toast-action") !== null,
+          },
+          timestamp: Date.now(),
+        });
+        // #endregion
+      }}
     >
       {cheer ? <Mascot pose="cheer" size={32} pour={!reduceMotion} aria-hidden /> : null}
       <p className="app-toast-message">{toast.message}</p>
