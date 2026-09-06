@@ -74,7 +74,7 @@ safe-area: `pb-safe` 相当をタブに足し、iPhone ホームバーと重な�
 
 - [x] ログイン後に空ホームとタブが見える（Phase 2 DoD）
 - [x] 未ログインでタブ配下が開けない
-- [x] タブ遷移ができる。中央タブが `/logs` に着地し、現在地で inset になる（2-05 時点の既定 (a)。2026-09-06 に (c) 撮影開始で確定したため、3-03 で「タップで `photo-edit`、着地・現在地ハイライトなし」に差し替える。[spec/screen-designs/00-common.md](../../spec/screen-designs/00-common.md) 1.2）
+- [x] タブ遷移ができる。中央タブが `/logs` に着地し、現在地で inset になる（2-05 時点の既定 (a)。2026-09-06 に (c) 撮影開始で確定し、同日 `feature/center-tab-camera` で「タップで `photo-edit`、着地・現在地ハイライトなし」に差し替え済み。[spec/screen-designs/00-common.md](../../spec/screen-designs/00-common.md) 1.2）
 - [x] loading/error の出し方がある
 - [x] モバイル幅で横スクロールしない。320px でラベルが折り返さない
 - [x] [spec/screen-designs/00-common.md](../../spec/screen-designs/00-common.md) の受け入れチェック全項目

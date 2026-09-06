@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { deletePhoto, uploadPhoto } from "@/client/hooks/use-photos.ts";
-import { historyHasFlag } from "@/client/lib/history-state.ts";
+import { historyHasFlag, withHistoryFlag } from "@/client/lib/history-state.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
 import { pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
@@ -24,13 +24,23 @@ export type PhotoAttachment = {
   recognizeJpeg?: Blob;
 };
 
+/**
+ * 「撮ってから入力へ」の意図（00-common 1.2 (c)。中央タブ / ホームのカメラ）。
+ * 「使う」で `onUse` が 1 回呼ばれる。× / OS ピッカーのキャンセル / 戻るでは呼ばれず破棄される。
+ * `replace` は photo-edit が積んだ history 1 段がまだ先頭にあるとき真（呼び出し側は `navigate(to, { replace })`）。
+ */
+export type CaptureIntent = {
+  onUse: (options: { replace: boolean }) => void;
+};
+
 type PhotoEditValue = {
   open: boolean;
   kind: PhotoEditContextKind;
   source: ImageBitmap | null;
   decodeError: string | null;
   attachments: Partial<Record<PhotoEditContextKind, PhotoAttachment>>;
-  startCapture: (kind: PhotoEditContextKind) => Promise<void>;
+  /** 撮影を始める。OS ピッカーをキャンセルすると何も起きない。`intent` を渡すと「使う」で続きの処理を行う */
+  startCapture: (kind: PhotoEditContextKind, intent?: CaptureIntent) => Promise<void>;
   retake: () => Promise<void>;
   closePhotoEdit: () => void;
   applyProcessed: (processed: ProcessedPhoto) => void;
@@ -83,9 +93,12 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const [attachments, setAttachments] = useState<
     Partial<Record<PhotoEditContextKind, PhotoAttachment>>
   >({});
+  // 「使う」まで持ち越す意図。閉じる・戻る・キャンセルで必ず捨てる（空の入力画面を開かないため）
+  const intentRef = useRef<CaptureIntent | null>(null);
 
   useEffect(() => {
     const onPop = () => {
+      intentRef.current = null;
       setOpen(false);
     };
     window.addEventListener("popstate", onPop);
@@ -93,6 +106,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const closeOverlay = useCallback(() => {
+    intentRef.current = null;
     setOpen(false);
     setDecodeError(null);
   }, []);
@@ -116,7 +130,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       });
       setDecodeError(error);
       setOpen(true);
-      window.history.pushState({ [HISTORY_FLAG]: true }, "");
+      window.history.pushState(withHistoryFlag(window.history.state, HISTORY_FLAG), "");
     },
     [],
   );
@@ -130,11 +144,13 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
 
   const startCapture = useCallback(
-    async (nextKind: PhotoEditContextKind) => {
+    async (nextKind: PhotoEditContextKind, intent?: CaptureIntent) => {
+      intentRef.current = null;
       const file = await pickImage({ capture: true });
       if (!file) {
         return;
       }
+      intentRef.current = intent ?? null;
       await loadFile(nextKind, file);
     },
     [loadFile],
@@ -209,10 +225,20 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
   const applyProcessed = useCallback(
     (processed: ProcessedPhoto) => {
-      closePhotoEdit();
+      const intent = intentRef.current;
+      if (!intent) {
+        closePhotoEdit();
+        void beginUpload(kind, processed);
+        return;
+      }
+      // 「撮ってから入力へ」: history.back() で閉じると直後の navigate と競合するので、
+      // オーバーレイだけ閉じ、積んだ 1 段は呼び出し側の navigate(replace) に置き換えさせる
+      const replace = historyHasFlag(window.history.state, HISTORY_FLAG);
+      closeOverlay();
       void beginUpload(kind, processed);
+      intent.onUse({ replace });
     },
-    [beginUpload, closePhotoEdit, kind],
+    [beginUpload, closeOverlay, closePhotoEdit, kind],
   );
 
   const retryUpload = useCallback(

@@ -575,22 +575,9 @@
   transition-timing-function: var(--ease-out);
 }
 
-.tab-center.is-current .tab-center-btn {
-  filter: brightness(0.88);
-  box-shadow: none;
-}
-
-.tab-center.is-current .tab-center-btn::after {
-  opacity: 1;
-}
-
+/* 中央タブは着地画面を持たない（(c)）ため現在地状態は無い。沈むのは押下中（M-21）だけ */
 .tab-center-label {
   font-size: 12px;
-}
-
-.tab-center.is-current .tab-center-label {
-  color: var(--primary);
-  font-weight: 600;
 }
 
 @media (max-width: 360px) {

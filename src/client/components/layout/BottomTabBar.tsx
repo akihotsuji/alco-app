@@ -19,22 +19,22 @@ export function BottomTabBar({ activeTab, onSelect }: BottomTabBarProps) {
   return (
     <nav className="tab-bar" aria-label="メイン">
       {TABS.map((tab) => {
-        const current = tab.id === activeTab;
-        if (tab.id === "log") {
+        if (tab.root === null) {
+          // 中央タブは「動作」（撮影開始）で着地画面を持たないため、現在地ハイライトも aria-current も付けない
           return (
             <button
               key={tab.id}
               type="button"
-              className={current ? "tab-center is-current" : "tab-center"}
-              aria-current={current ? "page" : undefined}
-              aria-label={tab.label}
+              className="tab-center"
+              aria-label={`${tab.label}（写真を撮る）`}
               onClick={() => onSelect(tab)}
             >
-              <span className="tab-center-btn">{ICONS.log}</span>
+              <span className="tab-center-btn">{ICONS[tab.id]}</span>
               <span className="tab-label tab-center-label">{tab.label}</span>
             </button>
           );
         }
+        const current = tab.id === activeTab;
         return (
           <button
             key={tab.id}

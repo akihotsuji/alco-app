@@ -19,7 +19,7 @@
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
 | **FIX（2026-09-06）** | **モーション**は [spec/motion-design.md](../spec/motion-design.md) を全採用（状態変化の瞬間だけ動く `M-01`〜`M-32`、開栓は「少し凝った」段階、記録成功は A + B + C、haptic 既定 OFF + 設定スイッチ、X1〜X8）。ダークの `--primary` / `--score` / `--ring` を `#CC8484` に。共通基盤は 3-02 に同梱 |
-| **FIX（2026-09-06。中央タブ）** | **中央タブの挙動は (c) 撮影開始**。タップで記録用 `photo-edit`、「使う」で写真付き `log-new`、キャンセルは元の画面。着地画面・現在地ハイライトなし。写真なし記録はホームの「記録する」。日別（`/logs`）はホーム配下（今日カード / 週マス / 保存後 / 週サマリーの行から入る。主ボタン群は置かない）。(a) 今日の日別 / (b) 直接 `log-new` は不採用。正本は [spec/screen-designs/README.md](../spec/screen-designs/README.md) と [spec/screens.md](../spec/screens.md)。実装は 3-03（タブ・ホーム）/ 3-05（日別） |
+| **FIX（2026-09-06。中央タブ）** | **中央タブの挙動は (c) 撮影開始**。タップで記録用 `photo-edit`、「使う」で写真付き `log-new`、キャンセルは元の画面。着地画面・現在地ハイライトなし。写真なし記録はホームの「記録する」。日別（`/logs`）はホーム配下（今日カード / 週マス / 保存後 / 週サマリーの行から入る。主ボタン群は置かない）。(a) 今日の日別 / (b) 直接 `log-new` は不採用。正本は [spec/screen-designs/README.md](../spec/screen-designs/README.md) と [spec/screens.md](../spec/screens.md)。実装: 中央タブとホームのカメラは完了（2026-09-06 `feature/center-tab-camera`）、今日カード / 「今週 ›」は 3-03、日別は 3-05 |
 | **要確認（残）** | なし。可視性は public（Free + ruleset）。private にするなら Pro |
 
 ## オーナー決定（2026-08-13 FIX）

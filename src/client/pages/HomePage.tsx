@@ -3,6 +3,7 @@ import { LogQuickActions } from "@/client/components/logs/LogQuickActions.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Card } from "@/client/components/ui/card.tsx";
+import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
 import { logFormHrefs } from "@/client/lib/app-routes.ts";
 import {
   formatHomeDateLabel,
@@ -14,7 +15,9 @@ import {
 export function HomePage() {
   const today = tokyoToday();
   const week = isoWeekDates(today);
-  const { newHref, cameraHref } = logFormHrefs();
+  // H8「記録する」は写真なしで log-new。H9 カメラは中央タブと同じ「撮ってから入力へ」
+  const { newHref } = logFormHrefs();
+  const captureLog = useCaptureLog();
 
   return (
     <div className="home-page">
@@ -44,7 +47,7 @@ export function HomePage() {
           </span>
         </Link>
       </Card>
-      <LogQuickActions newHref={newHref} cameraHref={cameraHref} />
+      <LogQuickActions newHref={newHref} onCamera={captureLog} />
       <div className="home-mydrinks">
         <div className="home-mydrinks-head">
           <h2 className="section-title">マイドリンク</h2>

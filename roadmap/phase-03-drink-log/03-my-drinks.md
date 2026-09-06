@@ -25,11 +25,10 @@
 - 件数上限 30（data-model 5.6 で確定）
 - ホームの今日カードとキャラクター（`default` / `rest`、1 タップ後 `cheer` 300ms + 上 4px。[spec/screen-designs/02-home.md](../../spec/screen-designs/02-home.md)）
 - 1 タップのモーション（[spec/motion-design.md](../../spec/motion-design.md)）: チップの送信中 inset 維持と成功の水位線（M-07 / M-08）、数字カウント（M-09）、今日の週マスが満ちる（M-17）、休肝ピルのフェード（M-18）、ホーム主ボタンの 1 回出現（M-03）。`haptic("success")`
-- **ホームの導線と中央タブの切替**（2026-09-06 オーナー確定 (c)。[spec/screen-designs/00-common.md](../../spec/screen-designs/00-common.md) 1.2、[02-home.md](../../spec/screen-designs/02-home.md) H2 / H9 / H13）
-  - 中央タブ「記録」: `/logs` へのナビゲーションをやめ、タップで記録用 `photo-edit` を開く。「使う」で `/logs/new` を写真付き（`attachments.log` を `log-new` の N2 として受け取る）で開く。× / OS キャンセルは何もしない。現在地ハイライト（`/logs` 配下で中央タブが inset）を外し、`/logs` 配下の親タブをホームにする（`app-routes.ts`）。再タップも撮影から
-  - ホームのカメラ円ボタン H9: 中央タブと同じ挙動（`?camera=1` は使わない）
+- **ホームの残りの導線**（2026-09-06 オーナー確定 (c)。[02-home.md](../../spec/screen-designs/02-home.md) H2 / H13）
   - 今日カード H2 → 今日の `/logs`。カード右上に「今週 ›」H13 → `summary-week`（ルートは 3-06 で実装。3-03 ではリンクだけ置く）
   - 週マスのタップ先をその日の `/logs/:date` に（X6。未来は無効）
+  - 中央タブ「記録」とカメラ円ボタン H9 の撮影開始（`useCaptureLog`、`photo-edit-context` の `CaptureIntent`、`/logs` 配下の親タブ = ホーム）は **完了済み**（2026-09-06。`feature/center-tab-camera`）。3-03 では触らない
 
 **対象外**
 
@@ -41,18 +40,16 @@
 - `/api/my-drinks` CRUD
 - `POST /api/my-drinks/:id/log`（1-05 で必須。サーバーがプリセットをコピー）
 - UI: 管理画面とホームのショートカット
-- 中央タブ・ホームのカメラを撮影開始に切り替えた共通シェル（`BottomTabBar` / `AppShell` / `app-routes.ts`）
-- テスト: 1 タップが自分のログになる、他人の my_drink id で 404、`/logs` 配下の親タブがホーム（`app-routes.test.ts`）
+- テスト: 1 タップが自分のログになる、他人の my_drink id で 404
 
 ## 5. 細分化タスク
 
 1. shared Zod
 2. API CRUD + 1 タップ endpoint
 3. 管理 UI
-4. ホームにショートカット（2-05 の空ホームを埋める）。今日カード → `/logs`、「今週 ›」、カメラ = 撮影開始
-5. 中央タブを撮影開始に切り替え、現在地ハイライトと `/logs` 着地を外す（[00-common.md](../../spec/screen-designs/00-common.md) 受け入れチェックの該当 2 項目を PR に貼る）
-6. 他人 ID の 404 テスト
-7. 監査
+4. ホームにショートカット（2-05 の空ホームを埋める）。今日カード → `/logs`、「今週 ›」
+5. 他人 ID の 404 テスト
+6. 監査
 
 ## 6. 手順
 
@@ -76,7 +73,6 @@ pnpm test && pnpm lint && pnpm typecheck
 - [ ] 登録と 1 タップが実機でできる
 - [ ] 過去ログがプリセット編集で変わらない
 - [ ] 他ユーザーのプリセット ID で記録できないテスト
-- [ ] 中央タブ / ホームのカメラで `photo-edit` が開き、「使う」で写真付き `log-new`、× / OS キャンセルで元の画面に留まる。中央タブに現在地ハイライトが無く、`/logs` 配下ではホームタブが現在地
 - [ ] 今日カード → 今日の `/logs`、「今週 ›」→ `/summary/week`、週マス → `/logs/:date`
 - [ ] DoD 5 項（spec, テスト, lint, 同期, 監査）
 
@@ -93,5 +89,4 @@ pnpm test && pnpm lint && pnpm typecheck
 ## 11. リスク・注意点
 
 - 誤タップで記録が積もる → トースト「取り消す」5 秒（drink-log.md 9 章で確定。楽観更新なし）
-- ホームの 1 タップとタブ「記録」の役割分担 → 確定（2026-09-06 (c)）: 1 タップはホームのチップだけ、中央タブは撮影開始（着地しない）、写真なし記録はホームの「記録する」
-- 中央タブの切替で 2-05 の「`/logs` に着地し現在地で inset」を外す。`app-routes.test.ts` の期待値も直す
+- ホームの 1 タップとタブ「記録」の役割分担 → 確定（2026-09-06 (c)）: 1 タップはホームのチップだけ、中央タブは撮影開始（着地しない。実装済み）、写真なし記録はホームの「記録する」

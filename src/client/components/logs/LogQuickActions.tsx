@@ -6,11 +6,18 @@ import { cn } from "@/client/lib/utils.ts";
 
 type LogQuickActionsProps = {
   newHref: string;
-  cameraHref: string;
+  /** カメラ円ボタンの挙動。`onCamera` があれば「撮ってから入力へ」（02-home H9）、無ければ `cameraHref` へ遷移 */
+  onCamera?: () => void;
+  cameraHref?: string;
   disabled?: boolean;
 };
 
-export function LogQuickActions({ newHref, cameraHref, disabled = false }: LogQuickActionsProps) {
+export function LogQuickActions({
+  newHref,
+  onCamera,
+  cameraHref,
+  disabled = false,
+}: LogQuickActionsProps) {
   return (
     <div className="home-actions">
       {disabled ? (
@@ -22,17 +29,39 @@ export function LogQuickActions({ newHref, cameraHref, disabled = false }: LogQu
           記録する
         </Link>
       )}
-      {disabled ? (
-        <IconButton label="カメラで記録" size="icon-lg" disabled>
-          <Camera size={22} />
-        </IconButton>
-      ) : (
-        <IconButton label="カメラで記録" size="icon-lg" asChild>
-          <Link to={cameraHref}>
-            <Camera size={22} />
-          </Link>
-        </IconButton>
-      )}
+      <CameraButton onCamera={onCamera} cameraHref={cameraHref} disabled={disabled} />
     </div>
   );
+}
+
+function CameraButton({
+  onCamera,
+  cameraHref,
+  disabled,
+}: Pick<LogQuickActionsProps, "onCamera" | "cameraHref" | "disabled">) {
+  const label = "写真を撮って記録";
+  if (disabled) {
+    return (
+      <IconButton label={label} size="icon-lg" disabled>
+        <Camera size={22} />
+      </IconButton>
+    );
+  }
+  if (onCamera) {
+    return (
+      <IconButton label={label} size="icon-lg" onClick={onCamera}>
+        <Camera size={22} />
+      </IconButton>
+    );
+  }
+  if (cameraHref) {
+    return (
+      <IconButton label={label} size="icon-lg" asChild>
+        <Link to={cameraHref}>
+          <Camera size={22} />
+        </Link>
+      </IconButton>
+    );
+  }
+  return null;
 }

@@ -419,7 +419,8 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 | タスク | 本ファイルの節 | 画面設計 |
 |---|---|---|
 | 3-02 記録入力 | 3.2 / 3.7 / 3.8 / 4.1 / 6 | [03-log.md](../screen-designs/03-log.md) `log-new` |
-| 3-03 マイドリンク・ホーム | 3.4 / 3.5 / 4.2 / 4.3。**中央タブとホームのカメラを撮影開始に切り替え**（共通シェルのタブ。現在地ハイライトを外す）、今日カード → 日別、「今週 ›」 | [03-log.md](../screen-designs/03-log.md) `mydrink-*`、[02-home.md](../screen-designs/02-home.md) `home`、[00-common.md](../screen-designs/00-common.md) 1.2 |
+| 中央タブ・カメラの撮影開始（**完了** 2026-09-06） | 1 章 / 3.2 入口表 / E8b〜E8d。`useCaptureLog` と `photo-edit-context` の `CaptureIntent`。`/logs` 配下の親タブ = ホーム | [00-common.md](../screen-designs/00-common.md) 1.2、[02-home.md](../screen-designs/02-home.md) H9 |
+| 3-03 マイドリンク・ホーム | 3.4 / 3.5 / 4.2 / 4.3。今日カード → 日別、「今週 ›」 | [03-log.md](../screen-designs/03-log.md) `mydrink-*`、[02-home.md](../screen-designs/02-home.md) `home` |
 | 3-04 計算 | 5 | `src/shared/alcohol.ts`（完了） |
 | 3-05 日別・編集・削除 | 3.1 / 3.3 / 4.4（日別はホームから。主ボタン群・チップは置かない） | [03-log.md](../screen-designs/03-log.md) `log-day` / `log-edit` |
 | 3-06 週 / 月サマリー | 3.6 | [02-home.md](../screen-designs/02-home.md) `summary-*` |

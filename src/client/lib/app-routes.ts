@@ -14,13 +14,14 @@ export type TabId = (typeof TAB_IDS)[number];
 export type TabDef = {
   id: TabId;
   label: string;
-  root: string;
+  /** タブの根。中央タブ「記録」は着地画面を持たない動作（撮影開始）なので `null`（00-common 1.2 (c)） */
+  root: string | null;
 };
 
 export const TABS: readonly TabDef[] = [
   { id: "home", label: "ホーム", root: "/" },
   { id: "cellar", label: "セラー", root: "/cellar" },
-  { id: "log", label: "記録", root: "/logs" },
+  { id: "log", label: "記録", root: null },
   { id: "notes", label: "ノート", root: "/notes" },
   { id: "settings", label: "設定", root: "/settings" },
 ];
@@ -156,33 +157,34 @@ export function resolveAppRoute(
     }
   }
 
+  // `/logs` 配下の親タブはすべてホーム。中央タブは着地を持たない（screens.md「認証後 — 記録」）
   if (segments[0] === "logs") {
     if (segments.length === 1) {
-      return found("log-day", "log", logDayHeader(today, today));
+      return found("log-day", "home", logDayHeader(today, today));
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return formRoute("log-new", "log", "記録する", logNewFallback(search, today));
+      return formRoute("log-new", "home", "記録する", logNewFallback(search, today));
     }
     if (segments[1] === "my-drinks") {
       if (segments.length === 2) {
         return found(
           "mydrink-list",
-          "log",
-          backHeader("マイドリンク", "/logs", { kind: "plus", to: "/logs/my-drinks/new" }),
+          "home",
+          backHeader("マイドリンク", "/", { kind: "plus", to: "/logs/my-drinks/new" }),
         );
       }
       if (segments[2] === "new" && segments.length === 3) {
-        return formRoute("mydrink-new", "log", "マイドリンクを追加", "/logs/my-drinks");
+        return formRoute("mydrink-new", "home", "マイドリンクを追加", "/logs/my-drinks");
       }
       if (segments.length === 4 && segments[3] === "edit" && segments[2]) {
-        return formRoute("mydrink-edit", "log", "マイドリンクを編集", "/logs/my-drinks");
+        return formRoute("mydrink-edit", "home", "マイドリンクを編集", "/logs/my-drinks");
       }
     }
     if (segments[1] === "entries" && segments.length === 4 && segments[3] === "edit") {
-      return formRoute("log-edit", "log", "記録を編集", "/logs");
+      return formRoute("log-edit", "home", "記録を編集", "/logs");
     }
     if (segments.length === 2 && segments[1] && isValidLogDateParam(segments[1])) {
-      return found("log-day", "log", logDayHeader(segments[1], today));
+      return found("log-day", "home", logDayHeader(segments[1], today));
     }
     return notFoundRoute();
   }
