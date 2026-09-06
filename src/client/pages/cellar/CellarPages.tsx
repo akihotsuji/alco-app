@@ -25,6 +25,7 @@ import {
 import { useDrinkLogsByBottle } from "@/client/hooks/use-drink-logs.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
+import { agentDebugLog } from "@/client/lib/agent-debug-log.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import {
   type BottleFormErrors,
@@ -223,6 +224,43 @@ export function CellarPage() {
   const leavePlayed = useRef(false);
   const placedPlayed = useRef(false);
   const toastPlayed = useRef(false);
+  const mountSnapshotRef = useRef({
+    showUndo,
+    hasLeft: Boolean(left),
+    bottleId: left?.bottleId ?? null,
+    locUndo: consumeUndoRequested(location.state),
+    locLeft: Boolean(consumeLeftEvent(location.state)),
+    path: location.pathname,
+  });
+
+  // #region agent log
+  useEffect(() => {
+    const snap = mountSnapshotRef.current;
+    const historyState = window.history.state;
+    const historyUsr =
+      typeof historyState === "object" && historyState !== null && "usr" in historyState
+        ? Reflect.get(historyState, "usr")
+        : undefined;
+    agentDebugLog({
+      hypothesisId: "A",
+      location: "CellarPages.tsx:mount",
+      message: "CellarPage mount",
+      data: {
+        ...snap,
+        rememberedKind: rememberedRef.current?.kind ?? null,
+        historyUsrNull: historyUsr == null,
+      },
+    });
+    return () => {
+      agentDebugLog({
+        hypothesisId: "A",
+        location: "CellarPages.tsx:unmount",
+        message: "CellarPage unmount",
+        data: { toastPlayed: toastPlayed.current },
+      });
+    };
+  }, []);
+  // #endregion
 
   const actualCount = query.data?.totalCount;
   const headerTarget =
@@ -269,6 +307,22 @@ export function CellarPage() {
   }, [placed, query.data]);
 
   useEffect(() => {
+    // #region agent log
+    agentDebugLog({
+      hypothesisId: "E",
+      location: "CellarPages.tsx:toast-effect",
+      message: "undo toast effect",
+      data: {
+        showUndo,
+        hasLeft: Boolean(left),
+        bottleId: left?.bottleId ?? null,
+        toastPlayed: toastPlayed.current,
+        willShow: Boolean(showUndo && left && !toastPlayed.current),
+        queryStatus: query.status,
+        itemCount: query.data?.items.length ?? -1,
+      },
+    });
+    // #endregion
     if (!showUndo || !left || toastPlayed.current) {
       return;
     }
@@ -280,6 +334,14 @@ export function CellarPage() {
       action: {
         label: "取り消す",
         onSelect: () => {
+          // #region agent log
+          agentDebugLog({
+            hypothesisId: "A",
+            location: "CellarPages.tsx:onSelect",
+            message: "toast onSelect restore.mutate",
+            data: { bottleId: left.bottleId },
+          });
+          // #endregion
           restore.mutate(left.bottleId, {
             onSuccess: () => {
               setEnterId(left.bottleId);
@@ -330,7 +392,20 @@ export function CellarPage() {
             <div className="shelf-board" />
           </div>
           <p className="empty-state-message">ボトルはまだありません。撮って 1 本目を並べましょう</p>
-          <Link className={cn(buttonVariants(), "empty-action")} to="/cellar/new?camera=1">
+          <Link
+            className={cn(buttonVariants(), "empty-action")}
+            to="/cellar/new?camera=1"
+            onClick={() => {
+              // #region agent log
+              agentDebugLog({
+                hypothesisId: "C",
+                location: "CellarPages.tsx:empty-action",
+                message: "empty-action click",
+                data: {},
+              });
+              // #endregion
+            }}
+          >
             ボトルを追加
           </Link>
         </div>

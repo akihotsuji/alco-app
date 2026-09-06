@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
+import { agentDebugLog } from "@/client/lib/agent-debug-log.ts";
+import { type ApiClient, api, isApiClientError, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type { BottleView, CreateBottleInput, UpdateBottleInput } from "@/shared/bottles.ts";
 import type { DrinkType } from "@/shared/constants.ts";
@@ -47,7 +48,42 @@ export function consumeBottle(id: string, client: ApiClient = api) {
 }
 
 export function restoreBottle(id: string, client: ApiClient = api) {
-  return unwrap(client.api.bottles[":id"].restore.$post({ param: { id } }));
+  // #region agent log
+  agentDebugLog({
+    hypothesisId: "D",
+    location: "use-bottles.ts:restoreBottle",
+    message: "restore fetch start",
+    data: { id },
+  });
+  // #endregion
+  return unwrap(client.api.bottles[":id"].restore.$post({ param: { id } })).then(
+    (result) => {
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "D",
+        location: "use-bottles.ts:restoreBottle",
+        message: "restore fetch ok",
+        data: { id, status: result.status },
+      });
+      // #endregion
+      return result;
+    },
+    (error: unknown) => {
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "D",
+        location: "use-bottles.ts:restoreBottle",
+        message: "restore fetch fail",
+        data: {
+          id,
+          status: isApiClientError(error) ? error.status : 0,
+          code: isApiClientError(error) ? error.code : "unknown",
+        },
+      });
+      // #endregion
+      throw error;
+    },
+  );
 }
 
 export function useBottles(query: BottlesListQuery = {}) {

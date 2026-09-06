@@ -11,6 +11,7 @@ import { useLocation } from "react-router";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { agentDebugLog } from "@/client/lib/agent-debug-log.ts";
 import { hidesTabBar } from "@/client/lib/app-routes.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import {
@@ -102,6 +103,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         setToast({ ...input, id, phase: "enter" });
       };
       const current = toastRef.current;
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "E",
+        location: "ToastProvider.tsx:showToast",
+        message: "showToast",
+        data: {
+          id,
+          message: input.message,
+          hasAction: Boolean(input.action),
+          actionLabel: input.action?.label ?? null,
+          replacing: Boolean(current && current.phase !== "leave"),
+          currentPhase: current?.phase ?? null,
+        },
+      });
+      // #endregion
       if (current && current.phase !== "leave") {
         beginLeave(mount);
         return;
@@ -152,10 +168,39 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (id: number, action: ToastAction) => {
       const timerState = timerStateRef.current;
       if (!timerState || timerState.id !== id) {
+        // #region agent log
+        agentDebugLog({
+          hypothesisId: "B",
+          location: "ToastProvider.tsx:selectAction",
+          message: "selectAction skipped: timer mismatch",
+          data: {
+            id,
+            timerId: timerState?.id ?? null,
+            timerState: timerState?.state ?? null,
+            actionLabel: action.label,
+          },
+        });
+        // #endregion
         return;
       }
       const transition = transitionToastTimer(timerState.state, "select");
       timerStateRef.current = { id, state: transition.state };
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "B",
+        location: "ToastProvider.tsx:selectAction",
+        message: "selectAction",
+        data: {
+          id,
+          timerId: timerState.id,
+          timerState: timerState.state,
+          nextState: transition.state,
+          effect: transition.effect,
+          willCallOnSelect: transition.effect === "select",
+          actionLabel: action.label,
+        },
+      });
+      // #endregion
       if (transition.effect !== "select") {
         return;
       }
@@ -249,6 +294,18 @@ function ToastCard({
           onPointerDown={() => onActionStart(toast.id)}
           onFocus={() => onActionStart(toast.id)}
           onClick={() => {
+            // #region agent log
+            agentDebugLog({
+              hypothesisId: "C",
+              location: "ToastProvider.tsx:action-click",
+              message: "toast action click",
+              data: {
+                id: toast.id,
+                label: toast.action?.label ?? null,
+                phase: toast.phase,
+              },
+            });
+            // #endregion
             if (toast.action) {
               onActionSelect(toast.id, toast.action);
             }
