@@ -40,19 +40,6 @@ function ValidLogDayPage({ day }: { day: string }) {
   const undoId = undoDrinkLogId(location.state);
 
   useEffect(() => {
-    // #region agent log
-    agentDebugLog({
-      hypothesisId: "H1",
-      location: "LogDayPage.tsx:undo-effect",
-      message: "Undo toast eligibility evaluated",
-      data: {
-        undoId,
-        queryHasData: Boolean(query.data),
-        rowContainsUndo: query.data?.items.some((item) => item.id === undoId) ?? false,
-        shownUndoId: shownUndo.current,
-      },
-    });
-    // #endregion
     if (!undoId || !query.data?.items.some((item) => item.id === undoId)) {
       return;
     }
@@ -116,25 +103,6 @@ function ValidLogDayPage({ day }: { day: string }) {
       },
     });
   }, [query.data, remove, showToast, undoId]);
-
-  useEffect(() => {
-    if (!removingId) {
-      return;
-    }
-    const row = document.querySelector(`[data-log-id="${CSS.escape(removingId)}"] .log-row`);
-    // #region agent log
-    agentDebugLog({
-      hypothesisId: "H5",
-      location: "LogDayPage.tsx:removing-state-commit",
-      message: "Removing state committed to rendered row",
-      data: {
-        removingId,
-        rowFound: row instanceof HTMLElement,
-        hasRemovingClass: row?.classList.contains("is-removing") ?? false,
-      },
-    });
-    // #endregion
-  }, [removingId]);
 
   return (
     <div className="log-day">
