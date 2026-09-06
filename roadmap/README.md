@@ -11,10 +11,10 @@
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-09、1-01〜1-09、2-01〜2-08、3-01〜3-06（機能仕様、記録入力、マイドリンク、計算、日別一覧・編集・削除、週/月サマリー）。`protect-main` は 2026-09-05 適用（id `22315799`） |
-| **レビュー待ち** | なし |
-| **進行中** | Phase 3（3-01〜3-06 完了。3-07 設定・デプロイ手順） |
-| **未着手** | Phase 4 以降 |
+| **完了** | 0-01〜0-09、1-01〜1-09、2-01〜2-08、3-01〜3-07（機能仕様、記録入力、マイドリンク、計算、日別、週/月、設定操作節。dev デプロイはオーナー操作）。`protect-main` は 2026-09-05 適用（id `22315799`） |
+| **レビュー待ち** | 4-01（`spec/features/cellar.md`） |
+| **進行中** | Phase 4（4-01 レビュー待ち。承認後に 4-02） |
+| **未着手** | 4-02 以降 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
@@ -104,8 +104,8 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 完了 |
 | Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 完了（1-01〜06 は 2026-09-04、1-07 / 08 は 2026-09-06 承認） |
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 完了（2-01〜2-08） |
-| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 進行中（3-01〜3-06 完了。3-07 設定・手順済み） |
-| Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と開栓・貯蔵庫・ラベル AI 読み取り | 未着手 |
+| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 完了（3-07 の実デプロイはオーナー操作） |
+| Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と開栓・貯蔵庫・ラベル AI 読み取り | 4-01 レビュー待ち |
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 未着手 |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
 | Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 未着手 |
@@ -172,7 +172,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 4-01 | `spec/features/cellar.md` 作成 | [01-spec-cellar.md](phase-04-cellar/01-spec-cellar.md) | 未着手 |
+| 4-01 | `spec/features/cellar.md` 作成 | [01-spec-cellar.md](phase-04-cellar/01-spec-cellar.md) | レビュー待ち（2026-09-06 作成） |
 | 4-02 | ボトルCRUD | [02-bottle-crud.md](phase-04-cellar/02-bottle-crud.md) | 未着手 |
 | 4-03 | 開栓・貯蔵庫・復元（ステータス管理） | [03-status-management.md](phase-04-cellar/03-status-management.md) | 未着手 |
 | 4-04 | 陳列（ガラス棚。種類ごと / 1 本ずつ。R2 基盤は 2-08 へ） | [04-photo-upload-r2.md](phase-04-cellar/04-photo-upload-r2.md) | 未着手 |
