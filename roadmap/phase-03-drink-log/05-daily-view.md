@@ -25,7 +25,7 @@
 - PATCH / DELETE
 - UI: 日送り、合計（0 件は休肝ピル）、**最上部の「記録する」+ カメラ + マイドリンクチップ**、行（写真サムネ 48px / 種類アイコン、ボトル名）、`?highlight=` の挿入 + 2 秒強調、編集フォーム（`log-edit`）、削除確認
 - 空状態（休肝の日。キャラは出さない。全期間 0 件の初回だけ X7 の文言）
-- モーション（[spec/motion-design.md](../../spec/motion-design.md) 10 章）: `useHighlightRow`（行の挿入 M-14、リングのフェード M-15、`scrollIntoView` M-16。X1。保存・消費・1 タップ・undo 復元で共用）、undo で消える行の inset → フェード（X2）、中央タブから着地したときの主ボタン 1 回出現（X3）、日別上の 1 タップは数字カウント + 行挿入 + トースト
+- モーション（[spec/motion-design.md](../../spec/motion-design.md) 10 章）: `useHighlightRow`（行の挿入 M-14、リングのフェード M-15、`scrollIntoView` M-16。X1。保存・1 タップ・undo 復元で共用）、undo で消える行の inset → フェード（X2）、中央タブから着地したときの主ボタン 1 回出現（X3）、日別上の 1 タップは数字カウント + 行挿入 + トースト
 
 **対象外**
 

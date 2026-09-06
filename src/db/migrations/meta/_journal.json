@@ -15,6 +15,13 @@
       "when": 1788592915960,
       "tag": "0001_better_auth_account_issuer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788661597929,
+      "tag": "0002_bottles_drop_opened",
+      "breakpoints": true
     }
   ]
 }
