@@ -4,8 +4,8 @@ import {
   DRINK_LOG_MESSAGES,
   DRINK_LOG_SUMMARY_MESSAGES,
   DRUNK_AT_FUTURE_TOLERANCE_MS,
-  drinkLogsQuerySchema,
   drinkLogSummaryQuerySchema,
+  drinkLogsQuerySchema,
   hasAtMostOneDecimal,
   isDrunkAtAllowed,
   normalizeMemo,
@@ -158,9 +158,9 @@ describe("drinkLogsQuerySchema", () => {
       date: "2026-09-06",
       limit: 50,
     });
-    expect(
-      drinkLogsQuerySchema.safeParse({ from: "2026-08-06", to: "2026-09-06" }).success,
-    ).toBe(true);
+    expect(drinkLogsQuerySchema.safeParse({ from: "2026-08-06", to: "2026-09-06" }).success).toBe(
+      true,
+    );
   });
 
   it("日付と期間の混在・片側だけ・逆転・32日超・日付なしを拒否する", () => {

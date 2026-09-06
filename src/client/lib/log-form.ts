@@ -9,8 +9,8 @@ import type { DrinkType } from "@/shared/constants.ts";
 import {
   abvPercentSchema,
   type CreateDrinkLogInput,
-  type DrinkLog,
   DRINK_LOG_MESSAGES,
+  type DrinkLog,
   isDrunkAtAllowed,
   memoSchema,
   type UpdateDrinkLogInput,

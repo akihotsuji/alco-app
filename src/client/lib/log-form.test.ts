@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type DrinkLog, DRINK_LOG_MESSAGES } from "@/shared/drink-logs.ts";
+import { DRINK_LOG_MESSAGES, type DrinkLog } from "@/shared/drink-logs.ts";
 import { ApiClientError } from "./api.ts";
 import {
   applyDrinkType,

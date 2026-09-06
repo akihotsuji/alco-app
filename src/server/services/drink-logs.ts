@@ -6,14 +6,14 @@ import { calculateAlcoholGrams, isDryDay, sumAlcoholGrams } from "@/shared/alcoh
 import type { DrinkType } from "@/shared/constants.ts";
 import {
   type CreateDrinkLogInput,
+  DRINK_LOG_MESSAGES,
   DRINK_LOG_PHOTO_MAX,
   type DrinkLog,
   type DrinkLogItem,
-  type DrinkLogsQuery,
-  type DrinkLogsResponse,
   type DrinkLogSummary,
   type DrinkLogSummaryQuery,
-  DRINK_LOG_MESSAGES,
+  type DrinkLogsQuery,
+  type DrinkLogsResponse,
   normalizeMemo,
   type UpdateDrinkLogInput,
 } from "@/shared/drink-logs.ts";
@@ -369,9 +369,7 @@ async function removeDetachedPhoto(
     await bucket.delete(photo.r2Key);
     await db
       .delete(photos)
-      .where(
-        and(eq(photos.id, photo.id), eq(photos.userId, userId), isNull(photos.drinkLogId)),
-      );
+      .where(and(eq(photos.id, photo.id), eq(photos.userId, userId), isNull(photos.drinkLogId)));
   } catch {
     // 未紐付けのまま残し、24h 後の日次 GC に再試行させる。
   }

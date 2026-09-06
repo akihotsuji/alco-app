@@ -5,8 +5,8 @@ import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import {
   DRINK_LOG_MESSAGES,
   DRUNK_AT_FUTURE_TOLERANCE_MS,
-  drinkLogsResponseSchema,
   drinkLogSchema,
+  drinkLogsResponseSchema,
 } from "@/shared/drink-logs.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";

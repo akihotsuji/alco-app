@@ -135,7 +135,7 @@ function ValidLogDayPage({ day }: { day: string }) {
 
 type LogDayRowProps = {
   item: DrinkLogItem;
-  ref?: Ref<HTMLElement>;
+  ref?: Ref<HTMLAnchorElement>;
   highlighted: boolean;
   fading: boolean;
   removing: boolean;

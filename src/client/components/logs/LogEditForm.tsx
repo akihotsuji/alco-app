@@ -29,8 +29,8 @@ import {
   formatGrams,
   isLogFormDirty,
   type LogFormErrors,
-  logFormStateFromDrinkLog,
   liveAlcoholGrams,
+  logFormStateFromDrinkLog,
   type PhotoSaveStatus,
   saveButtonLabel,
   toUpdateDrinkLogBody,
@@ -259,7 +259,11 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
       <Dialog
         open={discardOpen}
         title="入力を破棄しますか"
-        body={attachment ? "入力した内容は保存されず、写真も削除されます" : "入力した内容は保存されません"}
+        body={
+          attachment
+            ? "入力した内容は保存されず、写真も削除されます"
+            : "入力した内容は保存されません"
+        }
         primaryLabel="破棄する"
         destructive
         onPrimary={() => void discard()}

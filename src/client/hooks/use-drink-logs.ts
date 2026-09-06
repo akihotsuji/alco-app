@@ -19,11 +19,7 @@ export function getDrinkLog(id: string, client: ApiClient = api) {
   return unwrap(client.api["drink-logs"][":id"].$get({ param: { id } }));
 }
 
-export function updateDrinkLog(
-  id: string,
-  body: UpdateDrinkLogInput,
-  client: ApiClient = api,
-) {
+export function updateDrinkLog(id: string, body: UpdateDrinkLogInput, client: ApiClient = api) {
   return unwrap(client.api["drink-logs"][":id"].$patch({ param: { id }, json: body }));
 }
 

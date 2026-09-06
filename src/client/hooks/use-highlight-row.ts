@@ -12,13 +12,12 @@ export type HighlightPhase = "enter" | "opening" | "highlight" | "fading" | null
 export function useHighlightRow(highlightId: string | null, itemIds: readonly string[]) {
   const [, setSearchParams] = useSearchParams();
   const reduceMotion = useReducedMotion();
-  const rowRef = useRef<HTMLElement | null>(null);
+  const rowRef = useRef<HTMLAnchorElement | null>(null);
   const [phase, setPhase] = useState<HighlightPhase>(highlightId ? "enter" : null);
   const [targetId, setTargetId] = useState<string | null>(highlightId);
-  const itemKey = itemIds.join(",");
   const highlightedExists = targetId ? itemIds.includes(targetId) : false;
 
-  const register: RefCallback<HTMLElement> = useCallback((node) => {
+  const register: RefCallback<HTMLAnchorElement> = useCallback((node) => {
     rowRef.current = node;
   }, []);
 
@@ -70,7 +69,7 @@ export function useHighlightRow(highlightId: string | null, itemIds: readonly st
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
     };
-  }, [highlightedExists, itemKey, itemIds.length, reduceMotion, setSearchParams, targetId]);
+  }, [highlightedExists, itemIds.length, reduceMotion, setSearchParams, targetId]);
 
   return { phase, register, targetId };
 }
