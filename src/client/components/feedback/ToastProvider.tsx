@@ -321,7 +321,9 @@ function ToastCard({
         actionPointerEvents: actionRef.current
           ? getComputedStyle(actionRef.current).pointerEvents
           : "missing",
-        cardPointerEvents: cardRef.current ? getComputedStyle(cardRef.current).pointerEvents : "missing",
+        cardPointerEvents: cardRef.current
+          ? getComputedStyle(cardRef.current).pointerEvents
+          : "missing",
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
         devicePixelRatio: window.devicePixelRatio,
@@ -336,15 +338,14 @@ function ToastCard({
 
   useEffect(() => {
     const captureInput = (event: Event) => {
+      const firstTouch = event instanceof TouchEvent ? event.touches.item(0) : null;
       const point =
         event instanceof MouseEvent
           ? { clientX: event.clientX, clientY: event.clientY }
-          : event instanceof TouchEvent && event.touches.length > 0
-            ? { clientX: event.touches[0].clientX, clientY: event.touches[0].clientY }
+          : firstTouch
+            ? { clientX: firstTouch.clientX, clientY: firstTouch.clientY }
             : null;
-      const hitTarget = point
-        ? document.elementFromPoint(point.clientX, point.clientY)
-        : null;
+      const hitTarget = point ? document.elementFromPoint(point.clientX, point.clientY) : null;
       const eventTarget = event.target;
       // #region agent log
       agentDebug({
