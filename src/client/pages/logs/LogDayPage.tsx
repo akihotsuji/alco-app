@@ -110,7 +110,6 @@ function ValidLogDayPage({ day }: { day: string }) {
                   <div
                     key={item.id}
                     className="log-row-wrap"
-                    data-log-id={item.id}
                     data-enter={isTarget && highlight.phase === "enter" ? "1" : undefined}
                   >
                     <LogDayRow
