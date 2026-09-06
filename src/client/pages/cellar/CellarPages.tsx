@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { BottleDetail } from "@/client/components/cellar/BottleDetail.tsx";
@@ -14,12 +15,12 @@ import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import {
+  restoreBottle,
   useBottle,
   useBottles,
   useCreateBottles,
   useDeleteBottle,
   useInfiniteBottles,
-  useRestoreBottle,
   useUpdateBottle,
 } from "@/client/hooks/use-bottles.ts";
 import { useDrinkLogsByBottle } from "@/client/hooks/use-drink-logs.ts";
@@ -39,14 +40,24 @@ import {
   shelfRowIndex,
 } from "@/client/lib/cellar-shelf.ts";
 import {
+  captureCellarVisit,
   clearRouterLocationState,
   consumeLeftEvent,
-  consumeUndoRequested,
+  currentCellarVisit,
+  isCellarListPath,
+  markCellarVisitLeavePlayed,
+  markCellarVisitPlacedPlayed,
+  markCellarVisitToastShown,
+  nextBottleSearchParams,
   placedBottleEvent,
+  releaseCellarVisit,
+  replaceSearchKeepState,
+  takeRememberedIntoVisit,
   takeRememberedShelfEvent,
 } from "@/client/lib/history-state.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
 import { MOTION_MS, type MotionState } from "@/client/lib/motion.ts";
+import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { cn } from "@/client/lib/utils.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
@@ -64,6 +75,7 @@ function useDebounced(value: string, ms: number) {
 }
 
 function useBottleListFilters() {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const qParam = searchParams.get("q") ?? "";
   const drinkTypeParam = searchParams.get("drinkType");
@@ -75,50 +87,38 @@ function useBottleListFilters() {
   const [searchOpen, setSearchOpen] = useState(qParam.length > 0);
   const [typeOpen, setTypeOpen] = useState(false);
   const q = useDebounced(qInput.trim(), 300);
+  const navigateOptions = replaceSearchKeepState(location.state);
 
   useEffect(() => {
-    setSearchParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        if (q) {
-          next.set("q", q);
-        } else {
-          next.delete("q");
-        }
-        return next;
-      },
-      { replace: true },
-    );
-  }, [q, setSearchParams]);
+    const next = nextBottleSearchParams(searchParams, q);
+    if (!next) {
+      return;
+    }
+    setSearchParams(next, navigateOptions);
+  }, [q, searchParams, setSearchParams, navigateOptions]);
 
   function clearFilters() {
     setQInput("");
     setSearchOpen(false);
     setTypeOpen(false);
-    setSearchParams({}, { replace: true });
+    setSearchParams({}, navigateOptions);
   }
 
   function clearDrinkType() {
     setTypeOpen(false);
-    setSearchParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        next.delete("drinkType");
-        return next;
-      },
-      { replace: true },
-    );
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("drinkType");
+      return next;
+    }, navigateOptions);
   }
 
   function selectDrinkType(type: DrinkType) {
-    setSearchParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        next.set("drinkType", type);
-        return next;
-      },
-      { replace: true },
-    );
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("drinkType", type);
+      return next;
+    }, navigateOptions);
     setTypeOpen(false);
   }
 
@@ -207,22 +207,24 @@ export function CellarPage() {
   });
   const columns = useShelfColumns();
   const reduceMotion = useReducedMotion();
-  const restore = useRestoreBottle();
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const rememberedRef = useRef(takeRememberedShelfEvent());
-  const left =
-    consumeLeftEvent(location.state) ??
-    (rememberedRef.current?.kind === "left" ? rememberedRef.current : null);
-  const placed =
-    placedBottleEvent(location.state) ??
-    (rememberedRef.current?.kind === "placed" ? rememberedRef.current : null);
-  const showUndo = consumeUndoRequested(location.state) || rememberedRef.current?.kind === "left";
+  const locLeft = consumeLeftEvent(location.state);
+  const locPlaced = placedBottleEvent(location.state);
+  if (locLeft) {
+    captureCellarVisit({ kind: "left", ...locLeft });
+  } else if (locPlaced) {
+    captureCellarVisit({ kind: "placed", ...locPlaced });
+  }
+  const [storageTick, setStorageTick] = useState(0);
+  const visit = currentCellarVisit();
+  void storageTick;
+  const left = visit?.event.kind === "left" ? visit.event : null;
+  const placed = visit?.event.kind === "placed" ? visit.event : null;
+  const showUndo = visit?.event.kind === "left";
   const [headerSeed, setHeaderSeed] = useState<number | undefined>(undefined);
   const [highlightRow, setHighlightRow] = useState<number | null>(null);
   const [enterId, setEnterId] = useState<string | null>(null);
-  const leavePlayed = useRef(false);
-  const placedPlayed = useRef(false);
-  const toastPlayed = useRef(false);
 
   const actualCount = query.data?.totalCount;
   const headerTarget =
@@ -235,10 +237,25 @@ export function CellarPage() {
   });
 
   useEffect(() => {
-    if (actualCount === undefined || !left || leavePlayed.current) {
+    if (currentCellarVisit()) {
+      takeRememberedShelfEvent();
+    } else if (takeRememberedIntoVisit()) {
+      setStorageTick((tick) => tick + 1);
+    }
+    return () => {
+      queueMicrotask(() => {
+        if (!isCellarListPath(window.location.pathname)) {
+          releaseCellarVisit();
+        }
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (actualCount === undefined || !left || currentCellarVisit()?.leavePlayed) {
       return;
     }
-    leavePlayed.current = true;
+    markCellarVisitLeavePlayed();
     const items = query.data?.items ?? [];
     const rank = rankByCreatedAtDesc(items, left);
     setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
@@ -258,10 +275,10 @@ export function CellarPage() {
   }, [actualCount, left, query.data?.items, reduceMotion]);
 
   useEffect(() => {
-    if (!placed || !query.data || placedPlayed.current) {
+    if (!placed || !query.data || currentCellarVisit()?.placedPlayed) {
       return;
     }
-    placedPlayed.current = true;
+    markCellarVisitPlacedPlayed();
     const rank = rankByCreatedAtDesc(query.data.items, placed);
     setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
     const clearHighlight = window.setTimeout(() => setHighlightRow(null), MOTION_MS.open);
@@ -269,22 +286,28 @@ export function CellarPage() {
   }, [placed, query.data]);
 
   useEffect(() => {
-    if (!showUndo || !left || toastPlayed.current) {
+    const toastShown = currentCellarVisit()?.toastShown ?? false;
+    if (!showUndo || !left || toastShown) {
       return;
     }
-    toastPlayed.current = true;
+    markCellarVisitToastShown();
     clearRouterLocationState();
-    rememberedRef.current = null;
+    const bottleId = left.bottleId;
+    const createdAt = left.createdAt;
     showToast({
       message: TOAST_MESSAGES.opened,
       action: {
         label: "取り消す",
         onSelect: () => {
-          restore.mutate(left.bottleId, {
-            onSuccess: () => {
-              setEnterId(left.bottleId);
-              const items = query.data?.items ?? [];
-              const rank = rankByCreatedAtDesc(items, left);
+          void restoreBottle(bottleId).then(
+            () => {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+              setEnterId(bottleId);
+              const items =
+                queryClient.getQueryData<{ items: BottleItem[] }>(
+                  queryKeys.bottlesList({ view: "cellar" }),
+                )?.items ?? [];
+              const rank = rankByCreatedAtDesc(items, { bottleId, createdAt });
               setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
               window.setTimeout(() => {
                 setHighlightRow(null);
@@ -292,19 +315,19 @@ export function CellarPage() {
               }, MOTION_MS.open);
               showToast({ message: TOAST_MESSAGES.undone, cheer: true });
             },
-            onError: () => {
+            () => {
               showToast({
                 message: navigator.onLine
                   ? FORM_ERROR_MESSAGES.generic
                   : FORM_ERROR_MESSAGES.offline,
               });
-              void query.refetch();
+              void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
             },
-          });
+          );
         },
       },
     });
-  }, [left, query, restore, showToast, showUndo]);
+  }, [left, queryClient, showToast, showUndo]);
 
   const filteredOut = Boolean(filters.q || filters.drinkType);
   const emptyInventory = query.data?.totalCount === 0;

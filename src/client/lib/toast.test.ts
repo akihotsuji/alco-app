@@ -39,6 +39,13 @@ describe("transitionToastTimer", () => {
     });
   });
 
+  it("入場中の action click でも onSelect する", () => {
+    expect(transitionToastTimer("entering", "select")).toEqual({
+      state: "selected",
+      effect: "select",
+    });
+  });
+
   it("通常の action click は onSelect を1回だけ実行する", () => {
     let state: ToastTimerState = "running";
     const onSelect = vi.fn();
