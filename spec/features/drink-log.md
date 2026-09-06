@@ -264,11 +264,11 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 | 表示丸め | 第 1 位（`displayAlcoholGrams`）。「12.0 g」。末尾 `.0` の省略は見た目の自由 |
 | 杯数 | 行数（`totalCount`） |
 | 信頼境界 | サーバーが `src/shared` の同一関数で再計算して保存。クライアントの `alcoholG` は受け取らない。ライブ表示（N6）は同じ関数 |
-| デフォルト表 | [alcohol-calculation.md](alcohol-calculation.md) 4 章 `DRINK_TYPE_PRESETS`（3-04 で `src/shared` に置く） |
+| デフォルト表 | [alcohol-calculation.md](alcohol-calculation.md) 4 章 `DRINK_TYPE_PRESETS`（`src/shared/alcohol.ts`） |
 | 休肝日 | JST 日の記録 0 件。0g の行がある日は休肝にしない。未来日は数えない |
 | 週 / 月 | ISO 週（月曜始まり、JST）/ 暦月（JST） |
 
-例題（テストの種）は同ファイル 8 章。3-04 の単体テストはそこを正とする。
+例題（テストの種）は同ファイル 8 章。単体テストは `src/shared/alcohol.test.ts`（3-04）。
 
 ---
 
@@ -399,7 +399,7 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 |---|---|---|
 | 3-02 記録入力 | 3.2 / 3.7 / 3.8 / 4.1 / 6 | [03-log.md](../screen-designs/03-log.md) `log-new` |
 | 3-03 マイドリンク・ホーム | 3.4 / 3.5 / 4.2 / 4.3 | [03-log.md](../screen-designs/03-log.md) `mydrink-*`、[02-home.md](../screen-designs/02-home.md) `home` |
-| 3-04 計算 | 5 | — |
+| 3-04 計算 | 5 | `src/shared/alcohol.ts`（完了） |
 | 3-05 日別・編集・削除 | 3.1 / 3.3 / 4.4 | [03-log.md](../screen-designs/03-log.md) `log-day` / `log-edit` |
 | 3-06 週 / 月サマリー | 3.6 | [02-home.md](../screen-designs/02-home.md) `summary-*` |
 | 3-07 dev デプロイ・設定 | — | [06-settings.md](../screen-designs/06-settings.md) S8 / S9（触感フィードバック・動きを減らす） |
@@ -423,7 +423,7 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 ## 12. 関連
 
 - [01-requirements.md](../01-requirements.md) 1.2
-- [alcohol-calculation.md](alcohol-calculation.md)
+- [alcohol-calculation.md](alcohol-calculation.md)、実装 `src/shared/alcohol.ts`
 - [api-design.md](../api-design.md) 4.3 / 4.4
 - [data-model.md](../data-model.md) 6.1 / 6.2
 - [screens.md](../screens.md)、[screen-designs/02-home.md](../screen-designs/02-home.md)、[screen-designs/03-log.md](../screen-designs/03-log.md)

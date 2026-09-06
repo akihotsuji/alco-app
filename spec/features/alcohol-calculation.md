@@ -6,7 +6,7 @@ Phase 1-06 の成果物。記録入力・日次／週次／月次サマリー・
 - 要件の式とデフォルト表: [01-requirements.md](../01-requirements.md) 1.2（2026-08-13 FIX。式と表の数値は変えない）
 - 永続化: [data-model.md](../data-model.md)（`alcohol_g` を保存。クライアント値は信じない）
 - API: [api-design.md](../api-design.md)（サーバー再計算、`alcoholG` はリクエストに含めない）
-- 実装: Phase 3-04（`src/shared` の純粋関数と単体テスト）
+- 実装: `src/shared/alcohol.ts` / `src/shared/alcohol.test.ts`（3-04。クライアントは `src/client/lib/alcohol.ts`、サーバーは `src/server/services/alcohol.ts` から同じ関数を import）
 
 画面項目・最短タップ・undo は [wireframes.md](../wireframes.md) / 3-01。本ファイルは **数式・丸め・範囲・プリセット値・休肝日** だけを扱う。
 
@@ -68,7 +68,7 @@ ETHANOL_DENSITY = 0.8
 | 合計（API） | 保存値を合算したあと第 2 位 | `totalAlcoholG` |
 | 表示 | 保存値（または合計の保存精度）を第 1 位 | ホームスコア、日別、グラフ軸、トースト |
 
-実装の形（3-04。本タスクではコードを置かない）:
+実装の形（`src/shared/alcohol.ts`）:
 
 ```ts
 const ETHANOL_DENSITY = 0.8;
@@ -269,4 +269,4 @@ API の `totalAlcoholG` は 19.28。UI は 19.3g。
 - [api-design.md](../api-design.md) 2.9 / 4.3
 - [wireframes.md](../wireframes.md) `log-new`
 - [../roadmap/phase-01-design/06-alcohol-calc-presets.md](../../roadmap/phase-01-design/06-alcohol-calc-presets.md)
-- 実装: [../roadmap/phase-03-drink-log/04-alcohol-calc-logic.md](../../roadmap/phase-03-drink-log/04-alcohol-calc-logic.md)
+- 実装: `src/shared/alcohol.ts`（[3-04](../../roadmap/phase-03-drink-log/04-alcohol-calc-logic.md)）

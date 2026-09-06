@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 目安 | 1〜1.5週間 |
-| 状態 | 進行中（3-01 承認済み 2026-09-06。3-02 以降に着手できる） |
+| 状態 | 進行中（3-01 承認済み。3-04 完了。次は 3-02 / 3-03） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 3 |
 
 ## 目的
@@ -30,7 +30,7 @@
 | 01 | [機能仕様](01-spec-drink-log.md) | `spec/features/drink-log.md`（**承認済み** 2026-09-06） |
 | 02 | [記録入力画面](02-log-input-screen.md) | 種類→量・度数プリセット→保存。写真タイル（任意）、ボトル紐付け、`?camera=1`。**モーション共通基盤**（トークン・`data-state`・`useReducedMotion`・`haptic`・`Mascot pour`。[spec/motion-design.md](../../spec/motion-design.md)） |
 | 03 | [マイドリンク](03-my-drinks.md) | プリセット登録と 1 タップ記録（ホーム・日別）、ホームのキャラクター。1 タップの演出（M-07〜M-09 / M-17 / M-18）、週マス → 日別（X6） |
-| 04 | [純アルコール計算](04-alcohol-calc-logic.md) | 単体テスト必須。02 より先に shared へ置くとよい |
+| 04 | [純アルコール計算](04-alcohol-calc-logic.md) | **完了**（`src/shared/alcohol.ts`。単体テスト済み） |
 | 05 | [日別ビュー](05-daily-view.md) | 中央タブの着地。最上部に記録・カメラ・マイドリンク。当日一覧（写真サムネ）・合計・編集・削除・`?highlight=`（行の挿入 `useHighlightRow` M-14〜M-16、X1〜X3、X7） |
 | 06 | [週/月サマリー](06-weekly-monthly-summary.md) | グラフ（初回 1 回だけ伸びる M-19）、休肝日 |
 | 07 | [dev デプロイ](07-dev-deploy-dogfood.md) | 日常利用開始。設定「操作」節（触感フィードバック・動きを減らす。06-settings S8 / S9） |
