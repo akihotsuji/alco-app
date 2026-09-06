@@ -87,9 +87,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const transition = transitionToastTimer(timerState.state, "timeout");
       timerStateRef.current = { id, state: transition.state };
       if (transition.effect === "dismiss") {
-        beginLeave(() =>
-          setToast((current) => (current?.id === id ? null : current)),
-        );
+        beginLeave(() => setToast((current) => (current?.id === id ? null : current)));
       }
     },
     [beginLeave],
@@ -148,9 +146,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         return;
       }
       clearTimers();
-      beginLeave(() =>
-        setToast((current) => (current?.id === id ? null : current)),
-      );
+      beginLeave(() => setToast((current) => (current?.id === id ? null : current)));
       action.onSelect();
     },
     [beginLeave, clearTimers],
