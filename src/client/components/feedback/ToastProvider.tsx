@@ -11,6 +11,7 @@ import { useLocation } from "react-router";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { agentDebugLog } from "@/client/lib/agent-debug.ts";
 import { hidesTabBar } from "@/client/lib/app-routes.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import {
@@ -136,10 +137,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const selectAction = useCallback(
     (id: number, action: ToastAction) => {
       const timerState = timerStateRef.current;
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "H2",
+        location: "ToastProvider.tsx:selectAction-entry",
+        message: "Toast action selection entered",
+        data: {
+          requestedId: id,
+          timerId: timerState?.id ?? null,
+          timerState: timerState?.state ?? null,
+        },
+      });
+      // #endregion
       if (!timerState || timerState.id !== id) {
         return;
       }
       const transition = transitionToastTimer(timerState.state, "select");
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "H2",
+        location: "ToastProvider.tsx:selectAction-transition",
+        message: "Toast select transition evaluated",
+        data: { id, fromState: timerState.state, ...transition },
+      });
+      // #endregion
       timerStateRef.current = { id, state: transition.state };
       if (transition.effect !== "select") {
         return;

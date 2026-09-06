@@ -7,6 +7,7 @@ import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useDeleteDrinkLog, useDrinkLogsDay } from "@/client/hooks/use-drink-logs.ts";
 import { useHighlightRow } from "@/client/hooks/use-highlight-row.ts";
+import { agentDebugLog } from "@/client/lib/agent-debug.ts";
 import { isValidLogDateParam, tokyoToday } from "@/client/lib/app-routes.ts";
 import { undoDrinkLogId } from "@/client/lib/history-state.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
@@ -39,6 +40,19 @@ function ValidLogDayPage({ day }: { day: string }) {
   const undoId = undoDrinkLogId(location.state);
 
   useEffect(() => {
+    // #region agent log
+    agentDebugLog({
+      hypothesisId: "H1",
+      location: "LogDayPage.tsx:undo-effect",
+      message: "Undo toast eligibility evaluated",
+      data: {
+        undoId,
+        queryHasData: Boolean(query.data),
+        rowContainsUndo: query.data?.items.some((item) => item.id === undoId) ?? false,
+        shownUndoId: shownUndo.current,
+      },
+    });
+    // #endregion
     if (!undoId || !query.data?.items.some((item) => item.id === undoId)) {
       return;
     }
@@ -55,10 +69,44 @@ function ValidLogDayPage({ day }: { day: string }) {
       action: {
         label: "取り消す",
         onSelect: () => {
+          // #region agent log
+          agentDebugLog({
+            hypothesisId: "H3",
+            location: "LogDayPage.tsx:undo-onSelect",
+            message: "Undo callback entered and removal scheduled",
+            data: { undoId, delayMs: MOTION_MS.state },
+          });
+          // #endregion
           setRemovingId(undoId);
           setTimeout(() => {
+            // #region agent log
+            agentDebugLog({
+              hypothesisId: "H3",
+              location: "LogDayPage.tsx:undo-timer",
+              message: "Undo removal timer fired",
+              data: { undoId, mutationPending: remove.isPending },
+            });
+            // #endregion
             remove.mutate(undoId, {
+              onSuccess: () => {
+                // #region agent log
+                agentDebugLog({
+                  hypothesisId: "H4",
+                  location: "LogDayPage.tsx:undo-mutation-success",
+                  message: "Undo DELETE mutation succeeded",
+                  data: { undoId },
+                });
+                // #endregion
+              },
               onError: () => {
+                // #region agent log
+                agentDebugLog({
+                  hypothesisId: "H4",
+                  location: "LogDayPage.tsx:undo-mutation-error",
+                  message: "Undo DELETE mutation failed",
+                  data: { undoId },
+                });
+                // #endregion
                 setRemovingId(null);
                 showToast({ message: TOAST_MESSAGES.saveFailed });
               },
@@ -68,6 +116,27 @@ function ValidLogDayPage({ day }: { day: string }) {
       },
     });
   }, [query.data, remove, showToast, undoId]);
+
+  useEffect(() => {
+    if (!removingId) {
+      return;
+    }
+    const row = document.querySelector(
+      `[data-log-id="${CSS.escape(removingId)}"] .log-row`,
+    );
+    // #region agent log
+    agentDebugLog({
+      hypothesisId: "H5",
+      location: "LogDayPage.tsx:removing-state-commit",
+      message: "Removing state committed to rendered row",
+      data: {
+        removingId,
+        rowFound: row instanceof HTMLElement,
+        hasRemovingClass: row?.classList.contains("is-removing") ?? false,
+      },
+    });
+    // #endregion
+  }, [removingId]);
 
   return (
     <div className="log-day">
@@ -110,6 +179,7 @@ function ValidLogDayPage({ day }: { day: string }) {
                   <div
                     key={item.id}
                     className="log-row-wrap"
+                    data-log-id={item.id}
                     data-enter={isTarget && highlight.phase === "enter" ? "1" : undefined}
                   >
                     <LogDayRow
