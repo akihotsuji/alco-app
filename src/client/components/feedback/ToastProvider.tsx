@@ -90,8 +90,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           toastId: id,
           activeToastId: timerState?.id ?? null,
           timerState: timerState?.state ?? "missing",
-          elapsedMs:
-            toastRef.current?.id === id ? Date.now() - toastRef.current.shownAt : null,
+          elapsedMs: toastRef.current?.id === id ? Date.now() - toastRef.current.shownAt : null,
         },
         timestamp: Date.now(),
       });
@@ -253,8 +252,7 @@ function ToastCard({
             phase: toast.phase,
             elapsedMs: Date.now() - toast.shownAt,
             targetTag: target instanceof Element ? target.tagName : "unknown",
-            actionTarget:
-              target instanceof Element && target.closest(".app-toast-action") !== null,
+            actionTarget: target instanceof Element && target.closest(".app-toast-action") !== null,
           },
           timestamp: Date.now(),
         });
