@@ -22,12 +22,12 @@
 
 **対象**
 
-- `Shelf` コンポーネント（段 = 3 本 + ガラス棚板 `--shelf-glass*`。480px 以上で 4 列）。`archived` モード（減彩・消費日ピル）は 4-03 で使う。`byType` モード（1 種類 = 1 段、横スクロール、ゴースト見出し、棚板は本数分の幅）
+- `Shelf` コンポーネント（段 = 3 本 + ガラス棚板 `--shelf-glass*`。480px 以上で 4 列）。`archived` モード（減彩・開栓日ピル）は 4-03 で使う。`byType` モード（1 種類 = 1 段、横スクロール、ゴースト見出し、棚板は本数分の幅）
 - `BottleTile`（`cutout` は `object-fit: contain` で下端を棚板に、`photo` は 100×150 角 8px。無ければ `BottleSilhouette`）
 - 種類別シルエット SVG（7 種。線 `--muted`、inset-sm 枠）
 - ヘッダー（「貯蔵庫」ボタン、「セラー N 本」、「+」）
 - 表示切替の 2 択セグメント（URL `?view=` + `localStorage`）
-- フィルタ（検索 Chip → Input、種類ダイアログ（種類ごと表示では非表示）、未開栓 / 開栓済トグル）
+- フィルタ（検索 Chip → Input、種類ダイアログ（種類ごと表示では非表示）。状態フィルタは持たない）
 - 一覧 API の `countsByType` を見出しに使う
 - 空状態（棚板 + `surprised` 96px + 「ボトルを追加」）、フィルタ 0 件
 - cursor で 2 段ずつ追加読み込み。`<img loading="lazy">`

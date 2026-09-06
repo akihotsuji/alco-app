@@ -82,7 +82,6 @@ export const bottles = sqliteTable(
     storage: text("storage"),
     memo: text("memo"),
     status: text("status", { enum: BOTTLE_STATUSES }).notNull().default(DEFAULT_BOTTLE_STATUS),
-    openedOn: text("opened_on"),
     // consumed のとき必須、それ以外 NULL。consumed_on は consumed_at から JST でサーバー算出
     consumedAt: integer("consumed_at", { mode: "timestamp_ms" }),
     consumedOn: text("consumed_on"),

@@ -10,11 +10,11 @@ Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何�
 |---|---|---|
 | タブ順 ホーム / 記録 / セラー / ノート / 設定 | **ホーム / セラー / 記録（中央・円形） / ノート / 設定** | オーナー指示。記録が最頻 |
 | セラー一覧は「行」（エクスプローラ） | **棚（陳列）**。ガラス風の棚板に切り抜きボトルが立つ。種類ごと / 1 本ずつ | オーナー指示。写真主役 |
-| セラー詳細のステータスはセグメント | 主「消費する」+ 副「開栓する」「1 杯を記録」。消費で **貯蔵庫** へ移り、その日の記録へ | オーナー指示 |
+| セラー詳細のステータスはセグメント | 主「開栓する」のみ。開栓で **貯蔵庫** へ移る。記録は作らない | 2026-09-06。中間の開栓済みと 1 杯記録ボタンは廃止 |
 | 記録・ノートの写真は「枠だけ」 | **写真タイルが最上部**。撮る → 編集（比率・色補正・キャラ合成）→ 添付 | オーナー指示 |
 | ノート一覧は行 | **写真グリッド 2 列** | 写真主役 |
 | キャラクターなし | **1 体のキャラクター**（[character.md](character.md)） | ニューモーフィズムだけでは簡素 |
-| 開栓 → 記録誘導は v1.x | **消費 → 記録** は MVP。開栓誘導はしない | 上に同じ |
+| 開栓 → 記録誘導 | **作らない**。1 杯は記録画面から | 2026-09-06 |
 
 ## 質感モック
 
@@ -38,7 +38,6 @@ Phase 1-02 の成果物。スマートフォン幅（390px 想定）で、**何�
 | 貯蔵庫 | [mocks/cellar-archive.png](wireframes/mocks/cellar-archive.png) | 同上 |
 | ボトルを追加（ラベル読み取り後） | [mocks/cellar-new.png](wireframes/mocks/cellar-new.png) | 同上 |
 | ボトル詳細 | [mocks/cellar-detail.png](wireframes/mocks/cellar-detail.png) | 同上 |
-| 消費ダイアログ | [mocks/cellar-consume.png](wireframes/mocks/cellar-consume.png) | 同上 |
 | ノート一覧 | [mocks/note-list.png](wireframes/mocks/note-list.png) | [05-notes](screen-designs/05-notes.md) |
 | ノート作成 | [mocks/note-new.png](wireframes/mocks/note-new.png) | 同上 |
 | ノート詳細 | [mocks/note-detail.png](wireframes/mocks/note-detail.png) | 同上 |

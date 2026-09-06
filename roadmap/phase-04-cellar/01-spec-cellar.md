@@ -13,7 +13,7 @@
 
 ## 2. 前提条件
 
-- Phase 1 の data-model / api-design（1-07 改訂: `consumed`、`quantity` 廃止、consume / restore）/ screen-designs
+- Phase 1 の data-model / api-design（1-07 改訂 + 2026-09-06: `sealed` / `consumed`、`quantity` 廃止、consume / restore。記録同時作成なし）/ screen-designs
 - Phase 2 基盤（写真は 2-08）
 
 ## 3. スコープ
@@ -21,9 +21,9 @@
 **対象**
 
 - ボトルのフィールド一式（要件 1.3。`quantity` は無い。登録時の `count` で N 行）
-- ステータス 3 種（`sealed` / `opened` / `consumed`）と遷移（開栓・消費・復元）
-- 棚（陳列）の並び・列数・フィルタ・検索、貯蔵庫の月見出し
-- 消費ダイアログの記録同時作成（量・度数の初期値、undo の手順）
+- ステータス 2 種（`sealed` / `consumed`）と遷移（開栓・復元）
+- 棚（陳列）の並び・列数・種類フィルタ・検索、貯蔵庫の月見出し
+- 開栓（記録は作らない）と undo（restore のみ）
 - 写真 1 枚（2:3、`cellar` プリセット、キャラ合成なし）
 
 **対象外**
@@ -61,7 +61,7 @@ feature-dev Step 1。実装タスク 4-02 を同じ PR に混ぜない。
 
 検索: 銘柄名・生産者の部分一致。SQLite `LIKE` は Drizzle でプレースホルダ、`%` `_` をエスケープ。大文字小文字は SQLite 既定（ASCII のみ不区別）で可。
 
-消費: [spec/screen-designs/04-cellar.md](../../spec/screen-designs/04-cellar.md) `bottle-consume` と api-design 4.5.1 / 4.5.2 を写す。undo は `restore` → `DELETE drink-log` の順。
+開栓: [spec/screen-designs/04-cellar.md](../../spec/screen-designs/04-cellar.md) `bottle-detail` の T3 と api-design 4.5.1 / 4.5.2 を写す。undo は `restore` のみ。
 
 ## 8. 受け入れ条件
 

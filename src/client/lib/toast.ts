@@ -3,7 +3,7 @@ export const TOAST_DURATION_MS = 5_000;
 export const TOAST_MESSAGES = {
   logged: "記録しました",
   saved: "保存しました",
-  consumed: "貯蔵庫へ移しました",
+  opened: "開栓しました",
   deleted: "削除しました",
   saveFailed: "保存できませんでした。もう一度試してください",
 } as const;
@@ -11,7 +11,7 @@ export const TOAST_MESSAGES = {
 const SUCCESS_WITH_CHEER = new Set<string>([
   TOAST_MESSAGES.logged,
   TOAST_MESSAGES.saved,
-  TOAST_MESSAGES.consumed,
+  TOAST_MESSAGES.opened,
   TOAST_MESSAGES.deleted,
 ]);
 
