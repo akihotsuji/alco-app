@@ -121,9 +121,7 @@ function ValidLogDayPage({ day }: { day: string }) {
     if (!removingId) {
       return;
     }
-    const row = document.querySelector(
-      `[data-log-id="${CSS.escape(removingId)}"] .log-row`,
-    );
+    const row = document.querySelector(`[data-log-id="${CSS.escape(removingId)}"] .log-row`);
     // #region agent log
     agentDebugLog({
       hypothesisId: "H5",

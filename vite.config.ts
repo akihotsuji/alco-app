@@ -1,7 +1,7 @@
+import { appendFileSync } from "node:fs";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { appendFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import { srcAlias } from "./vite.alias.ts";
 
