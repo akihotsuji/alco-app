@@ -71,9 +71,14 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
           kind: "left",
           bottleId: result.id,
           createdAt: result.createdAt,
+          drinkType: result.drinkType,
         });
         navigate("/cellar", {
-          state: bottleConsumeState({ bottleId: result.id, createdAt: result.createdAt }),
+          state: bottleConsumeState({
+            bottleId: result.id,
+            createdAt: result.createdAt,
+            drinkType: result.drinkType,
+          }),
         });
       },
       onError: () => {
@@ -95,6 +100,7 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
           kind: "placed",
           bottleId: result.id,
           createdAt: result.createdAt,
+          drinkType: result.drinkType,
         });
         showToast({ message: TOAST_MESSAGES.returned, cheer: true });
       },
@@ -126,7 +132,7 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
             alt=""
           />
         ) : (
-          <BottleSilhouette />
+          <BottleSilhouette drinkType={bottle.drinkType} />
         )}
         <span className="shelf-board bottle-hero-shelf" />
       </button>

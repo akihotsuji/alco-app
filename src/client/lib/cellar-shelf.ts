@@ -1,9 +1,19 @@
-import type { BottleItem } from "@/shared/bottles.ts";
+import type { BottleItem, CountsByType } from "@/shared/bottles.ts";
+import {
+  type CellarListView,
+  DEFAULT_CELLAR_LIST_VIEW,
+  DRINK_TYPES,
+  type DrinkType,
+  type PhotoKind,
+} from "@/shared/constants.ts";
 import { formatYearMonth, parseCalendarDate } from "@/shared/tokyo-date.ts";
 
 export const SHELF_COLUMNS_NARROW = 3;
 export const SHELF_COLUMNS_WIDE = 4;
 export const SHELF_WIDE_MIN_PX = 480;
+export const SHELF_TYPE_PAGE_LIMIT = 12;
+export const SHELF_TYPE_TILE_PX = 72;
+export const SHELF_TYPE_GAP_PX = 22;
 
 export function shelfColumns(width: number): number {
   return width >= SHELF_WIDE_MIN_PX ? SHELF_COLUMNS_WIDE : SHELF_COLUMNS_NARROW;
@@ -14,6 +24,42 @@ export function shelfRowIndex(rank: number, columns: number): number {
     return 0;
   }
   return Math.floor(rank / columns);
+}
+
+export function shelfPageLimit(columns: number): number {
+  return columns * 2;
+}
+
+export function parseCellarListView(raw: string | null | undefined): CellarListView | null {
+  return raw === "one" || raw === "type" ? raw : null;
+}
+
+export function resolveCellarListView(
+  urlView: string | null | undefined,
+  storedView: string | null | undefined,
+): CellarListView {
+  return (
+    parseCellarListView(urlView) ?? parseCellarListView(storedView) ?? DEFAULT_CELLAR_LIST_VIEW
+  );
+}
+
+export function visibleDrinkTypes(counts: CountsByType): DrinkType[] {
+  return DRINK_TYPES.filter((type) => counts[type] > 0);
+}
+
+export function typeShelfWidthPx(count: number): number {
+  const bottles = Math.max(1, count);
+  return bottles * SHELF_TYPE_TILE_PX + (bottles - 1) * SHELF_TYPE_GAP_PX;
+}
+
+export function bottleTileVisual(
+  thumbPhotoId: string | null,
+  thumbPhotoKind: PhotoKind | null,
+): "cutout" | "photo" | "silhouette" {
+  if (!thumbPhotoId || !thumbPhotoKind) {
+    return "silhouette";
+  }
+  return thumbPhotoKind;
 }
 
 export function chunkShelfRows<T>(items: readonly T[], columns: number): T[][] {

@@ -50,7 +50,7 @@ export function restoreBottle(id: string, client: ApiClient = api) {
   return unwrap(client.api.bottles[":id"].restore.$post({ param: { id } }));
 }
 
-export function useBottles(query: BottlesListQuery = {}) {
+export function useBottles(query: BottlesListQuery = {}, enabled = true) {
   return useQuery({
     queryKey: queryKeys.bottlesList({
       view: query.view,
@@ -58,19 +58,22 @@ export function useBottles(query: BottlesListQuery = {}) {
       drinkType: query.drinkType,
     }),
     queryFn: () => getBottles(query),
+    enabled,
   });
 }
 
-export function useInfiniteBottles(query: BottlesListQuery = {}) {
+export function useInfiniteBottles(query: BottlesListQuery = {}, enabled = true) {
   return useInfiniteQuery({
     queryKey: queryKeys.bottlesList({
       view: query.view,
       q: query.q,
       drinkType: query.drinkType,
+      limit: query.limit,
     }),
     queryFn: ({ pageParam }) => getBottles({ ...query, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled,
   });
 }
 

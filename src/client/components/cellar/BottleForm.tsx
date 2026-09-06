@@ -24,6 +24,7 @@ import {
   validateBottleForm,
 } from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
+import { rememberShelfEvent } from "@/client/lib/history-state.ts";
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
@@ -435,6 +436,12 @@ export function useBottleFormSubmit() {
     }
     markSaved();
     haptic("success");
+    rememberShelfEvent({
+      kind: "placed",
+      bottleId: first.id,
+      createdAt: first.createdAt,
+      drinkType: first.drinkType,
+    });
     showToast({ message: arrangedToastMessage(items.length), cheer: true });
     navigate(`/cellar/${first.id}`, { replace: true });
   }

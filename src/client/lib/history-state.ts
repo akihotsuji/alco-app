@@ -1,3 +1,5 @@
+import { DRINK_TYPES, type DrinkType } from "@/shared/constants.ts";
+
 function readProperty(value: unknown, key: string): unknown {
   if (typeof value !== "object" || value === null) {
     return undefined;
@@ -57,9 +59,14 @@ export function undoDrinkLogId(locationState: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function isDrinkType(value: unknown): value is DrinkType {
+  return typeof value === "string" && (DRINK_TYPES as readonly string[]).includes(value);
+}
+
 export type BottleShelfEvent = {
   bottleId: string;
   createdAt: string;
+  drinkType?: DrinkType;
 };
 
 const CONSUME_LEFT_KEY = "left";
@@ -74,6 +81,10 @@ function readShelfEvent(value: unknown): BottleShelfEvent | null {
   }
   if (bottleId.length === 0 || createdAt.length === 0) {
     return null;
+  }
+  const drinkType = readProperty(value, "drinkType");
+  if (isDrinkType(drinkType)) {
+    return { bottleId, createdAt, drinkType };
   }
   return { bottleId, createdAt };
 }
