@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 3 飲酒記録 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-06。`src/shared/alcohol.ts`） |
 | 要件 | 式と単体テスト必須（coding-standards、ロードマップ） |
 | ソース | Phase 3「純アルコール量計算ロジック（単体テスト必須）」 |
 
@@ -33,7 +33,7 @@
 
 - `src/shared/alcohol.ts`（名前は任意。定数・プリセット表も含む）
 - `src/shared/alcohol.test.ts`（[alcohol-calculation.md](../../spec/features/alcohol-calculation.md) 8 節の例題）
-- drink-log spec からのリンク確認
+- drink-log spec からのリンク確認（`src/shared/alcohol.ts`）
 
 ## 5. 細分化タスク
 
@@ -74,10 +74,10 @@ alcohol_g = volume_ml * abv_percent / 100 * 0.8
 
 ## 8. 受け入れ条件
 
-- [ ] 単体テストが境界値を含む
-- [ ] クライアントとサーバーが同じ関数を import
-- [ ] CI グリーン
-- [ ] 式が spec と一致
+- [x] 単体テストが境界値を含む
+- [x] クライアントとサーバーが同じ関数を import
+- [x] CI グリーン
+- [x] 式が spec と一致
 
 ## 9. セキュリティ観点
 
