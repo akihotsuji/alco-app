@@ -5,6 +5,8 @@ import {
   logFormHrefs,
   parentTabOf,
   resolveAppRoute,
+  summaryMonthHref,
+  summaryWeekHref,
   TABS,
 } from "./app-routes.ts";
 
@@ -35,6 +37,44 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/cellar/archive", NOW).parentTab).toBe("cellar");
     expect(resolveAppRoute("/notes/abc/edit", NOW).parentTab).toBe("notes");
     expect(resolveAppRoute("/settings", NOW).parentTab).toBe("settings");
+  });
+
+  it("週/月サマリーの見出しと相互リンクは date クエリに従う", () => {
+    const thisWeek = resolveAppRoute("/summary/week", NOW, "?date=2026-09-05");
+    expect(thisWeek.header.title).toBe("今週");
+    expect(thisWeek.header.right).toEqual({
+      kind: "text",
+      to: "/summary/month?date=2026-09-05",
+      label: "今月 ›",
+    });
+    expect(thisWeek.header.left).toEqual({ kind: "back", fallback: "/" });
+
+    const pastWeek = resolveAppRoute("/summary/week", NOW, "?date=2026-08-10");
+    expect(pastWeek.header.title).toBe("8月10日〜8月16日");
+
+    const thisMonth = resolveAppRoute("/summary/month", NOW);
+    expect(thisMonth.header.title).toBe("今月");
+    expect(thisMonth.header.left).toEqual({
+      kind: "back",
+      fallback: "/summary/week?date=2026-09-05",
+    });
+    expect(thisMonth.header.right).toEqual({
+      kind: "text",
+      to: "/summary/week?date=2026-09-05",
+      label: "今週",
+    });
+
+    const pastMonth = resolveAppRoute("/summary/month", NOW, "?date=2026-08-01");
+    expect(pastMonth.header.title).toBe("2026年8月");
+    expect(pastMonth.header.left).toEqual({
+      kind: "back",
+      fallback: "/summary/week?date=2026-08-01",
+    });
+  });
+
+  it("サマリーの date が不正なら not-found", () => {
+    expect(resolveAppRoute("/summary/week", NOW, "?date=2026-02-30").notFound).toBe(true);
+    expect(resolveAppRoute("/summary/month", NOW, "?date=abc").notFound).toBe(true);
   });
 
   it("/logs 配下の親タブはすべてホーム（中央タブは現在地を持たない）", () => {
@@ -137,6 +177,13 @@ describe("resolveAppRoute", () => {
 describe("parentTabOf", () => {
   it("不明パスはハイライトしない", () => {
     expect(parentTabOf("/nope")).toBeNull();
+  });
+});
+
+describe("summary hrefs", () => {
+  it("週/月サマリーは date クエリを付ける", () => {
+    expect(summaryWeekHref("2026-09-05")).toBe("/summary/week?date=2026-09-05");
+    expect(summaryMonthHref("2026-08-01")).toBe("/summary/month?date=2026-08-01");
   });
 });
 

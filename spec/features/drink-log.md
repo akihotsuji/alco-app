@@ -168,7 +168,7 @@ Phase 3-01 の成果物。飲酒記録機能（記録入力・編集・日別・
 |---|---|---|---|
 | W1 | 週送り / 月送り | 前へ / 次へ。**未来の週・月へは進めない**（今日を含む期間が上限） | `GET /api/drink-logs/summary?period=week\|month&date=` |
 | W2 | 小スコア | 杯数 `totalCount`、g `displayAlcoholGrams(totalAlcoholG)`、休肝 `dryDayCount` 日 | 同上 |
-| W3 | 棒グラフ | 日ごとの `days[].alcoholG`（表示丸め）。今日は primary、未来は薄い。軸ラベルなし。SVG の軽量ライブラリ（選定は 3-06。バンドルサイズを PR に書く） | `days[]` |
+| W3 | 棒グラフ | 日ごとの `days[].alcoholG`（表示丸め）。今日は primary、未来は薄い。軸ラベルなし。**自前 SVG**（依存なし。3-06。棒のみで軸・ツールチップは持たない。M-19 は CSS `fill-rise`） | `days[]` |
 | W4 | 日別行 | 「日付 曜日 N 杯 ・ g」。`isDryDay` は「休肝」（`--rest`）。`isFuture` は「—」。タップで その日の `/logs/:date`（`log-day`） | `days[]` |
 | W5 | 相互リンク | 週 → ヘッダー右「今月 ›」、月 → 「今週」。月の週行 → その週の `summary-week` | — |
 
@@ -300,8 +300,8 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 | マイドリンク CRUD | `GET` / `POST /api/my-drinks`、`GET` / `PATCH` / `DELETE /api/my-drinks/:id` | 3-03 |
 | 1 タップ記録 | `POST /api/my-drinks/:id/log` | 3-03 |
 | undo（トースト） | `DELETE /api/drink-logs/:id` | 3-02（API と `log-new` 保存後のトースト）/ 3-03（1 タップ） |
-| ホーム今日カード / 週マス | `GET /api/drink-logs/summary?period=day\|week&date=` | 3-03（カード）/ 3-06（API） |
-| 週 / 月サマリー | `GET /api/drink-logs/summary?period=week\|month&date=` | 3-06 |
+| ホーム今日カード / 週マス | `GET /api/drink-logs/summary?period=day\|week&date=` | 3-03（カード + API） |
+| 週 / 月サマリー | `GET /api/drink-logs/summary?period=week\|month&date=` | 3-03（API）/ 3-06（画面） |
 | ボトルピッカー | `GET /api/bottles?view=all&q=` | Phase 4-02 |
 
 サーバー側の規則（[api-design.md](../api-design.md) 2 章の要点）:
@@ -401,7 +401,7 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 | 本仕様（2026-09-06 追記） | `?camera=1` | ディープリンク用に残す。アプリ内の導線（中央タブ / ホームのカメラ）は撮影を済ませてから `log-new` を開く | 3-02 のフォーム仕様は変えない |
 | 3-05 | 編集で種類を変えたときの上書き | **上書きしない**（`log-new` だけ上書き） | 同上 `log-edit` |
 | 3-06 | 週の始まり | **月曜（ISO 8601、JST）** | 1-05 / 1-06 |
-| 3-06 | チャートライブラリ | 3-06 で選定（軽量・SVG・依存理由を PR に書く）。仕様上の制約は「軸ラベルなし、7 本 / 28〜31 本の棒、今日 primary、未来は薄い」 | 実装時の判断。Lighthouse は Phase 6 |
+| 3-06 | チャートライブラリ | **依存なし（自前 SVG）**。軸ラベルなし、7 本 / 28〜31 本、今日 primary、未来は薄い。Recharts / uPlot 等は棒だけのためにバンドルを増やすので不採用。M-19 は CSS | 3-06。Lighthouse は Phase 6 |
 | 本仕様 | `?date=<過去日>` の既定時刻 | その日の **20:00 JST**（過去日の 1 タップは日別のチップ廃止で無くなった。2026-09-06 (c)） | [screen-designs/03-log.md](../screen-designs/03-log.md) N7 |
 | 本仕様 | `log-new?date=<未来日>` | 無視して今日扱い | 未来の記録は作れない（E3） |
 | 本仕様 | ボトル選択で種類が変わるとき | 種類チップと同じくデフォルト量・度数を投入。同じ種類なら維持 | N3 の規則を流用。`?bottleId=` 事前選択でも同じ |

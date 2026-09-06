@@ -1,6 +1,6 @@
 # 02 ホーム・サマリー
 
-実装: 3-03（マイドリンク 1 タップ）/ 3-06（サマリー）。Phase 2 時点は「空のホーム」（スコア 0、マイドリンク空）。
+実装: 3-03（マイドリンク 1 タップ）/ 3-06（週/月サマリー・自前 SVG）。Phase 2 時点は「空のホーム」（スコア 0、マイドリンク空）。
 
 モック: [home.png](../wireframes/mocks/home.png)、[home-rest.png](../wireframes/mocks/home-rest.png)（記録 0）、[home-toast.png](../wireframes/mocks/home-toast.png)（1 タップ後）、[home-dark.png](../wireframes/mocks/home-dark.png)
 
@@ -131,7 +131,7 @@
 |---|---|---|---|
 | W1 | 週送り | 前週 / 次週（未来週は次へ進めない） | `GET /api/drink-logs/summary?period=week&date=` |
 | W2 | 小スコア | 杯数・g・休肝日数（`dryDayCount`。未来日は含めない） | 同上 |
-| W3 | 棒グラフ | 7 本。高さは g、軸ラベルなし（値は行で読む）。ライブラリは 3-06 で選定（軽量、SVG）。初回描画で棒が下から `--dur-enter` で伸びる（M-19。週送りでは再生しない、stagger なし） | `days[]` |
+| W3 | 棒グラフ | 7 本。高さは g、軸ラベルなし（値は行で読む）。**自前 SVG**（3-06。依存なし）。初回描画で棒が下から `--dur-enter` で伸びる（M-19。週送りでは再生しない、stagger なし） | `days[]` |
 | W4 | 日別行 | 「日付 曜日 N 杯 ・ g」。0 件は「休肝」（`--rest`）。未来は「—」。タップで その日の `/logs/:date`（`log-day`） | 同上 |
 | W5 | 今月 › | ヘッダー右 → `summary-month`（月サマリーへの唯一の入口） | — |
 

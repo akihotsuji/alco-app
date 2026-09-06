@@ -187,6 +187,7 @@ export const drinkLogSummaryDaySchema = z
     isFuture: z.boolean(),
   })
   .strict();
+export type DrinkLogSummaryDay = z.infer<typeof drinkLogSummaryDaySchema>;
 
 export const drinkLogSummarySchema = z
   .object({

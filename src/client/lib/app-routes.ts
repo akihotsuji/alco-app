@@ -1,4 +1,10 @@
 import {
+  MONTH_TO_WEEK_LABEL,
+  monthSummaryTitle,
+  WEEK_TO_MONTH_LABEL,
+  weekSummaryTitle,
+} from "@/shared/summary.ts";
+import {
   addCalendarDays,
   formatMonthDay,
   isTokyoToday,
@@ -141,18 +147,31 @@ export function resolveAppRoute(
   }
 
   if (segments[0] === "summary" && segments.length === 2) {
+    const dateParam = new URLSearchParams(search).get("date");
+    if (dateParam !== null && !isValidLogDateParam(dateParam)) {
+      return notFoundRoute();
+    }
+    const date = dateParam ?? today;
     if (segments[1] === "week") {
       return found(
         "summary-week",
         "home",
-        backHeader("今週", "/", { kind: "text", to: "/summary/month", label: "今月" }),
+        backHeader(weekSummaryTitle(date, today), "/", {
+          kind: "text",
+          to: summaryMonthHref(date),
+          label: WEEK_TO_MONTH_LABEL,
+        }),
       );
     }
     if (segments[1] === "month") {
       return found(
         "summary-month",
         "home",
-        backHeader("今月", "/", { kind: "text", to: "/summary/week", label: "今週" }),
+        backHeader(monthSummaryTitle(date, today), summaryWeekHref(date), {
+          kind: "text",
+          to: summaryWeekHref(today),
+          label: MONTH_TO_WEEK_LABEL,
+        }),
       );
     }
   }
@@ -261,6 +280,14 @@ export function parentTabOf(pathname: string): TabId | null {
 
 export function logDayHref(date: string, now: Date = new Date()): string {
   return logDayPath(date, tokyoToday(now));
+}
+
+export function summaryWeekHref(date: string): string {
+  return `/summary/week?date=${date}`;
+}
+
+export function summaryMonthHref(date: string): string {
+  return `/summary/month?date=${date}`;
 }
 
 export function logFormHrefs(date?: string): { newHref: string; cameraHref: string } {
