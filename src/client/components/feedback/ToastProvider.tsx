@@ -25,7 +25,7 @@ import {
 
 type ToastPhase = "enter" | "idle" | "leave";
 
-type ToastState = ToastInput & { id: number; phase: ToastPhase };
+type ToastState = ToastInput & { id: number; phase: ToastPhase; shownAt: number };
 type ActiveToastTimer = { id: number; state: ToastTimerState };
 
 type ToastContextValue = {
@@ -100,7 +100,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const id = idRef.current;
       const mount = () => {
         timerStateRef.current = { id, state: "running" };
-        setToast({ ...input, id, phase: "enter" });
+        setToast({ ...input, id, phase: "enter", shownAt: Date.now() });
         stayTimer.current = setTimeout(() => {
           stayTimer.current = null;
           expireToast(id);
@@ -212,6 +212,8 @@ function ToastCard({
   const reduceMotion = useReducedMotion();
   const tabsHidden = hidesTabBar(location.pathname, photoEdit.open);
   const cheer = toastShowsCheer(toast.message);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
 
   // 初回描画は enter（下 8px・不透明 0）で置き、1 フレーム描かせてから idle に戻して transition を走らせる
   useEffect(() => {
@@ -225,8 +227,54 @@ function ToastCard({
     };
   }, [onEntered, toast.id]);
 
+  useEffect(() => {
+    const captureHitTest = (event: PointerEvent) => {
+      const cardRect = cardRef.current?.getBoundingClientRect();
+      const actionRect = actionRef.current?.getBoundingClientRect();
+      const hitTarget = document.elementFromPoint(event.clientX, event.clientY);
+      const eventTarget = event.target;
+      // #region agent log
+      agentDebug({
+        hypothesisId: "F|G|H|J",
+        location: "ToastProvider.tsx:document:pointerdown-hit-test",
+        message: "Pointer hit-tested while toast was mounted",
+        data: {
+          toastId: toast.id,
+          phase: toast.phase,
+          elapsedMs: Date.now() - toast.shownAt,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          eventTargetTag: eventTarget instanceof Element ? eventTarget.tagName : "unknown",
+          eventTargetClass:
+            eventTarget instanceof Element && typeof eventTarget.className === "string"
+              ? eventTarget.className
+              : "",
+          hitTargetTag: hitTarget?.tagName ?? "missing",
+          hitTargetClass: typeof hitTarget?.className === "string" ? hitTarget.className : "",
+          toastTop: cardRect?.top ?? null,
+          toastBottom: cardRect?.bottom ?? null,
+          actionLeft: actionRect?.left ?? null,
+          actionTop: actionRect?.top ?? null,
+          actionRight: actionRect?.right ?? null,
+          actionBottom: actionRect?.bottom ?? null,
+          insideAction:
+            actionRect !== undefined &&
+            event.clientX >= actionRect.left &&
+            event.clientX <= actionRect.right &&
+            event.clientY >= actionRect.top &&
+            event.clientY <= actionRect.bottom,
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
+    };
+    document.addEventListener("pointerdown", captureHitTest, true);
+    return () => document.removeEventListener("pointerdown", captureHitTest, true);
+  }, [toast.id, toast.phase, toast.shownAt]);
+
   return (
     <div
+      ref={cardRef}
       className={tabsHidden ? "app-toast app-toast-no-tabs" : "app-toast"}
       data-state={toast.phase === "idle" ? undefined : toast.phase}
       role="status"
@@ -236,6 +284,7 @@ function ToastCard({
       <p className="app-toast-message">{toast.message}</p>
       {toast.action ? (
         <button
+          ref={actionRef}
           type="button"
           className="app-toast-action"
           onPointerDown={() => onActionStart(toast.id)}
