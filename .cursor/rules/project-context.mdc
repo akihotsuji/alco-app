@@ -14,6 +14,7 @@ alwaysApply: true
 - `spec/03-roadmap.md` — ロードマップ
 - `spec/screen-designs/` — 詳細画面設計（要素表・状態・遷移・モック。**画面はこのとおりに実装する**）
 - `spec/character.md` — キャラクター（1 体。4 ポーズ。写真右下への合成ルール）
+- `spec/motion-design.md` — モーション・マイクロインタラクション（演出 `M-xx`。状態変化の瞬間だけ動く。reduced motion / haptic）
 - `spec/data-model.md` — ER・Drizzleスキーマ（アプリテーブルはすべて user_id スコープ）
 
 ## 技術スタック

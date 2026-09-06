@@ -26,6 +26,7 @@
 - 実機から HTTPS でログイン〜記録
 - オーナーへの URL 共有（workers.dev）
 - デプロイ手順の短いメモ（後で operations に統合）
+- 設定画面の仕上げ（[spec/screen-designs/06-settings.md](../../spec/screen-designs/06-settings.md)）: 表示名・写真既定に加えて **「操作」節** — 触感フィードバック（S8。既定 OFF、`ui.haptic`、非対応端末では無効表示）と動きを減らす（S9。`ui.reduce-motion`、`AppShell` の `<html data-reduce-motion>` に反映）。[spec/motion-design.md](../../spec/motion-design.md) 6.5 / 6.8
 
 **対象外**
 

@@ -18,6 +18,7 @@
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
+| **FIX（2026-09-06）** | **モーション**は [spec/motion-design.md](../spec/motion-design.md) を全採用（状態変化の瞬間だけ動く `M-01`〜`M-32`、開栓は「少し凝った」段階、記録成功は A + B + C、haptic 既定 OFF + 設定スイッチ、X1〜X8）。ダークの `--primary` / `--score` / `--ring` を `#CC8484` に。共通基盤は 3-02 に同梱 |
 | **要確認（残）** | **中央タブの着地**のみ（(a) 今日の日別 `/logs` / (b) 直接 `log-new`。既定 (a) で実装中。[spec/screen-designs/README.md](../spec/screen-designs/README.md) 要確認表）。可視性は public（Free + ruleset）。private にするなら Pro |
 
 ## オーナー決定（2026-08-13 FIX）
@@ -127,7 +128,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 0-08 | mainブランチ保護 | [08-branch-protection.md](phase-00-project-foundation/08-branch-protection.md) | 完了 |
 | 0-09 | `.cursor/rules/` の整備 | [09-cursor-rules-skills.md](phase-00-project-foundation/09-cursor-rules-skills.md) | 完了 |
 
-### Phase 1（8タスク）
+### Phase 1（9タスク）
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
@@ -139,6 +140,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | 完了 |
 | 1-07 | 詳細画面設計 → `spec/screen-designs/` | [07-detailed-screen-design.md](phase-01-design/07-detailed-screen-design.md) | 完了（2026-09-06 承認。中央タブの着地のみ回答待ち） |
 | 1-08 | キャラクター → `spec/character.md` | [08-character-mascot.md](phase-01-design/08-character-mascot.md) | 完了（2026-09-06 承認） |
+| 1-09 | モーション・マイクロインタラクション → `spec/motion-design.md` | 手順書なし（成果物は spec そのもの。実装は 3-02 / 3-03 / 3-05 / 3-06 / 3-07 / 4-03 / 4-04 に同梱） | 完了（2026-09-06 追加・同日承認） |
 
 ### Phase 2（8タスク）
 

@@ -32,6 +32,7 @@
 - 空状態（棚板 + `surprised` 96px + 「ボトルを追加」）、フィルタ 0 件
 - cursor で 2 段ずつ追加読み込み。`<img loading="lazy">`
 - 詳細画面の写真 + 棚板（4-02 で仮置きしたものを共通部品に置換）
+- `Shelf` の棚板ハイライト `data-highlight`（[spec/motion-design.md](../../spec/motion-design.md) M-12 / M-28 / M-32。`::before` の明帯を上辺 1px に `mask` して `--dur-open` で 1 回）。空状態の初回、`history.state` で渡された「直前に操作したボトル」の段で発火。4-03 の開栓もこの部品を使う
 
 **対象外**
 

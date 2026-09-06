@@ -26,8 +26,9 @@ sealed ──開栓──► consumed（貯蔵庫）──復元──► sealed
 
 - `POST /api/bottles/:id/consume`（api-design 4.5.1。ボトルを `consumed` にするだけ。記録は作らない）
 - `POST /api/bottles/:id/restore`（4.5.2。常に `sealed`）
-- 詳細の主「開栓する」（確認なし）
-- 成功後の遷移とトースト「開栓しました 取り消す」（undo = restore のみ）
+- 詳細の主「開栓する」（確認なし）。押下 M-01 / M-02、送信中は「開栓中」+ 水位線（M-04）、2xx で即 `/cellar` へ（M-05）。`haptic("success")`
+- 成功後の遷移とトースト「開栓しました 取り消す」（undo = restore のみ。`cheer` の水面 M-25）。到着した `/cellar` では見出しの本数がカウントダウンし、抜けた本があった段の棚板に明帯が 1 回走る（M-10。[spec/motion-design.md](../../spec/motion-design.md) 9 章「少し凝った」段階）。対象は `history.state` で渡す
+- 取り消し / 「セラーに戻す」で本が棚に戻るとき、そのタイルが上 6px から置かれるように現れ（M-11）、段の棚板に明帯（M-32）。見出しの本数はカウントアップ
 - `bottle-archive`（`/cellar/archive`。月見出し、減彩、開栓日ピル）
 - 貯蔵庫の詳細（主「ノートを書く」、「セラーに戻す」）
 - テスト: consume の認可・状態不一致 404、restore の戻り先、undo

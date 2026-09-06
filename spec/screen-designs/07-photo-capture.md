@@ -89,7 +89,7 @@ File → createImageBitmap（EXIF orientation 補正）
 | デコード失敗 | 「この写真を読み込めませんでした」+ 撮り直す |
 | 処理中（使う押下後） | ボタン「処理中」無効。1 秒以内が目標 |
 | アップロード中 | 呼び出し元のサムネに進捗リング。失敗時は「!」+ 再試行（同じ Blob を再送） |
-| キャラ ON→OFF | 200ms でフェード（`prefers-reduced-motion` なら即時） |
+| キャラ ON→OFF | `--dur-state`（200ms）でフェード。OFF→ON は右下から 8px スライドイン（[../character.md](../character.md) 6 章）。reduced motion（`html[data-reduce-motion="1"]`）なら不透明度のみ即時 |
 | 切り抜き中 | プレビュー上にスピナー + 「切り抜き中…」。初回はモデル DL の進捗（%）。「使う」は処理完了まで無効 |
 | 切り抜き失敗 | トグル OFF に戻し、プレビューを長方形に。文言「うまく抜けませんでした。長方形のまま保存します」 |
 

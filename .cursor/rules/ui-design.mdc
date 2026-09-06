@@ -6,7 +6,7 @@ alwaysApply: false
 
 # UI デザイン規約
 
-正本は `spec/screen-designs/`（画面ごとの要素表・状態・遷移・モック）、`spec/design-system.md`（色・影・半径・トークン）、`spec/character.md`（キャラクター）。ルートとタブは `spec/screens.md`。
+正本は `spec/screen-designs/`（画面ごとの要素表・状態・遷移・モック）、`spec/design-system.md`（色・影・半径・トークン）、`spec/character.md`（キャラクター）、`spec/motion-design.md`（モーション・マイクロインタラクション）。ルートとタブは `spec/screens.md`。
 
 ## 画面は設計どおりに
 
@@ -16,7 +16,7 @@ alwaysApply: false
 
 ## トークン
 
-- 色・半径・影・文字サイズは CSS 変数だけ使う（`--mascot-*` / `--shelf-*` / `--radius-photo` / `--tab-center-size` を含む）
+- 色・半径・影・文字サイズ・モーションは CSS 変数だけ使う（`--mascot-*` / `--shelf-*` / `--radius-photo` / `--tab-center-size` / `--dur-*` / `--ease-*` / `--fill-tint*` を含む）
 - `bg-[#…]` / `text-[#…]` / その場の `shadow-[…]` / マジックナンバー余白は禁止。比率（4:5、2:3）やサイズ（キャラ 72px 等）も設計ファイルの値を定数に置く
 - ライト／ダークは `prefers-color-scheme`。`html` に `.dark` を固定しない。テーマ切替 UI は作らない
 
@@ -37,6 +37,18 @@ alwaysApply: false
 - 絵文字禁止。lucide を使う
 - 写真が主役の画面では写真を大きく、写真の上に文字を重ねない（キャラ合成だけ例外）
 - ゲーミフィケーションはスコア・休肝・押下・短いトースト・キャラの 1 回反応まで。待機アニメ・紙吹雪・XP は置かない
+
+## モーション（正本は `spec/motion-design.md`）
+
+- 演出は `spec/motion-design.md` の `M-xx` に **あるものだけ**を、画面設計の該当行が指す場所に作る。設計に無い動きを足さない
+- 時間・イージング・水位線の色は **モーショントークンだけ**（`--dur-*` / `--ease-*` / `--fill-tint*`）。その場の `duration-[...]` / `ease-[...]` / `transition: ... 200ms` / `@keyframes` 内の生の秒数は禁止。上限は `--dur-fill`（400ms）
+- 動くのは **状態変化の瞬間だけ**。待機ループ・シマー・バウンス・発光・パララックス・ページ遷移のスライドは禁止。`animation-iteration-count: infinite` はスピナー（`photo-spin`）以外で使わない
+- 動かすのは `transform` と `opacity`（行の挿入は `grid-template-rows: 0fr → 1fr`）。`height` / `box-shadow` を直接アニメーションしない。outset ↔ inset は `::after` の不透明度で切り替える
+- 拡大は禁止。縮小 `scale(0.985) translateY(1px)` は主ボタンと中央タブのみ
+- 状態は `data-state`（`idle | pressed | loading | success | error`）で表し、CSS が反応する。React 側でアニメーションを制御しない。モーションライブラリ（framer-motion 等）は入れない
+- reduced motion: `useReducedMotion()`（`src/client/hooks/use-reduced-motion.ts`）と `html[data-reduce-motion="1"]` の 1 組だけ。OS 設定と設定「動きを減らす」の両方で有効にし、移動・拡縮を全廃して不透明度のフェード（≦150ms）だけ残す。`scrollIntoView` / `scrollTo` の `behavior` もこれに従う
+- 触感: `src/client/lib/haptic.ts` の `haptic("light" | "success")` 以外から `navigator.vibrate` を呼ばない。既定 OFF、失敗時は鳴らさない、キャラの動きに同期させない
+- キャラの動きは保存成功時のみ（クロスフェード、4px 移動 1 回、`cheer` の `pour`）。押下・入力・エラー・待機で動かさない
 
 ## キャラクター
 

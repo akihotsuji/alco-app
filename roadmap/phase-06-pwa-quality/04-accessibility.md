@@ -26,6 +26,7 @@ WCAG の完全準拠ではなく、スマートフォンで困らない最低限
 - ボタンの accessible name
 - フォーカス可視化（キーボード。モバイルでも外部キーボード）
 - Lighthouse a11y 80+
+- **reduced motion の検証**（[spec/motion-design.md](../../spec/motion-design.md) 6.8 / 10.5 / 10.6）: OS 設定と「動きを減らす = 常に減らす」の両方で `<html data-reduce-motion="1">` が付き、移動・拡縮・水位線・棚板ハイライト・キャラの動きが止まり、不透明度フェード ≦150ms だけ残る。トーストの `role="status"` 読み上げ、挿入行に `aria-live` が無いこと、1 秒 3 回以上の明滅が無いこと、演出中のコントラスト（`--fill-tint` 上の文字 4.5:1）
 
 **対象外**
 

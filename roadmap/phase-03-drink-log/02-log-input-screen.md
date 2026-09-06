@@ -24,7 +24,14 @@
 - 入力 UI（[spec/screen-designs/03-log.md](../../spec/screen-designs/03-log.md) `log-new` の要素表どおり）、Zod、POST API、自分のログのみ insert
 - 写真タイル（120px、`surprised` 48px）→ 2-08 の `photo-edit`（4:5、`table`、キャラ合成）。`?camera=1` で自動起動。`photoIds`（最大 1）を POST に含める
 - 量チップにボトル量 375 / 750 / 1500
-- 保存後に対象日の `log-day?highlight=<id>` へ、トースト（`cheer`）
+- 保存後に対象日の `log-day?highlight=<id>` へ即遷移、トースト（`cheer`）
+- **モーション共通基盤**（[spec/motion-design.md](../../spec/motion-design.md) 6 章。ここで 1 回作り、以後のタスクは使うだけ）
+  - `styles.css` に `--ease-*` / `--dur-*` / `--fill-tint*` トークンと `html[data-reduce-motion="1"]` ブロック。ダークの `--primary` / `--score` / `--ring` を `#CC8484` に（X8。`design-tokens.ts` とテストも追従）
+  - `Button` の押下（M-01 / M-02。`scale(0.985) translateY(1px)`、`::after` で inset）と `data-state="loading|error"` の水位線（M-04〜M-06）。`Chip` の M-31
+  - `useReducedMotion()`（`src/client/hooks/use-reduced-motion.ts`。OS 設定 or `ui.reduce-motion`）、`AppShell` が `<html data-reduce-motion>` を付け外し
+  - `src/client/lib/haptic.ts`（`light` / `success`。`ui.haptic` が ON の端末だけ。未対応は no-op）
+  - トーストの出入り M-23 / M-24 と `Mascot` の `pour`（M-25）、ダイアログ M-13 / M-30、スケルトン M-29、空状態 M-26 / M-27
+  - 保存失敗時のオフライン文言（X4）
 
 **対象外**
 
@@ -45,9 +52,10 @@
 1. shared Zod（drinkType enum、volume、abv、drunkAt、memo）
 2. POST API + サーバーで alcohol_g 再計算
 3. UI: 種類チップ、量プリセット、度数、保存
-4. 保存中の二重送信防止
-5. テスト
-6. security-audit
+4. 保存中の二重送信防止（`data-state="loading"` + 水位線）
+5. モーショントークン・`useReducedMotion`・`haptic.ts`・`Mascot pour`・トースト出入り（単体テスト: reduced motion 判定、haptic の no-op、`pour` が `cheer` 以外で無効）
+6. テスト
+7. security-audit
 
 ## 6. 手順
 

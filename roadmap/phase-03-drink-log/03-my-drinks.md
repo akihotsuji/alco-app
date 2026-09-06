@@ -23,7 +23,9 @@
 - マイドリンクの作成・一覧・編集・削除（[spec/screen-designs/03-log.md](../../spec/screen-designs/03-log.md) `mydrink-*`）
 - 1 タップ記録（現在時刻、コピーした type/volume/abv）。ホームと日別の両方にチップ（最大 4）
 - 件数上限 30（data-model 5.6 で確定）
-- ホームの今日カードとキャラクター（`default` / `rest`、1 タップ後 `cheer` 300ms。[spec/screen-designs/02-home.md](../../spec/screen-designs/02-home.md)）
+- ホームの今日カードとキャラクター（`default` / `rest`、1 タップ後 `cheer` 300ms + 上 4px。[spec/screen-designs/02-home.md](../../spec/screen-designs/02-home.md)）
+- 1 タップのモーション（[spec/motion-design.md](../../spec/motion-design.md)）: チップの送信中 inset 維持と成功の水位線（M-07 / M-08）、数字カウント（M-09）、今日の週マスが満ちる（M-17）、休肝ピルのフェード（M-18）、ホーム主ボタンの 1 回出現（M-03）。`haptic("success")`
+- 週マスのタップ先をその日の `/logs/:date` に（X6。未来は無効）
 
 **対象外**
 
