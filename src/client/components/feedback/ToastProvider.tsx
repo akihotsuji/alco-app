@@ -11,7 +11,6 @@ import { useLocation } from "react-router";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
-import { agentDebugLog } from "@/client/lib/agent-debug.ts";
 import { hidesTabBar } from "@/client/lib/app-routes.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import {
@@ -85,14 +84,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         return;
       }
       const transition = transitionToastTimer(timerState.state, "timeout");
-      // #region agent log
-      agentDebugLog({
-        hypothesisId: "H6",
-        location: "ToastProvider.tsx:expireToast",
-        message: "Toast stay timer expired",
-        data: { id, fromState: timerState.state, ...transition },
-      });
-      // #endregion
       timerStateRef.current = { id, state: transition.state };
       if (transition.effect === "dismiss") {
         beginLeave(() => setToast((current) => (current?.id === id ? null : current)));
@@ -109,14 +100,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const mount = () => {
         timerStateRef.current = { id, state: "entering" };
         setToast({ ...input, id, phase: "enter" });
-        // #region agent log
-        agentDebugLog({
-          hypothesisId: "H6",
-          location: "ToastProvider.tsx:mount",
-          message: "Toast mounted in entering phase",
-          data: { id, hasAction: Boolean(input.action) },
-        });
-        // #endregion
       };
       const current = toastRef.current;
       if (current && current.phase !== "leave") {
@@ -135,19 +118,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         return;
       }
       const transition = transitionToastTimer(timerState.state, "entry-complete");
-      // #region agent log
-      agentDebugLog({
-        hypothesisId: "H6",
-        location: "ToastProvider.tsx:completeEntry",
-        message: "Toast entry completed and stay timer evaluated",
-        data: {
-          id,
-          fromState: timerState.state,
-          durationMs: TOAST_DURATION_MS,
-          ...transition,
-        },
-      });
-      // #endregion
       timerStateRef.current = { id, state: transition.state };
       if (transition.effect !== "start-timer") {
         return;
@@ -181,18 +151,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const selectAction = useCallback(
     (id: number, action: ToastAction) => {
       const timerState = timerStateRef.current;
-      // #region agent log
-      agentDebugLog({
-        hypothesisId: "H2",
-        location: "ToastProvider.tsx:selectAction-entry",
-        message: "Toast action selection entered",
-        data: {
-          requestedId: id,
-          timerId: timerState?.id ?? null,
-          timerState: timerState?.state ?? null,
-        },
-      });
-      // #endregion
       if (!timerState || timerState.id !== id) {
         return;
       }

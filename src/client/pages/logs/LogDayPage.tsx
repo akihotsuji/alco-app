@@ -7,7 +7,6 @@ import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useDeleteDrinkLog, useDrinkLogsDay } from "@/client/hooks/use-drink-logs.ts";
 import { useHighlightRow } from "@/client/hooks/use-highlight-row.ts";
-import { agentDebugLog } from "@/client/lib/agent-debug.ts";
 import { isValidLogDateParam, tokyoToday } from "@/client/lib/app-routes.ts";
 import { undoDrinkLogId } from "@/client/lib/history-state.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
@@ -56,44 +55,10 @@ function ValidLogDayPage({ day }: { day: string }) {
       action: {
         label: "取り消す",
         onSelect: () => {
-          // #region agent log
-          agentDebugLog({
-            hypothesisId: "H3",
-            location: "LogDayPage.tsx:undo-onSelect",
-            message: "Undo callback entered and removal scheduled",
-            data: { undoId, delayMs: MOTION_MS.state },
-          });
-          // #endregion
           setRemovingId(undoId);
           setTimeout(() => {
-            // #region agent log
-            agentDebugLog({
-              hypothesisId: "H3",
-              location: "LogDayPage.tsx:undo-timer",
-              message: "Undo removal timer fired",
-              data: { undoId, mutationPending: remove.isPending },
-            });
-            // #endregion
             remove.mutate(undoId, {
-              onSuccess: () => {
-                // #region agent log
-                agentDebugLog({
-                  hypothesisId: "H4",
-                  location: "LogDayPage.tsx:undo-mutation-success",
-                  message: "Undo DELETE mutation succeeded",
-                  data: { undoId },
-                });
-                // #endregion
-              },
               onError: () => {
-                // #region agent log
-                agentDebugLog({
-                  hypothesisId: "H4",
-                  location: "LogDayPage.tsx:undo-mutation-error",
-                  message: "Undo DELETE mutation failed",
-                  data: { undoId },
-                });
-                // #endregion
                 setRemovingId(null);
                 showToast({ message: TOAST_MESSAGES.saveFailed });
               },
