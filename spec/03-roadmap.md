@@ -66,15 +66,15 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] 画面一覧とナビゲーション構造の決定（下部タブ: ホーム/セラー/**記録（中央）**/ノート/設定。正本は [screens.md](screens.md)。2026-09-05 に記録を中央へ）
 - [x] 主要画面のワイヤーフレーム（1-02 の骨格 → [wireframes.md](wireframes.md)。配置の正本は 1-07 へ移行）
 - [x] デザインシステム定義: **ニューモーフィズム**、**ライト／ダークはOS設定に追従**、タイポグラフィ・余白・コンポーネント方針 → [design-system.md](design-system.md)
-- [ ] **1-07 詳細画面設計**: 全画面の要素表・状態・遷移・モックを画面単位で確定し、「設計どおりに実装する」ルールを敷く → [screen-designs/](screen-designs/README.md)（2026-09-05 追加。承認待ち）
+- [x] **1-07 詳細画面設計**: 全画面の要素表・状態・遷移・モックを画面単位で確定し、「設計どおりに実装する」ルールを敷く → [screen-designs/](screen-designs/README.md)（2026-09-05 追加。2026-09-06 承認。中央タブの着地のみ回答待ちで既定 (a) のまま）
   - 記録タブ中央、セラーは棚（陳列）＋貯蔵庫、追加と消費、消費 → その日の記録、写真を撮って記録・ノート
-- [ ] **1-08 キャラクター**: 赤ワイングラスに目のマスコット（4 ポーズ SVG）、配置・写真合成ルール → [character.md](character.md)（2026-09-05 追加。承認待ち）
+- [x] **1-08 キャラクター**: 赤ワイングラスに目のマスコット（4 ポーズ SVG）、配置・写真合成ルール → [character.md](character.md)（2026-09-05 追加。2026-09-06 承認。名前は付けない）
 
 **データ・API設計**
 - [x] ER図とDrizzleスキーマ設計（Auth の `user` / drink_logs / my_drinks / bottles / tasting_notes / photos）→ `spec/data-model.md`
 - [x] API設計: リソース単位のエンドポイント一覧、認可ルール（全データ user_id スコープ）→ [api-design.md](api-design.md)
 - [x] 純アルコール量計算・標準グラス量プリセットの仕様確定 → [features/alcohol-calculation.md](features/alcohol-calculation.md)
-- [ ] 1-07 に伴う改訂の承認: `bottles.status` に `consumed`、`consumed_at/on`、`quantity` 廃止（1 行 = 1 本）、`drink_logs.bottle_id`、`photos.drink_log_id`、`photos.kind`、`ai_usage`、`POST /api/bottles/:id/consume|restore`、`POST /api/bottles/recognize`、`view`、`count`、`photoIds`、未紐付け写真 GC（data-model / api-design 内「1-07 改訂」）
+- [x] 1-07 に伴う改訂の承認（2026-09-06）: `bottles.status` に `consumed`、`consumed_at/on`、`quantity` 廃止（1 行 = 1 本）、`drink_logs.bottle_id`、`photos.drink_log_id`、`photos.kind`、`ai_usage`、`POST /api/bottles/:id/consume|restore`、`POST /api/bottles/recognize`、`view`、`count`、`photoIds`、未紐付け写真 GC（data-model / api-design 内「1-07 改訂」）
 - [x] 2026-09-05（2 回目）オーナー決定: 棚は **地色の上にガラス風の棚板 + 切り抜きボトル**（切り抜きを MVP へ）、**種類ごと / 1 本ずつ**の表示切替、ラベル読み取りは **Workers AI（Vision）** でセラーのみ（Gemini 等は将来の差し替え候補）、デザイン崩れ（週マスの薄赤・チップの被り）は影トークンの 2 段階化で修正
 
 ### rules / skills
@@ -124,7 +124,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 
 ### タスク
 
-- [ ] `spec/features/drink-log.md` 作成（画面項目・バリデーション・計算仕様。[screen-designs/03-log.md](screen-designs/03-log.md) を写す）→ [features/drink-log.md](features/drink-log.md)（2026-09-06 作成。承認待ち）
+- [x] `spec/features/drink-log.md` 作成（画面項目・バリデーション・計算仕様。[screen-designs/03-log.md](screen-designs/03-log.md) を写す）→ [features/drink-log.md](features/drink-log.md)（2026-09-06 作成・承認）
 - [ ] 記録入力画面: 種類選択→量・度数プリセット→保存 を最短タップ数で。最上部に**写真タイル**（任意）、ボトル紐付け行、`?camera=1`
 - [ ] マイドリンク（プリセット）の登録・1タップ記録（ホームと日別の両方）
 - [ ] 純アルコール量計算ロジック（単体テスト必須）

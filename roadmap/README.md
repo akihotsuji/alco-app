@@ -11,14 +11,14 @@
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-09、1-01〜1-06。設計は 2026-09-04 承認。`protect-main` は 2026-09-05 適用（id `22315799`） |
-| **レビュー待ち** | **1-07 詳細画面設計**（`spec/screen-designs/`）と **1-08 キャラクター**（`spec/character.md`）。data-model / api-design / design-system の 1-07 改訂を含む |
-| **進行中** | Phase 2（2-01〜2-08 完了） |
-| **未着手** | Phase 3 以降 |
+| **完了** | 0-01〜0-09、1-01〜1-08（1-07 / 1-08 と data-model / api-design / design-system の 1-07 改訂は 2026-09-06 承認）、2-01〜2-08、3-01（`spec/features/drink-log.md` 2026-09-06 承認）。`protect-main` は 2026-09-05 適用（id `22315799`） |
+| **レビュー待ち** | なし |
+| **進行中** | Phase 3（3-02 以降に着手できる） |
+| **未着手** | Phase 4 以降 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
-| **要確認（残）** | なし。可視性は public（Free + ruleset）。private にするなら Pro |
+| **要確認（残）** | **中央タブの着地**のみ（(a) 今日の日別 `/logs` / (b) 直接 `log-new`。既定 (a) で実装中。[spec/screen-designs/README.md](../spec/screen-designs/README.md) 要確認表）。可視性は public（Free + ruleset）。private にするなら Pro |
 
 ## オーナー決定（2026-08-13 FIX）
 
@@ -51,7 +51,7 @@
 | リポジトリ | **public**（Free で ruleset を使う。private にするなら Pro） |
 | main 保護 | ruleset `protect-main`（id `22315799`）適用済み。必須チェックなし。merge / squash / rebase。承認 0 人 |
 
-## オーナー指示（2026-09-05。1-07 / 1-08。承認待ち）
+## オーナー指示（2026-09-05。1-07 / 1-08。2026-09-06 承認）
 
 2026-09-04 の「セラー背景は将来」「中央タブ不採用」「データモデルは当面このまま」を **覆す**。詳細は [spec/screen-designs/README.md](../spec/screen-designs/README.md)。
 
@@ -62,10 +62,10 @@
 | セラー | 撮った写真を **切り抜いて**、**地色の上のガラス風棚板**に陳列（2 回目の指示で確定）。**種類ごと / 1 本ずつ**の表示切替。操作は **追加と消費**。消費で **貯蔵庫** へ移り、その日の記録に 1 杯を追加して日別へ遷移。1 行 = 1 本、`quantity` 廃止、`finished` → `consumed` |
 | ラベル読み取り | **Cloudflare Workers AI の Vision モデル**で、ラベル写真から銘柄名・生産者・産地・年・種類・度数の候補を空欄に入れる。**セラーのみ**。自動保存しない。Gemini 等の外部 API は将来の差し替え候補として念頭に置く（`LabelRecognizer` 差し替え） |
 | 記録・ノート | **写真を撮って記録・コメントを付ける**体験。写真は任意で最短タップは維持。記録は 1 枚、ノートは 6 枚 |
-| キャラクター | **1 体**（赤ワインの入ったグラスに Nani!? 風の目。仮称「グラッピー」）。ホーム・ログイン・空状態・保存トーストに。写真右下に「驚き」ポーズを合成できる |
+| キャラクター | **1 体**（赤ワインの入ったグラスに Nani!? 風の目。**名前は付けない**（2026-09-06））。ホーム・ログイン・空状態・保存トーストに。写真右下に「驚き」ポーズを合成できる |
 | 画像処理 | すべて端末内（Canvas / WASM）。加工後 1 枚だけ R2。切り抜きも端末内（フォールバックあり） |
 | デザイン崩れ | 週マスの薄赤（塗りに inset を重ねていた）とチップの被り（影が大きすぎ）はトークンで修正。影を部品サイズで 2 段階化。実機での微調整は 2-06 |
-| 要確認 | 中央タブの着地（既定: 今日の日別）、本数上限（12）、ノート写真枚数（6）、キャラの名前 |
+| 要確認 | 2026-09-06 決定: 本数上限 **12**、ノート写真枚数 **6**、キャラの名前は **付けない**。残りは **中央タブの着地**（既定 (a) 今日の日別）のみ |
 
 ## オーナー決定（2026-08-15 FIX）
 
@@ -90,9 +90,9 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | フェーズ | フォルダ | 目的 | 状態 |
 |---|---|---|---|
 | Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 完了 |
-| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 1-01〜06 完了（2026-09-04 承認）。1-07 / 08 レビュー待ち |
-| Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 進行中（2-01〜2-06 完了） |
-| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 未着手 |
+| Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 完了（1-01〜06 は 2026-09-04、1-07 / 08 は 2026-09-06 承認） |
+| Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 完了（2-01〜2-08） |
+| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 進行中（3-01 承認済み。3-02 以降） |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と消費・貯蔵庫・ラベル AI 読み取り | 未着手 |
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 未着手 |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
@@ -124,11 +124,11 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 1-01 | 画面一覧とナビゲーション構造 | [01-screens-navigation.md](phase-01-design/01-screens-navigation.md) | 完了（1-07 で改訂） |
 | 1-02 | 主要画面のワイヤーフレーム | [02-wireframes.md](phase-01-design/02-wireframes.md) | 完了（配置の正本は 1-07 へ） |
 | 1-03 | デザインシステム → `spec/design-system.md` | [03-design-system.md](phase-01-design/03-design-system.md) | 完了（1-07/08 で追補） |
-| 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 完了（1-07 改訂は承認待ち） |
-| 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 完了（1-07 改訂は承認待ち） |
+| 1-04 | ER図とDrizzleスキーマ → `spec/data-model.md` | [04-er-drizzle-schema.md](phase-01-design/04-er-drizzle-schema.md) | 完了（1-07 改訂は 2026-09-06 承認） |
+| 1-05 | API設計 → `spec/api-design.md` | [05-api-design.md](phase-01-design/05-api-design.md) | 完了（1-07 改訂は 2026-09-06 承認） |
 | 1-06 | 純アルコール量計算・標準グラス量プリセット | [06-alcohol-calc-presets.md](phase-01-design/06-alcohol-calc-presets.md) | 完了 |
-| 1-07 | 詳細画面設計 → `spec/screen-designs/` | [07-detailed-screen-design.md](phase-01-design/07-detailed-screen-design.md) | レビュー待ち |
-| 1-08 | キャラクター → `spec/character.md` | [08-character-mascot.md](phase-01-design/08-character-mascot.md) | レビュー待ち |
+| 1-07 | 詳細画面設計 → `spec/screen-designs/` | [07-detailed-screen-design.md](phase-01-design/07-detailed-screen-design.md) | 完了（2026-09-06 承認。中央タブの着地のみ回答待ち） |
+| 1-08 | キャラクター → `spec/character.md` | [08-character-mascot.md](phase-01-design/08-character-mascot.md) | 完了（2026-09-06 承認） |
 
 ### Phase 2（8タスク）
 
@@ -147,7 +147,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 3-01 | `spec/features/drink-log.md` 作成 | [01-spec-drink-log.md](phase-03-drink-log/01-spec-drink-log.md) | レビュー待ち（2026-09-06 作成） |
+| 3-01 | `spec/features/drink-log.md` 作成 | [01-spec-drink-log.md](phase-03-drink-log/01-spec-drink-log.md) | 完了（2026-09-06 作成・承認） |
 | 3-02 | 記録入力画面 | [02-log-input-screen.md](phase-03-drink-log/02-log-input-screen.md) | 未着手 |
 | 3-03 | マイドリンク | [03-my-drinks.md](phase-03-drink-log/03-my-drinks.md) | 未着手 |
 | 3-04 | 純アルコール量計算ロジック | [04-alcohol-calc-logic.md](phase-03-drink-log/04-alcohol-calc-logic.md) | 未着手 |

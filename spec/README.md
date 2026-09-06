@@ -12,15 +12,15 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [02-tech-stack.md](02-tech-stack.md) | 技術選定と理由・リポジトリ構成・TypeScript/Biome・テスト・CI・ブランチ運用・Cloudflare 環境・コスト見積り | 作成済み |
 | [03-roadmap.md](03-roadmap.md) | Phase 0〜8 の開発ロードマップ | 作成済み |
 | [screens.md](screens.md) | 画面一覧・下部タブ（記録中央）・認証境界・入場経路（Phase 2-05 の正本） | 作成済み（1-01。1-07 で改訂） |
-| [screen-designs/](screen-designs/README.md) | **詳細画面設計**（全画面の要素表・状態・遷移・モック。実装はこのとおりに作る） | 作成済み（1-07。承認待ち） |
-| [character.md](character.md) | キャラクター（マスコット）仕様・ポーズ・写真合成ルール。SVG は [assets/character/](assets/character/) | 作成済み（1-08。承認待ち） |
+| [screen-designs/](screen-designs/README.md) | **詳細画面設計**（全画面の要素表・状態・遷移・モック。実装はこのとおりに作る） | 承認済み（1-07。2026-09-06。中央タブの着地のみ回答待ち） |
+| [character.md](character.md) | キャラクター（マスコット）仕様・ポーズ・写真合成ルール。SVG は [assets/character/](assets/character/) | 承認済み（1-08。2026-09-06） |
 | [wireframes.md](wireframes.md) | 主要画面の骨格（1-02）。配置の正本は screen-designs へ移行。質感モックの一覧 | 作成済み（1-02。履歴） |
 | [design-system.md](design-system.md) | 配色・タイポグラフィ・コンポーネント方針（ニューモーフィズム、OS追従、キャラクター・陳列・写真トークン） | 作成済み（1-03。1-07/08 で追補） |
-| [data-model.md](data-model.md) | ER図・Drizzleスキーマ設計 | 作成済み（1-04。1-07 改訂は承認待ち） |
-| [api-design.md](api-design.md) | APIエンドポイント一覧・認可ルール | 作成済み（1-05。1-07 改訂は承認待ち） |
+| [data-model.md](data-model.md) | ER図・Drizzleスキーマ設計 | 承認済み（1-04。1-07 改訂は 2026-09-06 承認） |
+| [api-design.md](api-design.md) | APIエンドポイント一覧・認可ルール | 承認済み（1-05。1-07 改訂は 2026-09-06 承認） |
 | features/ | 機能ごとの詳細仕様（画面項目・バリデーション） | 各実装フェーズで作成 |
 | [features/health.md](features/health.md) | 公開 `GET /api/health`（認証なし） | 作成済み（0-04） |
 | [features/alcohol-calculation.md](features/alcohol-calculation.md) | 純アルコール量計算・グラスプリセット・休肝日 | 承認済み（1-06。2026-09-04） |
-| [features/drink-log.md](features/drink-log.md) | 飲酒記録（入力・編集・日別・マイドリンク・週/月サマリー・ホーム）の画面項目・バリデーション・API・エッジケース | 作成済み（3-01。承認待ち） |
+| [features/drink-log.md](features/drink-log.md) | 飲酒記録（入力・編集・日別・マイドリンク・週/月サマリー・ホーム）の画面項目・バリデーション・API・エッジケース | 承認済み（3-01。2026-09-06） |
 | release-checklist.md | リリース前チェックリスト | Phase 7で作成 |
 | operations.md | 運用手順（バックアップ復元・障害対応） | Phase 7で作成 |

@@ -2,7 +2,7 @@
 
 Phase 3-01 の成果物。飲酒記録機能（記録入力・編集・日別・マイドリンク・週/月サマリー・ホームの今日カード）の **機能仕様**。3-02〜3-07 の実装はこのファイルと画面設計のとおりに作る。
 
-- 状態: **オーナー承認待ち**（2026-09-06 作成。承認まで 3-02 以降のブランチは切らない）
+- 状態: **オーナー承認済み**（2026-09-06。9 章の決定事項を含む。3-02 以降に着手できる）
 - 要件: [01-requirements.md](../01-requirements.md) 1.2 / 1.5 / 1.6
 - 画面の正本: [screen-designs/03-log.md](../screen-designs/03-log.md)（日別・入力・編集・マイドリンク）、[screen-designs/02-home.md](../screen-designs/02-home.md)（ホーム・週/月サマリー）。**要素表・状態・遷移・モックは画面設計が正**。本ファイルは項目・規則・API・エッジケースを 1 か所にまとめる
 - 計算の正本: [alcohol-calculation.md](alcohol-calculation.md)（式・丸め・範囲・プリセット・休肝日）。**本ファイルは数値を変えない**
@@ -417,7 +417,7 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 - [x] [01-requirements.md](../01-requirements.md) 1.2 / [alcohol-calculation.md](alcohol-calculation.md) と矛盾しない（数値は変えていない。`drink_name` の長さは data-model 側を直した）
 - [x] 未決を残さず、決定事項を 9 章に列挙した
 - [x] 実装ファイル（`src/`）を含まない
-- [ ] オーナー承認（development-workflow）
+- [x] オーナー承認（2026-09-06）
 
 ---
 

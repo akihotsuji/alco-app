@@ -2,7 +2,7 @@
 
 Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開する HTTP API の契約。実装は Phase 2 以降。クライアントは Hono RPC（2-04）で同じ型を使う。
 
-- 状態: 1-05 は **承認済み**（#12 マージ）。**1-07 の改訂（1.1 節）はオーナー承認待ち**。範囲・丸めの数値は [features/alcohol-calculation.md](features/alcohol-calculation.md) を正とする
+- 状態: 1-05 は **承認済み**（#12 マージ）。**1-07 の改訂（1.1 節）も承認済み**（2026-09-06）。範囲・丸めの数値は [features/alcohol-calculation.md](features/alcohol-calculation.md) を正とする
 - 画面との対応は [screen-designs/](screen-designs/README.md) の各要素表
 - 列・enum・削除方針の正本: [data-model.md](data-model.md)
 - セキュリティ正本: [`.cursor/rules/security.mdc`](../.cursor/rules/security.mdc)
@@ -37,7 +37,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | CORS | **全開放しない**。SPA と API は同一 Worker・同一オリジン | 余計なクロスオリジンを増やさない |
 | 未定義 `/api/*` | `{ "error": "not_found" }`（2-03 で統一済み）。**未認証なら 404 より先に 401**（ルートの存在を漏らさない） | 共通エラー形式。health 成功は `{ "ok": true }` のまま |
 
-### 1.1 1-07 改訂（2026-09-05。承認待ち）
+### 1.1 1-07 改訂（2026-09-05。2026-09-06 承認）
 
 | 項目 | 決定 | 根拠 |
 |---|---|---|
@@ -788,7 +788,7 @@ src/server/
 - [x] 公開エンドポイントを列挙した（オーナー承認対象。1-07 で追加なし）
 - [x] 404 統一（未存在 = 他人）を書いた
 - [x] 計算の正はサーバー。クライアントの `alcoholG` を信じない
-- [ ] 1-07 改訂（consume / restore / recognize / view / count / photoIds / drinkLogId / kind / GC）のオーナー承認
+- [x] 1-07 改訂（consume / restore / recognize / view / count / photoIds / drinkLogId / kind / GC）のオーナー承認（2026-09-06）
 
 ---
 
