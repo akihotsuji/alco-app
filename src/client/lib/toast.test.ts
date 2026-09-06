@@ -12,6 +12,8 @@ describe("toastShowsCheer", () => {
     expect(toastShowsCheer(TOAST_MESSAGES.logged)).toBe(true);
     expect(toastShowsCheer(TOAST_MESSAGES.saved)).toBe(true);
     expect(toastShowsCheer(TOAST_MESSAGES.opened)).toBe(true);
+    expect(toastShowsCheer(TOAST_MESSAGES.undone)).toBe(true);
+    expect(toastShowsCheer(TOAST_MESSAGES.returned)).toBe(true);
     expect(toastShowsCheer(TOAST_MESSAGES.deleted)).toBe(true);
     expect(toastShowsCheer("棚に並べました")).toBe(true);
     expect(toastShowsCheer("棚に 3 本並べました")).toBe(true);

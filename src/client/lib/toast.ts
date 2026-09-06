@@ -4,6 +4,8 @@ export const TOAST_MESSAGES = {
   logged: "記録しました",
   saved: "保存しました",
   opened: "開栓しました",
+  undone: "元に戻しました",
+  returned: "セラーに戻しました",
   deleted: "削除しました",
   saveFailed: "保存できませんでした。もう一度試してください",
 } as const;
@@ -12,6 +14,8 @@ const SUCCESS_WITH_CHEER = new Set<string>([
   TOAST_MESSAGES.logged,
   TOAST_MESSAGES.saved,
   TOAST_MESSAGES.opened,
+  TOAST_MESSAGES.undone,
+  TOAST_MESSAGES.returned,
   TOAST_MESSAGES.deleted,
   "棚に並べました",
 ]);

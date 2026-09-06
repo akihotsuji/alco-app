@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import type { ValidationTargets } from "hono";
+import type { MiddlewareHandler, ValidationTargets } from "hono";
 import type { z } from "zod";
 import { ApiError } from "./errors.ts";
 import { fieldsFromZodIssues } from "./middleware/error.ts";
@@ -24,4 +24,32 @@ export function validate<T extends z.ZodType, Target extends keyof ValidationTar
       });
     }
   });
+}
+
+/**
+ * JSON ボディを Zod で検証する。本文が空（ボディなし）のときは `{}` として扱う。
+ * consume / restore のように「ボディなし、空オブジェクト可、未知キーは 400」のときに使う。
+ * `c.req.json()` は空本文で例外になるため、zValidator の json ターゲットは使わない。
+ */
+export function validateJsonAllowingEmpty<T extends z.ZodType>(schema: T): MiddlewareHandler {
+  return async (c, next) => {
+    const text = await c.req.text();
+    let raw: unknown = {};
+    if (text.trim() !== "") {
+      try {
+        raw = JSON.parse(text) as unknown;
+      } catch {
+        throw new ApiError("validation_error", {
+          fields: { "": ["リクエストの形式が正しくありません"] },
+        });
+      }
+    }
+    const parsed = schema.safeParse(raw);
+    if (!parsed.success) {
+      throw new ApiError("validation_error", {
+        fields: fieldsFromZodIssues(parsed.error.issues),
+      });
+    }
+    await next();
+  };
 }

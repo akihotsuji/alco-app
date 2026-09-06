@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  bottleConsumeState,
+  bottlePlacedState,
+  consumeLeftEvent,
+  consumeUndoRequested,
   historyHasFlag,
   historyIdx,
   isPhotoHandoff,
   PHOTO_HANDOFF_FLAG,
   photoHandoffState,
+  placedBottleEvent,
+  rememberShelfEvent,
+  takeRememberedShelfEvent,
   withHistoryFlag,
 } from "./history-state.ts";
 
@@ -54,5 +61,46 @@ describe("photoHandoffState / isPhotoHandoff", () => {
     expect(isPhotoHandoff({ [PHOTO_HANDOFF_FLAG]: "1" })).toBe(false);
     expect(isPhotoHandoff(null)).toBe(false);
     expect(isPhotoHandoff(undefined)).toBe(false);
+  });
+});
+
+describe("bottle consume / placed state", () => {
+  const left = {
+    bottleId: "11111111-1111-4111-8111-111111111111",
+    createdAt: "2026-09-06T00:00:00.000Z",
+  };
+
+  it("開栓の left と undo フラグを読む", () => {
+    const state = bottleConsumeState(left);
+    expect(consumeLeftEvent(state)).toEqual(left);
+    expect(consumeUndoRequested(state)).toBe(true);
+    expect(consumeLeftEvent({ left: { bottleId: left.bottleId } })).toBeNull();
+    expect(consumeUndoRequested({ consumeUndo: "1" })).toBe(false);
+  });
+
+  it("復元の placed を読む", () => {
+    expect(placedBottleEvent(bottlePlacedState(left))).toEqual(left);
+    expect(placedBottleEvent({ placed: "x" })).toBeNull();
+  });
+
+  it("sessionStorage の棚演出は 1 回だけ取る", () => {
+    const memory = new Map<string, string>();
+    Object.defineProperty(globalThis, "sessionStorage", {
+      configurable: true,
+      value: {
+        getItem(key: string) {
+          return memory.get(key) ?? null;
+        },
+        setItem(key: string, value: string) {
+          memory.set(key, value);
+        },
+        removeItem(key: string) {
+          memory.delete(key);
+        },
+      },
+    });
+    rememberShelfEvent({ kind: "placed", ...left });
+    expect(takeRememberedShelfEvent()).toEqual({ kind: "placed", ...left });
+    expect(takeRememberedShelfEvent()).toBeNull();
   });
 });

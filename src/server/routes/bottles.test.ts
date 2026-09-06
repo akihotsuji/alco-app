@@ -10,6 +10,7 @@ import {
 } from "@/shared/bottles.ts";
 import { drinkLogSchema } from "@/shared/drink-logs.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
+import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { makeJpeg } from "../image-fixtures.ts";
 import { createTestApp, createTestUser, createTestUserPair } from "../test-helpers.ts";
 
@@ -423,5 +424,207 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     expect(remaining.drinkName).toBe("サンプル赤");
     const rows = await ctx.db.select().from(drinkLogs).where(eq(drinkLogs.id, log.id));
     expect(rows[0]?.bottleId).toBeNull();
+  });
+});
+
+function consumeBottleReq(app: Ctx["app"], cookie: string, id: string, body?: unknown) {
+  const init: RequestInit = {
+    method: "POST",
+    headers: {
+      Cookie: cookie,
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+    },
+  };
+  if (body !== undefined) {
+    init.body = typeof body === "string" ? body : JSON.stringify(body);
+  }
+  return app.request(`/api/bottles/${id}/consume`, init);
+}
+
+function restoreBottleReq(app: Ctx["app"], cookie: string, id: string, body?: unknown) {
+  const init: RequestInit = {
+    method: "POST",
+    headers: {
+      Cookie: cookie,
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+    },
+  };
+  if (body !== undefined) {
+    init.body = typeof body === "string" ? body : JSON.stringify(body);
+  }
+  return app.request(`/api/bottles/${id}/restore`, init);
+}
+
+async function createOwnedBottle(app: Ctx["app"], cookie: string, name = BASE.name) {
+  const created = createBottlesResponseSchema.parse(
+    await (await postBottle(app, cookie, { ...BASE, name })).json(),
+  );
+  const id = created.items[0]?.id ?? "";
+  expect(id).toMatch(/^[0-9a-f-]{36}$/i);
+  return id;
+}
+
+describe("POST /api/bottles/:id/consume", () => {
+  it("未認証は 401", async () => {
+    const { app } = await createTestApp();
+    const res = await consumeBottleReq(app, "", MISSING, {});
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
+  });
+
+  it("sealed を consumed にし、記録は作らない。ボディなしでも通る", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+    const logsBefore = await ctx.db.select().from(drinkLogs).where(eq(drinkLogs.userId, a.userId));
+    expect(logsBefore).toHaveLength(0);
+
+    const nowBefore = Date.now();
+    const res = await consumeBottleReq(ctx.app, a.cookie, id);
+    expect(res.status).toBe(200);
+    const body = bottleSchema.parse(await res.json());
+    expect(body.status).toBe("consumed");
+    expect(body.consumedOn).toBe(tokyoToday());
+    expect(body.consumedAt).toBeTruthy();
+    const consumedMs = new Date(body.consumedAt ?? "").getTime();
+    expect(consumedMs).toBeGreaterThanOrEqual(nowBefore);
+    expect(JSON.stringify(body)).not.toContain("userId");
+
+    const logsAfter = await ctx.db.select().from(drinkLogs).where(eq(drinkLogs.userId, a.userId));
+    expect(logsAfter).toHaveLength(0);
+
+    const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
+    expect(cellar.items).toHaveLength(0);
+    expect(cellar.totalCount).toBe(0);
+    const archive = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=archive")).json(),
+    );
+    expect(archive.items.map((item) => item.id)).toEqual([id]);
+  });
+
+  it("他人・不在・すでに consumed は同じ 404。記録は作らない", async () => {
+    const ctx = await createTestApp();
+    const [a, b] = await createTestUserPair(ctx.app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+    await seedConsumed(
+      ctx,
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      a.id,
+      "既に開栓",
+      new Date("2026-09-01T00:00:00.000Z"),
+      "2026-09-01",
+    );
+
+    const other = await consumeBottleReq(ctx.app, b.cookie, id, {});
+    const missing = await consumeBottleReq(ctx.app, a.cookie, MISSING, {});
+    const already = await consumeBottleReq(
+      ctx.app,
+      a.cookie,
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      {},
+    );
+    expect(other.status).toBe(404);
+    expect(missing.status).toBe(404);
+    expect(already.status).toBe(404);
+    expect(await other.json()).toEqual(await missing.json());
+    expect(await already.json()).toEqual({ error: "not_found" });
+    expect(await ctx.db.select().from(drinkLogs)).toHaveLength(0);
+    expect(bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, id)).json()).status).toBe(
+      "sealed",
+    );
+  });
+
+  it("未知キー log は 400。status は変わらない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+    const res = await consumeBottleReq(ctx.app, a.cookie, id, { log: true });
+    expect(res.status).toBe(400);
+    expect((await fields(res))[""]).toBeDefined();
+    expect(bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, id)).json()).status).toBe(
+      "sealed",
+    );
+  });
+});
+
+describe("POST /api/bottles/:id/restore", () => {
+  it("未認証は 401", async () => {
+    const { app } = await createTestApp();
+    expect((await restoreBottleReq(app, "", MISSING, {})).status).toBe(401);
+  });
+
+  it("consumed を sealed に戻し、紐付く記録は残る", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+    expect((await consumeBottleReq(ctx.app, a.cookie, id, {})).status).toBe(200);
+
+    const logRes = await ctx.app.request("/api/drink-logs", {
+      method: "POST",
+      headers: { Cookie: a.cookie, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        drinkType: "wine",
+        volumeMl: 125,
+        abvPercent: 12,
+        bottleId: id,
+      }),
+    });
+    expect(logRes.status).toBe(201);
+    const log = drinkLogSchema.parse(await logRes.json());
+    expect(log.bottleId).toBe(id);
+
+    const res = await restoreBottleReq(ctx.app, a.cookie, id, {});
+    expect(res.status).toBe(200);
+    const body = bottleSchema.parse(await res.json());
+    expect(body.status).toBe("sealed");
+    expect(body.consumedAt).toBeNull();
+    expect(body.consumedOn).toBeNull();
+
+    const remaining = drinkLogSchema.parse(
+      await (
+        await ctx.app.request(`/api/drink-logs/${log.id}`, { headers: { Cookie: a.cookie } })
+      ).json(),
+    );
+    expect(remaining.bottleId).toBe(id);
+    expect(remaining.drinkName).toBe("サンプル赤");
+
+    const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
+    expect(cellar.items.map((item) => item.id)).toEqual([id]);
+    const archive = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=archive")).json(),
+    );
+    expect(archive.items).toHaveLength(0);
+  });
+
+  it("他人・不在・棚の本は同じ 404", async () => {
+    const ctx = await createTestApp();
+    const [a, b] = await createTestUserPair(ctx.app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+    const sealedId = await createOwnedBottle(ctx.app, a.cookie);
+    const consumedId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    await seedConsumed(
+      ctx,
+      consumedId,
+      a.id,
+      "貯蔵庫の本",
+      new Date("2026-09-01T00:00:00.000Z"),
+      "2026-09-01",
+    );
+
+    const other = await restoreBottleReq(ctx.app, b.cookie, consumedId, {});
+    const missing = await restoreBottleReq(ctx.app, a.cookie, MISSING, {});
+    const sealed = await restoreBottleReq(ctx.app, a.cookie, sealedId, {});
+    expect(other.status).toBe(404);
+    expect(missing.status).toBe(404);
+    expect(sealed.status).toBe(404);
+    expect(await other.json()).toEqual(await missing.json());
+    expect(
+      bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, consumedId)).json()).status,
+    ).toBe("consumed");
   });
 });

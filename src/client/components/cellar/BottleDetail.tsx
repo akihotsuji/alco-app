@@ -1,8 +1,17 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.tsx";
+import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
+import { Button } from "@/client/components/ui/button.tsx";
+import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { formatPriceJpy, vintageLabel } from "@/client/lib/bottle-form.ts";
+import { haptic } from "@/client/lib/haptic.ts";
+import { bottleConsumeState, rememberShelfEvent } from "@/client/lib/history-state.ts";
+import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
+import type { MotionState } from "@/client/lib/motion.ts";
+import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import type { Bottle } from "@/shared/bottles.ts";
 import { DRINK_TYPE_LABELS } from "@/shared/constants.ts";
 import type { DrinkLogItem } from "@/shared/drink-logs.ts";
@@ -15,8 +24,16 @@ type BottleDetailProps = {
 
 export function BottleDetail({ bottle, logs }: BottleDetailProps) {
   const [lightbox, setLightbox] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [consumeState, setConsumeState] = useState<MotionState>("idle");
+  const consume = useConsumeBottle();
+  const restore = useRestoreBottle();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   useSetHeaderOverride({ title: bottle.name });
   const photo = bottle.photos[0];
+  const archived = bottle.status === "consumed";
+  const pending = consume.isPending || restore.isPending;
   const summary = [
     DRINK_TYPE_LABELS[bottle.drinkType],
     vintageLabel(bottle.vintage),
@@ -36,6 +53,56 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
     ...(bottle.storage ? [{ label: "保管場所", value: bottle.storage }] : []),
     ...(bottle.memo ? [{ label: "メモ", value: bottle.memo }] : []),
   ];
+
+  function failureMessage(): string {
+    return navigator.onLine ? FORM_ERROR_MESSAGES.generic : FORM_ERROR_MESSAGES.offline;
+  }
+
+  function onConsume() {
+    if (pending) {
+      return;
+    }
+    setActionError(null);
+    setConsumeState("loading");
+    consume.mutate(bottle.id, {
+      onSuccess: (result) => {
+        haptic("success");
+        rememberShelfEvent({
+          kind: "left",
+          bottleId: result.id,
+          createdAt: result.createdAt,
+        });
+        navigate("/cellar", {
+          state: bottleConsumeState({ bottleId: result.id, createdAt: result.createdAt }),
+        });
+      },
+      onError: () => {
+        setConsumeState("error");
+        setActionError(failureMessage());
+      },
+    });
+  }
+
+  function onRestore() {
+    if (pending) {
+      return;
+    }
+    setActionError(null);
+    restore.mutate(bottle.id, {
+      onSuccess: (result) => {
+        haptic("success");
+        rememberShelfEvent({
+          kind: "placed",
+          bottleId: result.id,
+          createdAt: result.createdAt,
+        });
+        showToast({ message: TOAST_MESSAGES.returned, cheer: true });
+      },
+      onError: () => {
+        setActionError(failureMessage());
+      },
+    });
+  }
 
   return (
     <div className="bottle-detail skeleton-fade">
@@ -64,7 +131,7 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
         <span className="shelf-board bottle-hero-shelf" />
       </button>
       <div className="bottle-status-row">
-        {bottle.status === "consumed" && bottle.consumedOn ? (
+        {archived && bottle.consumedOn ? (
           <span className="bottle-status-pill is-consumed">
             開栓（{formatShortMonthDay(bottle.consumedOn)}）
           </span>
@@ -73,6 +140,30 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
         )}
         <p className="bottle-summary">{summary.join(" ・ ")}</p>
       </div>
+      {archived ? (
+        <Button asChild>
+          <Link to={`/notes/new?bottleId=${bottle.id}&camera=1`}>ノートを書く</Link>
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          state={consume.isPending ? "loading" : consumeState}
+          disabled={pending}
+          onClick={onConsume}
+        >
+          {consume.isPending ? "開栓中" : "開栓する"}
+        </Button>
+      )}
+      {archived ? (
+        <Button type="button" variant="secondary" disabled={pending} onClick={onRestore}>
+          セラーに戻す
+        </Button>
+      ) : null}
+      {actionError ? (
+        <p className="field-error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
       <dl className="bottle-props">
         {rows.map((row) => (
           <div className="bottle-prop" key={row.label}>
@@ -110,18 +201,5 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
         </button>
       ) : null}
     </div>
-  );
-}
-
-function BottleSilhouette() {
-  return (
-    <svg className="bottle-silhouette" viewBox="0 0 80 120" aria-hidden>
-      <path
-        d="M30 8h20v10c8 6 12 16 12 28v66a8 8 0 0 1-8 8H26a8 8 0 0 1-8-8V46c0-12 4-22 12-28V8z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-      />
-    </svg>
   );
 }

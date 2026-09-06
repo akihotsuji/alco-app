@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { BottleDetail } from "@/client/components/cellar/BottleDetail.tsx";
 import { BottleFormFields, useBottleFormSubmit } from "@/client/components/cellar/BottleForm.tsx";
+import { Shelf, ShelfSkeleton } from "@/client/components/cellar/Shelf.tsx";
+import { useAnimatedNumber } from "@/client/components/feedback/AnimatedNumber.tsx";
 import { EmptyState, shouldPlayEmptyEnter } from "@/client/components/feedback/EmptyState.tsx";
-import { DetailSkeleton, ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
+import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
@@ -15,22 +18,39 @@ import {
   useBottles,
   useCreateBottles,
   useDeleteBottle,
+  useInfiniteBottles,
+  useRestoreBottle,
   useUpdateBottle,
 } from "@/client/hooks/use-bottles.ts";
 import { useDrinkLogsByBottle } from "@/client/hooks/use-drink-logs.ts";
-import { photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import {
   type BottleFormErrors,
   bottleFormStateFromBottle,
   describeBottleSaveFailure,
   isUuid,
-  vintageLabel,
 } from "@/client/lib/bottle-form.ts";
-import type { MotionState } from "@/client/lib/motion.ts";
+import {
+  groupBottlesByConsumedMonth,
+  rankByCreatedAtDesc,
+  shelfColumns,
+  shelfRowIndex,
+} from "@/client/lib/cellar-shelf.ts";
+import {
+  clearRouterLocationState,
+  consumeLeftEvent,
+  consumeUndoRequested,
+  placedBottleEvent,
+  takeRememberedShelfEvent,
+} from "@/client/lib/history-state.ts";
+import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
+import { MOTION_MS, type MotionState } from "@/client/lib/motion.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { cn } from "@/client/lib/utils.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
+import type { BottleItem } from "@/shared/bottles.ts";
 import { formatBottleCount } from "@/shared/bottles.ts";
 import { DRINK_TYPE_LABELS, DRINK_TYPES, type DrinkType } from "@/shared/constants.ts";
 
@@ -43,7 +63,7 @@ function useDebounced(value: string, ms: number) {
   return debounced;
 }
 
-export function CellarPage() {
+function useBottleListFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const qParam = searchParams.get("q") ?? "";
   const drinkTypeParam = searchParams.get("drinkType");
@@ -55,11 +75,6 @@ export function CellarPage() {
   const [searchOpen, setSearchOpen] = useState(qParam.length > 0);
   const [typeOpen, setTypeOpen] = useState(false);
   const q = useDebounced(qInput.trim(), 300);
-  const query = useBottles({
-    view: "cellar",
-    ...(q ? { q } : {}),
-    ...(drinkType ? { drinkType } : {}),
-  });
 
   useEffect(() => {
     setSearchParams(
@@ -75,18 +90,6 @@ export function CellarPage() {
       { replace: true },
     );
   }, [q, setSearchParams]);
-
-  useSetHeaderOverride({
-    titleMuted: query.data ? formatBottleCount(query.data.totalCount) : undefined,
-  });
-
-  const filteredOut = Boolean(q || drinkType);
-  const emptyInventory = query.data?.totalCount === 0;
-  const emptyFilter = Boolean(query.data && query.data.items.length === 0 && filteredOut);
-  const enterRef = useRef<boolean | null>(null);
-  if (enterRef.current === null) {
-    enterRef.current = shouldPlayEmptyEnter("cellar:empty");
-  }
 
   function clearFilters() {
     setQInput("");
@@ -107,64 +110,220 @@ export function CellarPage() {
     );
   }
 
+  function selectDrinkType(type: DrinkType) {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set("drinkType", type);
+        return next;
+      },
+      { replace: true },
+    );
+    setTypeOpen(false);
+  }
+
+  return {
+    q,
+    qInput,
+    setQInput,
+    searchOpen,
+    setSearchOpen,
+    typeOpen,
+    setTypeOpen,
+    drinkType,
+    clearFilters,
+    clearDrinkType,
+    selectDrinkType,
+  };
+}
+
+function CellarToolbar({
+  qInput,
+  setQInput,
+  searchOpen,
+  setSearchOpen,
+  typeOpen,
+  setTypeOpen,
+  drinkType,
+  clearDrinkType,
+  selectDrinkType,
+}: {
+  qInput: string;
+  setQInput: (value: string) => void;
+  searchOpen: boolean;
+  setSearchOpen: (value: boolean) => void;
+  typeOpen: boolean;
+  setTypeOpen: (value: boolean | ((current: boolean) => boolean)) => void;
+  drinkType: DrinkType | undefined;
+  clearDrinkType: () => void;
+  selectDrinkType: (type: DrinkType) => void;
+}) {
   return (
-    <div className="cellar-list">
-      {emptyInventory ? null : (
-        <div className="cellar-toolbar">
-          {searchOpen ? (
-            <Input
-              aria-label="検索"
-              value={qInput}
-              maxLength={100}
-              placeholder="銘柄名・生産者"
-              onChange={(event) => setQInput(event.target.value)}
-            />
-          ) : (
-            <Chip selected={false} onSelect={() => setSearchOpen(true)}>
-              検索
-            </Chip>
-          )}
-          {drinkType ? (
-            <Chip selected onSelect={clearDrinkType}>
-              {DRINK_TYPE_LABELS[drinkType]} ×
-            </Chip>
-          ) : (
-            <Chip selected={typeOpen} onSelect={() => setTypeOpen((current) => !current)}>
-              種類 ▼
-            </Chip>
-          )}
-        </div>
-      )}
+    <>
+      <div className="cellar-toolbar">
+        {searchOpen ? (
+          <Input
+            aria-label="検索"
+            value={qInput}
+            maxLength={100}
+            placeholder="銘柄名・生産者"
+            onChange={(event) => setQInput(event.target.value)}
+          />
+        ) : (
+          <Chip selected={false} onSelect={() => setSearchOpen(true)}>
+            検索
+          </Chip>
+        )}
+        {drinkType ? (
+          <Chip selected onSelect={clearDrinkType}>
+            {DRINK_TYPE_LABELS[drinkType]} ×
+          </Chip>
+        ) : (
+          <Chip selected={typeOpen} onSelect={() => setTypeOpen((current) => !current)}>
+            種類 ▼
+          </Chip>
+        )}
+      </div>
       {typeOpen ? (
         <div className="chip-row chip-row-wrap">
           {DRINK_TYPES.map((type) => (
-            <Chip
-              key={type}
-              selected={drinkType === type}
-              onSelect={() => {
-                setSearchParams(
-                  (current) => {
-                    const next = new URLSearchParams(current);
-                    next.set("drinkType", type);
-                    return next;
-                  },
-                  { replace: true },
-                );
-                setTypeOpen(false);
-              }}
-            >
+            <Chip key={type} selected={drinkType === type} onSelect={() => selectDrinkType(type)}>
               {DRINK_TYPE_LABELS[type]}
             </Chip>
           ))}
         </div>
       ) : null}
-      {query.isPending ? <ListSkeleton count={4} /> : null}
+    </>
+  );
+}
+
+export function CellarPage() {
+  const location = useLocation();
+  const filters = useBottleListFilters();
+  const query = useBottles({
+    view: "cellar",
+    ...(filters.q ? { q: filters.q } : {}),
+    ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
+  });
+  const columns = useShelfColumns();
+  const reduceMotion = useReducedMotion();
+  const restore = useRestoreBottle();
+  const { showToast } = useToast();
+  const rememberedRef = useRef(takeRememberedShelfEvent());
+  const left =
+    consumeLeftEvent(location.state) ??
+    (rememberedRef.current?.kind === "left" ? rememberedRef.current : null);
+  const placed =
+    placedBottleEvent(location.state) ??
+    (rememberedRef.current?.kind === "placed" ? rememberedRef.current : null);
+  const showUndo = consumeUndoRequested(location.state) || rememberedRef.current?.kind === "left";
+  const [headerSeed, setHeaderSeed] = useState<number | undefined>(undefined);
+  const [highlightRow, setHighlightRow] = useState<number | null>(null);
+  const [enterId, setEnterId] = useState<string | null>(null);
+  const leavePlayed = useRef(false);
+  const placedPlayed = useRef(false);
+  const toastPlayed = useRef(false);
+
+  const actualCount = query.data?.totalCount;
+  const headerTarget =
+    headerSeed !== undefined ? headerSeed : actualCount === undefined ? undefined : actualCount;
+  const animatedCount = useAnimatedNumber(headerTarget);
+
+  useSetHeaderOverride({
+    titleMuted:
+      animatedCount === undefined ? undefined : formatBottleCount(Math.round(animatedCount)),
+  });
+
+  useEffect(() => {
+    if (actualCount === undefined || !left || leavePlayed.current) {
+      return;
+    }
+    leavePlayed.current = true;
+    const items = query.data?.items ?? [];
+    const rank = rankByCreatedAtDesc(items, left);
+    setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
+    if (reduceMotion) {
+      setHeaderSeed(undefined);
+    } else {
+      setHeaderSeed(actualCount + 1);
+      const frame = requestAnimationFrame(() => setHeaderSeed(undefined));
+      const clearHighlight = window.setTimeout(() => setHighlightRow(null), MOTION_MS.open);
+      return () => {
+        cancelAnimationFrame(frame);
+        window.clearTimeout(clearHighlight);
+      };
+    }
+    const clearHighlight = window.setTimeout(() => setHighlightRow(null), MOTION_MS.open);
+    return () => window.clearTimeout(clearHighlight);
+  }, [actualCount, left, query.data?.items, reduceMotion]);
+
+  useEffect(() => {
+    if (!placed || !query.data || placedPlayed.current) {
+      return;
+    }
+    placedPlayed.current = true;
+    const rank = rankByCreatedAtDesc(query.data.items, placed);
+    setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
+    const clearHighlight = window.setTimeout(() => setHighlightRow(null), MOTION_MS.open);
+    return () => window.clearTimeout(clearHighlight);
+  }, [placed, query.data]);
+
+  useEffect(() => {
+    if (!showUndo || !left || toastPlayed.current) {
+      return;
+    }
+    toastPlayed.current = true;
+    clearRouterLocationState();
+    rememberedRef.current = null;
+    showToast({
+      message: TOAST_MESSAGES.opened,
+      action: {
+        label: "取り消す",
+        onSelect: () => {
+          restore.mutate(left.bottleId, {
+            onSuccess: () => {
+              setEnterId(left.bottleId);
+              const items = query.data?.items ?? [];
+              const rank = rankByCreatedAtDesc(items, left);
+              setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
+              window.setTimeout(() => {
+                setHighlightRow(null);
+                setEnterId(null);
+              }, MOTION_MS.open);
+              showToast({ message: TOAST_MESSAGES.undone, cheer: true });
+            },
+            onError: () => {
+              showToast({
+                message: navigator.onLine
+                  ? FORM_ERROR_MESSAGES.generic
+                  : FORM_ERROR_MESSAGES.offline,
+              });
+              void query.refetch();
+            },
+          });
+        },
+      },
+    });
+  }, [left, query, restore, showToast, showUndo]);
+
+  const filteredOut = Boolean(filters.q || filters.drinkType);
+  const emptyInventory = query.data?.totalCount === 0;
+  const emptyFilter = Boolean(query.data && query.data.items.length === 0 && filteredOut);
+  const enterRef = useRef<boolean | null>(null);
+  if (enterRef.current === null) {
+    enterRef.current = shouldPlayEmptyEnter("cellar:empty");
+  }
+
+  return (
+    <div className="cellar-list">
+      {emptyInventory ? null : <CellarToolbar {...filters} />}
+      {query.isPending ? <ShelfSkeleton columns={columns} /> : null}
       {query.isError ? (
         <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />
       ) : null}
       {emptyInventory ? (
         <div className="cellar-empty" data-enter={enterRef.current ? "1" : undefined}>
-          <div className="shelf-stage">
+          <div className="shelf-stage" data-highlight={highlightRow === 0 ? "1" : undefined}>
             <span className="empty-state-mascot">
               <Mascot pose="surprised" size={96} aria-hidden />
             </span>
@@ -178,47 +337,103 @@ export function CellarPage() {
       ) : null}
       {emptyFilter ? (
         <div className="cellar-filter-empty">
-          <div className="shelf-stage">
+          <div className="shelf-stage" data-highlight={highlightRow === 0 ? "1" : undefined}>
             <div className="shelf-board" />
           </div>
           <p>該当するボトルがありません</p>
-          <Chip selected={false} onSelect={clearFilters}>
+          <Chip selected={false} onSelect={filters.clearFilters}>
             フィルタを解除
           </Chip>
         </div>
       ) : null}
       {query.data && query.data.items.length > 0 ? (
-        <ul className="cellar-temp-list">
-          {query.data.items.map((item) => (
-            <li key={item.id}>
-              <Link className="cellar-temp-row" to={`/cellar/${item.id}`}>
-                {item.thumbPhotoId ? (
-                  <img
-                    className="cellar-temp-thumb"
-                    src={photoContentUrl(item.thumbPhotoId)}
-                    alt=""
-                    loading="lazy"
-                  />
-                ) : (
-                  <span className="cellar-temp-thumb is-empty" aria-hidden />
-                )}
-                <span className="cellar-temp-copy">
-                  <strong>{item.name}</strong>
-                  <span>
-                    {DRINK_TYPE_LABELS[item.drinkType]} ・ {vintageLabel(item.vintage)}
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <Shelf
+          items={query.data.items}
+          columns={columns}
+          mode="cellar"
+          highlightRow={highlightRow}
+          enterId={enterId}
+        />
       ) : null}
     </div>
   );
 }
 
+function ArchiveSentinel({ enabled, onVisible }: { enabled: boolean; onVisible: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || !enabled) {
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) {
+        onVisible();
+      }
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [enabled, onVisible]);
+  return <div ref={ref} className="cellar-archive-sentinel" />;
+}
+
 export function ArchivePage() {
-  return <EmptyState pose="default" message="開栓したボトルはここに並びます" />;
+  const filters = useBottleListFilters();
+  const columns = useShelfColumns();
+  const query = useInfiniteBottles({
+    view: "archive",
+    limit: 50,
+    ...(filters.q ? { q: filters.q } : {}),
+    ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
+  });
+  const items: BottleItem[] = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const totalCount = query.data?.pages[0]?.totalCount;
+  const filteredOut = Boolean(filters.q || filters.drinkType);
+  const emptyInventory = totalCount === 0;
+  const emptyFilter = Boolean(query.data && items.length === 0 && filteredOut);
+  const groups = groupBottlesByConsumedMonth(items);
+
+  useSetHeaderOverride({
+    titleMuted: totalCount === undefined ? undefined : formatBottleCount(totalCount),
+  });
+
+  return (
+    <div className="cellar-list">
+      {emptyInventory ? null : <CellarToolbar {...filters} />}
+      {query.isPending ? <ShelfSkeleton columns={columns} /> : null}
+      {query.isError ? (
+        <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />
+      ) : null}
+      {emptyInventory ? (
+        <EmptyState pose="default" message="開栓したボトルはここに並びます" />
+      ) : null}
+      {emptyFilter ? (
+        <div className="cellar-filter-empty">
+          <div className="shelf-stage">
+            <div className="shelf-board" />
+          </div>
+          <p>該当するボトルがありません</p>
+          <Chip selected={false} onSelect={filters.clearFilters}>
+            フィルタを解除
+          </Chip>
+        </div>
+      ) : null}
+      {groups.map((group) => (
+        <section className="cellar-month" key={group.monthKey}>
+          <h2 className="cellar-month-title">{group.label}</h2>
+          <Shelf items={group.items} columns={columns} mode="archived" />
+        </section>
+      ))}
+      {query.hasNextPage ? (
+        <ArchiveSentinel
+          enabled={query.hasNextPage && !query.isFetchingNextPage}
+          onVisible={() => {
+            void query.fetchNextPage();
+          }}
+        />
+      ) : null}
+    </div>
+  );
 }
 
 export function BottleDetailPage() {

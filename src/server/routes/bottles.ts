@@ -5,18 +5,21 @@ import {
   bottleIdParamSchema,
   bottlesQuerySchema,
   createBottleSchema,
+  emptyJsonBodySchema,
   updateBottleSchema,
 } from "@/shared/bottles.ts";
 import type { AppEnv } from "../app-env.ts";
 import {
+  consumeBottle,
   createBottles,
   deleteBottle,
   getOwnBottle,
   listBottles,
+  restoreBottle,
   updateBottle,
 } from "../services/bottles.ts";
 import type { PhotoBucket } from "../services/photos.ts";
-import { validate } from "../validation.ts";
+import { validate, validateJsonAllowingEmpty } from "../validation.ts";
 
 export type BottleRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppBatchDb;
@@ -24,7 +27,7 @@ export type BottleRouteDeps = {
 };
 
 /**
- * 4-02 は CRUD のみ。`recognize` / `consume` / `restore` は後続タスクで `/:id` より前または配下に足す。
+ * `recognize` は 4-07。`consume` / `restore` は `/:id` 配下（固定パスは id より先に不要）。
  */
 export function createBottlesRoute(deps: BottleRouteDeps) {
   return new Hono<AppEnv>()
@@ -55,6 +58,36 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
       const bottle = await getOwnBottle(deps.getDb(c), user.id, id);
       return c.json(bottle);
     })
+    .post(
+      "/:id/consume",
+      validate("param", bottleIdParamSchema),
+      validateJsonAllowingEmpty(emptyJsonBodySchema),
+      async (c) => {
+        const user = c.get("user");
+        const { id } = c.req.valid("param");
+        const bottle = await consumeBottle({
+          db: deps.getDb(c),
+          userId: user.id,
+          bottleId: id,
+        });
+        return c.json(bottle);
+      },
+    )
+    .post(
+      "/:id/restore",
+      validate("param", bottleIdParamSchema),
+      validateJsonAllowingEmpty(emptyJsonBodySchema),
+      async (c) => {
+        const user = c.get("user");
+        const { id } = c.req.valid("param");
+        const bottle = await restoreBottle({
+          db: deps.getDb(c),
+          userId: user.id,
+          bottleId: id,
+        });
+        return c.json(bottle);
+      },
+    )
     .patch(
       "/:id",
       validate("param", bottleIdParamSchema),

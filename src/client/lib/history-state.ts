@@ -56,3 +56,85 @@ export function undoDrinkLogId(locationState: unknown): string | null {
   const value = readProperty(locationState, UNDO_DRINK_LOG_ID);
   return typeof value === "string" ? value : null;
 }
+
+export type BottleShelfEvent = {
+  bottleId: string;
+  createdAt: string;
+};
+
+const CONSUME_LEFT_KEY = "left";
+const CONSUME_UNDO_KEY = "consumeUndo";
+const PLACED_KEY = "placed";
+
+function readShelfEvent(value: unknown): BottleShelfEvent | null {
+  const bottleId = readProperty(value, "bottleId");
+  const createdAt = readProperty(value, "createdAt");
+  if (typeof bottleId !== "string" || typeof createdAt !== "string") {
+    return null;
+  }
+  if (bottleId.length === 0 || createdAt.length === 0) {
+    return null;
+  }
+  return { bottleId, createdAt };
+}
+
+/** 開栓成功後の `/cellar` 到着。undo トーストと M-10 用 */
+export function bottleConsumeState(left: BottleShelfEvent): Record<string, unknown> {
+  return { [CONSUME_LEFT_KEY]: left, [CONSUME_UNDO_KEY]: true };
+}
+
+export function consumeLeftEvent(locationState: unknown): BottleShelfEvent | null {
+  return readShelfEvent(readProperty(locationState, CONSUME_LEFT_KEY));
+}
+
+export function consumeUndoRequested(locationState: unknown): boolean {
+  return readProperty(locationState, CONSUME_UNDO_KEY) === true;
+}
+
+/** 復元・追加のあと一覧へ戻ったときの M-32 */
+export function bottlePlacedState(placed: BottleShelfEvent): Record<string, unknown> {
+  return { [PLACED_KEY]: placed };
+}
+
+export function placedBottleEvent(locationState: unknown): BottleShelfEvent | null {
+  return readShelfEvent(readProperty(locationState, PLACED_KEY));
+}
+
+const CELLAR_MOTION_STORAGE_KEY = "cellar.shelfEvent";
+
+export type RememberedShelfEvent = BottleShelfEvent & { kind: "left" | "placed" };
+
+export function rememberShelfEvent(event: RememberedShelfEvent): void {
+  try {
+    sessionStorage.setItem(CELLAR_MOTION_STORAGE_KEY, JSON.stringify(event));
+  } catch {
+    // プライベートモードなど。history.state だけで再生する。
+  }
+}
+
+/** React Router の `usr`（location.state）を消して再演出を防ぐ */
+export function clearRouterLocationState(): void {
+  const current = window.history.state;
+  if (typeof current === "object" && current !== null) {
+    window.history.replaceState({ ...current, usr: null }, "");
+  }
+}
+
+export function takeRememberedShelfEvent(): RememberedShelfEvent | null {
+  try {
+    const raw = sessionStorage.getItem(CELLAR_MOTION_STORAGE_KEY);
+    sessionStorage.removeItem(CELLAR_MOTION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed: unknown = JSON.parse(raw);
+    const event = readShelfEvent(parsed);
+    const kind = readProperty(parsed, "kind");
+    if (!event || (kind !== "left" && kind !== "placed")) {
+      return null;
+    }
+    return { ...event, kind };
+  } catch {
+    return null;
+  }
+}
