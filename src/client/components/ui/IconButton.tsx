@@ -7,7 +7,7 @@ type IconButtonProps = {
   className?: string;
   size?: Extract<ButtonProps["size"], "icon" | "icon-lg">;
   asChild?: boolean;
-} & Pick<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "disabled" | "type">;
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className" | "aria-label">;
 
 export function IconButton({
   label,

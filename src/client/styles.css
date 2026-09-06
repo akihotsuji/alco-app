@@ -815,6 +815,200 @@
   color: var(--muted);
 }
 
+/* log-new（spec/screen-designs/03-log.md）。部品間は影のぼかし以上（小 12px / 大 16px） */
+.log-form {
+  gap: var(--space-4);
+}
+
+.log-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.field-label {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.field-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.form-error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inset-sm);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 52px;
+}
+
+.score-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: inherit;
+  text-align: left;
+}
+
+.score-button:focus-visible,
+.score-input:focus-visible,
+.form-row-native:focus-visible,
+.form-row-toggle:focus-visible,
+.memo-textarea:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.score-value {
+  font-size: var(--text-score);
+  font-weight: 650;
+  line-height: 1;
+  color: var(--score);
+  font-variant-numeric: tabular-nums;
+}
+
+.score-unit {
+  font-size: var(--text-body);
+  color: var(--muted);
+}
+
+.score-input {
+  width: 8ch;
+  height: 52px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--background);
+  box-shadow: var(--shadow-inset-sm);
+  color: var(--score);
+  font-size: 28px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  -moz-appearance: textfield;
+}
+
+.score-input::-webkit-outer-spin-button,
+.score-input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.stepper {
+  display: flex;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.stepper button {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.live-grams {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.form-row {
+  position: relative;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-outset-sm);
+  color: inherit;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: left;
+}
+
+.form-row-label {
+  font-weight: 600;
+}
+
+.form-row-value {
+  flex: 1;
+  text-align: right;
+  color: var(--muted);
+}
+
+.form-row-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform var(--dur-state) var(--ease-out);
+}
+
+.form-row-toggle.is-open .form-row-chevron {
+  transform: rotate(180deg);
+}
+
+/* ネイティブの日時ピッカーを行全体に重ねる（見た目は行、タップで OS のピッカー） */
+.form-row-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: none;
+  border-radius: inherit;
+  font-size: var(--text-body);
+}
+
+.form-row-native:focus-visible {
+  opacity: 0;
+}
+
+.memo-textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--background);
+  box-shadow: var(--shadow-inset-sm);
+  color: var(--foreground);
+  font: inherit;
+  resize: vertical;
+}
+
+.memo-count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: right;
+}
+
 .photo-tile {
   position: relative;
   width: 100%;
@@ -842,16 +1036,54 @@
   bottom: 4px;
 }
 
-.photo-tile-filled {
-  padding: 0;
-  overflow: hidden;
+/* 撮影後のサムネ（00-common 2.8）: 記録・ノート 96×120、セラー 100×150。角 12px、inset 枠 */
+.photo-thumb-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
 }
 
-.photo-tile-preview {
+.photo-thumb {
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 12px;
+  box-shadow: var(--shadow-inset-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.photo-thumb-log {
+  width: 96px;
+  height: 120px;
+}
+
+.photo-thumb-bottle {
+  width: 100px;
+  height: 150px;
+}
+
+.photo-thumb-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: inherit;
+  display: block;
+}
+
+.photo-thumb-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-height: 120px;
+  justify-content: center;
+}
+
+.photo-thumb-actions .header-text-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
 }
 
 .photo-tile-progress {
@@ -887,25 +1119,6 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-}
-
-.photo-tile-actions {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  display: flex;
-  gap: 8px;
-}
-
-.photo-tile-action {
-  height: 32px;
-  padding: 0 10px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--background) 88%, transparent);
-  color: var(--foreground);
-  font-size: 13px;
-  font-weight: 600;
 }
 
 @keyframes photo-spin {
