@@ -4,6 +4,7 @@ import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import { deleteDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { type MyDrink, useLogMyDrink } from "@/client/hooks/use-my-drinks.ts";
+import { agentDebug } from "@/client/lib/agent-debug.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { MOTION_MS, type MotionState } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
@@ -46,16 +47,73 @@ export function MyDrinkQuickList({
     [],
   );
 
+  function summaryQuerySnapshot() {
+    return JSON.stringify(
+      queryClient
+        .getQueryCache()
+        .findAll({ queryKey: queryKeys.drinkLogSummaries })
+        .map((query) => ({
+          queryHash: query.queryHash,
+          status: query.state.status,
+          fetchStatus: query.state.fetchStatus,
+          isInvalidated: query.state.isInvalidated,
+          dataUpdatedAt: query.state.dataUpdatedAt,
+        })),
+    );
+  }
+
   async function undo(logId: string) {
+    let stage = "delete";
+    let outcome = "pending";
+    let errorType: string | null = null;
+    // #region agent log
+    agentDebug({
+      hypothesisId: "A|B",
+      location: "MyDrinkQuickList.tsx:undo:entry",
+      message: "Undo action entered",
+      data: { logId },
+      timestamp: Date.now(),
+    });
+    // #endregion
     try {
       await deleteDrinkLog(logId);
+      stage = "invalidate";
+      // #region agent log
+      agentDebug({
+        hypothesisId: "E",
+        location: "MyDrinkQuickList.tsx:undo:invalidate-start",
+        message: "Summary query invalidation started",
+        data: { logId, queriesBefore: summaryQuerySnapshot() },
+        timestamp: Date.now(),
+      });
+      // #endregion
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs }),
         queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogSummaries }),
       ]);
+      stage = "complete";
+      outcome = "success";
       onUndone?.();
-    } catch {
+    } catch (error) {
+      outcome = "error";
+      errorType = error instanceof Error ? error.name : typeof error;
       showToast({ message: TOAST_MESSAGES.saveFailed });
+    } finally {
+      // #region agent log
+      agentDebug({
+        hypothesisId: "C|E",
+        location: "MyDrinkQuickList.tsx:undo:settled",
+        message: "Undo workflow settled",
+        data: {
+          logId,
+          stage,
+          outcome,
+          errorType,
+          queriesAfter: summaryQuerySnapshot(),
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
     }
   }
 

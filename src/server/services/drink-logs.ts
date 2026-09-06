@@ -278,7 +278,7 @@ export async function deleteDrinkLog(input: {
   bucket: PhotoBucket;
   userId: string;
   logId: string;
-}): Promise<void> {
+}): Promise<{ deletedCount: number; remainingCount: number }> {
   const { db, bucket, userId, logId } = input;
   const [row] = await db
     .select({ id: drinkLogs.id })
@@ -300,5 +300,15 @@ export async function deleteDrinkLog(input: {
       await db.update(photos).set({ drinkLogId: null, updatedAt: new Date() }).where(scope);
     }
   }
-  await db.delete(drinkLogs).where(and(eq(drinkLogs.id, logId), eq(drinkLogs.userId, userId)));
+  // #region agent log
+  const deleted = await db
+    .delete(drinkLogs)
+    .where(and(eq(drinkLogs.id, logId), eq(drinkLogs.userId, userId)))
+    .returning({ id: drinkLogs.id });
+  const remaining = await db
+    .select({ id: drinkLogs.id })
+    .from(drinkLogs)
+    .where(and(eq(drinkLogs.id, logId), eq(drinkLogs.userId, userId)));
+  // #endregion
+  return { deletedCount: deleted.length, remainingCount: remaining.length };
 }

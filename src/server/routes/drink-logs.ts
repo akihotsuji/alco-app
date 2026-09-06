@@ -51,12 +51,16 @@ export function createDrinkLogsRoute(deps: DrinkLogRouteDeps) {
     .delete("/:id", validate("param", drinkLogIdParamSchema), async (c) => {
       const user = c.get("user");
       const { id } = c.req.valid("param");
-      await deleteDrinkLog({
+      // #region agent log
+      const debugResult = await deleteDrinkLog({
         db: deps.getDb(c),
         bucket: deps.getBucket(c),
         userId: user.id,
         logId: id,
       });
+      c.header("x-agent-debug-deleted-count", String(debugResult.deletedCount));
+      c.header("x-agent-debug-remaining-count", String(debugResult.remainingCount));
+      // #endregion
       return c.json({ ok: true });
     });
 }
