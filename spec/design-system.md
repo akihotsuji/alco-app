@@ -72,13 +72,13 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 | `--surface` | `#2C2926` | background と同じ |
 | `--foreground` | `#F4EDE4` | 本文 |
 | `--muted` | `#C9BDB0` | 補助 |
-| `--primary` | `#C47878` | 主ボタン塗り |
+| `--primary` | `#CC8484` | 主ボタン塗り（2026-09-06: `#C47878` → `#CC8484`。地に対する primary 文字が 4.34 で 4.5 未満だったため） |
 | `--primary-fg` | `#2A1818` | 主ボタン上の文字 |
 | `--danger` | `#E07070` | 削除 |
 | `--danger-fg` | `#2A1818` | 危険ボタン上 |
 | `--rest` | `#8FCB9E` | 休肝 |
-| `--score` | `#C47878` | スコア |
-| `--ring` | `#C47878` | フォーカス |
+| `--score` | `#CC8484` | スコア |
+| `--ring` | `#CC8484` | フォーカス |
 | `--neu-light` | `#3A3632` | 外光（暗い面のハイライト） |
 | `--neu-dark` | `#1A1816` | 外陰 |
 
@@ -96,9 +96,13 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 | `#FFF8F4` | `#8B1E1E` | 8.68 | ライト danger |
 | `#F4EDE4` | `#2C2926` | 12.45 | ダーク本文 |
 | `#C9BDB0` | `#2C2926` | 7.84 | ダーク muted |
-| `#2A1818` | `#C47878` | 5.08 | ダーク主ボタン |
+| `#2A1818` | `#CC8484` | 5.80 | ダーク主ボタン |
+| `#CC8484` | `#2C2926` | 4.96 | ダーク primary テキスト（旧 `#C47878` は 4.34 で不合格） |
 | `#2A1818` | `#E07070` | 5.41 | ダーク danger |
 | `#8FCB9E` | `#2C2926` | 7.71 | ダーク休肝 |
+| `#FFF8F4` | `#7A3538` + `--fill-tint` | 5.81 | ライト主ボタン、水位線の上（[motion-design.md](motion-design.md) 6.4b） |
+| `#2A1818` | `#CC8484` + `--fill-tint` | 6.84 | ダーク主ボタン、水位線の上 |
+| `#CC8484` | `#2C2926` + `--fill-tint-surface` | 5.63 | ダーク選択チップ、水位線の上 |
 
 フォーカスリングは消さない。`2px solid var(--ring)`、オフセット 2px。
 
@@ -154,7 +158,7 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 
 - ハイライトは純白ではなく **白 80%**（`--neu-light`）。地色に対して強すぎると影が「切り抜き」に見える
 - **隣り合う部品の間隔は影のぼかし以上**にする（小: 12px 以上、大: 16px 以上）。チップ列は横 12px・縦 10px
-- 主ボタンは塗り + `--shadow-primary`。押下で `inset 3px 3px 6px rgba(0,0,0,0.25)` かつ少し暗くする
+- 主ボタンは塗り + `--shadow-primary`。押下で `inset 3px 3px 6px rgba(0,0,0,0.25)` かつ少し暗くし、`scale(0.985) translateY(1px)` で 1px 沈む（[motion-design.md](motion-design.md) M-01。拡大は禁止、縮小は主ボタン・中央タブのみ）
 - **塗りのある小部品（週マスの記録あり、中央タブ）には inset を重ねない**。塗りに inset を掛けるとぼやけた薄赤になる（2026-09-05 指摘）。記録ありの週マスは `--primary` のべた塗り・影なし、今日は外側リング 2px、空のマスは `--shadow-inset-sm`
 - 入力欄は `--shadow-inset-sm`（高さ 48px）
 
@@ -164,16 +168,35 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 
 ## モーション
 
-| 対象 | 時間 | 内容 |
+正本は [motion-design.md](motion-design.md)（2026-09-06 承認。演出 ID `M-01`〜`M-32`、原則、reduced motion、haptic）。ここではトークン値だけ写す。**動くのは状態変化の瞬間だけ**（押下・成功・状態の切替・出現と退場）。待機ループ・紙吹雪・パララックス・発光・バウンス・ページ遷移のスライドは禁止。
+
+| トークン | 値 | 用途 |
 |---|---|---|
-| 押下 | 120ms ease | outset → inset。拡大しない |
-| スコア | 150ms 以内 | 数字が変わる |
-| トースト | 5 秒（1-02） | 下から。自動で消える |
-| それ以外 | なし | 紙吹雪、ループ、パララックス禁止 |
+| `--ease-out` | `cubic-bezier(0.2, 0, 0, 1)` | 出現・状態変化・戻り（既定） |
+| `--ease-in` | `cubic-bezier(0.4, 0, 1, 1)` | 退場 |
+| `--ease-settle` | `cubic-bezier(0.2, 0.9, 0.3, 1)` | 押下からの戻り（行き過ぎ 2% 以内） |
+| `--ease-fill` | `cubic-bezier(0.3, 0, 0.2, 1)` | 水位線・週マス・キャラの水面 |
+| `--dur-press` | 90ms | 押し込み |
+| `--dur-release` | 160ms | 押下からの戻り |
+| `--dur-state` | 200ms | 状態切替（色・影・不透明度・チップ・ピル・数字のカウント） |
+| `--dur-enter` | 240ms | 出現（行・ダイアログ・空状態・グラフ） |
+| `--dur-open` | 300ms | 開栓・棚板ハイライト |
+| `--dur-fill` | 400ms | 水位線・週マス・キャラの水面（上限） |
+| `--dur-toast-in` / `--dur-toast-out` | 180ms / 150ms | トーストの出入り |
+| `--fill-tint` | ライト・ダーク共 `rgba(255,255,255,0.14)` | `--primary` 塗りの上の水位線 |
+| `--fill-tint-surface` | ライト `rgba(122,53,56,0.14)` / ダーク `rgba(0,0,0,0.25)` | 地色の部品の上の水位線 |
 
-効果音・バイブは MVP では入れない。
-
-**提案中**: 上表を置き換えるマイクロインタラクション仕様を [motion-design.md](motion-design.md) に起案（2026-09-06。承認待ち）。承認されるまで本表が正。
+| 規則 | 値 |
+|---|---|
+| 押下 | 影 outset → inset（`::after` の不透明度で切替）。主ボタン・中央タブだけ `scale(0.985) translateY(1px)`。**拡大は禁止** |
+| 移動距離 | 出現 6〜12px、ピルのラベル抜け 6px、キャラ 4px まで。`transform` と `opacity` だけを動かす |
+| 影 | 深さだけ遷移する。色・方向・ぼかしの新しい値は作らない。発光禁止 |
+| トースト | 出 180ms / 退 150ms、滞在 5 秒（`TOAST_DURATION_MS`）。同時に 1 枚 |
+| キャラ | 成功時のみ。クロスフェード 200ms、上 4px → 0 を 1 回、`cheer` の水面 45% → 60% を 1 回（`pour`）。5 秒以内に 2 回動かない |
+| reduced motion | OS の `prefers-reduced-motion` または設定「動きを減らす = 常に減らす」で `<html data-reduce-motion="1">`。移動・拡縮・キーフレームを全廃し、不透明度のフェード（≦150ms）だけ残す |
+| haptic | `navigator.vibrate` を `src/client/lib/haptic.ts` 経由で。`light` = 10ms、`success` = 10-40-10ms。**既定 OFF**、設定「触感フィードバック」で ON。失敗時は振動しない。iOS は非対応 |
+| 効果音 | 入れない |
+| 記述 | トークン経由のみ。その場の `duration-[...]` / `ease-[...]` / `transition: ... 200ms` は禁止（`ui-design`）。ライブラリ（framer-motion 等）は入れない |
 
 ---
 
@@ -289,6 +312,9 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 --space-1 … --space-8 --tap-min
 --radius --radius-card --radius-pill --radius-photo --header-h --tab-h --tab-center-size
 --shadow-outset --shadow-inset --shadow-outset-sm --shadow-inset-sm --shadow-primary
+--ease-out --ease-in --ease-settle --ease-fill
+--dur-press --dur-release --dur-state --dur-enter --dur-open --dur-fill --dur-toast-in --dur-toast-out
+--fill-tint --fill-tint-surface
 --mascot-wine --mascot-wine-light --mascot-ink --mascot-line --mascot-glow
 --shelf-glass --shelf-glass-edge --shelf-glass-shadow --shelf-ghost --shelf-h
 --photo-ratio-log --photo-ratio-bottle
@@ -328,6 +354,7 @@ shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`de
 | 2026-09-04 | ニューモーフィズムへ方針変更。セラー風陳列は「将来」とした |
 | 2026-09-05 | オーナー指示により **陳列を MVP へ繰り上げ**。キャラクター・写真・中央タブのトークンを追補。`--tab-h` 64 → 72 |
 | 2026-09-05（2 回目） | デザイン崩れの修正: 影を部品サイズで 2 段階化（`-sm` 追加）、ハイライトを白 80% に、塗り部品に inset を重ねない（週マス）。棚を **ガラス風の棚板 + 切り抜きボトル**に変更し `--shelf-rail*` を `--shelf-glass*` に置換。種類ごと表示のゴースト見出し。AI 読み取りの印 |
+| 2026-09-06 | **モーション節を [motion-design.md](motion-design.md) に置換**（easing / duration / fill-tint トークン、押下の 1px 沈み、キャラの 1 回反応、reduced motion、haptic 既定 OFF）。**ダークの `--primary` / `--score` / `--ring` を `#C47878` → `#CC8484`**（primary 文字の地に対するコントラスト 4.34 → 4.96）。実装は 3-02 で `styles.css` / `design-tokens.ts` を追従 |
 
 ---
 
@@ -335,7 +362,7 @@ shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`de
 
 - [screen-designs/](screen-designs/README.md)（詳細画面設計。配置の正本）
 - [character.md](character.md)
-- [motion-design.md](motion-design.md)（モーション・マイクロインタラクションの提案。承認待ち）
+- [motion-design.md](motion-design.md)（モーション・マイクロインタラクションの正本。2026-09-06 承認）
 - [wireframes.md](wireframes.md)（1-02 の骨格。履歴）
 - [screens.md](screens.md)
 - 手順: [roadmap/phase-01-design/03-design-system.md](../roadmap/phase-01-design/03-design-system.md)

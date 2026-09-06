@@ -16,7 +16,7 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [character.md](character.md) | キャラクター（マスコット）仕様・ポーズ・写真合成ルール。SVG は [assets/character/](assets/character/) | 承認済み（1-08。2026-09-06） |
 | [wireframes.md](wireframes.md) | 主要画面の骨格（1-02）。配置の正本は screen-designs へ移行。質感モックの一覧 | 作成済み（1-02。履歴） |
 | [design-system.md](design-system.md) | 配色・タイポグラフィ・コンポーネント方針（ニューモーフィズム、OS追従、キャラクター・陳列・写真トークン） | 作成済み（1-03。1-07/08 で追補） |
-| [motion-design.md](motion-design.md) | モーション・マイクロインタラクション（主ボタンの沈み、記録成功のフィードバック、開栓、トースト、reduced motion、haptic。design-system モーション節の置換候補） | 提案（2026-09-06。承認待ち） |
+| [motion-design.md](motion-design.md) | モーション・マイクロインタラクション（演出 `M-01`〜`M-32`、原則、easing / duration トークン、主ボタン・開栓・記録成功の詳細設計、reduced motion、haptic、体験改善 X1〜X8） | 承認済み（2026-09-06） |
 | [data-model.md](data-model.md) | ER図・Drizzleスキーマ設計 | 承認済み（1-04。1-07 改訂は 2026-09-06 承認） |
 | [api-design.md](api-design.md) | APIエンドポイント一覧・認可ルール | 承認済み（1-05。1-07 改訂は 2026-09-06 承認） |
 | features/ | 機能ごとの詳細仕様（画面項目・バリデーション） | 各実装フェーズで作成 |

@@ -19,7 +19,7 @@ Phase 1-08 の成果物。ニューモーフィズムだけでは素っ気ない
 | 体数 | **1 体のみ**。仲間・敵・進化は作らない | ゲーミフィケーション薄めの方針（design-system 原則 4） |
 | 役割 | 反応する相棒。**説明・誘導・広告はしない** | ラベルの代わりに使わない。テキストが正 |
 | 飲酒の助長 | **「もう一杯」「飲もう」等の誘いは絶対に出さない** | 酒類アプリの責任。休肝日を肯定する側に立つ |
-| モーション | 状態変化時の 1 回反応（≦300ms）だけ。待機ループなし | design-system モーション表。`prefers-reduced-motion` で無効 |
+| モーション | **保存成功時の 1 回反応**だけ（ポーズ切替 200ms、上 4px → 0 を 1 回、`cheer` の水面上昇 400ms を 1 回）。待機ループなし。押下・入力・エラーでは動かない | [motion-design.md](motion-design.md) 6.6（2026-09-06 承認）。reduced motion で無効 |
 | 写真合成 | 記録・ノートの写真は **右下に「驚き」ポーズ**を合成できる（既定 ON、保存前に OFF 可）。セラー写真には合成しない | オーナー指示「グラスに驚いている」。陳列は本物のボトルを見せたい |
 | 描画方式 | インライン SVG（React コンポーネント）。ラスタ画像は持たない | テーマ追従（線色 `currentColor`）、拡縮自由 |
 | アプリアイコン | 「通常」ポーズを角丸正方形（primary 塗り）に載せたものを Phase 6-01 で生成 | ホーム画面追加時の識別 |
@@ -110,14 +110,22 @@ viewBox `0 0 120 160`。比率は 3:4。
 
 ## 6. モーション
 
+正本は [motion-design.md](motion-design.md) 6.6「character usage」と M-25（2026-09-06 承認）。ここでは一覧だけ。時間はモーショントークン（`--dur-state` 200ms、`--dur-fill` 400ms）。
+
 | 場面 | 内容 | 時間 |
 |---|---|---|
-| ポーズ切替（default ↔ rest、→ cheer） | クロスフェード | 200ms |
-| 1 タップ記録直後 | cheer に切替 → 300ms 後 default | 合計 500ms |
-| 写真編集でトグル ON | キャラが右下から 8px スライドイン | 200ms |
-| 待機 | **なし**（まばたきループ・揺れ禁止） | — |
+| ポーズ切替（default ↔ rest、→ cheer） | クロスフェード | `--dur-state` 200ms |
+| 1 タップ記録直後（ホーム 72px） | cheer に切替 → 300ms 後 default。切替の瞬間に **上 4px → 0 を 1 回**（`--dur-state`）。水面は上げない（トースト側が担う） | 合計 500ms |
+| 保存成功トーストの cheer 32px | **水面が 45% → 60% に 1 回上がる**（`pour`）。目・星・輪郭は動かさない | `--dur-fill` 400ms |
+| 空状態の 96px | マウント時に不透明 0 → 1、上 8px → 0 を 1 回（M-26）。以後静止 | `--dur-enter` 240ms |
+| 写真編集でトグル ON | キャラが右下から 8px スライドイン | `--dur-state` 200ms |
+| 待機 | **なし**（まばたきループ・揺れ・視線追従禁止） | — |
 
-`prefers-reduced-motion: reduce` ではすべて即時切替。効果音・バイブなし。
+- 動くのは **保存成功**（トースト・1 タップ直後）と **出現**（空状態）だけ。押下・入力・エラー・待機では動かない
+- 同じキャラが 5 秒以内に 2 回動かない（連続タップでは最後の 1 回だけ）
+- 拡縮・回転・目の変形は禁止。ポーズは 4 つのまま（水面の 2 段階は `cheer` の内部状態で、ポーズ追加ではない）
+- reduced motion（OS 設定または設定「動きを減らす」）では移動・水面上昇なし。ポーズ切替は不透明度のクロスフェードのみ
+- 効果音なし。触感フィードバックはキャラの動きに同期させない（[motion-design.md](motion-design.md) 6.5）
 
 ---
 
@@ -143,9 +151,11 @@ src/client/components/mascot/compose-mascot.ts                    ← Canvas 合
 ```tsx
 <Mascot pose="default" size={72} />            // 高さ px。幅は 3:4 で自動
 <Mascot pose="rest" size={72} aria-hidden />   // 装飾のときは aria-hidden
+<Mascot pose="cheer" size={32} pour aria-hidden />  // 水面が 45% → 60% に 1 回上がる（M-25。cheer 以外では無視）
 ```
 
 - `color` は親の `color`（`currentColor`）を継承。テーマで線色が変わる
+- `pour` は `cheer` のときだけ有効。水面のパスを 2 段（45% / 60%）持ち、上段を CSS `clip-path` で `--dur-fill` に出す。SMIL `<animate>` は使わない。reduced motion では上段を即時表示
 - 装飾用途は `aria-hidden`。意味を持たせる場面は作らない（テキストが常にある）
 - SVG の `<clipPath id>` はコンポーネント内で `useId()` により一意化する（同一画面に複数出しても衝突しない）
 
@@ -163,5 +173,6 @@ src/client/components/mascot/compose-mascot.ts                    ← Canvas 合
 ## 10. 関連
 
 - [design-system.md](design-system.md) キャラクター節
+- [motion-design.md](motion-design.md) 6.6 character usage、M-25（水面上昇）、M-26（空状態の出現）
 - [screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md) 写真の撮影・編集・合成
 - [roadmap/phase-01-design/08-character-mascot.md](../roadmap/phase-01-design/08-character-mascot.md)
