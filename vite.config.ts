@@ -1,8 +1,8 @@
+import { randomUUID } from "node:crypto";
+import { appendFileSync } from "node:fs";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { appendFileSync } from "node:fs";
-import { randomUUID } from "node:crypto";
 import { defineConfig, type Plugin } from "vite";
 import { z } from "zod";
 import { srcAlias } from "./vite.alias.ts";
