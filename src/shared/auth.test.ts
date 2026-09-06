@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { loginFormSchema, resolveSafeRedirect, signupFormSchema } from "./auth.ts";
+import {
+  AUTH_NAME_MAX_LENGTH,
+  displayNameSchema,
+  loginFormSchema,
+  resolveSafeRedirect,
+  signupFormSchema,
+} from "./auth.ts";
 
 describe("resolveSafeRedirect", () => {
   it("空や不正値は / にする", () => {
@@ -35,6 +41,21 @@ describe("loginFormSchema", () => {
       password: "",
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("displayNameSchema", () => {
+  it("前後空白を除き、空と 40 文字まで受け付ける", () => {
+    expect(displayNameSchema.parse("  オーナー  ")).toBe("オーナー");
+    expect(displayNameSchema.parse("")).toBe("");
+    expect(displayNameSchema.parse("   ")).toBe("");
+    expect(displayNameSchema.parse("あ".repeat(AUTH_NAME_MAX_LENGTH))).toBe(
+      "あ".repeat(AUTH_NAME_MAX_LENGTH),
+    );
+  });
+
+  it("41 文字は拒否する", () => {
+    expect(displayNameSchema.safeParse("あ".repeat(AUTH_NAME_MAX_LENGTH + 1)).success).toBe(false);
   });
 });
 

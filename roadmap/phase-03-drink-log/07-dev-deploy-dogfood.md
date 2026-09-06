@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 3 飲酒記録 |
-| ステータス | **未着手** |
+| ステータス | **設定・手順済み**（リモート migrate / secret / deploy はオーナー操作） |
 | 要件 | ドッグフーディング、無料枠 |
 | ソース | Phase 3「dev環境にデプロイし、オーナーの日常利用を開始」 |
 
@@ -67,7 +67,11 @@ pnpm exec wrangler deploy --env dev
 2. サインアップ（招待なし。メール＋パスワード）
 3. マイドリンクを 1 つ作り、今夜から使う
 
-CI 未整備のデプロイ権限はオーナーのマシンまたは手動。エージェントがトークンを要求するときは GitHub Secrets へ案内し、値を受け取らない。
+CI 未整備のデプロイ権限はオーナーのマシンまたは手動。エージェントがトークンを要求するときは GitHub Secrets（`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`）へ案内し、値を受け取らない。
+
+失敗時は `pnpm exec wrangler tail --env dev` で Workers ログを見る。サーバーはメソッドとパスだけを出す。Cookie・セッショントークン・パスワードをログに足さない。
+
+短い手順の正本は [spec/dev-deploy.md](../../spec/dev-deploy.md)（後で operations に統合）。
 
 ## 7. 仕様詳細
 

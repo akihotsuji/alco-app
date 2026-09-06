@@ -111,6 +111,18 @@ export async function signIn(app: TestApp, input: { email: string; password: str
   });
 }
 
+export async function updateUserName(app: TestApp, cookie: string | undefined, name: string) {
+  const headers: Record<string, string> = { ...authHeaders(app) };
+  if (cookie) {
+    headers.Cookie = cookie;
+  }
+  return app.request("/api/auth/update-user", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function createTestUser(app: TestApp, input: TestUserInput): Promise<TestUser> {
   const signUpResponse = await signUp(app, input);
   if (!signUpResponse.ok) {

@@ -2046,14 +2046,79 @@
   max-width: 55%;
 }
 
+.settings-value-with-chevron {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.settings-value-with-chevron .settings-value {
+  max-width: none;
+}
+
+.settings-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.settings-inline-label {
+  flex-shrink: 0;
+}
+
+.settings-name-input {
+  width: auto;
+  min-width: 0;
+  flex: 1;
+  height: var(--tap-min);
+}
+
 .settings-caption {
   font-size: 13px;
   color: var(--muted);
 }
 
+.settings-error {
+  color: var(--danger);
+}
+
+.settings-segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.settings-segment-option {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-outset-sm);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+.settings-segment-option.is-on {
+  box-shadow: var(--shadow-inset-sm);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.settings-segment-option:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 .settings-logout {
   color: var(--danger);
   font-weight: 600;
+}
+
+.switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .settings-note {

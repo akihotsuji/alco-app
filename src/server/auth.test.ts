@@ -6,6 +6,7 @@ import {
   createTestUserPair,
   signIn,
   signUp,
+  updateUserName,
 } from "./test-helpers.ts";
 
 const meSchema = z.object({
@@ -149,6 +150,52 @@ describe("認証 API", () => {
     const session = await app.request("/api/auth/get-session");
     expect(session.status).toBe(200);
     expect(await session.json()).toBeNull();
+  });
+
+  it("未認証の表示名更新は 401", async () => {
+    const { app } = await createTestApp();
+    const res = await updateUserName(app, undefined, "新しい名前");
+    expect(res.status).toBe(401);
+  });
+
+  it("表示名は自分のセッションだけ更新でき、他人の name は変わらない", async () => {
+    const { app } = await createTestApp();
+    const [userA, userB] = await createTestUserPair(app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+
+    const updateRes = await updateUserName(app, userA.cookie, "新しい名前");
+    expect(updateRes.status).toBe(200);
+
+    const meA = await app.request("/api/me", { headers: { Cookie: userA.cookie } });
+    const meB = await app.request("/api/me", { headers: { Cookie: userB.cookie } });
+    expect(meSchema.parse(await meA.json())).toMatchObject({
+      id: userA.id,
+      name: "新しい名前",
+    });
+    expect(meSchema.parse(await meB.json())).toMatchObject({
+      id: userB.id,
+      name: "B",
+    });
+  });
+
+  it("空の表示名は未設定として保存できる", async () => {
+    const { app } = await createTestApp();
+    const signUpRes = await signUp(app, {
+      name: "初期名",
+      email: "empty-name@example.com",
+      password: "password1",
+    });
+    const cookie = cookieHeaderFrom(signUpRes);
+    const updateRes = await updateUserName(app, cookie, "");
+    expect(updateRes.status).toBe(200);
+
+    const meRes = await app.request("/api/me", { headers: { Cookie: cookie } });
+    expect(meSchema.parse(await meRes.json())).toMatchObject({
+      email: "empty-name@example.com",
+      name: "",
+    });
   });
 
   it("ログアウト後は GET /api/me が 401 になる", async () => {

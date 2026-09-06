@@ -17,13 +17,9 @@ function osPrefersReducedMotion(): boolean {
   return typeof matchMedia === "function" && matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
-/**
- * 動きを減らすかどうか。JS 側の分岐（`scrollIntoView` の behavior、`pour` の有無）に使う。
- * CSS 側は AppShell が `<html data-reduce-motion="1">` を付け外しし、同じ判定を共有する。
- */
-export function useReducedMotion(): boolean {
+/** OS の `prefers-reduced-motion: reduce`。設定「動きを減らす」の副文（06-settings S9）に使う */
+export function useOsPrefersReducedMotion(): boolean {
   const [osReduce, setOsReduce] = useState(osPrefersReducedMotion);
-  const [pref, setPref] = useState<ReduceMotionPref>(getReduceMotionPref);
 
   useEffect(() => {
     if (typeof matchMedia !== "function") {
@@ -34,6 +30,17 @@ export function useReducedMotion(): boolean {
     query.addEventListener("change", onChange);
     return () => query.removeEventListener("change", onChange);
   }, []);
+
+  return osReduce;
+}
+
+/**
+ * 動きを減らすかどうか。JS 側の分岐（`scrollIntoView` の behavior、`pour` の有無）に使う。
+ * CSS 側は AppShell が `<html data-reduce-motion="1">` を付け外しし、同じ判定を共有する。
+ */
+export function useReducedMotion(): boolean {
+  const osReduce = useOsPrefersReducedMotion();
+  const [pref, setPref] = useState<ReduceMotionPref>(getReduceMotionPref);
 
   useEffect(() => {
     const onPrefChange = () => setPref(getReduceMotionPref());
