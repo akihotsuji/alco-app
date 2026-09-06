@@ -322,7 +322,7 @@ erDiagram
 | drunkAt | drunk_at | integer | NO | | 飲酒日時（UTC ms）。デフォルトは現在時刻 |
 | drunkOn | drunk_on | text | NO | | JST 日付。サーバー算出 |
 | drinkType | drink_type | text | NO | CHECK enum | 7 種 |
-| drinkName | drink_name | text | YES | ≦40 | マイドリンク名のスナップショット |
+| drinkName | drink_name | text | YES | ≦100 | マイドリンク名（≦40）またはボトル名（≦100）のスナップショット。上限は 3-01 で 100 に統一 |
 | volumeMl | volume_ml | integer | NO | 1〜5000 | ml |
 | abvPercent | abv_percent | real | NO | 0〜100 | %。0 は可 |
 | alcoholG | alcohol_g | real | NO | 小数第 2 位 | サーバー再計算 |
