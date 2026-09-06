@@ -21,6 +21,9 @@ pnpm exec wrangler deploy --env dev
 - `BETTER_AUTH_SECRET` は `.dev.vars` と同じく `openssl rand -hex 32` で作る。ドキュメントにはキー名だけ書く
 - `BETTER_AUTH_URL` は省略可（未設定ならリクエストの origin）。本番 URL を dev に書かない
 - デプロイ成果物の workers.dev URL は **公開しない**（招待制は採用していない）
+- workers.dev のアカウントサブドメインは Cloudflare ダッシュボードの設定。リポジトリとこのファイルには書かない
+
+初回デプロイは **2026-09-06** にオーナーが上記 3 コマンドを実行済み。以降の更新も同じコマンド（secret は入っているので `secret put` は不要。migrate は差分があるときだけ）。
 
 ## デプロイ後
 

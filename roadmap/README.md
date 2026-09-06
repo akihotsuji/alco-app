@@ -11,7 +11,7 @@
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-09、1-01〜1-09、2-01〜2-08、3-01〜3-07（機能仕様、記録入力、マイドリンク、計算、日別、週/月、設定操作節。dev デプロイはオーナー操作）。`protect-main` は 2026-09-05 適用（id `22315799`） |
+| **完了** | 0-01〜0-09、1-01〜1-09、2-01〜2-08、3-01〜3-07（機能仕様、記録入力、マイドリンク、計算、日別、週/月、設定操作節、dev デプロイ）。`protect-main` は 2026-09-05 適用（id `22315799`） |
 | **レビュー待ち** | 4-01（`spec/features/cellar.md`） |
 | **進行中** | Phase 4（4-01 レビュー待ち。承認後に 4-02） |
 | **未着手** | 4-02 以降 |
@@ -104,7 +104,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 0 プロジェクト基盤 | [phase-00-project-foundation](phase-00-project-foundation/00-phase.md) | リポジトリ・CI・Cloudflare・ルール | 完了 |
 | Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 完了（1-01〜06 は 2026-09-04、1-07 / 08 は 2026-09-06 承認） |
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 完了（2-01〜2-08） |
-| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 完了（3-07 の実デプロイはオーナー操作） |
+| Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 完了（3-07 の実デプロイ済み） |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と開栓・貯蔵庫・ラベル AI 読み取り | 4-01 レビュー待ち |
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 未着手 |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
@@ -166,7 +166,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 3-04 | 純アルコール量計算ロジック | [04-alcohol-calc-logic.md](phase-03-drink-log/04-alcohol-calc-logic.md) | 完了 |
 | 3-05 | 日別ビュー | [05-daily-view.md](phase-03-drink-log/05-daily-view.md) | 完了（2026-09-06） |
 | 3-06 | 週/月サマリー | [06-weekly-monthly-summary.md](phase-03-drink-log/06-weekly-monthly-summary.md) | 完了（2026-09-06） |
-| 3-07 | dev環境デプロイと日常利用開始 | [07-dev-deploy-dogfood.md](phase-03-drink-log/07-dev-deploy-dogfood.md) | 設定・手順済み（デプロイはオーナー操作） |
+| 3-07 | dev環境デプロイと日常利用開始 | [07-dev-deploy-dogfood.md](phase-03-drink-log/07-dev-deploy-dogfood.md) | 完了（2026-09-06） |
 
 ### Phase 4（7タスク）
 
