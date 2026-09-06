@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { BOTTLE_MESSAGES, type Bottle } from "@/shared/bottles.ts";
 import { ApiClientError } from "./api.ts";
 import {
-  INITIAL_BOTTLE_FORM,
   bottleFormStateFromBottle,
   canSubmitBottleForm,
   describeBottleSaveFailure,
   formatPriceJpy,
   hasBottleDetails,
+  INITIAL_BOTTLE_FORM,
   isBottleFormDirty,
   isUuid,
   toCreateBottleBody,
@@ -22,9 +22,13 @@ const NOW = new Date("2026-09-06T03:00:00.000Z");
 describe("validateBottleForm", () => {
   it("初期は名前空で保存できない。名前があれば通る", () => {
     expect(validateBottleForm(INITIAL_BOTTLE_FORM, NOW).name).toBe(BOTTLE_MESSAGES.name);
-    expect(canSubmitBottleForm(INITIAL_BOTTLE_FORM, validateBottleForm(INITIAL_BOTTLE_FORM, NOW), "none")).toBe(
-      false,
-    );
+    expect(
+      canSubmitBottleForm(
+        INITIAL_BOTTLE_FORM,
+        validateBottleForm(INITIAL_BOTTLE_FORM, NOW),
+        "none",
+      ),
+    ).toBe(false);
     const named = { ...INITIAL_BOTTLE_FORM, name: "サンプル赤" };
     expect(validateBottleForm(named, NOW)).toEqual({});
     expect(canSubmitBottleForm(named, {}, "none")).toBe(true);
@@ -32,12 +36,12 @@ describe("validateBottleForm", () => {
   });
 
   it("年・価格・購入日の範囲", () => {
-    expect(validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", vintage: "1799" }, NOW).vintage).toBe(
-      BOTTLE_MESSAGES.vintage,
-    );
-    expect(validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", priceJpy: "-1" }, NOW).priceJpy).toBe(
-      BOTTLE_MESSAGES.priceJpy,
-    );
+    expect(
+      validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", vintage: "1799" }, NOW).vintage,
+    ).toBe(BOTTLE_MESSAGES.vintage);
+    expect(
+      validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", priceJpy: "-1" }, NOW).priceJpy,
+    ).toBe(BOTTLE_MESSAGES.priceJpy);
     expect(
       validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", purchasedOn: "2026-09-07" }, NOW)
         .purchasedOn,
@@ -149,8 +153,8 @@ describe("describeBottleSaveFailure", () => {
     expect(describeBottleSaveFailure(new Error("x"), false).formMessage).toBe(
       FORM_ERROR_MESSAGES.offline,
     );
-    expect(describeBottleSaveFailure(new ApiClientError(500, "internal_error"), true).formMessage).toBe(
-      FORM_ERROR_MESSAGES.generic,
-    );
+    expect(
+      describeBottleSaveFailure(new ApiClientError(500, "internal_error"), true).formMessage,
+    ).toBe(FORM_ERROR_MESSAGES.generic);
   });
 });

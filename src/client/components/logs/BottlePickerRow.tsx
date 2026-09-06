@@ -85,7 +85,11 @@ export function BottlePickerRow({ bottleId, bottleName, error, onSelect }: Bottl
                   }}
                 >
                   {item.thumbPhotoId ? (
-                    <img className="bottle-picker-thumb" src={photoContentUrl(item.thumbPhotoId)} alt="" />
+                    <img
+                      className="bottle-picker-thumb"
+                      src={photoContentUrl(item.thumbPhotoId)}
+                      alt=""
+                    />
                   ) : (
                     <span className="bottle-picker-thumb is-empty" aria-hidden />
                   )}

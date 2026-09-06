@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
-import type {
-  BottlesQuery,
-  CreateBottleInput,
-  UpdateBottleInput,
-} from "@/shared/bottles.ts";
+import type { BottleView, CreateBottleInput, UpdateBottleInput } from "@/shared/bottles.ts";
+import type { DrinkType } from "@/shared/constants.ts";
 
-export type BottlesListQuery = Pick<BottlesQuery, "view" | "q" | "drinkType"> & {
+export type BottlesListQuery = {
+  view?: BottleView;
+  q?: string;
+  drinkType?: DrinkType;
   limit?: number;
   cursor?: string;
 };

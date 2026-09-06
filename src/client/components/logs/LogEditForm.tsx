@@ -9,10 +9,10 @@ import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.ts
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
+import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
-import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import {
@@ -259,7 +259,9 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         bottleName={state.bottleName}
         error={errors.bottleId}
         onSelect={(bottle) => {
-          setState((current) => (bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current)));
+          setState((current) =>
+            bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current),
+          );
           setServerErrors({});
           setFormError(null);
         }}

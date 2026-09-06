@@ -177,7 +177,11 @@ describe("POST /api/bottles", () => {
     const own = await uploadPhoto(ctx.app, a.cookie);
     const first = await postBottle(ctx.app, a.cookie, { ...BASE, photoIds: [own.id] });
     expect(first.status).toBe(201);
-    const reused = await postBottle(ctx.app, a.cookie, { ...BASE, name: "二本目", photoIds: [own.id] });
+    const reused = await postBottle(ctx.app, a.cookie, {
+      ...BASE,
+      name: "二本目",
+      photoIds: [own.id],
+    });
     expect(reused.status).toBe(404);
     expect(await ctx.db.select().from(bottles).where(eq(bottles.userId, a.id))).toHaveLength(1);
   });
@@ -264,7 +268,11 @@ describe("GET /api/bottles", () => {
       { name: "A", email: "a@example.com", password: "password1" },
       { name: "B", email: "b@example.com", password: "password1" },
     ]);
-    await postBottle(ctx.app, a.cookie, { name: "100%赤", drinkType: "wine", producer: "山の生産者" });
+    await postBottle(ctx.app, a.cookie, {
+      name: "100%赤",
+      drinkType: "wine",
+      producer: "山の生産者",
+    });
     await postBottle(ctx.app, a.cookie, { name: "別の白", drinkType: "wine" });
     await postBottle(ctx.app, b.cookie, { name: "100%赤", drinkType: "wine" });
 
@@ -382,9 +390,7 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     const a = await session(ctx.app, "a@example.com");
     const photo = await uploadPhoto(ctx.app, a.cookie);
     const created = createBottlesResponseSchema.parse(
-      await (
-        await postBottle(ctx.app, a.cookie, { ...BASE, photoIds: [photo.id] })
-      ).json(),
+      await (await postBottle(ctx.app, a.cookie, { ...BASE, photoIds: [photo.id] })).json(),
     );
     const id = created.items[0]?.id ?? "";
     const logRes = await ctx.app.request("/api/drink-logs", {

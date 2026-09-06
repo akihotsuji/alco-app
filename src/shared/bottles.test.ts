@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import "./zod-config.ts";
 import {
-  BOTTLE_MESSAGES,
   arrangedToastMessage,
+  BOTTLE_MESSAGES,
   bottlesQuerySchema,
   createBottleSchema,
   emptyCountsByType,
@@ -92,9 +92,9 @@ describe("createBottleSchema", () => {
     expect(messagesOf(createBottleSchema, { ...BASE, priceJpy: 1.5 }).priceJpy).toEqual([
       BOTTLE_MESSAGES.priceJpy,
     ]);
-    expect(messagesOf(createBottleSchema, { ...BASE, purchasedOn: "2026-02-30" }).purchasedOn).toEqual(
-      [BOTTLE_MESSAGES.purchasedOn],
-    );
+    expect(
+      messagesOf(createBottleSchema, { ...BASE, purchasedOn: "2026-02-30" }).purchasedOn,
+    ).toEqual([BOTTLE_MESSAGES.purchasedOn]);
   });
 });
 

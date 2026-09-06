@@ -7,17 +7,15 @@ import {
   BOTTLE_MESSAGES,
   BOTTLE_NAME_MAX_LENGTH,
   BOTTLE_TEXT_MAX_LENGTH,
-  BOTTLE_VINTAGE_MAX,
-  BOTTLE_VINTAGE_MIN,
   type Bottle,
-  type CreateBottleInput,
-  type UpdateBottleInput,
   bottleMemoSchema,
   bottleNameSchema,
   bottleTextSchema,
+  type CreateBottleInput,
   isPurchasedOnAllowed,
   normalizeOptionalText,
   priceJpySchema,
+  type UpdateBottleInput,
   vintageSchema,
 } from "@/shared/bottles.ts";
 import type { DrinkType } from "@/shared/constants.ts";
@@ -97,7 +95,10 @@ function optionalTextError(value: string, max: number, message: string): string 
   return undefined;
 }
 
-export function validateBottleForm(state: BottleFormState, now: Date = new Date()): BottleFormErrors {
+export function validateBottleForm(
+  state: BottleFormState,
+  now: Date = new Date(),
+): BottleFormErrors {
   const errors: BottleFormErrors = {};
   if (!bottleNameSchema.safeParse(state.name).success) {
     errors.name = BOTTLE_MESSAGES.name;
@@ -358,9 +359,7 @@ export function vintageLabel(value: number | null): string {
 }
 
 export function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 export const BOTTLE_MEMO_LIMIT = BOTTLE_MEMO_MAX_LENGTH;

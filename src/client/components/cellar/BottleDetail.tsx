@@ -29,7 +29,9 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
     ...(bottle.origin ? [{ label: "産地", value: bottle.origin }] : []),
     ...(bottle.producer ? [{ label: "生産者", value: bottle.producer }] : []),
     ...(bottle.purchasedOn ? [{ label: "購入日", value: bottle.purchasedOn }] : []),
-    ...(bottle.priceJpy !== null ? [{ label: "価格", value: formatPriceJpy(bottle.priceJpy) }] : []),
+    ...(bottle.priceJpy !== null
+      ? [{ label: "価格", value: formatPriceJpy(bottle.priceJpy) }]
+      : []),
     ...(bottle.shop ? [{ label: "購入場所", value: bottle.shop }] : []),
     ...(bottle.storage ? [{ label: "保管場所", value: bottle.storage }] : []),
     ...(bottle.memo ? [{ label: "メモ", value: bottle.memo }] : []),
@@ -50,7 +52,9 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
       >
         {photo ? (
           <img
-            className={photo.kind === "cutout" ? "bottle-hero-img is-cutout" : "bottle-hero-img is-photo"}
+            className={
+              photo.kind === "cutout" ? "bottle-hero-img is-cutout" : "bottle-hero-img is-photo"
+            }
             src={photoContentUrl(photo.id)}
             alt=""
           />
@@ -61,7 +65,9 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
       </button>
       <div className="bottle-status-row">
         {bottle.status === "consumed" && bottle.consumedOn ? (
-          <span className="bottle-status-pill is-consumed">開栓（{formatShortMonthDay(bottle.consumedOn)}）</span>
+          <span className="bottle-status-pill is-consumed">
+            開栓（{formatShortMonthDay(bottle.consumedOn)}）
+          </span>
         ) : (
           <span className="bottle-status-pill">未開栓</span>
         )}
@@ -94,7 +100,12 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
         </section>
       ) : null}
       {lightbox && photo ? (
-        <button type="button" className="bottle-lightbox" onClick={() => setLightbox(false)} aria-label="閉じる">
+        <button
+          type="button"
+          className="bottle-lightbox"
+          onClick={() => setLightbox(false)}
+          aria-label="閉じる"
+        >
           <img src={photoContentUrl(photo.id)} alt="" />
         </button>
       ) : null}

@@ -379,7 +379,11 @@ describe("GET /api/drink-logs", () => {
     const b = await session(ctx.app, "b@example.com");
     await seedBottle(ctx, OWN_BOTTLE, a.userId, "自分の赤");
     await seedBottle(ctx, OTHER_BOTTLE, b.userId, "他人の赤");
-    await postLog(ctx.app, a.cookie, { ...BASE, bottleId: OWN_BOTTLE, drunkAt: "2026-09-04T10:00:00.000Z" });
+    await postLog(ctx.app, a.cookie, {
+      ...BASE,
+      bottleId: OWN_BOTTLE,
+      drunkAt: "2026-09-04T10:00:00.000Z",
+    });
     await postLog(ctx.app, a.cookie, { ...BASE, drunkAt: "2026-09-04T11:00:00.000Z" });
 
     const own = drinkLogsResponseSchema.parse(

@@ -2,7 +2,10 @@ import { useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { AppHeader } from "@/client/components/layout/AppHeader.tsx";
 import { BottomTabBar } from "@/client/components/layout/BottomTabBar.tsx";
-import { HeaderOverrideProvider, useHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
+import {
+  HeaderOverrideProvider,
+  useHeaderOverride,
+} from "@/client/components/layout/header-override-context.tsx";
 import { LeaveGuardProvider } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { PhotoEdit } from "@/client/components/photo/PhotoEdit.tsx";

@@ -74,7 +74,9 @@ export const vintageSchema = z
 export const purchasedOnSchema = z
   .string({ error: BOTTLE_MESSAGES.purchasedOn })
   .refine((value) => parseCalendarDate(value) !== null, { error: BOTTLE_MESSAGES.purchasedOn })
-  .refine((value) => isPurchasedOnAllowed(value), { error: BOTTLE_MESSAGES.purchasedOnFuture });
+  .refine((value) => parseCalendarDate(value) === null || isPurchasedOnAllowed(value), {
+    error: BOTTLE_MESSAGES.purchasedOnFuture,
+  });
 
 export const priceJpySchema = z
   .number({ error: BOTTLE_MESSAGES.priceJpy })

@@ -16,7 +16,6 @@ import {
   type BottleFormErrors,
   type BottleFormState,
   canSubmitBottleForm,
-  describeBottleSaveFailure,
   hasBottleDetails,
   INITIAL_BOTTLE_FORM,
   isBottleFormDirty,
@@ -100,10 +99,7 @@ export function BottleFormFields({
     attachment !== undefined ||
     keptPhotoId !== existingPhotoId;
   const canSubmit =
-    dirty &&
-    canSubmitBottleForm(state, errors, photoStatus) &&
-    !photoDeleting &&
-    !deleting;
+    dirty && canSubmitBottleForm(state, errors, photoStatus) && !photoDeleting && !deleting;
   const detailsId = useId();
 
   useEffect(() => {
@@ -132,7 +128,12 @@ export function BottleFormFields({
       return;
     }
     onUpdate?.(
-      toUpdateBottleBody(state, initial, attachment?.photoId ?? null, keptPhotoId === null && existingPhotoId !== null),
+      toUpdateBottleBody(
+        state,
+        initial,
+        attachment?.photoId ?? null,
+        keptPhotoId === null && existingPhotoId !== null,
+      ),
     );
   }
 
@@ -184,7 +185,11 @@ export function BottleFormFields({
             <img className="photo-thumb-img" src={photoContentUrl(keptPhotoId)} alt="" />
           </div>
           <div className="photo-thumb-actions">
-            <button type="button" className="header-text-link" onClick={() => void startCapture("cellar")}>
+            <button
+              type="button"
+              className="header-text-link"
+              onClick={() => void startCapture("cellar")}
+            >
               撮り直す
             </button>
             <button
@@ -223,7 +228,9 @@ export function BottleFormFields({
         ) : null}
       </div>
       <DrinkTypeChips value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
-      {mode === "new" ? <CountStepper value={state.count} onChange={(count) => update({ count })} /> : null}
+      {mode === "new" ? (
+        <CountStepper value={state.count} onChange={(count) => update({ count })} />
+      ) : null}
       <section className="log-form-section">
         <button
           type="button"

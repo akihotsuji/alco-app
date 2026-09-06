@@ -91,7 +91,8 @@ export function applySelectedBottle(
   state: LogFormState,
   bottle: { id: string; name: string; drinkType: DrinkType },
 ): LogFormState {
-  const next = bottle.drinkType === state.drinkType ? state : applyDrinkType(state, bottle.drinkType);
+  const next =
+    bottle.drinkType === state.drinkType ? state : applyDrinkType(state, bottle.drinkType);
   return { ...next, bottleId: bottle.id, bottleName: bottle.name };
 }
 

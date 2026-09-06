@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
 import { bottles, photos } from "@/db/schema.ts";
@@ -258,10 +259,7 @@ type CopiedPhoto = {
   sortOrder: number;
 };
 
-async function copyPhotoObject(
-  bucket: PhotoBucket,
-  source: PhotoRow,
-): Promise<CopiedPhoto> {
+async function copyPhotoObject(bucket: PhotoBucket, source: PhotoRow): Promise<CopiedPhoto> {
   const object = await bucket.get(source.r2Key);
   if (!object) {
     throw new ApiError("internal_error");
@@ -349,7 +347,7 @@ export async function createBottles(input: {
   }));
 
   try {
-    const statements = rows.map((row) => db.insert(bottles).values(row));
+    const statements: BatchItem<"sqlite">[] = rows.map((row) => db.insert(bottles).values(row));
     if (sourcePhoto) {
       const first = rows[0];
       if (first) {
@@ -391,7 +389,11 @@ export async function createBottles(input: {
         );
       }
     }
-    await db.batch(statements);
+    const [firstStatement, ...rest] = statements;
+    if (!firstStatement) {
+      throw new ApiError("internal_error");
+    }
+    await db.batch([firstStatement, ...rest]);
   } catch (error) {
     await Promise.all(copies.map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)));
     throw error;
@@ -431,7 +433,11 @@ export async function createBottles(input: {
   };
 }
 
-export async function getOwnBottle(db: AppBatchDb, userId: string, bottleId: string): Promise<Bottle> {
+export async function getOwnBottle(
+  db: AppBatchDb,
+  userId: string,
+  bottleId: string,
+): Promise<Bottle> {
   const [row] = await db
     .select()
     .from(bottles)
@@ -543,7 +549,9 @@ export async function updateBottle(input: {
   }
 
   const desiredPhotoRows =
-    body.photoIds === undefined ? undefined : await resolvePatchPhotos(db, userId, bottleId, body.photoIds);
+    body.photoIds === undefined
+      ? undefined
+      : await resolvePatchPhotos(db, userId, bottleId, body.photoIds);
   const currentPhotoRows =
     body.photoIds === undefined
       ? []

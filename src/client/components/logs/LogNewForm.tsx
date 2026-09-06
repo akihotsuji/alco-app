@@ -5,10 +5,10 @@ import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.ts
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
+import { BottlePickerRow, usePrefillBottle } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
-import { BottlePickerRow, usePrefillBottle } from "@/client/components/logs/BottlePickerRow.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
@@ -32,8 +32,8 @@ import {
   toCreateDrinkLogBody,
   validateLogForm,
 } from "@/client/lib/log-form.ts";
-import { DRINK_LOG_MESSAGES } from "@/shared/drink-logs.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { DRINK_LOG_MESSAGES } from "@/shared/drink-logs.ts";
 
 const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";
@@ -224,7 +224,9 @@ export function LogNewForm() {
         bottleName={state.bottleName}
         error={errors.bottleId}
         onSelect={(bottle) => {
-          setState((current) => (bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current)));
+          setState((current) =>
+            bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current),
+          );
           setServerErrors({});
           setFormError(null);
         }}
