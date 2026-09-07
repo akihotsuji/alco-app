@@ -3,7 +3,6 @@ import { PHOTO_CUTOUT_MODEL_SIZE } from "@/shared/constants.ts";
 import {
   applyAlphaMask,
   flattenMaskOutput,
-  maskHasSubject,
   normalizeU2NetMask,
   packU2NetTensor,
   raceWithTimeout,
@@ -48,22 +47,23 @@ describe("normalizeU2NetMask", () => {
   });
 });
 
-describe("applyAlphaMask / maskHasSubject", () => {
-  it("アルファを書き込み、被写体の有無を見る", () => {
+describe("applyAlphaMask", () => {
+  it("アルファを書き込む", () => {
     const rgba = new Uint8ClampedArray(8);
     rgba[3] = 255;
     rgba[7] = 255;
     applyAlphaMask(rgba, new Uint8Array([10, 200]));
     expect(rgba[3]).toBe(10);
     expect(rgba[7]).toBe(200);
-    expect(maskHasSubject(new Uint8Array([0, 0, 0, 0]))).toBe(false);
-    expect(maskHasSubject(new Uint8Array([0, 200, 0, 0]), 16, 0.2)).toBe(true);
   });
 });
 
 describe("raceWithTimeout", () => {
-  it("時間内なら解決し、超過なら cutout_timeout", async () => {
+  it("時間内なら解決し、超過なら CutoutError(timeout)", async () => {
     await expect(raceWithTimeout(Promise.resolve(7), 50)).resolves.toBe(7);
-    await expect(raceWithTimeout(new Promise(() => {}), 10)).rejects.toThrow("cutout_timeout");
+    await expect(raceWithTimeout(new Promise(() => {}), 10)).rejects.toMatchObject({
+      name: "CutoutError",
+      reason: "timeout",
+    });
   });
 });

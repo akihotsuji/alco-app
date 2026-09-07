@@ -46,6 +46,14 @@ type PhotoEditValue = {
   source: ImageBitmap | null;
   decodeError: string | null;
   attachments: Partial<Record<PhotoEditContextKind, PhotoAttachment>>;
+  /**
+   * セラーで「使う」直後、切り抜きを待たずに渡す読み取り用 JPEG。
+   * 呼び出し側（`bottle-new` / `bottle-batch`）はこれでラベル読み取りを先に始め、
+   * `attachments.cellar.recognizeJpeg` と同じ Blob なので結果は 1 リクエストにまとまる
+   */
+  pendingRecognizeJpeg: Blob | null;
+  /** `photo-edit` が読み取り用 JPEG を作った時点で呼ぶ */
+  offerRecognizeJpeg: (jpeg: Blob) => void;
   /** 撮影を始める。OS ピッカーをキャンセルすると何も起きない。`intent` を渡すと「使う」で続きの処理を行う */
   startCapture: (
     kind: PhotoEditContextKind,
@@ -81,6 +89,8 @@ const PhotoEditContext = createContext<PhotoEditValue>({
   source: null,
   decodeError: null,
   attachments: {},
+  pendingRecognizeJpeg: null,
+  offerRecognizeJpeg: () => {},
   startCapture: async () => {},
   retake: async () => {},
   closePhotoEdit: () => {},
@@ -117,6 +127,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const [attachments, setAttachments] = useState<
     Partial<Record<PhotoEditContextKind, PhotoAttachment>>
   >({});
+  const [pendingRecognizeJpeg, setPendingRecognizeJpeg] = useState<Blob | null>(null);
   // 「使う」まで持ち越す意図。閉じる・戻る・キャンセルで必ず捨てる（空の入力画面を開かないため）
   const intentRef = useRef<CaptureIntent | null>(null);
   const collectRef = useRef<PhotoCollectSession | null>(null);
@@ -125,6 +136,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     const onPop = () => {
       intentRef.current = null;
       collectRef.current = null;
+      setPendingRecognizeJpeg(null);
       setOpen(false);
     };
     window.addEventListener("popstate", onPop);
@@ -134,8 +146,13 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const closeOverlay = useCallback(() => {
     intentRef.current = null;
     collectRef.current = null;
+    setPendingRecognizeJpeg(null);
     setOpen(false);
     setDecodeError(null);
+  }, []);
+
+  const offerRecognizeJpeg = useCallback((jpeg: Blob) => {
+    setPendingRecognizeJpeg(jpeg);
   }, []);
 
   const closePhotoEdit = useCallback(() => {
@@ -284,6 +301,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       const intent = intentRef.current;
       const collect = collectRef.current;
       collectRef.current = null;
+      // 読み取り用 JPEG は attachment 側へ移る
+      setPendingRecognizeJpeg(null);
       const commit = () => {
         if (collect) {
           void beginCollectedUpload(processed, collect);
@@ -401,6 +420,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       source,
       decodeError,
       attachments,
+      pendingRecognizeJpeg,
+      offerRecognizeJpeg,
       startCapture,
       retake,
       closePhotoEdit,
@@ -418,6 +439,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       source,
       decodeError,
       attachments,
+      pendingRecognizeJpeg,
+      offerRecognizeJpeg,
       startCapture,
       retake,
       closePhotoEdit,

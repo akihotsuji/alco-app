@@ -3,6 +3,7 @@ import {
   PHOTO_CUTOUT_MODEL_SIZE,
   PHOTO_CUTOUT_STD,
 } from "@/shared/constants.ts";
+import { CutoutError } from "./cutout-result.ts";
 
 /** rembg U2-Net と同じ正規化（max で割り ImageNet mean/std、NCHW） */
 export function packU2NetTensor(
@@ -73,23 +74,11 @@ export function applyAlphaMask(rgba: Uint8ClampedArray, mask: Uint8Array): void 
   }
 }
 
-export function maskHasSubject(mask: Uint8Array, threshold = 16, minRatio = 0.01): boolean {
-  if (mask.length === 0) {
-    return false;
-  }
-  let count = 0;
-  for (const value of mask) {
-    if (value > threshold) {
-      count += 1;
-    }
-  }
-  return count / mask.length >= minRatio;
-}
-
+/** 外側だけを打ち切る。`promise` 自体は続くので、推論の直列化は呼び出し側（scheduler の hold）で担う */
 export function raceWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error("cutout_timeout"));
+      reject(new CutoutError("timeout"));
     }, ms);
     promise.then(
       (value) => {

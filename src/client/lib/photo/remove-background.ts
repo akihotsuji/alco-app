@@ -3,20 +3,24 @@ import {
   PHOTO_CUTOUT_CACHE,
   PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS,
   PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS,
+  PHOTO_CUTOUT_MASK,
   PHOTO_CUTOUT_MODEL_SIZE,
   PHOTO_CUTOUT_MODEL_URL,
   PHOTO_CUTOUT_ORT_WASM_FILE,
   PHOTO_CUTOUT_ORT_WASM_PATH,
   PHOTO_CUTOUT_SHADOW,
 } from "@/shared/constants.ts";
+import { applyPreset, type ColorPreset } from "./apply-preset.ts";
 import {
   applyAlphaMask,
   flattenMaskOutput,
-  maskHasSubject,
   normalizeU2NetMask,
   packU2NetTensor,
   raceWithTimeout,
 } from "./cutout-mask.ts";
+import { type BottleMaskFeatures, refineBottleMask } from "./cutout-quality.ts";
+import { CutoutError, type CutoutTiming, emptyCutoutTiming } from "./cutout-result.ts";
+import { createLatestOnlyScheduler } from "./cutout-scheduler.ts";
 import { supportsWasmSimd } from "./filter-support.ts";
 import { alphaBoundingBox, computeCutoutPlacement } from "./geometry.ts";
 
@@ -25,16 +29,43 @@ export type RemoveBackgroundProgress = {
   firstDownload: boolean;
 };
 
-let sessionPromise: Promise<InferenceSession> | null = null;
-let runChain: Promise<unknown> = Promise.resolve();
+export type SegmentationTiming = Pick<
+  CutoutTiming,
+  | "modelDownloadMs"
+  | "ortLoadMs"
+  | "sessionCreateMs"
+  | "preprocessMs"
+  | "queueWaitMs"
+  | "inferenceMs"
+  | "postprocessMs"
+>;
 
-function enqueue<T>(work: () => Promise<T>): Promise<T> {
-  const next = runChain.then(work, work);
-  runChain = next.then(
-    () => undefined,
-    () => undefined,
-  );
-  return next;
+export type BottleSegmentation = {
+  /** cleanup 済み。モデル解像度（`PHOTO_CUTOUT_MODEL_SIZE` 四方） */
+  mask: Uint8Array;
+  modelSize: number;
+  features: BottleMaskFeatures;
+  timing: SegmentationTiming;
+};
+
+export type SegmentBottleOptions = {
+  onProgress?: (progress: RemoveBackgroundProgress) => void;
+  /** pending のうちに不要になったら取り消す（実行中の推論は止められないので結果を捨てる） */
+  signal?: AbortSignal;
+};
+
+type SessionTiming = Pick<CutoutTiming, "modelDownloadMs" | "ortLoadMs" | "sessionCreateMs">;
+
+type LoadedSession = { session: InferenceSession; timing: SessionTiming };
+
+let sessionPromise: Promise<LoadedSession> | null = null;
+let sessionReady = false;
+
+/** 推論は端末内で 1 本ずつ。pending は最新 1 件（Issue #48 A-2 / A-3 / 8） */
+const scheduler = createLatestOnlyScheduler();
+
+export function getCutoutSchedulerStats(): { started: number; superseded: number } {
+  return scheduler.stats;
 }
 
 /**
@@ -45,73 +76,126 @@ export function supportsBackgroundRemoval(): boolean {
   return typeof WebAssembly !== "undefined" && supportsWasmSimd();
 }
 
-export async function removeBackground(
-  source: CanvasImageSource,
-  onProgress?: (progress: RemoveBackgroundProgress) => void,
-): Promise<HTMLCanvasElement> {
-  const input = canvasFromSource(source);
-  const session = await getSession(onProgress);
-  const modelCanvas = resizeToModel(input, PHOTO_CUTOUT_MODEL_SIZE);
+/**
+ * 未補正の 2:3 キャンバスから被写体マスクを求める。失敗はすべて `CutoutError`。
+ * 成功時のマスクは cleanup と品質判定を通っている。
+ */
+export async function segmentBottle(
+  input: HTMLCanvasElement,
+  options: SegmentBottleOptions = {},
+): Promise<BottleSegmentation> {
+  if (!supportsBackgroundRemoval()) {
+    throw new CutoutError("unsupported");
+  }
+  const timing: SegmentationTiming = emptyCutoutTiming();
+  const modelSize = PHOTO_CUTOUT_MODEL_SIZE;
+
+  const preprocessStart = performance.now();
+  const modelCanvas = resizeToModel(input, modelSize);
   const modelCtx = modelCanvas.getContext("2d");
   if (!modelCtx) {
-    throw new Error("canvas 2d が使えません");
+    throw new CutoutError("unsupported", "canvas 2d");
   }
-  const packed = packU2NetTensor(
-    modelCtx.getImageData(0, 0, PHOTO_CUTOUT_MODEL_SIZE, PHOTO_CUTOUT_MODEL_SIZE).data,
-  );
+  const packed = packU2NetTensor(modelCtx.getImageData(0, 0, modelSize, modelSize).data);
+  timing.preprocessMs = elapsed(preprocessStart);
+
+  const loaded = await getSession(options.onProgress);
+  timing.modelDownloadMs = loaded.timing.modelDownloadMs;
+  timing.ortLoadMs = loaded.timing.ortLoadMs;
+  timing.sessionCreateMs = loaded.timing.sessionCreateMs;
+  const { session } = loaded;
   const ort = await loadOrt();
   const inputName = session.inputNames[0];
   const outputName = session.outputNames[0];
   if (!inputName || !outputName) {
-    throw new Error("cutout_model");
+    throw new CutoutError("invalid_output", "model io names");
   }
-  const results = await enqueue(() =>
-    raceWithTimeout(
-      session.run({
-        [inputName]: new ort.Tensor("float32", packed, [
-          1,
-          3,
-          PHOTO_CUTOUT_MODEL_SIZE,
-          PHOTO_CUTOUT_MODEL_SIZE,
-        ]),
-      }),
-      PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS,
-    ),
+
+  const results = await scheduler.schedule(
+    async (context) => {
+      timing.queueWaitMs = context.queueWaitMs;
+      const inferenceStart = performance.now();
+      const run = session.run({
+        [inputName]: new ort.Tensor("float32", packed, [1, 3, modelSize, modelSize]),
+      });
+      // タイムアウトで呼び出し元へ返しても `run` は続くので、終わるまで枠を渡さない
+      context.hold(run);
+      try {
+        return await raceWithTimeout(run, PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS);
+      } catch (error) {
+        throw error instanceof CutoutError
+          ? error
+          : new CutoutError("inference", undefined, { cause: error });
+      } finally {
+        timing.inferenceMs = elapsed(inferenceStart);
+      }
+    },
+    { signal: options.signal },
   );
+
+  const postStart = performance.now();
   const output = results[outputName];
   if (!output || !(output.data instanceof Float32Array)) {
-    throw new Error("cutout_output");
+    throw new CutoutError("invalid_output", "output tensor");
   }
-  const mask = normalizeU2NetMask(flattenMaskOutput(output.data));
-  if (!maskHasSubject(mask)) {
-    throw new Error("cutout_empty");
+  let flat: Float32Array;
+  try {
+    flat = flattenMaskOutput(output.data, modelSize);
+  } catch (error) {
+    throw new CutoutError("invalid_output", "mask shape", { cause: error });
   }
-  const scaled = scaleMask(mask, PHOTO_CUTOUT_MODEL_SIZE, input.width, input.height);
-  const out = document.createElement("canvas");
-  out.width = input.width;
-  out.height = input.height;
-  const outCtx = out.getContext("2d");
-  if (!outCtx) {
-    throw new Error("canvas 2d が使えません");
+  const refined = refineBottleMask(normalizeU2NetMask(flat), modelSize, modelSize);
+  timing.postprocessMs = elapsed(postStart);
+  if (!refined.validation.ok) {
+    throw new CutoutError(refined.validation.reason, refined.validation.detail);
   }
-  outCtx.drawImage(input, 0, 0);
-  const image = outCtx.getImageData(0, 0, out.width, out.height);
-  applyAlphaMask(image.data, scaled);
-  outCtx.putImageData(image, 0, 0);
-  return out;
+  return { mask: refined.mask, modelSize, features: refined.validation.features, timing };
 }
 
-export function paintCutoutOnCanvas(
-  cutout: HTMLCanvasElement,
-  dest: HTMLCanvasElement,
-): HTMLCanvasElement {
+/**
+ * マスクを元画像へ当て、色補正（周辺減光なし）→ 2:3 キャンバスへ下端揃え + 落ち影で置く。
+ * 推論とは独立なので、キャッシュしたマスクから何度でも作れる。
+ */
+export function composeBottleCutout(input: {
+  source: HTMLCanvasElement;
+  mask: Uint8Array;
+  modelSize: number;
+  preset: ColorPreset;
+  output: { width: number; height: number };
+}): HTMLCanvasElement {
+  const scaled = scaleMask(input.mask, input.modelSize, input.source.width, input.source.height);
+  const cut = document.createElement("canvas");
+  cut.width = input.source.width;
+  cut.height = input.source.height;
+  const cutCtx = cut.getContext("2d");
+  if (!cutCtx) {
+    throw new CutoutError("unsupported", "canvas 2d");
+  }
+  cutCtx.drawImage(input.source, 0, 0);
+  const image = cutCtx.getImageData(0, 0, cut.width, cut.height);
+  applyAlphaMask(image.data, scaled);
+  cutCtx.putImageData(image, 0, 0);
+  const colored = applyPreset(cut, input.preset, { vignette: false });
+  const dest = document.createElement("canvas");
+  dest.width = input.output.width;
+  dest.height = input.output.height;
+  paintCutoutOnCanvas(colored, dest);
+  return dest;
+}
+
+function paintCutoutOnCanvas(cutout: HTMLCanvasElement, dest: HTMLCanvasElement): void {
   const srcCtx = cutout.getContext("2d");
   const destCtx = dest.getContext("2d");
   if (!srcCtx || !destCtx) {
-    throw new Error("canvas 2d が使えません");
+    throw new CutoutError("unsupported", "canvas 2d");
   }
   const image = srcCtx.getImageData(0, 0, cutout.width, cutout.height);
-  const box = alphaBoundingBox(image.data, cutout.width, cutout.height) ?? {
+  const box = alphaBoundingBox(
+    image.data,
+    cutout.width,
+    cutout.height,
+    PHOTO_CUTOUT_MASK.bboxAlpha,
+  ) ?? {
     x: 0,
     y: 0,
     width: cutout.width,
@@ -147,27 +231,62 @@ export function paintCutoutOnCanvas(
     placed.width,
     placed.height,
   );
-  return dest;
 }
 
 async function getSession(
   onProgress?: (progress: RemoveBackgroundProgress) => void,
-): Promise<InferenceSession> {
+): Promise<LoadedSession> {
+  if (sessionReady && sessionPromise) {
+    const loaded = await sessionPromise;
+    return {
+      session: loaded.session,
+      timing: { modelDownloadMs: 0, ortLoadMs: 0, sessionCreateMs: 0 },
+    };
+  }
   if (!sessionPromise) {
-    sessionPromise = createSession(onProgress).catch((error: unknown) => {
-      sessionPromise = null;
-      throw error;
-    });
+    sessionPromise = createSession(onProgress).then(
+      (loaded) => {
+        sessionReady = true;
+        return loaded;
+      },
+      (error: unknown) => {
+        sessionPromise = null;
+        throw error;
+      },
+    );
   }
   return sessionPromise;
 }
 
 async function createSession(
   onProgress?: (progress: RemoveBackgroundProgress) => void,
-): Promise<InferenceSession> {
-  const ort = await loadOrt();
-  const bytes = await loadModelBytes(onProgress);
-  return raceWithTimeout(ort.InferenceSession.create(bytes), PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS);
+): Promise<LoadedSession> {
+  const timing: SessionTiming = emptyCutoutTiming();
+  const ortStart = performance.now();
+  const ort = await loadOrt().catch((error: unknown) => {
+    throw new CutoutError("session_init", "ort load", { cause: error });
+  });
+  timing.ortLoadMs = elapsed(ortStart);
+
+  const downloadStart = performance.now();
+  const bytes = await loadModelBytes(onProgress).catch((error: unknown) => {
+    throw error instanceof CutoutError
+      ? error
+      : new CutoutError("model_download", undefined, { cause: error });
+  });
+  timing.modelDownloadMs = elapsed(downloadStart);
+
+  const createStart = performance.now();
+  try {
+    const session = await raceWithTimeout(
+      ort.InferenceSession.create(bytes),
+      PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS,
+    );
+    timing.sessionCreateMs = elapsed(createStart);
+    return { session, timing };
+  } catch (error) {
+    throw new CutoutError("session_init", undefined, { cause: error });
+  }
 }
 
 /**
@@ -187,6 +306,8 @@ export function resolveOrtWasmPaths(origin = ""): { wasm: string } {
 async function loadOrt(): Promise<typeof import("onnxruntime-web")> {
   const ort = await import("onnxruntime-web/wasm");
   ort.env.wasm.wasmPaths = resolveOrtWasmPaths(globalThis.location?.origin ?? "");
+  // マルチスレッドは crossOriginIsolated（COOP / COEP）が前提で、現状の配信ヘッダーでは使えない。
+  // 1 固定は意図的。解除は COOP / COEP の影響調査（別 Issue）を通してから
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.proxy = false;
   return ort;
@@ -205,9 +326,11 @@ async function loadModelBytes(
   const response = await raceWithTimeout(
     fetch(PHOTO_CUTOUT_MODEL_URL),
     PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS,
-  );
+  ).catch((error: unknown) => {
+    throw new CutoutError("model_download", "fetch", { cause: error });
+  });
   if (!response.ok) {
-    throw new Error("cutout_model_fetch");
+    throw new CutoutError("model_download", `http ${response.status}`);
   }
   const total = Number(response.headers.get("content-length") ?? 0);
   const reader = response.body?.getReader();
@@ -259,50 +382,13 @@ function concatBytes(chunks: Uint8Array[]): ArrayBuffer {
   return out.buffer;
 }
 
-function canvasFromSource(source: CanvasImageSource): HTMLCanvasElement {
-  if (source instanceof HTMLCanvasElement) {
-    return source;
-  }
-  const width = sourceWidth(source);
-  const height = sourceHeight(source);
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("canvas 2d が使えません");
-  }
-  ctx.drawImage(source, 0, 0);
-  return canvas;
-}
-
-function sourceWidth(source: CanvasImageSource): number {
-  if ("width" in source && typeof source.width === "number") {
-    return source.width;
-  }
-  if ("displayWidth" in source && typeof source.displayWidth === "number") {
-    return source.displayWidth;
-  }
-  return 0;
-}
-
-function sourceHeight(source: CanvasImageSource): number {
-  if ("height" in source && typeof source.height === "number") {
-    return source.height;
-  }
-  if ("displayHeight" in source && typeof source.displayHeight === "number") {
-    return source.displayHeight;
-  }
-  return 0;
-}
-
 function resizeToModel(source: HTMLCanvasElement, size: number): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    throw new Error("canvas 2d が使えません");
+    throw new CutoutError("unsupported", "canvas 2d");
   }
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
@@ -316,7 +402,7 @@ function scaleMask(mask: Uint8Array, modelSize: number, width: number, height: n
   src.height = modelSize;
   const srcCtx = src.getContext("2d");
   if (!srcCtx) {
-    throw new Error("canvas 2d が使えません");
+    throw new CutoutError("unsupported", "canvas 2d");
   }
   const image = srcCtx.createImageData(modelSize, modelSize);
   for (let i = 0; i < modelSize * modelSize; i += 1) {
@@ -333,7 +419,7 @@ function scaleMask(mask: Uint8Array, modelSize: number, width: number, height: n
   dest.height = height;
   const destCtx = dest.getContext("2d");
   if (!destCtx) {
-    throw new Error("canvas 2d が使えません");
+    throw new CutoutError("unsupported", "canvas 2d");
   }
   destCtx.imageSmoothingEnabled = true;
   destCtx.imageSmoothingQuality = "high";
@@ -344,4 +430,8 @@ function scaleMask(mask: Uint8Array, modelSize: number, width: number, height: n
     out[i] = scaled.data[i * 4] ?? 0;
   }
   return out;
+}
+
+function elapsed(start: number): number {
+  return Math.round(performance.now() - start);
 }

@@ -18,7 +18,7 @@
 | 色補正 | プリセット `table` / `cellar` を既定 ON。OFF 可（設定で既定変更） | 「いい感じに加工」の MVP 範囲 |
 | キャラ合成 | 記録・ノートのみ。右下 `surprised`。既定 ON | オーナー指示 |
 | 背景除去（切り抜き） | **セラーのみ、MVP**（2026-09-05 決定）。ブラウザ WASM（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`）。トグル「切り抜く」既定 ON。出力は透過 WebP、`photos.kind = cutout`。失敗・未対応では長方形 JPEG（`kind = photo`）にフォールバック | ガラス棚に本物のシルエットで立たせる |
-| ラベル読み取り | セラーのみ。切り抜く**前**の 2:3 JPEG を保持し、`photo-edit` を閉じた直後に `POST /api/bottles/recognize` へ送る（画像は保存しない） | [04-cellar.md](04-cellar.md) B2 |
+| ラベル読み取り | セラーのみ。切り抜く**前**の 2:3 JPEG を保持し、「使う」で JPEG ができた時点（背景除去を待たない）に `POST /api/bottles/recognize` へ送る（画像は保存しない） | [04-cellar.md](04-cellar.md) B2 |
 | HEIC | iOS の `capture` 撮影は JPEG で来る。ライブラリ選択で HEIC が来た場合、Safari は `<img>` でデコードできるので Canvas 経由で JPEG 化される。デコードできないブラウザでは「この形式は使えません。JPEG / PNG を選んでください」 | サーバーは常に JPEG を受ける |
 | アップロード時期 | 「使う」を押した直後に **未紐付けで `POST /api/photos`**。フォーム保存時に `photoIds` で紐付け | 保存ボタン押下を速くする。放棄分はサーバー GC（24h） |
 | 上限 | サーバー 1 枚 **1MB**（413）。クライアント出力は通常 300KB 以下 | 実体検証はサーバー（magic bytes + サイズ） |
@@ -66,11 +66,12 @@
 File → createImageBitmap（EXIF orientation 補正）
      → トリミング（比率・位置・拡縮）→ 長辺 1280 にリサイズ
      → [記録・ノート] filter（プリセット。OFF なら none）→ composeMascot → JPEG 0.82
-     → [セラー] 未補正キャンバスを保持
+     → [セラー] 未補正キャンバスを保持（`preparePhoto`）
                  → filter + 周辺減光した JPEG を recognize 用に保持（メモリのみ）
-                 → [切り抜き ON] 未補正で removeBackground（WASM）→ 色補正（周辺減光なし）
-                                 → 2:3 透過キャンバスに下端から 4% + 落ち影 → WebP 0.9
-                                 → 失敗なら filter + 周辺減光の JPEG にフォールバック
+                    → 「使う」ではこの時点で呼び出し元へ渡し、ラベル読み取りを **背景除去を待たずに** 始める
+                 → [切り抜き ON] 未補正で segmentBottle（WASM）→ マスク cleanup・品質判定 → マスクをキャッシュ
+                                 → 色補正（周辺減光なし）→ 2:3 透過キャンバスに下端から 4% + 落ち影 → WebP 0.9
+                                 → 失敗なら filter + 周辺減光の JPEG にフォールバック（理由 `CutoutFailureReason` を保持）
                  → [切り抜き OFF] filter + 周辺減光 JPEG
      → POST /api/photos（multipart: file, 任意 bottleId / tastingNoteId / drinkLogId）
 ```
@@ -78,6 +79,10 @@ File → createImageBitmap（EXIF orientation 補正）
 - トリミング・リサイズ・合成・落ち影の座標計算は **純粋関数**にし単体テスト（比率 4:5 / 2:3、拡縮 1.0 / 3.0、短辺 22% の位置、切り抜きの下端揃え）
 - 背景除去は `src/client/lib/photo/remove-background.ts` に隔離する。モデルと ORT WASM は同一オリジン `/models/`（CDN は使わない）
 - 背景除去の実行条件: WebAssembly SIMD が使えること。使えない端末はトグルを非表示にし常に長方形
+- 推論は **同一画像・同一編集条件（比率・位置・拡縮）で原則 1 回**。プレビューで求めたマスクを「使う」で再利用し、色補正の切替ではマスクを使い回す（Issue #48）
+- 推論は端末内で **実行中 1 件 + pending 最新 1 件**。パン・ズームを繰り返しても古い依頼は置き換え、タイムアウトした推論が終わるまで次を始めない
+- 失敗理由は `unsupported / model_download / session_init / timeout / inference / invalid_output / invalid_mask / empty_mask / encode / superseded / unknown` を機械可読に保持する。UI には出さず、開発ビルドの `console.debug` と単体テストで追う
+- マスクの後処理: 薄い alpha（背景残り）を 0、確かな alpha を 255 にし小さな連結成分を消す。品質判定は「被写体がほぼ無い」「ほぼ全面が被写体」「左右両端まで被写体」だけを失敗にし、縦横比・中心位置は記録にとどめる（閾値は `PHOTO_CUTOUT_MASK`。実機評価で調整）
 - `filter` は Canvas 2D の `ctx.filter`。未対応ブラウザ（古い Safari）では色補正をスキップし、トグルを無効化して「この端末では色補正を使えません」
 - メモリ: 4000×3000 の元画像は `createImageBitmap` の `resizeWidth` で先に縮める
 

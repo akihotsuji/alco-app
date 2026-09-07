@@ -10,7 +10,6 @@ import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
-import { recognizeLabel } from "@/client/hooks/use-bottles.ts";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import {
@@ -36,6 +35,7 @@ import {
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
+import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import {
   arrangedToastMessage,
@@ -83,7 +83,7 @@ export function BottleFormFields({
   onClearServer,
 }: BottleFormProps) {
   const { setGuard } = useLeaveGuard();
-  const { editAttachment } = usePhotoEdit();
+  const { editAttachment, pendingRecognizeJpeg } = usePhotoEdit();
   const { startCapture, attachments, retryUpload, clearAttachment } = useCaptureOnCameraQuery(
     "cellar",
     mode === "new",
@@ -162,6 +162,15 @@ export function BottleFormFields({
     onClearServer();
   }
 
+  // 「使う」直後、切り抜き・アップロードを待たずに読み取りを始める（Issue #48 D-1）。
+  // 結果は attachment 側の effect が同じ Blob で受け取る（1 リクエストにまとまる）
+  useEffect(() => {
+    if (mode !== "new" || !getCellarRecognizePref() || !pendingRecognizeJpeg) {
+      return;
+    }
+    startLabelRecognition(pendingRecognizeJpeg).catch(() => {});
+  }, [mode, pendingRecognizeJpeg]);
+
   useEffect(() => {
     if (mode !== "new" || !getCellarRecognizePref()) {
       setRecognizeStatus(null);
@@ -182,7 +191,7 @@ export function BottleFormFields({
     const requestId = recognizeRequestRef.current + 1;
     recognizeRequestRef.current = requestId;
     setRecognizeStatus("loading");
-    void recognizeLabel(jpeg)
+    void startLabelRecognition(jpeg)
       .then((result) => {
         if (ignoreRecognizeRef.current || requestId !== recognizeRequestRef.current) {
           return;

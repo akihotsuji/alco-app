@@ -5,7 +5,7 @@ import {
   type PhotoCollectSession,
   usePhotoEdit,
 } from "@/client/components/layout/photo-edit-context.tsx";
-import { createBottles, recognizeLabel } from "@/client/hooks/use-bottles.ts";
+import { createBottles } from "@/client/hooks/use-bottles.ts";
 import { deletePhoto } from "@/client/hooks/use-photos.ts";
 import {
   applyBatchOutcome,
@@ -26,6 +26,7 @@ import { applyRecognizeToForm, countRecognizeFields } from "@/client/lib/label-r
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
+import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
 import type { Bottle } from "@/shared/bottles.ts";
 
 export type BatchSubmitResult = {
@@ -40,7 +41,7 @@ export type BatchSubmitResult = {
 export function useBottleBatch(autoCapture: boolean) {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { startCapture, editFromBlob, retryCollectedUpload } = usePhotoEdit();
+  const { startCapture, editFromBlob, retryCollectedUpload, pendingRecognizeJpeg } = usePhotoEdit();
   const [rows, setRows] = useState<BottleBatchRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const rowsRef = useRef(rows);
@@ -81,6 +82,14 @@ export function useBottleBatch(autoCapture: boolean) {
     };
   }, []);
 
+  // 「使う」直後、切り抜き・アップロードを待たずに読み取りを始める（Issue #48 D-1）
+  useEffect(() => {
+    if (!getCellarRecognizePref() || !pendingRecognizeJpeg) {
+      return;
+    }
+    startLabelRecognition(pendingRecognizeJpeg).catch(() => {});
+  }, [pendingRecognizeJpeg]);
+
   // 行ごとのラベル読み取り（04-cellar G7）。設定 OFF なら呼ばない
   useEffect(() => {
     if (!getCellarRecognizePref()) {
@@ -94,7 +103,7 @@ export function useBottleBatch(autoCapture: boolean) {
       recognizedJpegRef.current.set(row.key, jpeg);
       const key = row.key;
       setRows((current) => updateBatchRow(current, key, { recognize: "loading" }));
-      void recognizeLabel(jpeg)
+      void startLabelRecognition(jpeg)
         .then((result) => {
           if (recognizedJpegRef.current.get(key) !== jpeg) {
             return;

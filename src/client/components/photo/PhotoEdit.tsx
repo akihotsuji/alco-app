@@ -12,7 +12,11 @@ import {
   computeCoverCrop,
   outputSizeForAspect,
 } from "@/client/lib/photo/geometry.ts";
-import { presetForKind, processPhoto } from "@/client/lib/photo/process.ts";
+import {
+  presetForKind,
+  processPhoto,
+  previewCutout as renderCutoutPreview,
+} from "@/client/lib/photo/process.ts";
 import {
   type RemoveBackgroundProgress,
   supportsBackgroundRemoval,
@@ -26,9 +30,20 @@ import {
   setCutoutPref,
 } from "@/client/lib/preferences.ts";
 
+const CUTOUT_FAILED_MESSAGE = "うまく抜けませんでした。長方形のまま保存します";
+const PREVIEW_DEBOUNCE_MS = 500;
+
 export function PhotoEdit() {
-  const { open, kind, source, decodeError, closePhotoEdit, retake, applyProcessed } =
-    usePhotoEdit();
+  const {
+    open,
+    kind,
+    source,
+    decodeError,
+    closePhotoEdit,
+    retake,
+    applyProcessed,
+    offerRecognizeJpeg,
+  } = usePhotoEdit();
   const [scale, setScale] = useState(1);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
@@ -89,18 +104,21 @@ export function PhotoEdit() {
   const aspect = aspectForKind(kind);
   const output = outputSizeForAspect(aspect);
 
+  // プレビューの推論は同一条件で 1 回。結果はマスクとして残り「使う」で再利用される。
+  // 条件が変わったら pending を取り消し（走っている推論は結果だけ捨てる）、待ち行列を溜めない
   useEffect(() => {
     if (!open || kind !== "cellar" || !cutoutOn || !cutoutSupported || !source) {
       setPreviewCutout(null);
       setCutoutBusy(false);
       return;
     }
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
       const gen = previewGen.current + 1;
       previewGen.current = gen;
       setCutoutBusy(true);
       setCutoutProgress({ firstDownload: false });
-      void processPhoto({
+      void renderCutoutPreview({
         source,
         sourceWidth: source.width,
         sourceHeight: source.height,
@@ -109,48 +127,30 @@ export function PhotoEdit() {
         offsetX,
         offsetY,
         filterOn: filterOn && filterSupported,
-        mascotOn: false,
-        cutoutOn: true,
         onCutoutProgress: setCutoutProgress,
-      }).then((processed) => {
+        signal: controller.signal,
+      }).then((preview) => {
         if (previewGen.current !== gen) {
-          URL.revokeObjectURL(processed.previewUrl);
           return;
         }
-        if (processed.blob.type !== "image/webp") {
-          URL.revokeObjectURL(processed.previewUrl);
-          setPreviewCutout(null);
-          setCutoutBusy(false);
+        setCutoutBusy(false);
+        if (preview.status === "success") {
+          setPreviewCutout(preview.canvas);
           return;
         }
-        const image = new Image();
-        image.onload = () => {
-          if (previewGen.current !== gen) {
-            URL.revokeObjectURL(processed.previewUrl);
-            return;
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = output.width;
-          canvas.height = output.height;
-          const ctx = canvas.getContext("2d");
-          ctx?.drawImage(image, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(processed.previewUrl);
-          setPreviewCutout(canvas);
-          setCutoutBusy(false);
-        };
-        image.onerror = () => {
-          URL.revokeObjectURL(processed.previewUrl);
-          if (previewGen.current === gen) {
-            setPreviewCutout(null);
-            setCutoutBusy(false);
-          }
-        };
-        image.src = processed.previewUrl;
+        if (preview.reason === "superseded") {
+          return;
+        }
+        // 一時的な失敗は今回の編集画面だけ OFF。`photo.cutout` は変えない（07-photo-capture P5b）
+        setPreviewCutout(null);
+        setCutoutOn(false);
+        setCutoutMessage(CUTOUT_FAILED_MESSAGE);
       });
-    }, 500);
+    }, PREVIEW_DEBOUNCE_MS);
     return () => {
       window.clearTimeout(timer);
       previewGen.current += 1;
+      controller.abort();
     };
   }, [
     cutoutOn,
@@ -161,8 +161,6 @@ export function PhotoEdit() {
     offsetX,
     offsetY,
     open,
-    output.height,
-    output.width,
     scale,
     source,
   ]);
@@ -247,17 +245,14 @@ export function PhotoEdit() {
         mascotOn: kind !== "cellar" && mascotOn,
         cutoutOn: kind === "cellar" && cutoutOn && cutoutSupported,
         onCutoutProgress: setCutoutProgress,
+        // 背景除去を待たずにラベル読み取りを始められるよう、切り抜く前の JPEG を先に渡す
+        onRecognizeJpeg: kind === "cellar" ? offerRecognizeJpeg : undefined,
       });
-      if (
-        kind === "cellar" &&
-        cutoutOn &&
-        cutoutSupported &&
-        processed.blob.type !== "image/webp"
-      ) {
+      if (processed.cutout?.status === "failed") {
+        // 一時的な失敗。`photo.cutout` はユーザーがトグルを操作したときだけ変える
         setCutoutOn(false);
-        setCutoutPref(false);
         setPreviewCutout(null);
-        setCutoutMessage("うまく抜けませんでした。長方形のまま保存します");
+        setCutoutMessage(CUTOUT_FAILED_MESSAGE);
       }
       applyProcessed(processed);
     } finally {
