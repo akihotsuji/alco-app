@@ -535,7 +535,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 | 規則 | 内容 |
 |---|---|
-| プロバイダ | **Cloudflare Workers AI**（binding `AI`。Vision 対応の指示追従モデル。導入時点の推奨モデル名は 4-07 で確定し `src/server/services/label-recognizer/` の定数に置く）。実装は `LabelRecognizer` インターフェースにし、将来 Gemini 等を差し替えられるようにする |
+| プロバイダ | **Cloudflare Workers AI**（binding `AI`。モデルは `@cf/meta/llama-4-scout-17b-16e-instruct`。公式一覧の Vision 対応・指示追従。定数は `WORKERS_AI_VISION_MODEL`）。実装は `LabelRecognizer` インターフェースにし、将来 Gemini 等を差し替えられるようにする |
 | プロンプト | サーバー固定。ユーザー入力を含めない。「JSON のみで返す」指示 + スキーマ例。言語は日本語ラベル・英語ラベル両対応 |
 | 出力の扱い | モデル出力は **信頼しない入力**として Zod で検証する。`name` / `producer` / `origin` ≦100 文字、`vintage` 1800〜2100 の整数、`drinkType` 7 種、`abvPercent` 0〜100 小数 1 桁、`confidence` 0〜1。検証に落ちたフィールドは **省く**（全体を失敗にしない）。文字列は制御文字を除去 |
 | 欠落 | 読めなかったフィールドは省く。`fields` が空でも 200 |

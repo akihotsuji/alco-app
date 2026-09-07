@@ -8,6 +8,7 @@ import * as schema from "@/db/schema.ts";
 import { createAuth } from "./auth.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
+import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 
 const TEST_AUTH_SECRET = "test-only-not-a-production-secret!!";
 const TEST_ORIGIN = "http://localhost";
@@ -59,7 +60,17 @@ export type TestUser = z.infer<typeof testUserSchema> & {
 const clientIpByApp = new WeakMap<TestApp, string>();
 let appCount = 0;
 
-export async function createTestApp() {
+export function createStubLabelRecognizer(
+  recognize: LabelRecognizer["recognize"] = async () => ({
+    name: { value: "サンプル赤", confidence: 0.86 },
+  }),
+): LabelRecognizer {
+  return { provider: "workers-ai", recognize };
+}
+
+export async function createTestApp(
+  options: { labelRecognizer?: LabelRecognizer; recognizeTimeoutMs?: number } = {},
+) {
   const client = createClient({ url: ":memory:" });
   await applyDrizzleMigrations(client);
 
@@ -73,7 +84,13 @@ export async function createTestApp() {
   });
 
   const photos = createMemoryR2();
-  const app = createApp({ auth, db, photos });
+  const app = createApp({
+    auth,
+    db,
+    photos,
+    labelRecognizer: options.labelRecognizer ?? createStubLabelRecognizer(),
+    recognizeTimeoutMs: options.recognizeTimeoutMs,
+  });
   appCount += 1;
   clientIpByApp.set(app, `10.0.${Math.floor(appCount / 256)}.${appCount % 256}`);
   return { app, auth, db, photos };

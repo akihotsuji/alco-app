@@ -8,7 +8,9 @@ import {
   emptyJsonBodySchema,
   updateBottleSchema,
 } from "@/shared/bottles.ts";
+import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import type { AppEnv } from "../app-env.ts";
+import { ApiError, MALFORMED_REQUEST_MESSAGE } from "../errors.ts";
 import {
   consumeBottle,
   createBottles,
@@ -18,16 +20,20 @@ import {
   restoreBottle,
   updateBottle,
 } from "../services/bottles.ts";
+import type { LabelRecognizer } from "../services/label-recognizer/index.ts";
+import { recognizeBottleLabel } from "../services/label-recognizer/recognize.ts";
 import type { PhotoBucket } from "../services/photos.ts";
 import { validate, validateJsonAllowingEmpty } from "../validation.ts";
 
 export type BottleRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppBatchDb;
   getBucket: (c: Context<AppEnv>) => PhotoBucket;
+  getLabelRecognizer: (c: Context<AppEnv>) => LabelRecognizer;
+  recognizeTimeoutMs?: number;
 };
 
 /**
- * `recognize` は 4-07。`consume` / `restore` は `/:id` 配下（固定パスは id より先に不要）。
+ * `recognize` は `/:id` より先。`consume` / `restore` は `/:id` 配下。
  */
 export function createBottlesRoute(deps: BottleRouteDeps) {
   return new Hono<AppEnv>()
@@ -51,6 +57,41 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
         body,
       });
       return c.json(created, 201);
+    })
+    .post("/recognize", async (c) => {
+      const user = c.get("user");
+      let form: FormData;
+      try {
+        form = await c.req.formData();
+      } catch {
+        throw new ApiError("validation_error", {
+          fields: { "": [MALFORMED_REQUEST_MESSAGE] },
+        });
+      }
+
+      const file = form.get("file");
+      if (!(file instanceof File)) {
+        throw new ApiError("validation_error", {
+          fields: { file: ["画像ファイルを指定してください"] },
+        });
+      }
+      if (file.size > PHOTO_MAX_BYTES) {
+        throw new ApiError("payload_too_large");
+      }
+
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (bytes.byteLength > PHOTO_MAX_BYTES) {
+        throw new ApiError("payload_too_large");
+      }
+
+      const result = await recognizeBottleLabel({
+        db: deps.getDb(c),
+        userId: user.id,
+        bytes,
+        recognizer: deps.getLabelRecognizer(c),
+        timeoutMs: deps.recognizeTimeoutMs,
+      });
+      return c.json(result);
     })
     .get("/:id", validate("param", bottleIdParamSchema), async (c) => {
       const user = c.get("user");
