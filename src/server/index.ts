@@ -13,6 +13,7 @@ import { healthRoute } from "./routes/health.ts";
 import { meRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
+import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import { createWorkersAiRecognizer } from "./services/label-recognizer/workers-ai.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
@@ -87,6 +88,7 @@ export function createApp(options: CreateAppOptions = {}) {
     getLabelRecognizer: (c) => options.labelRecognizer ?? createWorkersAiRecognizer(c.env.AI),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
   });
+  const tastingNotesRoute = createTastingNotesRoute(routeDeps);
 
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app
@@ -95,7 +97,8 @@ export function createApp(options: CreateAppOptions = {}) {
     .route("/api/drink-logs", drinkLogsRoute)
     .route("/api/my-drinks", myDrinksRoute)
     .route("/api/photos", photosRoute)
-    .route("/api/bottles", bottlesRoute);
+    .route("/api/bottles", bottlesRoute)
+    .route("/api/tasting-notes", tastingNotesRoute);
 }
 
 export type AppType = ReturnType<typeof createApp>;

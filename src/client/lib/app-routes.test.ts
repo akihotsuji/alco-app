@@ -3,6 +3,8 @@ import {
   hidesTabBar,
   isValidLogDateParam,
   logFormHrefs,
+  noteCreateHref,
+  notesListHref,
   parentTabOf,
   resolveAppRoute,
   summaryMonthHref,
@@ -189,6 +191,22 @@ describe("summary hrefs", () => {
   it("週/月サマリーは date クエリを付ける", () => {
     expect(summaryWeekHref("2026-09-05")).toBe("/summary/week?date=2026-09-05");
     expect(summaryMonthHref("2026-08-01")).toBe("/summary/month?date=2026-08-01");
+  });
+});
+
+describe("note hrefs", () => {
+  it("bottleId があるとき作成と一覧に引き継ぐ", () => {
+    const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    expect(noteCreateHref(id)).toBe(`/notes/new?bottleId=${id}&camera=1`);
+    expect(notesListHref(id)).toBe(`/notes?bottleId=${id}`);
+    expect(noteCreateHref()).toBe("/notes/new?camera=1");
+    const header = resolveAppRoute("/notes", NOW, `?bottleId=${id}`).header;
+    expect(header.left).toEqual({ kind: "back", fallback: `/cellar/${id}` });
+    expect(header.right).toEqual({ kind: "plus", to: `/notes/new?bottleId=${id}&camera=1` });
+    expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}`).header.left).toEqual({
+      kind: "back",
+      fallback: `/notes?bottleId=${id}`,
+    });
   });
 });
 

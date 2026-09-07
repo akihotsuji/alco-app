@@ -25,6 +25,6 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [features/alcohol-calculation.md](features/alcohol-calculation.md) | 純アルコール量計算・グラスプリセット・休肝日 | 承認済み（1-06。2026-09-04） |
 | [features/drink-log.md](features/drink-log.md) | 飲酒記録（入力・編集・日別・マイドリンク・週/月サマリー・ホーム）の画面項目・バリデーション・API・エッジケース | 承認済み（3-01。2026-09-06） |
 | [features/cellar.md](features/cellar.md) | セラー（棚・貯蔵庫・追加・詳細・開栓・復元・切り抜き・ラベル読み取り）の画面項目・バリデーション・API・エッジケース | 承認済み（4-01） |
-| [features/tasting-note.md](features/tasting-note.md) | テイスティングノート（撮って評価と一言・写真グリッド・セラー連携）の画面項目・バリデーション・API・エッジケース | レビュー待ち（5-01。オーナー承認後に 5-02 着手） |
+| [features/tasting-note.md](features/tasting-note.md) | テイスティングノート（撮って評価と一言・写真グリッド・セラー連携）の画面項目・バリデーション・API・エッジケース | 承認済み（5-01 #46）。5-02 CRUD 実装済み |
 | release-checklist.md | リリース前チェックリスト | Phase 7で作成 |
 | operations.md | 運用手順（バックアップ復元・障害対応） | Phase 7で作成 |

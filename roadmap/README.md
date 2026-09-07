@@ -11,10 +11,10 @@
 
 | 判定 | 内容 |
 |---|---|
-| **完了** | 0-01〜0-09、1-01〜1-09、2-01〜2-08、3-01〜3-07、4-01〜4-07（セラー CRUD・棚・開栓・切り抜き・ラベル読み取り・テスト総仕上げ）。`protect-main` は 2026-09-05 適用（id `22315799`） |
-| **レビュー待ち** | 5-01 `spec/features/tasting-note.md` |
-| **進行中** | Phase 5（5-01 レビュー待ち） |
-| **未着手** | 5-02〜 |
+| **完了** | 0-01〜0-09、1-01〜1-09、2-01〜2-08、3-01〜3-07、4-01〜4-07（セラー CRUD・棚・開栓・切り抜き・ラベル読み取り・テスト総仕上げ）、5-01、5-02（ノート CRUD）。`protect-main` は 2026-09-05 適用（id `22315799`） |
+| **レビュー待ち** | なし |
+| **進行中** | Phase 5（5-03〜5-05） |
+| **未着手** | 5-03〜 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
@@ -106,7 +106,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 完了（2-01〜2-08） |
 | Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 完了（3-07 の実デプロイ済み） |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と開栓・貯蔵庫・ラベル AI 読み取り | 完了（4-01〜4-07。4-05 は 2026-09-07） |
-| Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 5-01 レビュー待ち |
+| Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 5-02 完了。5-03〜未着手 |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
 | Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 未着手 |
 | Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 未着手 |
@@ -184,8 +184,8 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 5-01 | `spec/features/tasting-note.md` 作成 | [01-spec-tasting-note.md](phase-05-tasting-note/01-spec-tasting-note.md) | レビュー待ち（2026-09-07 作成） |
-| 5-02 | ノートCRUD | [02-note-crud.md](phase-05-tasting-note/02-note-crud.md) | 未着手 |
+| 5-01 | `spec/features/tasting-note.md` 作成 | [01-spec-tasting-note.md](phase-05-tasting-note/01-spec-tasting-note.md) | 完了（2026-09-07 #46） |
+| 5-02 | ノートCRUD | [02-note-crud.md](phase-05-tasting-note/02-note-crud.md) | 完了 |
 | 5-03 | 写真複数枚添付 | [03-multi-photo-attach.md](phase-05-tasting-note/03-multi-photo-attach.md) | 未着手 |
 | 5-04 | セラー連携 | [04-cellar-integration.md](phase-05-tasting-note/04-cellar-integration.md) | 未着手 |
 | 5-05 | APIテスト・コンポーネントテスト | [05-api-component-tests.md](phase-05-tasting-note/05-api-component-tests.md) | 未着手 |

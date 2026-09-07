@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 5 テイスティングノート |
-| ステータス | **レビュー待ち**（`spec/features/tasting-note.md` 作成。オーナー承認後に 5-02） |
+| ステータス | **完了**（#46。`spec/features/tasting-note.md` 承認済み） |
 | 要件 | [spec/01-requirements.md](../../spec/01-requirements.md) 1.4 |
 | ソース | Phase 5 先頭 |
 

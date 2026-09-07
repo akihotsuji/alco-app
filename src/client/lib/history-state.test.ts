@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   applyCellarToolbarParams,
+  applyNoteToolbarParams,
   bottleConsumeState,
   bottlePlacedState,
   captureCellarVisit,
@@ -189,5 +190,28 @@ describe("cellar visit hold / search params", () => {
     expect(isCellarListPath("/cellar")).toBe(true);
     expect(isCellarListPath("/cellar/archive")).toBe(false);
     expect(isCellarListPath("/cellar/bf7b96a1-0c2a-4035-8dba-55188f4473cb")).toBe(false);
+  });
+});
+
+describe("applyNoteToolbarParams", () => {
+  it("フィルタ解除でも bottleId を残す", () => {
+    const next = applyNoteToolbarParams(
+      new URLSearchParams("bottleId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&q=赤&ratingX10Min=40"),
+      { type: "clearFilters" },
+    );
+    expect(next?.get("bottleId")).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    expect(next?.get("q")).toBeNull();
+    expect(next?.get("ratingX10Min")).toBeNull();
+  });
+
+  it("★4 以上はトグル。同じ状態なら null", () => {
+    expect(
+      applyNoteToolbarParams(new URLSearchParams(), { type: "toggleRatingMin" })?.get(
+        "ratingX10Min",
+      ),
+    ).toBe("40");
+    expect(
+      applyNoteToolbarParams(new URLSearchParams("ratingX10Min=40"), { type: "toggleRatingMin" }),
+    ).toEqual(new URLSearchParams());
   });
 });

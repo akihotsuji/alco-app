@@ -147,6 +147,12 @@ export function formatYearMonth(date: string): string {
   return `${parsed.year}年${parsed.month}月`;
 }
 
+/** 例: 2026年8月1日（ノート詳細） */
+export function formatLongJapaneseDate(date: string): string {
+  const parsed = requireCalendarDate(date);
+  return `${parsed.year}年${parsed.month}月${parsed.day}日`;
+}
+
 export const WEEKDAY_LABELS_MON_SUN = ["月", "火", "水", "木", "金", "土", "日"] as const;
 
 /** Asia/Tokyo は DST が無く常に +09:00。 */

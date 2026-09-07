@@ -244,15 +244,19 @@ export function resolveAppRoute(
   }
 
   if (segments[0] === "notes") {
+    const bottleId = new URLSearchParams(search).get("bottleId");
     if (segments.length === 1) {
       return found("note-list", "notes", {
         title: "ノート",
-        left: SPACER,
-        right: { kind: "plus", to: "/notes/new?camera=1" },
+        left:
+          bottleId && isUuidParam(bottleId)
+            ? { kind: "back", fallback: `/cellar/${bottleId}` }
+            : SPACER,
+        right: { kind: "plus", to: noteCreateHref(bottleId) },
       });
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return formRoute("note-new", "notes", "ノートを作成", "/notes");
+      return formRoute("note-new", "notes", "ノートを作成", notesListHref(bottleId));
     }
     if (segments.length === 3 && segments[2] === "edit" && segments[1]) {
       return formRoute("note-edit", "notes", "ノートを編集", `/notes/${segments[1]}`);
@@ -302,4 +306,24 @@ export function logFormHrefs(date?: string): { newHref: string; cameraHref: stri
 
 export function isFutureTokyoDate(date: string, now: Date = new Date()): boolean {
   return isValidLogDateParam(date) && date > tokyoToday(now);
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isUuidParam(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+export function noteCreateHref(bottleId?: string | null): string {
+  if (bottleId && isUuidParam(bottleId)) {
+    return `/notes/new?bottleId=${encodeURIComponent(bottleId)}&camera=1`;
+  }
+  return "/notes/new?camera=1";
+}
+
+export function notesListHref(bottleId?: string | null): string {
+  if (bottleId && isUuidParam(bottleId)) {
+    return `/notes?bottleId=${encodeURIComponent(bottleId)}`;
+  }
+  return "/notes";
 }

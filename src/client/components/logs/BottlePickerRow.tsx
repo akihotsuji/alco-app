@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   DialogContent,
@@ -10,7 +10,7 @@ import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle, useBottles } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { vintageLabel } from "@/client/lib/bottle-form.ts";
-import { DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
+import { type BottleStatus, DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
 
 function useDebounced(value: string, ms: number) {
   const [debounced, setDebounced] = useState(value);
@@ -21,16 +21,30 @@ function useDebounced(value: string, ms: number) {
   return debounced;
 }
 
-type PickedBottle = { id: string; name: string; drinkType: DrinkType };
+export type PickedBottle = {
+  id: string;
+  name: string;
+  drinkType: DrinkType;
+  status: BottleStatus;
+};
 
 type BottlePickerRowProps = {
   bottleId: string | null;
   bottleName: string | null;
+  valueLabel?: string;
+  clearable?: boolean;
   error?: string;
   onSelect: (bottle: PickedBottle | null) => void;
 };
 
-export function BottlePickerRow({ bottleId, bottleName, error, onSelect }: BottlePickerRowProps) {
+export function BottlePickerRow({
+  bottleId,
+  bottleName,
+  valueLabel,
+  clearable = false,
+  error,
+  onSelect,
+}: BottlePickerRowProps) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const qDebounced = useDebounced(q.trim(), 300);
@@ -38,11 +52,23 @@ export function BottlePickerRow({ bottleId, bottleName, error, onSelect }: Bottl
 
   return (
     <section className="log-form-section">
-      <button type="button" className="form-row" onClick={() => setOpen(true)}>
-        <span className="form-row-label">ボトル</span>
-        <span className="form-row-value">{bottleName ?? "選ぶ"}</span>
-        <ChevronRight size={20} className="form-row-chevron" aria-hidden />
-      </button>
+      <div className="form-row">
+        <button type="button" className="form-row-hit" onClick={() => setOpen(true)}>
+          <span className="form-row-label">ボトル</span>
+          <span className="form-row-value">{valueLabel ?? bottleName ?? "選ぶ"}</span>
+          <ChevronRight size={20} className="form-row-chevron" aria-hidden />
+        </button>
+        {clearable && bottleId ? (
+          <button
+            type="button"
+            className="form-row-clear"
+            aria-label="ボトルを解除"
+            onClick={() => onSelect(null)}
+          >
+            <X size={18} aria-hidden />
+          </button>
+        ) : null}
+      </div>
       {error ? (
         <p className="field-error" role="alert">
           {error}
@@ -80,7 +106,12 @@ export function BottlePickerRow({ bottleId, bottleName, error, onSelect }: Bottl
                   type="button"
                   className={item.id === bottleId ? "bottle-picker-row is-on" : "bottle-picker-row"}
                   onClick={() => {
-                    onSelect({ id: item.id, name: item.name, drinkType: item.drinkType });
+                    onSelect({
+                      id: item.id,
+                      name: item.name,
+                      drinkType: item.drinkType,
+                      status: item.status,
+                    });
                     setOpen(false);
                   }}
                 >
@@ -123,7 +154,12 @@ export function usePrefillBottle(
     }
     if (query.data) {
       applied.current = true;
-      onSelect({ id: query.data.id, name: query.data.name, drinkType: query.data.drinkType });
+      onSelect({
+        id: query.data.id,
+        name: query.data.name,
+        drinkType: query.data.drinkType,
+        status: query.data.status,
+      });
     }
     if (query.isError) {
       applied.current = true;

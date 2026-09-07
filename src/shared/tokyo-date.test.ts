@@ -3,6 +3,7 @@ import {
   addCalendarDays,
   addCalendarMonths,
   formatHomeDateLabel,
+  formatLongJapaneseDate,
   formatMonthDay,
   formatShortMonthDay,
   formatTokyoTime,
@@ -80,6 +81,7 @@ describe("format labels", () => {
     expect(formatShortMonthDay("2026-09-05")).toBe("9/5");
     expect(formatWeekdayShort("2026-09-05")).toBe("土");
     expect(formatYearMonth("2026-08-01")).toBe("2026年8月");
+    expect(formatLongJapaneseDate("2026-08-01")).toBe("2026年8月1日");
   });
 
   it("不正な暦日は投げる", () => {

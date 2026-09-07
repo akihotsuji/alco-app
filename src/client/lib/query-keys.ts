@@ -19,4 +19,13 @@ export const queryKeys = {
     ["bottles", query] as const,
   bottle: (id: string) => ["bottles", id] as const,
   drinkLogsByBottle: (bottleId: string) => ["drink-logs", { bottleId }] as const,
+  tastingNotes: ["tasting-notes"] as const,
+  tastingNotesList: (query: {
+    bottleId?: string;
+    q?: string;
+    drinkType?: string;
+    ratingX10Min?: number;
+    limit?: number;
+  }) => ["tasting-notes", query] as const,
+  tastingNote: (id: string) => ["tasting-notes", id] as const,
 } as const;
