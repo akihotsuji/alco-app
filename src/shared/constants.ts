@@ -105,6 +105,7 @@ export const PHOTO_CUTOUT_MODEL_SIZE = 320;
 export const PHOTO_CUTOUT_MODEL_URL = "/models/u2netp.onnx";
 export const PHOTO_CUTOUT_CACHE = "alco-cutout-v1";
 export const PHOTO_CUTOUT_ORT_WASM_PATH = "/models/ort/";
+export const PHOTO_CUTOUT_ORT_WASM_FILE = "ort-wasm-simd-threaded.wasm";
 export const PHOTO_CUTOUT_MEAN = [0.485, 0.456, 0.406] as const;
 export const PHOTO_CUTOUT_STD = [0.229, 0.224, 0.225] as const;
 

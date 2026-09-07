@@ -5,6 +5,7 @@ import {
   PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS,
   PHOTO_CUTOUT_MODEL_SIZE,
   PHOTO_CUTOUT_MODEL_URL,
+  PHOTO_CUTOUT_ORT_WASM_FILE,
   PHOTO_CUTOUT_ORT_WASM_PATH,
   PHOTO_CUTOUT_SHADOW,
 } from "@/shared/constants.ts";
@@ -169,11 +170,24 @@ async function createSession(
   return raceWithTimeout(ort.InferenceSession.create(bytes), PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS);
 }
 
+/**
+ * `onnxruntime-web/wasm` は JS グルーをバンドルしている。
+ * 文字列の `wasmPaths` を渡すと内蔵グルーを捨て、`ort-wasm-simd-threaded.mjs` を
+ * ディレクトリ接頭辞から import する。接頭辞 `/models/ort/` は `new URL` で
+ * `/models/ort-wasm-simd-threaded.mjs` に潰れ、Vite がモジュールとして解釈して失敗する。
+ * `.wasm` だけ明示する。
+ */
+export function resolveOrtWasmPaths(origin = ""): { wasm: string } {
+  const prefix = origin.replace(/\/$/, "");
+  return {
+    wasm: `${prefix}${PHOTO_CUTOUT_ORT_WASM_PATH}${PHOTO_CUTOUT_ORT_WASM_FILE}`,
+  };
+}
+
 async function loadOrt(): Promise<typeof import("onnxruntime-web")> {
   const ort = await import("onnxruntime-web/wasm");
-  ort.env.wasm.wasmPaths = PHOTO_CUTOUT_ORT_WASM_PATH;
+  ort.env.wasm.wasmPaths = resolveOrtWasmPaths(globalThis.location?.origin ?? "");
   ort.env.wasm.numThreads = 1;
-  ort.env.wasm.simd = true;
   ort.env.wasm.proxy = false;
   return ort;
 }

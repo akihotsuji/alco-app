@@ -16,7 +16,7 @@ declare module "onnxruntime-web" {
 
   export const env: {
     wasm: {
-      wasmPaths: string;
+      wasmPaths: string | { wasm?: string; mjs?: string };
       numThreads: number;
       simd: boolean;
       proxy: boolean;
