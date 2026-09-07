@@ -1,4 +1,4 @@
-import { Camera } from "lucide-react";
+import { Camera, Images } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/client/components/ui/button.tsx";
 import {
@@ -12,12 +12,14 @@ import {
   NOTE_PHOTO_STRIP_MAX,
   type NotePhotoItem,
 } from "@/client/lib/note-photos.ts";
+import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 
 type NotePhotoStripProps = {
   items: readonly NotePhotoItem[];
   canAdd: boolean;
   error?: string;
   onAdd: () => void;
+  onLibrary: () => void;
   onEdit: (key: string) => void;
   onRetry: (key: string) => void;
   onRemove: (key: string) => void;
@@ -29,6 +31,7 @@ export function NotePhotoStrip({
   canAdd,
   error,
   onAdd,
+  onLibrary,
   onEdit,
   onRetry,
   onRemove,
@@ -49,6 +52,10 @@ export function NotePhotoStrip({
         <button type="button" className="note-photo-capture" disabled={!canAdd} onClick={onAdd}>
           <Camera size={22} aria-hidden />
           撮る
+        </button>
+        <button type="button" className="note-photo-capture" disabled={!canAdd} onClick={onLibrary}>
+          <Images size={22} aria-hidden />
+          {IMAGE_PICK_LABELS.noteLibrary}
         </button>
         {items.map((item, index) => (
           <NotePhotoThumb

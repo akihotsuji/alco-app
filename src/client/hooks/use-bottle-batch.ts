@@ -24,6 +24,7 @@ import type { BottleFormState } from "@/client/lib/bottle-form.ts";
 import { describeBottleSaveFailure } from "@/client/lib/bottle-form.ts";
 import { applyRecognizeToForm, countRecognizeFields } from "@/client/lib/label-recognize.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
+import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
@@ -59,12 +60,15 @@ export function useBottleBatch(autoCapture: boolean) {
     return session;
   }, []);
 
-  const addPhoto = useCallback(async () => {
-    if (!canAddBatchRow(rowsRef.current)) {
-      return;
-    }
-    await startCapture("cellar", undefined, bindKey(crypto.randomUUID()));
-  }, [bindKey, startCapture]);
+  const addPhoto = useCallback(
+    async (source: ImagePickSource = "camera") => {
+      if (!canAddBatchRow(rowsRef.current)) {
+        return;
+      }
+      await startCapture("cellar", { collect: bindKey(crypto.randomUUID()), source });
+    },
+    [bindKey, startCapture],
+  );
 
   const camera = searchParams.get("camera") === "1";
   const capturedRef = useRef(false);

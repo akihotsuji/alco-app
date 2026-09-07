@@ -40,6 +40,7 @@ import {
   validateLogForm,
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
@@ -223,6 +224,13 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
             <button
               type="button"
               className="header-text-link"
+              onClick={() => void startCapture("log", { source: "library" })}
+            >
+              {IMAGE_PICK_LABELS.library}
+            </button>
+            <button
+              type="button"
+              className="header-text-link"
               disabled={photoDeleting}
               onClick={() => void removeExistingPhoto()}
             >
@@ -231,7 +239,10 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           </div>
         </div>
       ) : (
-        <PhotoTile onClick={() => void startCapture("log")} />
+        <PhotoTile
+          onClick={() => void startCapture("log")}
+          onLibraryClick={() => void startCapture("log", { source: "library" })}
+        />
       )}
       <DrinkTypeChips value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
       <VolumeField
