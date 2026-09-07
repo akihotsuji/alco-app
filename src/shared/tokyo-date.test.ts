@@ -76,7 +76,7 @@ describe("addCalendarMonths", () => {
 
 describe("format labels", () => {
   it("ホームと日別の見出しを JST 暦日で出す", () => {
-    expect(formatHomeDateLabel("2026-09-05")).toBe("9月5日 土曜");
+    expect(formatHomeDateLabel("2026-09-05")).toBe("9月5日 (土)");
     expect(formatMonthDay("2026-09-05")).toBe("9月5日");
     expect(formatShortMonthDay("2026-09-05")).toBe("9/5");
     expect(formatWeekdayShort("2026-09-05")).toBe("土");

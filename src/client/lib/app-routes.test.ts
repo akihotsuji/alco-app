@@ -130,6 +130,14 @@ describe("resolveAppRoute", () => {
     });
   });
 
+  it("ホームだけ共通ヘッダーを隠し、他画面は従来どおり出す", () => {
+    expect(resolveAppRoute("/", NOW).hideHeader).toBe(true);
+    expect(resolveAppRoute("/settings", NOW).hideHeader).toBe(false);
+    expect(resolveAppRoute("/cellar", NOW).hideHeader).toBe(false);
+    expect(resolveAppRoute("/logs", NOW).hideHeader).toBe(false);
+    expect(resolveAppRoute("/summary/week", NOW).hideHeader).toBe(false);
+  });
+
   it("予約セグメントを :date / :id より先に解決する", () => {
     expect(resolveAppRoute("/cellar/archive", NOW).screenId).toBe("bottle-archive");
     expect(resolveAppRoute("/logs/new", NOW).screenId).toBe("log-new");

@@ -121,9 +121,9 @@ export function formatMonthDay(date: string): string {
   return `${parsed.month}月${parsed.day}日`;
 }
 
-/** 例: 9月5日 土曜 */
+/** 例: 9月5日 (土) */
 export function formatHomeDateLabel(date: string): string {
-  return `${formatMonthDay(date)} ${WEEKDAY_JA[weekdayIndex(date)]}曜`;
+  return `${formatMonthDay(date)} (${WEEKDAY_JA[weekdayIndex(date)]})`;
 }
 
 /** 例: 9/5 */
