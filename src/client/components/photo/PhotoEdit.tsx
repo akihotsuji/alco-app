@@ -13,6 +13,7 @@ import {
   computeCoverCrop,
   outputSizeForAspect,
 } from "@/client/lib/photo/geometry.ts";
+import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import {
   presetForKind,
   processPhoto,
@@ -310,7 +311,10 @@ export function PhotoEdit() {
           <X size={20} />
         </IconButton>
         <span className="photo-edit-spacer" />
-        <button type="button" className="header-text-link" onClick={() => void retake()}>
+        <button type="button" className="header-text-link" onClick={() => void retake("library")}>
+          {IMAGE_PICK_LABELS.library}
+        </button>
+        <button type="button" className="header-text-link" onClick={() => void retake("camera")}>
           撮り直す
         </button>
       </header>

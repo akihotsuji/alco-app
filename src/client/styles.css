@@ -1276,6 +1276,24 @@ html[data-theme="dark"] {
   bottom: 4px;
 }
 
+.photo-tile-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.photo-tile-library,
+.bottle-batch-library {
+  border: none;
+  background: transparent;
+  padding-inline: 0;
+}
+
+.header-text-link:disabled {
+  opacity: 0.5;
+}
+
 /* 撮影後のサムネ（00-common 2.8）: 記録・ノート 96×120、セラー 100×150。角 12px、inset 枠 */
 .photo-thumb-row {
   display: flex;
@@ -1462,6 +1480,13 @@ html[data-theme="dark"] {
 
 .bottle-batch-capture {
   gap: var(--space-2);
+}
+
+.bottle-batch-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .photo-tile-progress {

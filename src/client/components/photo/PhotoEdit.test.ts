@@ -31,6 +31,14 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(source).not.toContain('processed.blob.type !== "image/webp"');
   });
 
+  it("撮り直すは撮影、ライブラリからは保存済み写真（両立）", () => {
+    expect(source).toContain('retake("library")');
+    expect(source).toContain('retake("camera")');
+    expect(source).toContain("IMAGE_PICK_LABELS.library");
+    expect(context).toContain('pickImage(options?.source ?? "camera")');
+    expect(context).toContain("pickImage(source)");
+  });
+
   it("切り抜く前の JPEG を先に呼び出し元へ渡し、ラベル読み取りを背景除去と並列に始められる", () => {
     expect(source).toContain('onRecognizeJpeg: kind === "cellar" ? offerRecognizeJpeg : undefined');
     expect(context).toContain("pendingRecognizeJpeg");

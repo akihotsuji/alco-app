@@ -45,6 +45,7 @@ import {
   validateNoteForm,
 } from "@/client/lib/note-form.ts";
 import type { NotePhotoItem } from "@/client/lib/note-photos.ts";
+import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import type { TastingNote } from "@/shared/tasting-notes.ts";
@@ -383,7 +384,7 @@ function NoteFormFields({
   photos: {
     items: readonly NotePhotoItem[];
     canAdd: boolean;
-    addPhoto: () => Promise<void>;
+    addPhoto: (source?: ImagePickSource) => Promise<void>;
     editPhoto: (key: string) => Promise<void>;
     retryPhoto: (key: string) => Promise<void>;
     removePhoto: (key: string) => Promise<void>;
@@ -408,6 +409,7 @@ function NoteFormFields({
         canAdd={photos.canAdd}
         error={errors.photoIds}
         onAdd={() => void photos.addPhoto()}
+        onLibrary={() => void photos.addPhoto("library")}
         onEdit={(key) => void photos.editPhoto(key)}
         onRetry={(key) => void photos.retryPhoto(key)}
         onRemove={(key) => void photos.removePhoto(key)}

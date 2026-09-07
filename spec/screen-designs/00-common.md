@@ -138,7 +138,8 @@
 |---|---|
 | 見た目 | 地色 + `--shadow-inset`、角 `--radius-photo`、高さ 120px、横一杯（セラーは 2:3 100×150 左寄せ） |
 | 中身 | 中央にカメラアイコン 28px + 「写真を撮る」16px。右下に `surprised` 48px（セラーでは出さない） |
-| タップ | `photo-edit` を開く（[07-photo-capture.md](07-photo-capture.md)） |
+| タップ | 撮影（`capture="environment"`）→ `photo-edit`（[07-photo-capture.md](07-photo-capture.md)） |
+| 副導線 | タイル下にテキスト「ライブラリから」。保存済み写真を選ぶ（`capture` なし） |
 
 ### 2.8 写真（撮影後のサムネ）
 

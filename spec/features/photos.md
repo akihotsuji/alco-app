@@ -4,7 +4,7 @@
 
 ## 方針
 
-- 取り込みは `<input type="file" accept="image/*">`。`capture` は付けず、OS の選択 UI でカメラ撮影と保存済み写真の選択を両方できるようにする（2026-09-07 Issue #55）。`getUserMedia` は使わない
+- 取り込みは 2 経路。基本は撮影（`accept="image/*"` + `capture="environment"`）。保存済み写真は別ボタン（`capture` なし）。中央タブ / ホームのカメラ / `?camera=1` は撮影から。`getUserMedia` は使わない
 - 切り抜き・色補正・キャラ合成・JPEG 化はすべて端末内 Canvas。サーバーは検証と保存だけ
 - 「使う」直後に **未紐付け** で `POST /api/photos`。フォーム保存時の `photoIds` 紐付けは各機能フェーズ
 - 背景除去の実体は 4-06（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`。ORT の glue `.mjs` と `.wasm` を同じディレクトリへ明示）。2-08 はトグル差し込み口と、WebP VP8X alpha → `kind=cutout` のサーバー判定
@@ -13,7 +13,7 @@
 
 | 関数 | 役割 |
 |---|---|
-| `pickImage` | `input[type=file] accept=image/*`（`capture` なし）。キャンセルなら overlay を開かない |
+| `pickImage` | `source: "camera" \| "library"`。撮影は `capture=environment`、ライブラリは `capture` なし。キャンセルなら overlay を開かない |
 | `decodeImage` | `createImageBitmap` + EXIF orientation。長辺 2560 超は先に縮小 |
 | `computeCoverCrop` / `cropResize` | 4:5 / 2:3、拡縮 1.0〜3.0、長辺 1280 |
 | `applyPreset` | `table` / `cellar` / `none`。`ctx.filter` 未対応ならスキップ |

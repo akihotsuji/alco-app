@@ -95,6 +95,6 @@ pnpm test; pnpm lint; pnpm typecheck
 
 ## 11. リスク・注意点
 
-- iOS の `input[capture]` はライブラリ選択を出さない端末がある。`capture` 無しのボタン（「ライブラリから」）を `photo-edit` の「撮り直す」横に置くかは実機で判断し、設計を直してから足す
+- iOS の `input[capture]` はライブラリ選択を出さない。撮影（`capture=environment`）と「ライブラリから」（`capture` なし）を 2 ボタンに分けて両立する（07-photo-capture。2026-09-07）
 - 大きな元画像でメモリ不足 → `createImageBitmap` の `resizeWidth` で先に縮める
 - `ctx.filter` の Safari 対応差

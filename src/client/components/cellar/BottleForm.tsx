@@ -34,6 +34,7 @@ import {
 } from "@/client/lib/label-recognize.ts";
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
@@ -303,6 +304,13 @@ export function BottleFormFields({
             <button
               type="button"
               className="header-text-link"
+              onClick={() => void startCapture("cellar", { source: "library" })}
+            >
+              {IMAGE_PICK_LABELS.library}
+            </button>
+            <button
+              type="button"
+              className="header-text-link"
               disabled={photoDeleting}
               onClick={() => void removeExistingPhoto()}
             >
@@ -313,6 +321,7 @@ export function BottleFormFields({
       ) : (
         <PhotoTile
           onClick={() => void startCapture("cellar")}
+          onLibraryClick={() => void startCapture("cellar", { source: "library" })}
           showMascot={false}
           ratio="bottle"
           error={errors.photoIds}

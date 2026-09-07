@@ -178,6 +178,7 @@ export function LogNewForm() {
       ) : null}
       <PhotoTile
         onClick={() => void startCapture("log")}
+        onLibraryClick={() => void startCapture("log", { source: "library" })}
         attachment={attachment}
         onEdit={() => void editAttachment("log")}
         onRetry={() => void retryUpload("log")}
