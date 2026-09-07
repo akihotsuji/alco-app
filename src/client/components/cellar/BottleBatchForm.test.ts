@@ -29,6 +29,7 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain("disabled={!batch.canAdd || formBusy}");
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.rowLimit");
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.libraryProgress");
+    expect(source).toContain('<Mascot pose="surprised" size={32} aria-hidden />');
     expect(source).toContain('batch.addPhoto("camera")');
     expect(source).toContain("batch.addLibraryPhotos()");
     expect(source).toContain("IMAGE_PICK_LABELS.libraryMultiple");

@@ -7,6 +7,7 @@ import { useSetHeaderOverride } from "@/client/components/layout/header-override
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
+import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
@@ -141,7 +142,7 @@ export function BottleBatchForm() {
       </ol>
       {batch.libraryProgress ? (
         <p className="bottle-batch-recognize" role="status">
-          <span className="recognize-spinner" aria-hidden />
+          <Mascot pose="surprised" size={32} aria-hidden />
           {BOTTLE_BATCH_MESSAGES.libraryProgress(
             batch.libraryProgress.current,
             batch.libraryProgress.total,

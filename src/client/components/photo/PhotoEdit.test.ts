@@ -48,6 +48,14 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(context).toContain("setPendingRecognizeJpeg(null)");
   });
 
+  it("セラーの処理中はマスコットと『この写真を切り抜いています』で伝える", () => {
+    expect(source).toContain('<Mascot pose="surprised" size={72} aria-hidden />');
+    expect(source).toContain("この写真を切り抜いています");
+    expect(source).toContain("この写真を変換しています");
+    expect(source).toContain('"切り抜き中"');
+    expect(source).not.toContain('"処理中"');
+  });
+
   it("まとめて追加の「使う」は同じタップで次のカメラを開き、処理は裏で進める（G8）", () => {
     expect(source).toContain('pickImage("camera")');
     expect(source).toContain("applyProcessed(processed, { keepOpen: Boolean(nextFile) })");
