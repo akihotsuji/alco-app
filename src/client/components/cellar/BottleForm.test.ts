@@ -30,4 +30,13 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain('className="pill ai"');
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });
+
+  it("読み取りは pendingRecognizeJpeg で先に始め、attachment 側は同じ Blob の結果に相乗りする", () => {
+    expect(source).toContain("startLabelRecognition(pendingRecognizeJpeg)");
+    expect(source).toContain("startLabelRecognition(jpeg)");
+    expect(source).not.toContain("recognizeLabel(");
+    expect(source).toContain(
+      'mode !== "new" || !getCellarRecognizePref() || !pendingRecognizeJpeg',
+    );
+  });
 });

@@ -39,12 +39,17 @@ export async function recognizeBottleLabel(input: {
   const started = Date.now();
   let ok = false;
   let fieldCount = 0;
+  let providerMs = 0;
+  let parseMs = 0;
   try {
     const output = await withTimeout(
       input.recognizer.recognize(input.bytes),
       input.timeoutMs ?? AI_RECOGNIZE_TIMEOUT_MS,
     );
+    providerMs = Date.now() - started;
+    const parseStarted = Date.now();
     const fields = pickRecognizeFields(extractModelPayload(output));
+    parseMs = Date.now() - parseStarted;
     fieldCount = Object.keys(fields).length;
     ok = true;
     return {
@@ -59,8 +64,9 @@ export async function recognizeBottleLabel(input: {
     }
     throw new ApiError("upstream_error");
   } finally {
+    // 画像・ラベル内容・ユーザー ID は出さない。工程別の時間だけ
     console.info(
-      `[recognize] ok=${ok} durationMs=${Date.now() - started} fieldCount=${fieldCount}`,
+      `[recognize] ok=${ok} durationMs=${Date.now() - started} providerMs=${providerMs} parseMs=${parseMs} fieldCount=${fieldCount}`,
     );
   }
 }
