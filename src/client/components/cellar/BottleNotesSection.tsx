@@ -1,0 +1,41 @@
+import { Link } from "react-router";
+import { noteCreateHref, notesListHref } from "@/client/lib/app-routes.ts";
+import { bottleNoteRowText, bottleNotesAllLabel } from "@/client/lib/bottle-notes.ts";
+import type { TastingNoteListItem } from "@/shared/tasting-notes.ts";
+
+type BottleNotesSectionProps = {
+  bottleId: string;
+  notes: readonly TastingNoteListItem[];
+  totalCount: number;
+};
+
+export function BottleNotesSection({ bottleId, notes, totalCount }: BottleNotesSectionProps) {
+  return (
+    <section className="bottle-section">
+      <div className="bottle-section-head">
+        <h2 className="bottle-section-title">ノート</h2>
+        <Link className="bottle-section-action" to={noteCreateHref(bottleId)}>
+          書く ›
+        </Link>
+      </div>
+      {notes.length > 0 ? (
+        <ul className="bottle-log-list">
+          {notes.map((note) => (
+            <li key={note.id}>
+              <Link className="bottle-log-row" to={`/notes/${note.id}`}>
+                <span>{bottleNoteRowText(note.tastedOn, note.ratingX10)}</span>
+                <span aria-hidden>›</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {totalCount > 0 ? (
+        <Link className="bottle-log-row" to={notesListHref(bottleId)}>
+          <span>{bottleNotesAllLabel(totalCount)}</span>
+          <span aria-hidden>›</span>
+        </Link>
+      ) : null}
+    </section>
+  );
+}

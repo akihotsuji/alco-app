@@ -3135,11 +3135,28 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   gap: var(--space-2);
 }
 
+.bottle-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+}
+
 .bottle-section-title {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
+}
+
+.bottle-section-action {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
 }
 
 .bottle-log-list {
@@ -3153,6 +3170,7 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 .bottle-log-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
   min-height: var(--tap-min);
   color: inherit;
@@ -3243,6 +3261,10 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.bottle-picker-row.is-consumed .bottle-picker-copy strong {
+  color: var(--muted);
 }
 
 .bottle-picker-copy span {

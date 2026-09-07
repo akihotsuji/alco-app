@@ -420,6 +420,7 @@ function NoteFormFields({
           state.bottleName ? bottleRowLabel(state.bottleName, state.bottleStatus) : undefined
         }
         clearable
+        requireSearch
         error={errors.bottleId}
         onSelect={(bottle) => {
           if (bottle) {

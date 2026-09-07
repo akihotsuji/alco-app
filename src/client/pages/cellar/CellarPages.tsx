@@ -21,6 +21,7 @@ import {
 } from "@/client/hooks/use-bottles.ts";
 import { useDrinkLogsByBottle } from "@/client/hooks/use-drink-logs.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
+import { useTastingNotesByBottle } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import {
   type BottleFormErrors,
@@ -116,6 +117,7 @@ export function BottleDetailPage() {
 function LoadedBottleDetail({ bottleId }: { bottleId: string }) {
   const query = useBottle(bottleId);
   const logs = useDrinkLogsByBottle(bottleId);
+  const notes = useTastingNotesByBottle(bottleId);
   if (query.isPending) {
     return <DetailSkeleton />;
   }
@@ -126,7 +128,14 @@ function LoadedBottleDetail({ bottleId }: { bottleId: string }) {
       <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />
     );
   }
-  return <BottleDetail bottle={query.data} logs={logs.data?.items ?? []} />;
+  return (
+    <BottleDetail
+      bottle={query.data}
+      logs={logs.data?.items ?? []}
+      notes={notes.data?.items ?? []}
+      notesTotalCount={notes.data?.totalCount ?? 0}
+    />
+  );
 }
 
 export function BottleFormPage({ mode }: { mode: "new" | "edit" }) {

@@ -189,7 +189,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 5-01 | `spec/features/tasting-note.md` 作成 | [01-spec-tasting-note.md](phase-05-tasting-note/01-spec-tasting-note.md) | 完了（2026-09-07 #46） |
 | 5-02 | ノートCRUD | [02-note-crud.md](phase-05-tasting-note/02-note-crud.md) | 完了 |
 | 5-03 | 写真複数枚添付 | [03-multi-photo-attach.md](phase-05-tasting-note/03-multi-photo-attach.md) | 完了 |
-| 5-04 | セラー連携 | [04-cellar-integration.md](phase-05-tasting-note/04-cellar-integration.md) | 未着手 |
+| 5-04 | セラー連携 | [04-cellar-integration.md](phase-05-tasting-note/04-cellar-integration.md) | 完了 |
 | 5-05 | APIテスト・コンポーネントテスト | [05-api-component-tests.md](phase-05-tasting-note/05-api-component-tests.md) | 未着手 |
 
 ### Phase 5.5（5タスク）
