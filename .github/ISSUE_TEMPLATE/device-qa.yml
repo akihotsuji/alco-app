@@ -90,7 +90,7 @@ body:
     id: frequency
     attributes:
       label: 再現率
-      placeholder: 例: 5回中4回
+      placeholder: "例: 5回中4回"
     validations:
       required: true
 
