@@ -1600,15 +1600,30 @@
   border-radius: var(--radius);
 }
 
+/* H3 / H4: 杯は左、g は右端に寄せて 2 つのスコアをはっきり分ける（モック home.png。Issue #59） */
 .today-scores {
   display: flex;
   align-items: flex-end;
+  justify-content: space-between;
   gap: var(--space-4);
 }
 
 .today-score {
   display: flex;
   flex-direction: column;
+  gap: var(--space-1);
+}
+
+.today-score-end {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* H5: 休肝ピルは杯数の右、数字の中央高さに並べる */
+.today-score-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .today-score-num {
@@ -1635,17 +1650,41 @@
   box-shadow: var(--shadow-inset-sm);
 }
 
+/*
+  H6: 曜日ラベルはマスの上に出し、7 列を左端からキャラ（右下 72px）の手前まで均等に配る。
+  マスの中に文字を詰めない（28px に 10px 文字は読めない。Issue #59）
+*/
 .week-dots {
   position: relative;
   z-index: 1;
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(28px, 1fr));
+  column-gap: 10px;
   margin-top: var(--space-4);
+  padding-right: 64px;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+  gap: var(--space-2);
+}
+
+.week-day-label {
+  font-size: var(--text-caption);
+  line-height: 1;
+  color: var(--muted);
+}
+
+.week-day-future {
+  opacity: 0.45;
 }
 
 .week-dot {
   position: relative;
-  width: 28px;
+  width: 100%;
   height: 28px;
   padding: 0;
   border: 0;
@@ -1689,19 +1728,6 @@
   background: var(--primary);
   clip-path: inset(100% 0 0);
   animation: week-fill var(--dur-fill) var(--ease-fill) forwards;
-}
-
-.week-dot-future {
-  opacity: 0.45;
-}
-
-.week-dot-label {
-  font-size: 10px;
-  color: var(--muted);
-}
-
-.week-dot-filled .week-dot-label {
-  color: var(--primary-fg);
 }
 
 .today-mascot {
