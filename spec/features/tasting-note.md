@@ -72,8 +72,8 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 | L5 | 写真なし | inset タイル 4:5。中央に種類アイコン 32px muted | `drinkType` |
 | L6 | 名前 / 評価 / 日付 | 名前 14px/600・1 行省略。「★4.5 ・ 8/1」。写真 2 枚以上は日付の右に `images` アイコン + `photoCount` | `drinkName`, `ratingX10`, `tastedOn`, `photoCount` |
 | L7 | カードタップ | `/notes/:noteId` | — |
-| L8 | `bottleId` 指定時 | ヘッダーは ← + 銘柄名（ボトル詳細へ戻る）。一覧はそのボトルのみ。「作成」は `bottleId` を引き継ぐ（`/notes/new?bottleId=&camera=1`） | `GET /api/tasting-notes?bottleId=` |
-| — | 作成 | ヘッダー右 `plus` → `/notes/new?camera=1`（`bottleId` があれば引き継ぐ） | — |
+| L8 | `bottleId` 指定時 | ヘッダーは ← + 銘柄名（ボトル詳細へ戻る）。一覧はそのボトルのみ。FAB「作成」は `bottleId` を引き継ぐ（`/notes/new?bottleId=&camera=1`） | `GET /api/tasting-notes?bottleId=` |
+| L9 | 作成 | 右下 FAB `plus`（円 52px）→ `/notes/new?camera=1`（`bottleId` があれば引き継ぐ） | — |
 
 - `q` / `drinkType` / `ratingX10Min` / `bottleId` は URL に載せ、再訪で残す。空の `q` と OFF の評価チップは付けない
 - 並びは API 既定（`tastedOn` 降順、同値は `id` 降順）。クライアントで並べ替えない

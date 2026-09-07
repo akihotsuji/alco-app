@@ -41,11 +41,17 @@ export type HeaderLeft =
 export type HeaderRight =
   | { kind: "spacer" }
   | { kind: "plus"; to: string }
-  /** 棚ヘッダー右の 2 ボタン（04-cellar C3b + C3）。左右スロットを 2 個ぶんに広げる */
-  | { kind: "cellar-add"; to: string; batchTo: string }
+  /** 棚ヘッダー右の「まとめて追加」（04-cellar C3b）。追加そのものは右下 FAB */
+  | { kind: "batch"; to: string }
   | { kind: "edit"; to: string }
   | { kind: "text"; to: string; label: string }
   | { kind: "day-next"; date: string; disabled: boolean };
+
+/** セラー / ノート一覧の右下 FAB（00-common 1.4） */
+export type AddFab = {
+  to: string;
+  label: string;
+};
 
 export type ShellHeader = {
   title: string;
@@ -216,11 +222,7 @@ export function resolveAppRoute(
         title: "セラー",
         titleMuted: "0 本",
         left: { kind: "archive" },
-        right: {
-          kind: "cellar-add",
-          to: "/cellar/new?camera=1",
-          batchTo: "/cellar/batch?camera=1",
-        },
+        right: { kind: "batch", to: "/cellar/batch?camera=1" },
       });
     }
     if (segments[1] === "batch" && segments.length === 2) {
@@ -261,7 +263,7 @@ export function resolveAppRoute(
           bottleId && isUuidParam(bottleId)
             ? { kind: "back", fallback: `/cellar/${bottleId}` }
             : SPACER,
-        right: { kind: "plus", to: noteCreateHref(bottleId) },
+        right: SPACER,
       });
     }
     if (segments[1] === "new" && segments.length === 2) {
@@ -335,4 +337,21 @@ export function notesListHref(bottleId?: string | null): string {
     return `/notes?bottleId=${encodeURIComponent(bottleId)}`;
   }
   return "/notes";
+}
+
+/** 一覧だけ右下 FAB。作成・編集・詳細・他タブには出さない（00-common 1.4） */
+export function addFabForRoute(
+  pathname: string,
+  search = "",
+  now: Date = new Date(),
+): AddFab | null {
+  const route = resolveAppRoute(pathname, now, search);
+  if (route.screenId === "bottle-list") {
+    return { to: "/cellar/new?camera=1", label: "追加" };
+  }
+  if (route.screenId === "note-list") {
+    const bottleId = new URLSearchParams(search).get("bottleId");
+    return { to: noteCreateHref(bottleId), label: "作成" };
+  }
+  return null;
 }

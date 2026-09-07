@@ -26,10 +26,8 @@ function goBack(navigate: ReturnType<typeof useNavigate>, fallback: string) {
 export function AppHeader({ header }: AppHeaderProps) {
   const navigate = useNavigate();
 
-  const wide = header.right.kind === "cellar-add";
-
   return (
-    <header className={wide ? "app-header app-header-wide" : "app-header"}>
+    <header className="app-header">
       <div className="app-header-slot">
         <HeaderLeftSlot left={header.left} navigate={navigate} />
       </div>
@@ -93,16 +91,11 @@ function HeaderRightSlot({
           <Plus size={20} />
         </IconButton>
       );
-    case "cellar-add":
+    case "batch":
       return (
-        <>
-          <IconButton label="まとめて追加" onClick={() => navigate(right.batchTo)}>
-            <Images size={20} />
-          </IconButton>
-          <IconButton label="追加" onClick={() => navigate(right.to)}>
-            <Plus size={20} />
-          </IconButton>
-        </>
+        <IconButton label="まとめて追加" onClick={() => navigate(right.to)}>
+          <Images size={20} />
+        </IconButton>
       );
     case "edit":
       return (

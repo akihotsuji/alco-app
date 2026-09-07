@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addFabForRoute,
   hidesTabBar,
   isValidLogDateParam,
   logFormHrefs,
@@ -137,15 +138,15 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/unknown", NOW).screenId).toBe("not-found");
   });
 
-  it("セラー一覧は左が貯蔵庫・右がまとめて追加 + 追加（04-cellar C3b / C3）", () => {
+  it("セラー一覧は左が貯蔵庫・右がまとめて追加。追加は右下 FAB（04-cellar C3b / C3）", () => {
     const header = resolveAppRoute("/cellar", NOW).header;
     expect(header.left).toEqual({ kind: "archive" });
     expect(header.right).toEqual({
-      kind: "cellar-add",
-      to: "/cellar/new?camera=1",
-      batchTo: "/cellar/batch?camera=1",
+      kind: "batch",
+      to: "/cellar/batch?camera=1",
     });
     expect(header.titleMuted).toBe("0 本");
+    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new?camera=1", label: "追加" });
   });
 
   it("まとめて追加は予約セグメントで、戻る＋タブ隠しのフォーム画面", () => {
@@ -218,7 +219,11 @@ describe("note hrefs", () => {
     expect(noteCreateHref()).toBe("/notes/new?camera=1");
     const header = resolveAppRoute("/notes", NOW, `?bottleId=${id}`).header;
     expect(header.left).toEqual({ kind: "back", fallback: `/cellar/${id}` });
-    expect(header.right).toEqual({ kind: "plus", to: `/notes/new?bottleId=${id}&camera=1` });
+    expect(header.right).toEqual({ kind: "spacer" });
+    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toEqual({
+      to: `/notes/new?bottleId=${id}&camera=1`,
+      label: "作成",
+    });
     expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}`).header.left).toEqual({
       kind: "back",
       fallback: `/notes?bottleId=${id}`,

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
+import { AddFab } from "@/client/components/layout/AddFab.tsx";
 import { AppHeader } from "@/client/components/layout/AppHeader.tsx";
 import { BottomTabBar } from "@/client/components/layout/BottomTabBar.tsx";
 import {
@@ -11,7 +12,12 @@ import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx"
 import { PhotoEdit } from "@/client/components/photo/PhotoEdit.tsx";
 import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
-import { hidesTabBar, resolveAppRoute, type TabDef } from "@/client/lib/app-routes.ts";
+import {
+  addFabForRoute,
+  hidesTabBar,
+  resolveAppRoute,
+  type TabDef,
+} from "@/client/lib/app-routes.ts";
 
 export const REDUCE_MOTION_ATTR = "data-reduce-motion";
 
@@ -35,6 +41,7 @@ function AppShellFrame() {
   const contentRef = useRef<HTMLDivElement>(null);
   const route = resolveAppRoute(location.pathname, new Date(), location.search);
   const hideTabs = hidesTabBar(location.pathname, photoEdit.open);
+  const addFab = hideTabs ? null : addFabForRoute(location.pathname, location.search);
   const header = {
     ...route.header,
     title: override.title ?? route.header.title,
@@ -76,10 +83,11 @@ function AppShellFrame() {
   return (
     <div className={hideTabs ? "app-shell app-shell-no-tabs" : "app-shell"}>
       <AppHeader header={header} />
-      <div ref={contentRef} className="app-content">
+      <div ref={contentRef} className={addFab ? "app-content has-add-fab" : "app-content"}>
         <Outlet />
       </div>
       {hideTabs ? null : <BottomTabBar activeTab={route.parentTab} onSelect={onSelectTab} />}
+      {addFab ? <AddFab fab={addFab} /> : null}
       <PhotoEdit />
     </div>
   );

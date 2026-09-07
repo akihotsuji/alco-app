@@ -72,7 +72,8 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 |---|---|---|---|
 | C1 | 貯蔵庫 | ヘッダー左。円ボタン `archive` → `/cellar/archive`。バッジなし | — |
 | C2 | タイトル | 「セラー」+ muted「N 本」。**N はフィルタ前**の棚在庫数 | `GET /api/bottles?view=cellar` の `totalCount` |
-| C3 | 追加 | ヘッダー右 `plus` → `/cellar/new?camera=1` | — |
+| C3 | 追加 | 右下 FAB `plus`（円 52px）→ `/cellar/new?camera=1` | — |
+| C3b | まとめて追加 | ヘッダー右 `images` → `/cellar/batch?camera=1` | — |
 | C4 | 表示切替 | 「種類ごと」「1 本ずつ」。URL `?view=` と `localStorage` `cellar.listView`（既定 `one`） | クライアント |
 | C5 | 検索 | Chip → Input。銘柄名・生産者の部分一致。300ms デバウンス。最大 100 文字 | `q` |
 | C6 | 種類フィルタ | Chip「種類 ▼」→ 7 種ダイアログ。単一選択。選択中は「ワイン ×」。**種類ごと表示では非表示** | `drinkType` |
