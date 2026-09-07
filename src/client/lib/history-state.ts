@@ -253,6 +253,45 @@ export function applyCellarToolbarParams(
   return next.toString() === current.toString() ? null : next;
 }
 
+export type NoteToolbarAction =
+  | { type: "setQuery"; q: string }
+  | { type: "selectDrinkType"; drinkType: DrinkType }
+  | { type: "clearDrinkType" }
+  | { type: "toggleRatingMin" }
+  | { type: "clearFilters" };
+
+/** ノート一覧のツールバー操作を URL に写す。`bottleId` は常に残す */
+export function applyNoteToolbarParams(
+  current: URLSearchParams,
+  action: NoteToolbarAction,
+): URLSearchParams | null {
+  if (action.type === "clearFilters") {
+    const next = new URLSearchParams();
+    const bottleId = current.get("bottleId");
+    if (bottleId) {
+      next.set("bottleId", bottleId);
+    }
+    return next.toString() === current.toString() ? null : next;
+  }
+  const next = new URLSearchParams(current);
+  if (action.type === "setQuery") {
+    if (action.q) {
+      next.set("q", action.q);
+    } else {
+      next.delete("q");
+    }
+  } else if (action.type === "selectDrinkType") {
+    next.set("drinkType", action.drinkType);
+  } else if (action.type === "clearDrinkType") {
+    next.delete("drinkType");
+  } else if (next.get("ratingX10Min") === "40") {
+    next.delete("ratingX10Min");
+  } else {
+    next.set("ratingX10Min", "40");
+  }
+  return next.toString() === current.toString() ? null : next;
+}
+
 /** `setSearchParams` の replace で location.state を落とさない */
 export function replaceSearchKeepState(locationState: unknown): { replace: true; state: unknown } {
   return { replace: true, state: locationState ?? null };

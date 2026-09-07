@@ -172,8 +172,8 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 
 ### タスク
 
-- [x] `spec/features/tasting-note.md` 作成（[screen-designs/05-notes.md](screen-designs/05-notes.md) を写す）→ [features/tasting-note.md](features/tasting-note.md)（5-01。2026-09-07 作成。オーナー承認後に 5-02）
-- [ ] ノートCRUD: **撮って評価と一言**を付ける作成フォーム（4 欄は折りたたみ）、写真グリッド一覧・検索、カルーセル詳細
+- [x] `spec/features/tasting-note.md` 作成（[screen-designs/05-notes.md](screen-designs/05-notes.md) を写す）→ [features/tasting-note.md](features/tasting-note.md)（5-01。2026-09-07 #46 で承認）
+- [x] ノートCRUD: **撮って評価と一言**を付ける作成フォーム（4 欄は折りたたみ）、写真グリッド一覧・検索、カルーセル詳細（5-02。複数写真 UI は 5-03、ボトル詳細のノート節は 5-04）
 - [ ] 写真複数枚添付（最大 6。2-08 の基盤を再利用。キャラ合成トグルあり）
 - [ ] セラー連携: ボトル詳細からノート一覧参照、ノート作成時のボトル選択（貯蔵庫含む）
 - [ ] APIテスト・コンポーネントテスト

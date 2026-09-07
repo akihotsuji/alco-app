@@ -3,7 +3,7 @@ import { haptic } from "@/client/lib/haptic.ts";
 import { DRINK_TYPE_LABELS, DRINK_TYPES, type DrinkType } from "@/shared/constants.ts";
 
 type DrinkTypeChipsProps = {
-  value: DrinkType;
+  value: DrinkType | null;
   onChange: (drinkType: DrinkType) => void;
 };
 
