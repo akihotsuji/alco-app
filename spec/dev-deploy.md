@@ -11,10 +11,13 @@
 
 ## コマンド
 
-環境は `env.dev`。必ず `--env dev` を付ける。先に `pnpm build` する（`assets.directory` は `dist/client`）。
+環境は `env.dev`。必ず `--env dev` を付ける。
+
+`wrangler deploy` はソースではなく **`dist/` の成果物**を上げる（`assets.directory` は `dist/client`）。コードを直した・`git pull` したあとは、必ず `pnpm build` してから `deploy` する。ビルドを省略すると前回の古い資産が載る。`package.json` / lockfile が変わった pull なら、ビルドの前に `pnpm install` する。
 
 ```powershell
 pnpm exec wrangler login --device --browser=false
+pnpm install
 pnpm build
 pnpm exec wrangler d1 migrations apply alco-app-dev --remote --env dev
 pnpm exec wrangler secret put BETTER_AUTH_SECRET --env dev
@@ -27,7 +30,7 @@ pnpm exec wrangler deploy --env dev
 - デプロイ成果物の workers.dev URL は **公開しない**（招待制は採用していない）
 - workers.dev のアカウントサブドメインは Cloudflare ダッシュボードの設定。リポジトリとこのファイルには書かない
 
-初回デプロイは **2026-09-06** にオーナーが migrate / secret / deploy を実行済み。Phase 5 完了版の再デプロイは **2026-09-07**（`e057825`、デバイス認証のあと `pnpm build` と `wrangler deploy --env dev`）。以降の更新も同じコマンド（secret は入っているので `secret put` は不要。migrate は差分があるときだけ。エージェントは毎回デバイス認証する）。
+初回デプロイは **2026-09-06** にオーナーが migrate / secret / deploy を実行済み。Phase 5 完了版の再デプロイは **2026-09-07**（`e057825`、デバイス認証のあと `pnpm build` と `wrangler deploy --env dev`）。以降の更新は `pnpm build` と `wrangler deploy --env dev` を毎回行う（secret は入っているので `secret put` は不要。migrate は差分があるときだけ。エージェントは毎回デバイス認証する）。
 
 ## デプロイ後
 
