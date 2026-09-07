@@ -58,12 +58,15 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
     });
     state.ratingX10 = 40;
     state.taste = "  酸がきれい  ";
-    const body = toCreateTastingNoteBody(state, "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+    const body = toCreateTastingNoteBody(state, [
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    ]);
     expect(body).toMatchObject({
       bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       ratingX10: 40,
       taste: "酸がきれい",
-      photoIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"],
+      photoIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
     });
     expect(body && "drinkName" in body).toBe(false);
   });
@@ -79,7 +82,7 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
       ratingX10: 40,
     };
     const cleared = clearSelectedBottle(initial);
-    const body = toUpdateTastingNoteBody(cleared, initial, null, false);
+    const body = toUpdateTastingNoteBody(cleared, initial);
     expect(body).toEqual({
       bottleId: null,
       drinkName: "棚の赤",
@@ -94,8 +97,16 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
       drinkType: "wine" as const,
       ratingX10: 40,
     };
-    expect(toUpdateTastingNoteBody(initial, initial, null, true)).toEqual({
+    expect(toUpdateTastingNoteBody(initial, initial, [])).toEqual({
       photoIds: [],
+    });
+    expect(
+      toUpdateTastingNoteBody(initial, initial, [
+        "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      ]),
+    ).toEqual({
+      photoIds: ["cccccccc-cccc-4ccc-8ccc-cccccccccccc", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"],
     });
   });
 

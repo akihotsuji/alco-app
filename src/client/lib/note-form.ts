@@ -178,7 +178,7 @@ function optionalText(value: string): string | undefined {
 
 export function toCreateTastingNoteBody(
   state: NoteFormState,
-  photoId: string | null,
+  photoIds: readonly string[] = [],
 ): CreateTastingNoteInput | null {
   if (state.ratingX10 === null) {
     return null;
@@ -212,8 +212,8 @@ export function toCreateTastingNoteBody(
   if (finish) {
     body.finish = finish;
   }
-  if (photoId) {
-    body.photoIds = [photoId];
+  if (photoIds.length > 0) {
+    body.photoIds = [...photoIds];
   }
   return body;
 }
@@ -221,8 +221,7 @@ export function toCreateTastingNoteBody(
 export function toUpdateTastingNoteBody(
   state: NoteFormState,
   initial: NoteFormState,
-  replacementPhotoId: string | null,
-  photoRemoved: boolean,
+  photoIds?: readonly string[],
 ): UpdateTastingNoteInput | null {
   const body: UpdateTastingNoteInput = {};
   if (state.tastedOn !== initial.tastedOn) {
@@ -259,10 +258,8 @@ export function toUpdateTastingNoteBody(
       body.drinkType = state.drinkType;
     }
   }
-  if (replacementPhotoId) {
-    body.photoIds = [replacementPhotoId];
-  } else if (photoRemoved) {
-    body.photoIds = [];
+  if (photoIds !== undefined) {
+    body.photoIds = [...photoIds];
   }
   return Object.keys(body).length > 0 ? body : null;
 }

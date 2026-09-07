@@ -380,6 +380,87 @@ describe("GET / PATCH / DELETE /api/tasting-notes/:id", () => {
     expect(again.ratingX10).toBe(45);
   });
 
+  it("6 枚は配列順で紐付き、7 枚目は 400。他人・他ノートの id は 404 で差し替えない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    const six = [];
+    for (let i = 0; i < 6; i += 1) {
+      six.push(await uploadPhoto(ctx.app, a.cookie));
+    }
+    const created = tastingNoteSchema.parse(
+      await (
+        await postNote(ctx.app, a.cookie, {
+          ...HAND,
+          photoIds: six.map((photo) => photo.id),
+        })
+      ).json(),
+    );
+    expect(created.photos.map((photo) => photo.id)).toEqual(six.map((photo) => photo.id));
+    expect(created.photos.map((photo) => photo.sortOrder)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(created.thumbPhotoId).toBe(six[0]?.id);
+    expect(created.photoCount).toBe(6);
+
+    const seventh = await uploadPhoto(ctx.app, a.cookie);
+    const over = await patchNote(ctx.app, a.cookie, created.id, {
+      photoIds: [...six.map((photo) => photo.id), seventh.id],
+    });
+    expect(over.status).toBe(400);
+    expect((await fields(over)).photoIds).toEqual([TASTING_NOTE_MESSAGES.photoIdsMax]);
+
+    const otherNote = tastingNoteSchema.parse(
+      await (
+        await postNote(ctx.app, a.cookie, {
+          ...HAND,
+          drinkName: "別ノート",
+          photoIds: [(await uploadPhoto(ctx.app, a.cookie)).id],
+        })
+      ).json(),
+    );
+    const foreign = await uploadPhoto(ctx.app, b.cookie);
+    const stolen = await patchNote(ctx.app, a.cookie, created.id, {
+      photoIds: [foreign.id],
+    });
+    expect(stolen.status).toBe(404);
+    const linkedElsewhere = await patchNote(ctx.app, a.cookie, created.id, {
+      photoIds: [otherNote.photos[0]?.id],
+    });
+    expect(linkedElsewhere.status).toBe(404);
+    const unchanged = tastingNoteSchema.parse(
+      await (
+        await ctx.app.request(`/api/tasting-notes/${created.id}`, {
+          headers: { Cookie: a.cookie },
+        })
+      ).json(),
+    );
+    expect(unchanged.photos.map((photo) => photo.id)).toEqual(six.map((photo) => photo.id));
+  });
+
+  it("PATCH photoIds 差し替えは外れた写真を消し、残した写真の sortOrder を配列順にする", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const first = await uploadPhoto(ctx.app, a.cookie);
+    const second = await uploadPhoto(ctx.app, a.cookie);
+    const created = tastingNoteSchema.parse(
+      await (
+        await postNote(ctx.app, a.cookie, { ...HAND, photoIds: [first.id, second.id] })
+      ).json(),
+    );
+    const replacement = await uploadPhoto(ctx.app, a.cookie);
+    const updated = tastingNoteSchema.parse(
+      await (
+        await patchNote(ctx.app, a.cookie, created.id, {
+          photoIds: [replacement.id, second.id],
+        })
+      ).json(),
+    );
+    expect(updated.photos.map((photo) => photo.id)).toEqual([replacement.id, second.id]);
+    expect(updated.photos.map((photo) => photo.sortOrder)).toEqual([0, 1]);
+    expect(updated.thumbPhotoId).toBe(replacement.id);
+    expect(await ctx.db.select().from(photos).where(eq(photos.id, first.id))).toHaveLength(0);
+    expect(await ctx.db.select().from(photos).where(eq(photos.id, second.id))).toHaveLength(1);
+  });
+
   it("PATCH photoIds 空配列は既存写真を外して削除する", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
