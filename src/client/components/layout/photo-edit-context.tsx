@@ -178,7 +178,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     ) => {
       intentRef.current = null;
       collectRef.current = null;
-      const file = await pickImage({ capture: true });
+      const file = await pickImage();
       if (!file) {
         return;
       }
@@ -190,7 +190,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
 
   const retake = useCallback(async () => {
-    const file = await pickImage({ capture: true });
+    const file = await pickImage();
     if (!file) {
       return;
     }

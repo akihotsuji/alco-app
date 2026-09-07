@@ -60,7 +60,7 @@ alwaysApply: false
 
 ## 写真
 
-- 取り込みは `input[type=file] capture`。`getUserMedia` は使わない
+- 取り込みは `input[type=file] accept=image/*`（`capture` は付けない。OS の選択 UI で撮影と保存済み写真の両方を選べるようにする）。`getUserMedia` は使わない
 - 加工（切り抜き・リサイズ・色補正・合成・JPEG 化）は `src/client/lib/photo/` の関数だけ通す。画面側で Canvas を直接いじらない
 - 比率は文脈固定（記録・ノート 4:5、セラー 2:3）。色補正はプリセット名（`table` / `cellar` / `none`）で指定
 - 画像 URL は `/api/photos/:id/content`（認可付き）。`<img loading="lazy">`
