@@ -46,12 +46,7 @@ export function NotePhotoStrip({
         </span>
       </div>
       <div className="note-photo-strip-scroller">
-        <button
-          type="button"
-          className="note-photo-capture"
-          disabled={!canAdd}
-          onClick={onAdd}
-        >
+        <button type="button" className="note-photo-capture" disabled={!canAdd} onClick={onAdd}>
           <Camera size={22} aria-hidden />
           撮る
         </button>

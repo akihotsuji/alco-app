@@ -66,10 +66,7 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
       bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       ratingX10: 40,
       taste: "酸がきれい",
-      photoIds: [
-        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-      ],
+      photoIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
     });
     expect(body && "drinkName" in body).toBe(false);
   });
@@ -109,10 +106,7 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
         "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       ]),
     ).toEqual({
-      photoIds: [
-        "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-      ],
+      photoIds: ["cccccccc-cccc-4ccc-8ccc-cccccccccccc", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"],
     });
   });
 

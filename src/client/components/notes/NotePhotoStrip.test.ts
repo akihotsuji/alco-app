@@ -26,10 +26,10 @@ describe("ノート写真ストリップ / カルーセル", () => {
   it("詳細は scroll-snap のカルーセルで、写真なしでは出さない", () => {
     expect(carousel).toContain("note-photo-carousel-scroller");
     expect(styles).toContain("scroll-snap-type: x mandatory");
-    expect(carousel).toContain("loading={photoIndex === 0 ? \"eager\" : \"lazy\"}");
+    expect(carousel).toContain('loading={photoIndex === 0 ? "eager" : "lazy"}');
     expect(carousel).toContain("if (photos.length === 0)");
     expect(carousel).toContain("return null");
-    expect(edit).toContain("kind !== \"cellar\"");
+    expect(edit).toContain('kind !== "cellar"');
     expect(edit).toContain("キャラを入れる");
   });
 });

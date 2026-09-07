@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import type { PhotoMeta } from "@/shared/photos.ts";
 
 export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) {
@@ -10,10 +10,7 @@ export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) 
   const [index, setIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    setIndex(0);
-  }, [photos]);
+  const safeIndex = Math.min(index, Math.max(0, photos.length - 1));
 
   useEffect(() => {
     if (!viewerOpen) {
@@ -24,6 +21,13 @@ export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) 
       return;
     }
     container.scrollLeft = viewerIndexRef.current * container.clientWidth;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setViewerOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [viewerOpen]);
 
   if (photos.length === 0) {
@@ -82,7 +86,7 @@ export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) 
               <button
                 key={photo.id}
                 type="button"
-                className={photoIndex === index ? "note-photo-dot is-on" : "note-photo-dot"}
+                className={photoIndex === safeIndex ? "note-photo-dot is-on" : "note-photo-dot"}
                 tabIndex={-1}
                 onClick={() => scrollToIndex(scrollerRef.current, photoIndex)}
               />
@@ -91,30 +95,33 @@ export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) 
         ) : null}
       </div>
       {viewerOpen ? (
-        <div
-          className="note-photo-viewer"
-          role="dialog"
-          aria-modal="true"
-          aria-label="写真"
-          onClick={() => setViewerOpen(false)}
-        >
+        <div className="note-photo-viewer" role="dialog" aria-modal="true" aria-label="写真">
+          <button
+            type="button"
+            className="note-photo-viewer-backdrop"
+            aria-label="閉じる"
+            onClick={() => setViewerOpen(false)}
+          />
           <div
             ref={viewerRef}
             className="note-photo-viewer-scroller"
             onScroll={(event) => syncIndex(event.currentTarget)}
-            onClick={(event) => event.stopPropagation()}
           >
             {photos.map((photo, photoIndex) => (
               <div key={photo.id} className="note-photo-viewer-slide">
                 <img
                   src={photoContentUrl(photo.id)}
                   alt=""
-                  loading={photoIndex === index ? "eager" : "lazy"}
+                  loading={photoIndex === safeIndex ? "eager" : "lazy"}
                 />
               </div>
             ))}
           </div>
-          <button type="button" className="note-photo-viewer-close" onClick={() => setViewerOpen(false)}>
+          <button
+            type="button"
+            className="note-photo-viewer-close"
+            onClick={() => setViewerOpen(false)}
+          >
             閉じる
           </button>
         </div>

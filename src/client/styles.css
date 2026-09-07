@@ -2772,7 +2772,19 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
   justify-content: center;
   gap: var(--space-4);
   padding: var(--space-4);
+}
+
+.note-photo-viewer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
   background: color-mix(in srgb, var(--foreground) 88%, transparent);
+}
+
+.note-photo-viewer-scroller,
+.note-photo-viewer-close {
+  position: relative;
+  z-index: 1;
 }
 
 .note-photo-viewer-slide {

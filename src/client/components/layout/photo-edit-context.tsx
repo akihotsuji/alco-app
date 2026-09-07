@@ -69,7 +69,10 @@ type PhotoEditValue = {
     collect: PhotoCollectSession,
   ) => Promise<void>;
   /** ノート用。同じ Blob を未紐付けで再送する */
-  retryCollectedUpload: (attachment: PhotoAttachment, collect: PhotoCollectSession) => Promise<void>;
+  retryCollectedUpload: (
+    attachment: PhotoAttachment,
+    collect: PhotoCollectSession,
+  ) => Promise<void>;
 };
 
 const PhotoEditContext = createContext<PhotoEditValue>({
@@ -168,7 +171,11 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
 
   const startCapture = useCallback(
-    async (nextKind: PhotoEditContextKind, intent?: CaptureIntent, collect?: PhotoCollectSession) => {
+    async (
+      nextKind: PhotoEditContextKind,
+      intent?: CaptureIntent,
+      collect?: PhotoCollectSession,
+    ) => {
       intentRef.current = null;
       collectRef.current = null;
       const file = await pickImage({ capture: true });

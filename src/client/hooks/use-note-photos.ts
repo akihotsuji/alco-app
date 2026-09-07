@@ -41,15 +41,18 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = [], autoCapt
   const itemsRef = useRef(items);
   itemsRef.current = items;
 
-  const bindKey = useCallback((key: string, persisted: boolean, previousPhotoId?: string | null) => {
-    const session: PhotoCollectSession = {
-      previousPhotoId,
-      onUpdate: (attachment) => {
-        setItems((current) => upsertNotePhoto(current, key, toItem(key, attachment, persisted)));
-      },
-    };
-    return session;
-  }, []);
+  const bindKey = useCallback(
+    (key: string, persisted: boolean, previousPhotoId?: string | null) => {
+      const session: PhotoCollectSession = {
+        previousPhotoId,
+        onUpdate: (attachment) => {
+          setItems((current) => upsertNotePhoto(current, key, toItem(key, attachment, persisted)));
+        },
+      };
+      return session;
+    },
+    [],
+  );
 
   const addPhoto = useCallback(async () => {
     if (!canAddNotePhoto(itemsRef.current)) {
