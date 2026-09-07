@@ -1,15 +1,13 @@
-export type PickImageOptions = {
-  capture?: boolean;
-};
-
-export function pickImage(options: PickImageOptions = {}): Promise<File | null> {
+/**
+ * 写真を 1 枚選ぶ（07-photo-capture 方針）。`capture` 属性は付けず、OS の選択 UI で
+ * 「カメラで撮る」「保存済みの写真から選ぶ」のどちらも選べるようにする（Issue #55）。
+ * `getUserMedia` は使わない。
+ */
+export function pickImage(): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    if (options.capture !== false) {
-      input.setAttribute("capture", "environment");
-    }
     input.hidden = true;
     document.body.appendChild(input);
 

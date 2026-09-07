@@ -143,8 +143,17 @@ export const CELLAR_PREF_KEYS = {
 export const UI_PREF_KEYS = {
   haptic: "ui.haptic",
   reduceMotion: "ui.reduce-motion",
+  theme: "ui.theme",
 } as const;
 
 export const REDUCE_MOTION_PREFS = ["system", "always"] as const;
 
 export type ReduceMotionPref = (typeof REDUCE_MOTION_PREFS)[number];
+
+/** 外観（06-settings S10）。`system` = 端末の外観設定に従う（既定）/ `light` / `dark` */
+export const THEME_PREFS = ["system", "light", "dark"] as const;
+
+export type ThemePref = (typeof THEME_PREFS)[number];
+
+/** `<html data-theme>` に入る解決済みテーマ */
+export type ResolvedTheme = Exclude<ThemePref, "system">;

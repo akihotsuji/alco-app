@@ -14,7 +14,7 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 2. **面はニューモーフィズムで統一する。** カード・チップ・入力・タブは、地と同じ色に柔らかい外光／内陰を置く。1px のハードべベルや OS スキンは使わない。
 3. **主アクションだけ色を置く。** 灰色の凹凸だけでは「記録する」が埋もれる。primary はワイン系の塗り。選択状態は影だけでなく色または字重でも示す。
 4. **ゲーミフィケーションは薄く。** 大きなスコア、休肝ピル、押して凹む、短いトースト。経験値・レベル・ガチャは置かない。
-5. **テーマは OS 追従。** ライト／ダーク両方。アプリ内切替は持たない（`prefers-color-scheme`。2026-08-13 確定）。
+5. **テーマは既定で OS 追従。** ライト／ダーク両方。設定「外観」で端末に従う / ライト / ダークを選べる（2026-08-13 に OS 追従のみで確定 → 2026-09-07 #62 で設定項目を追加）。
 6. **色と影はトークン経由だけ。** `bg-[#123]` やその場の `shadow` 直書きは禁止（`ui-design`）。
 7. **ポップさはキャラクター 1 体と写真で出す。** 面や色数を増やして賑やかにしない。キャラクターの置き場所は [character.md](character.md) と各画面設計に従う。
 8. **写真が主役の画面では、面より写真を大きく。** 記録・ノート・セラーの写真は角 `--radius-photo`、影は inset 枠。写真の上に文字を重ねない（キャラクターの合成だけ例外）。
@@ -82,7 +82,7 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 | `--neu-light` | `#3A3632` | 外光（暗い面のハイライト） |
 | `--neu-dark` | `#1A1816` | 外陰 |
 
-実装では `:root` にライト、`@media (prefers-color-scheme: dark)` にダーク。`html` に `.dark` を固定しない。質感モックだけクラス切替を使う。
+実装では `:root` にライト、`html[data-theme="dark"]` にダーク（正本）。`data-theme` は `src/client/lib/theme.ts` が設定「外観」と OS の外観設定から解決して付ける。JS が動く前の初回描画だけ `@media (prefers-color-scheme: dark) { html:not([data-theme]) }` のフォールバックが同じ値を持つ（`design-tokens.test.ts` で一致を検証）。`html` に `.dark` を固定しない。質感モックだけクラス切替を使う。
 
 ### コントラスト（検証済み）
 
@@ -145,6 +145,7 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 | `--header-h` | 56px | ヘッダー |
 | `--tab-h` | 72px | 下部タブ＋余白（2026-09-05: 中央タブが浮くため 64 → 72） |
 | `--tab-center-size` | 60px | 中央「記録」タブの円 |
+| `--tab-center-lift` | 12px | 中央タブの円がタブバー上端から浮く量。ラベルは円の下 12px（2026-09-07 Issue #58） |
 | `--radius-photo` | 20px | 写真・写真タイル |
 
 影（値をそのまま `box-shadow` に入れる）。**部品の高さで 2 段階に分ける**（2026-09-05 改訂。小さい部品に大きい影を使うとハイライトが隣に被り、シールを重ねたように見える）:
@@ -156,6 +157,7 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 | `--shadow-outset-sm` | 高さ 64px 未満（チップ・タブ・円ボタン・ステッパー・ピル・サムネ） | `3px 3px 6px #C9C2B6, -3px -3px 6px rgba(255,255,255,0.8)` | `3px 3px 6px #1A1816, -3px -3px 6px #3A3632` |
 | `--shadow-inset-sm` | 同上の沈み（選択チップ・現在地タブ・入力欄・週マスの空） | `inset 2px 2px 5px #C9C2B6, inset -2px -2px 5px rgba(255,255,255,0.7)` | `inset 2px 2px 5px #1A1816, inset -2px -2px 5px #3A3632` |
 | `--shadow-primary` | 主ボタン・中央タブ | `6px 10px 18px rgba(122, 53, 56, 0.28)` | `6px 10px 18px rgba(0, 0, 0, 0.45)` |
+| `--shadow-knob` | スイッチのつまみ（小さな落ち影のみ。outset を使わない） | `0 1px 2px rgba(43, 38, 31, 0.35)` | `0 1px 2px rgba(0, 0, 0, 0.5)` |
 
 - ハイライトは純白ではなく **白 80%**（`--neu-light`）。地色に対して強すぎると影が「切り抜き」に見える
 - **隣り合う部品の間隔は影のぼかし以上**にする（小: 12px 以上、大: 16px 以上）。チップ列は横 12px・縦 10px
@@ -216,6 +218,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | Tabs | 下部。アクティブは inset-sm + primary 色のアイコン |
 | Chip | 地色 + `--shadow-outset-sm`、高さ 40px、間隔 横 12px / 縦 10px。選択は inset-sm + primary 文字 |
 | 2 択セグメント（表示切替） | inset-sm の溝の中に、選択側だけ outset-sm の玉。高さ 40px |
+| スイッチ（設定） | 48×28。OFF = `--switch-track-off` の溝 + inset-sm、ON = `--primary` べた塗り（影なし）。つまみ 22px は常に `--switch-knob` の単色 + `--shadow-knob`（地色と同じ色のつまみや outset にしない。2026-09-07 Issue #57 / #61） |
 | 週マス | 28px。記録あり = `--primary` べた塗り（影なし）、今日 = 外側リング 2px、空 = inset-sm、未来 = 45% |
 | Dialog | 地色カード。タイトルはテキストのみ |
 | Sheet | 使わない |
@@ -266,6 +269,9 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | `--photo-ratio-log` | 4 / 5 | 同じ | 記録・ノート写真 |
 | `--photo-ratio-bottle` | 2 / 3 | 同じ | セラー写真 |
 | `--tab-center-size` | 60px | 同じ | 中央タブ円 |
+| `--tab-center-lift` | 12px | 同じ | 中央タブ円がバー上端から浮く量 |
+| `--switch-track-off` | `#BFB7AA` | `#1C1A18` | スイッチ OFF の溝 |
+| `--switch-knob` | `#FFFDFA` | `#D9CFC4` | スイッチのつまみ |
 | `--tab-h` | **72px**（64 → 72 に改訂） | 同じ | 中央タブが浮く余白を確保 |
 
 写真の色補正プリセット（Canvas `filter`。数値は正本、変えるなら本表を直す）:
@@ -311,8 +317,9 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 --neu-light --neu-dark
 --text-caption --text-body --text-title --text-score
 --space-1 … --space-8 --tap-min
---radius --radius-card --radius-pill --radius-photo --header-h --tab-h --tab-center-size
---shadow-outset --shadow-inset --shadow-outset-sm --shadow-inset-sm --shadow-primary
+--radius --radius-card --radius-pill --radius-photo --header-h --tab-h --tab-center-size --tab-center-lift
+--shadow-outset --shadow-inset --shadow-outset-sm --shadow-inset-sm --shadow-primary --shadow-knob
+--switch-track-off --switch-knob
 --ease-out --ease-in --ease-settle --ease-fill
 --dur-press --dur-release --dur-state --dur-enter --dur-open --dur-fill --dur-toast-in --dur-toast-out
 --fill-tint --fill-tint-surface
@@ -323,7 +330,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 
 shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`destructive` → `--danger`、`muted-foreground` → `--muted`、`radius` → `--radius`。`border` は `transparent` 相当。
 
-実装: `src/client/styles.css`（`:root` + `@media (prefers-color-scheme: dark)` + `@theme inline`）。対応表は `src/client/lib/design-tokens.ts`。参照モック: [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css)
+実装: `src/client/styles.css`（`:root` + `html[data-theme="dark"]` + 初回描画用 `prefers-color-scheme` フォールバック + `@theme inline`）。対応表は `src/client/lib/design-tokens.ts`。参照モック: [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css)
 
 ---
 

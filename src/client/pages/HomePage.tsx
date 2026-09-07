@@ -96,11 +96,18 @@ export function HomePage() {
             <Link className="today-card-main" to="/logs" aria-label="今日の記録を見る">
               <div className="today-scores">
                 <div className="today-score">
-                  <AnimatedNumber className="today-score-num" value={daySummary.data.totalCount} />
+                  <span className="today-score-row">
+                    <AnimatedNumber
+                      className="today-score-num"
+                      value={daySummary.data.totalCount}
+                    />
+                    {daySummary.data.totalCount === 0 ? (
+                      <span className="rest-pill">休肝</span>
+                    ) : null}
+                  </span>
                   <span className="today-score-unit">杯</span>
                 </div>
-                {daySummary.data.totalCount === 0 ? <span className="rest-pill">休肝</span> : null}
-                <div className="today-score">
+                <div className="today-score today-score-end">
                   <AnimatedNumber
                     className="today-score-num"
                     value={displayAlcoholGrams(daySummary.data.totalAlcoholG)}
@@ -113,37 +120,32 @@ export function HomePage() {
             <nav className="week-dots" aria-label="今週の記録">
               {weekSummary.data.days.map((item, index) => {
                 const filled = item.count > 0;
+                const weekday = WEEKDAY_LABELS_MON_SUN[index] ?? "";
                 const className = [
                   "week-dot",
                   item.date === today && "week-dot-today",
                   filled && "week-dot-filled",
                   item.date === today && todayFilling && "week-dot-filling",
-                  item.isFuture && "week-dot-future",
                 ]
                   .filter(Boolean)
                   .join(" ");
-                const label = `${WEEKDAY_LABELS_MON_SUN[index] ?? ""}曜日 ${
+                const label = `${weekday}曜日 ${
                   item.isFuture ? "未来" : filled ? `${item.count}杯` : "記録なし"
                 }`;
-                return item.isFuture ? (
-                  <button
+                return (
+                  <span
                     key={item.date}
-                    type="button"
-                    className={className}
-                    aria-label={label}
-                    disabled
+                    className={item.isFuture ? "week-day week-day-future" : "week-day"}
                   >
-                    <span className="week-dot-label">{WEEKDAY_LABELS_MON_SUN[index] ?? ""}</span>
-                  </button>
-                ) : (
-                  <Link
-                    key={item.date}
-                    className={className}
-                    to={`/logs/${item.date}`}
-                    aria-label={label}
-                  >
-                    <span className="week-dot-label">{WEEKDAY_LABELS_MON_SUN[index] ?? ""}</span>
-                  </Link>
+                    <span className="week-day-label" aria-hidden>
+                      {weekday}
+                    </span>
+                    {item.isFuture ? (
+                      <button type="button" className={className} aria-label={label} disabled />
+                    ) : (
+                      <Link className={className} to={`/logs/${item.date}`} aria-label={label} />
+                    )}
+                  </span>
                 );
               })}
             </nav>
