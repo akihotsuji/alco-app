@@ -13,6 +13,8 @@ import { healthRoute } from "./routes/health.ts";
 import { meRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
+import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
+import { createWorkersAiRecognizer } from "./services/label-recognizer/workers-ai.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
 
@@ -20,6 +22,8 @@ export type CreateAppOptions = {
   auth?: Auth;
   db?: AppBatchDb;
   photos?: PhotoBucket;
+  labelRecognizer?: LabelRecognizer;
+  recognizeTimeoutMs?: number;
 };
 
 /**
@@ -78,7 +82,11 @@ export function createApp(options: CreateAppOptions = {}) {
   const photosRoute = createPhotosRoute(routeDeps);
   const drinkLogsRoute = createDrinkLogsRoute(routeDeps);
   const myDrinksRoute = createMyDrinksRoute(routeDeps);
-  const bottlesRoute = createBottlesRoute(routeDeps);
+  const bottlesRoute = createBottlesRoute({
+    ...routeDeps,
+    getLabelRecognizer: (c) => options.labelRecognizer ?? createWorkersAiRecognizer(c.env.AI),
+    recognizeTimeoutMs: options.recognizeTimeoutMs,
+  });
 
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app

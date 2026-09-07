@@ -1,0 +1,52 @@
+import { describe, expect, it } from "vitest";
+import { INITIAL_BOTTLE_FORM } from "./bottle-form.ts";
+import { applyRecognizeToForm, countRecognizeFields } from "./label-recognize.ts";
+
+describe("applyRecognizeToForm", () => {
+  it("空欄にだけ入れ、確度 0.5 未満と度数は捨てる", () => {
+    const result = applyRecognizeToForm({
+      state: { ...INITIAL_BOTTLE_FORM, name: "手入力" },
+      fields: {
+        name: { value: "AI名", confidence: 0.9 },
+        producer: { value: "生産者", confidence: 0.71 },
+        origin: { value: "フランス", confidence: 0.49 },
+        vintage: { value: 2020, confidence: 0.9 },
+        drinkType: { value: "whisky", confidence: 0.95 },
+        abvPercent: { value: 13.5, confidence: 0.99 },
+      },
+      drinkTypeTouched: false,
+      marks: new Set(),
+    });
+    expect(result.next.name).toBe("手入力");
+    expect(result.next.producer).toBe("生産者");
+    expect(result.next.origin).toBe("");
+    expect(result.next.vintage).toBe("2020");
+    expect(result.next.drinkType).toBe("whisky");
+    expect(result.marks.has("name")).toBe(false);
+    expect(result.marks.has("producer")).toBe(true);
+    expect(result.marks.has("vintage")).toBe(true);
+    expect(result.openDetails).toBe(true);
+  });
+
+  it("種類を触っていたら変えない。度数だけなら詳細を開かない", () => {
+    const result = applyRecognizeToForm({
+      state: INITIAL_BOTTLE_FORM,
+      fields: {
+        drinkType: { value: "beer", confidence: 0.9 },
+        abvPercent: { value: 5, confidence: 0.9 },
+      },
+      drinkTypeTouched: true,
+      marks: new Set(),
+    });
+    expect(result.next.drinkType).toBe("wine");
+    expect(result.openDetails).toBe(false);
+    expect(result.applied).toEqual([]);
+  });
+});
+
+describe("countRecognizeFields", () => {
+  it("定義されたキーだけ数える", () => {
+    expect(countRecognizeFields({})).toBe(0);
+    expect(countRecognizeFields({ abvPercent: { value: 12, confidence: 0.3 } })).toBe(1);
+  });
+});

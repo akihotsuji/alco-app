@@ -1,6 +1,7 @@
-import { ChevronDown } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, Sparkles } from "lucide-react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
@@ -9,6 +10,7 @@ import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
+import { recognizeLabel } from "@/client/hooks/use-bottles.ts";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import {
@@ -25,8 +27,15 @@ import {
 } from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { rememberShelfEvent } from "@/client/lib/history-state.ts";
+import {
+  applyRecognizeToForm,
+  countRecognizeFields,
+  type RecognizeBannerStatus,
+  type RecognizeMarkField,
+} from "@/client/lib/label-recognize.ts";
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import {
   arrangedToastMessage,
@@ -86,8 +95,18 @@ export function BottleFormFields({
   const [photoDeleting, setPhotoDeleting] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [recognizeStatus, setRecognizeStatus] = useState<RecognizeBannerStatus | null>(null);
+  const [aiMarks, setAiMarks] = useState<Set<RecognizeMarkField>>(new Set());
+  const [drinkTypeTouched, setDrinkTypeTouched] = useState(false);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
+  const ignoreRecognizeRef = useRef(false);
+  const recognizeJpegRef = useRef<Blob | null>(null);
+  const recognizeRequestRef = useRef(0);
+  const drinkTypeTouchedRef = useRef(false);
+  const aiMarksRef = useRef(aiMarks);
+  drinkTypeTouchedRef.current = drinkTypeTouched;
+  aiMarksRef.current = aiMarks;
   const attachment = attachments.cellar;
   const photoStatus: PhotoSaveStatus = attachment
     ? attachment.status
@@ -115,15 +134,94 @@ export function BottleFormFields({
     return () => setGuard(null);
   }, [dirty, setGuard]);
 
+  function clearAiMark(field: RecognizeMarkField) {
+    setAiMarks((current) => {
+      if (!current.has(field)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(field);
+      return next;
+    });
+  }
+
   function update(patch: Partial<BottleFormState>) {
+    if (patch.name !== undefined) {
+      clearAiMark("name");
+    }
+    if (patch.producer !== undefined) {
+      clearAiMark("producer");
+    }
+    if (patch.origin !== undefined) {
+      clearAiMark("origin");
+    }
+    if (patch.vintage !== undefined) {
+      clearAiMark("vintage");
+    }
     setState((current) => ({ ...current, ...patch }));
     onClearServer();
   }
+
+  useEffect(() => {
+    if (mode !== "new" || !getCellarRecognizePref()) {
+      setRecognizeStatus(null);
+      return;
+    }
+    const jpeg = attachment?.recognizeJpeg;
+    if (!jpeg) {
+      if (!attachment) {
+        setRecognizeStatus(null);
+        recognizeJpegRef.current = null;
+      }
+      return;
+    }
+    if (jpeg === recognizeJpegRef.current) {
+      return;
+    }
+    recognizeJpegRef.current = jpeg;
+    const requestId = recognizeRequestRef.current + 1;
+    recognizeRequestRef.current = requestId;
+    setRecognizeStatus("loading");
+    void recognizeLabel(jpeg)
+      .then((result) => {
+        if (ignoreRecognizeRef.current || requestId !== recognizeRequestRef.current) {
+          return;
+        }
+        if (countRecognizeFields(result.fields) === 0) {
+          setRecognizeStatus("failure");
+          return;
+        }
+        let applied: ReturnType<typeof applyRecognizeToForm> | undefined;
+        setState((current) => {
+          applied = applyRecognizeToForm({
+            state: current,
+            fields: result.fields,
+            drinkTypeTouched: drinkTypeTouchedRef.current,
+            marks: aiMarksRef.current,
+          });
+          return applied.next;
+        });
+        if (applied) {
+          setAiMarks(applied.marks);
+          if (applied.openDetails) {
+            setDetailsOpen(true);
+          }
+        }
+        setRecognizeStatus("success");
+      })
+      .catch(() => {
+        if (ignoreRecognizeRef.current || requestId !== recognizeRequestRef.current) {
+          return;
+        }
+        setRecognizeStatus("failure");
+      });
+  }, [attachment, mode]);
 
   function submit() {
     if (!canSubmit || pending) {
       return;
     }
+    ignoreRecognizeRef.current = true;
     if (mode === "new") {
       onCreate?.(toCreateBottleBody(state, attachment?.photoId ?? null));
       return;
@@ -211,24 +309,33 @@ export function BottleFormFields({
           error={errors.photoIds}
         />
       )}
+      {mode === "new" && recognizeStatus ? <RecognizeBanner status={recognizeStatus} /> : null}
       <div className="log-form-section">
         <label className="field-label" htmlFor="bottle-name">
           銘柄名
         </label>
-        <Input
-          id="bottle-name"
-          value={state.name}
-          maxLength={BOTTLE_NAME_MAX_LENGTH}
-          aria-invalid={errors.name ? true : undefined}
-          onChange={(event) => update({ name: event.target.value })}
-        />
+        <FieldWithAiMark marked={aiMarks.has("name")}>
+          <Input
+            id="bottle-name"
+            value={state.name}
+            maxLength={BOTTLE_NAME_MAX_LENGTH}
+            aria-invalid={errors.name ? true : undefined}
+            onChange={(event) => update({ name: event.target.value })}
+          />
+        </FieldWithAiMark>
         {errors.name ? (
           <p className="field-error" role="alert">
             {errors.name}
           </p>
         ) : null}
       </div>
-      <DrinkTypeChips value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
+      <DrinkTypeChips
+        value={state.drinkType}
+        onChange={(drinkType) => {
+          setDrinkTypeTouched(true);
+          update({ drinkType });
+        }}
+      />
       {mode === "new" ? (
         <CountStepper value={state.count} onChange={(count) => update({ count })} />
       ) : null}
@@ -252,6 +359,7 @@ export function BottleFormFields({
               value={state.producer}
               maxLength={BOTTLE_TEXT_MAX_LENGTH}
               error={errors.producer}
+              aiMarked={aiMarks.has("producer")}
               onChange={(producer) => update({ producer })}
             />
             <DetailField
@@ -260,6 +368,7 @@ export function BottleFormFields({
               value={state.origin}
               maxLength={BOTTLE_TEXT_MAX_LENGTH}
               error={errors.origin}
+              aiMarked={aiMarks.has("origin")}
               onChange={(origin) => update({ origin })}
             />
             <DetailField
@@ -269,6 +378,7 @@ export function BottleFormFields({
               inputMode="numeric"
               placeholder="NV"
               error={errors.vintage}
+              aiMarked={aiMarks.has("vintage")}
               onChange={(vintage) => update({ vintage })}
             />
             <div className="log-form-section">
@@ -376,6 +486,20 @@ export function BottleFormFields({
   );
 }
 
+function FieldWithAiMark({ marked, children }: { marked: boolean; children: ReactNode }) {
+  return (
+    <div className={marked ? "field-with-ai is-ai" : "field-with-ai"}>
+      {children}
+      {marked ? (
+        <span className="pill ai">
+          <Sparkles size={11} aria-hidden />
+          AI
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function DetailField({
   id,
   label,
@@ -385,6 +509,7 @@ function DetailField({
   maxLength,
   inputMode,
   placeholder,
+  aiMarked = false,
 }: {
   id: string;
   label: string;
@@ -394,21 +519,24 @@ function DetailField({
   maxLength?: number;
   inputMode?: "numeric";
   placeholder?: string;
+  aiMarked?: boolean;
 }) {
   return (
     <div className="log-form-section">
       <label className="field-label" htmlFor={id}>
         {label}
       </label>
-      <Input
-        id={id}
-        value={value}
-        maxLength={maxLength}
-        inputMode={inputMode}
-        placeholder={placeholder}
-        aria-invalid={error ? true : undefined}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <FieldWithAiMark marked={aiMarked}>
+        <Input
+          id={id}
+          value={value}
+          maxLength={maxLength}
+          inputMode={inputMode}
+          placeholder={placeholder}
+          aria-invalid={error ? true : undefined}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </FieldWithAiMark>
       {error ? (
         <p className="field-error" role="alert">
           {error}

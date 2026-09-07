@@ -56,6 +56,16 @@ export const PHOTO_WEBP_QUALITY = 0.9;
 export const PHOTO_GC_TTL_MS = 24 * 60 * 60 * 1000;
 export const PHOTO_GC_BATCH_SIZE = 500;
 export const AI_USAGE_RETENTION_DAYS = 30;
+/** ラベル読み取りの日次上限（ユーザー / JST 日）。api-design 4.5.3 */
+export const AI_RECOGNIZE_DAILY_LIMIT = 30;
+export const AI_RECOGNIZE_TIMEOUT_MS = 20_000;
+/** クライアントが候補を捨てる確度の下限（サーバーは 0〜1 をそのまま返す） */
+export const AI_RECOGNIZE_MIN_CONFIDENCE = 0.5;
+/** Workers AI の Vision 対応・指示追従モデル（公式一覧。導入時点） */
+export const WORKERS_AI_VISION_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
+export const LABEL_RECOGNIZE_PROVIDERS = ["workers-ai", "gemini", "openai"] as const;
+export type LabelRecognizeProvider = (typeof LABEL_RECOGNIZE_PROVIDERS)[number];
+export const DEFAULT_LABEL_RECOGNIZE_PROVIDER: LabelRecognizeProvider = "workers-ai";
 
 export const PHOTO_OWNER_LIMITS = {
   bottle: 1,

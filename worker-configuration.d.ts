@@ -4,6 +4,7 @@
 interface __BaseEnv_Env {
 	PHOTOS: R2Bucket;
 	DB: D1Database;
+	AI: Ai;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

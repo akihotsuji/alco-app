@@ -14,9 +14,15 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
+  "ai": {
+    "binding": "AI"
+  },
   "env": {
     "dev": {
       "name": "alco-app-dev",
+      "ai": {
+        "binding": "AI"
+      },
       "d1_databases": [
         {
           "binding": "DB",

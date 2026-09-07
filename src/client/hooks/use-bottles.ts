@@ -50,6 +50,16 @@ export function restoreBottle(id: string, client: ApiClient = api) {
   return unwrap(client.api.bottles[":id"].restore.$post({ param: { id } }));
 }
 
+export function recognizeLabel(file: Blob, client: ApiClient = api) {
+  return unwrap(
+    client.api.bottles.recognize.$post({
+      form: {
+        file: new File([file], "label.jpg", { type: "image/jpeg" }),
+      },
+    }),
+  );
+}
+
 export function useBottles(query: BottlesListQuery = {}, enabled = true) {
   return useQuery({
     queryKey: queryKeys.bottlesList({

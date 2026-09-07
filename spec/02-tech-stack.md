@@ -183,7 +183,7 @@ alco-app/
 | 項目 | 内容 | 実装フェーズ |
 |---|---|---|
 | Cron Trigger | `wrangler.jsonc` の `triggers.crons`（例 `0 18 * * *` = JST 3:00）で `scheduled` ハンドラを日次実行。未紐付け写真の GC（R2 + D1）、`ai_usage` 掃除 | 2-08 |
-| Workers AI binding | `wrangler.jsonc` に `"ai": { "binding": "AI" }`。`env.AI.run(model, input)`。dev / production で同じ binding 名。モデル名は `src/server/services/label-recognizer/` の定数 | 4-07 |
+| Workers AI binding | `wrangler.jsonc` に `"ai": { "binding": "AI" }`。`env.AI.run(model, input)`。dev / production で同じ binding 名。モデルは `@cf/meta/llama-4-scout-17b-16e-instruct`（`WORKERS_AI_VISION_MODEL`） | 4-07 |
 | R2 の利用量 | 記録にも写真が付くため増える。1 枚 ≦300KB × 1 日 2 枚 → 年 220MB。切り抜き WebP は同程度。無料枠 10GB で 40 年分 | — |
 | Workers CPU | 画像はクライアント加工済み。サーバーは magic bytes / 寸法ヘッダ / R2 put と、AI 呼び出しの待ち（CPU 時間には数えられない） | 2-08 / 4-07 |
 | 背景除去モデル | 同一オリジン `/models/u2netp.onnx` と ORT WASM（`/models/ort/ort-wasm-simd-threaded.wasm`）。`onnxruntime-web/wasm` は JS をバンドルするため `wasmPaths` は `.wasm` だけ明示する。ビルド時に配置。実行時は Cache API。CSP の `connect-src` は `'self'` のまま | 4-06 |
