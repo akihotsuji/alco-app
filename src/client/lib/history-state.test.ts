@@ -214,4 +214,22 @@ describe("applyNoteToolbarParams", () => {
       applyNoteToolbarParams(new URLSearchParams("ratingX10Min=40"), { type: "toggleRatingMin" }),
     ).toEqual(new URLSearchParams());
   });
+
+  it("検索と種類を URL に写す。空の q は外す", () => {
+    expect(
+      applyNoteToolbarParams(new URLSearchParams(), { type: "setQuery", q: "赤" })?.get("q"),
+    ).toBe("赤");
+    expect(
+      applyNoteToolbarParams(new URLSearchParams("q=赤"), { type: "setQuery", q: "" }),
+    ).toEqual(new URLSearchParams());
+    expect(
+      applyNoteToolbarParams(new URLSearchParams(), {
+        type: "selectDrinkType",
+        drinkType: "beer",
+      })?.get("drinkType"),
+    ).toBe("beer");
+    expect(
+      applyNoteToolbarParams(new URLSearchParams("drinkType=beer"), { type: "clearDrinkType" }),
+    ).toEqual(new URLSearchParams());
+  });
 });

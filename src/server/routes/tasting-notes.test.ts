@@ -1,98 +1,40 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { bottles, photos, tastingNotes } from "@/db/schema.ts";
+import { photos, tastingNotes } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
-import { photoMetaSchema } from "@/shared/photos.ts";
 import {
   TASTING_NOTE_MESSAGES,
   tastingNoteSchema,
   tastingNotesResponseSchema,
 } from "@/shared/tasting-notes.ts";
-import { tokyoToday } from "@/shared/tokyo-date.ts";
-import { makeJpeg } from "../image-fixtures.ts";
-import { createTestApp, createTestUser } from "../test-helpers.ts";
-
-type Ctx = Awaited<ReturnType<typeof createTestApp>>;
-
-const TODAY = tokyoToday();
-const OWN_BOTTLE = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const OTHER_BOTTLE = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-const MISSING = "99999999-9999-4999-8999-999999999999";
-const HAND = {
-  drinkName: "サンプル赤",
-  drinkType: "wine",
-  tastedOn: TODAY,
-  ratingX10: 45,
-} as const;
-
-async function session(app: Ctx["app"], email: string) {
-  const user = await createTestUser(app, {
-    name: email.split("@")[0] ?? "user",
-    email,
-    password: "password1",
-  });
-  return { cookie: user.cookie, userId: user.id };
-}
-
-function postNote(app: Ctx["app"], cookie: string, body: unknown) {
-  return app.request("/api/tasting-notes", {
-    method: "POST",
-    headers: { Cookie: cookie, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-function getNotes(app: Ctx["app"], cookie: string, search = "") {
-  const suffix = search ? `?${search}` : "";
-  return app.request(`/api/tasting-notes${suffix}`, { headers: { Cookie: cookie } });
-}
-
-function patchNote(app: Ctx["app"], cookie: string, id: string, body: unknown) {
-  return app.request(`/api/tasting-notes/${id}`, {
-    method: "PATCH",
-    headers: { Cookie: cookie, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-async function uploadPhoto(app: Ctx["app"], cookie: string) {
-  const form = new FormData();
-  form.set(
-    "file",
-    new File([Uint8Array.from(makeJpeg(320, 400))], "shot.jpg", { type: "image/jpeg" }),
-  );
-  const res = await app.request("/api/photos", {
-    method: "POST",
-    headers: { Cookie: cookie },
-    body: form,
-  });
-  expect(res.status).toBe(201);
-  return photoMetaSchema.parse(await res.json());
-}
-
-async function seedBottle(
-  ctx: Ctx,
-  id: string,
-  userId: string,
-  name: string,
-  status: "sealed" | "consumed" = "sealed",
-) {
-  const now = new Date();
-  await ctx.db.insert(bottles).values({
-    id,
-    userId,
-    name,
-    drinkType: "beer",
-    status,
-    createdAt: now,
-    updatedAt: now,
-  });
-}
+import {
+  createHandNote,
+  deleteNote,
+  getNote,
+  getNotes,
+  NOTE_HAND as HAND,
+  NOTE_MISSING_ID as MISSING,
+  NOTE_OTHER_BOTTLE as OTHER_BOTTLE,
+  NOTE_OWN_BOTTLE as OWN_BOTTLE,
+  patchNote,
+  postNote,
+  seedOwnedBottle as seedBottle,
+  noteSession as session,
+  NOTE_TODAY as TODAY,
+  uploadNotePhoto as uploadPhoto,
+} from "../tasting-note-factory.ts";
+import { createTestApp } from "../test-helpers.ts";
 
 async function fields(res: Response) {
   const body = apiErrorBodySchema.parse(await res.json());
   expect(body.error).toBe("validation_error");
   return body.fields ?? {};
+}
+
+async function notFoundBody(res: Response) {
+  expect(res.status).toBe(404);
+  expect(res.status).not.toBe(403);
+  expect(await res.json()).toEqual({ error: "not_found" });
 }
 
 describe("POST /api/tasting-notes", () => {
@@ -549,13 +491,164 @@ describe("GET / PATCH / DELETE /api/tasting-notes/:id", () => {
     expect(other.status).toBe(404);
     expect(await ctx.db.select().from(tastingNotes)).toHaveLength(1);
 
-    const own = await ctx.app.request(`/api/tasting-notes/${created.id}`, {
-      method: "DELETE",
-      headers: { Cookie: a.cookie },
-    });
+    const own = await deleteNote(ctx.app, a.cookie, created.id);
     expect(own.status).toBe(200);
     expect(await own.json()).toEqual({ ok: true });
     expect(await ctx.db.select().from(tastingNotes)).toHaveLength(0);
     expect(await ctx.db.select().from(photos).where(eq(photos.id, photo.id))).toHaveLength(0);
+  });
+});
+
+describe("5-05 認可とバリデーションのギャップ", () => {
+  it("GET / DELETE :id の未認証は 401。他人と不在は同じ 404 で 403 にしない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    const created = await createHandNote(ctx.app, a.cookie);
+
+    const getUnauth = await getNote(ctx.app, "", created.id);
+    expect(getUnauth.status).toBe(401);
+    expect(await getUnauth.json()).toEqual({ error: "unauthorized" });
+
+    const deleteUnauth = await deleteNote(ctx.app, "", created.id);
+    expect(deleteUnauth.status).toBe(401);
+    expect(await deleteUnauth.json()).toEqual({ error: "unauthorized" });
+
+    await notFoundBody(await getNote(ctx.app, b.cookie, created.id));
+    await notFoundBody(await getNote(ctx.app, a.cookie, MISSING));
+    await notFoundBody(await patchNote(ctx.app, b.cookie, created.id, { ratingX10: 10 }));
+    await notFoundBody(await deleteNote(ctx.app, b.cookie, created.id));
+    await notFoundBody(await deleteNote(ctx.app, a.cookie, MISSING));
+
+    const stillThere = tastingNoteSchema.parse(
+      await (await getNote(ctx.app, a.cookie, created.id)).json(),
+    );
+    expect(stillThere.ratingX10).toBe(45);
+  });
+
+  it("評価 5.1 / 1.2 は POST / PATCH とも 400。ノートは作らない・変えない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+
+    const post51 = await postNote(ctx.app, a.cookie, { ...HAND, ratingX10: 5.1 });
+    expect(post51.status).toBe(400);
+    expect((await fields(post51)).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+
+    const post12 = await postNote(ctx.app, a.cookie, { ...HAND, ratingX10: 1.2 });
+    expect(post12.status).toBe(400);
+    expect((await fields(post12)).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+    expect(await ctx.db.select().from(tastingNotes)).toHaveLength(0);
+
+    const created = await createHandNote(ctx.app, a.cookie);
+    const patch51 = await patchNote(ctx.app, a.cookie, created.id, { ratingX10: 5.1 });
+    expect(patch51.status).toBe(400);
+    expect((await fields(patch51)).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+
+    const patch12 = await patchNote(ctx.app, a.cookie, created.id, { ratingX10: 1.2 });
+    expect(patch12.status).toBe(400);
+    expect((await fields(patch12)).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+
+    const again = tastingNoteSchema.parse(
+      await (await getNote(ctx.app, a.cookie, created.id)).json(),
+    );
+    expect(again.ratingX10).toBe(45);
+  });
+
+  it("一覧クエリの不正値は 400。不明 bottleId は 404", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+
+    const drinkType = await getNotes(ctx.app, a.cookie, "drinkType=evil");
+    expect(drinkType.status).toBe(400);
+    expect((await fields(drinkType)).drinkType).toBeDefined();
+
+    const ratingMin = await getNotes(ctx.app, a.cookie, "ratingX10Min=51");
+    expect(ratingMin.status).toBe(400);
+    expect((await fields(ratingMin)).ratingX10Min).toContain(TASTING_NOTE_MESSAGES.ratingRange);
+
+    const ratingStep = await getNotes(ctx.app, a.cookie, "ratingX10Min=12");
+    expect(ratingStep.status).toBe(400);
+    expect((await fields(ratingStep)).ratingX10Min).toContain(TASTING_NOTE_MESSAGES.ratingRange);
+
+    const limitLow = await getNotes(ctx.app, a.cookie, "limit=0");
+    expect(limitLow.status).toBe(400);
+    expect((await fields(limitLow)).limit).toEqual([TASTING_NOTE_MESSAGES.limit]);
+
+    const limitHigh = await getNotes(ctx.app, a.cookie, "limit=101");
+    expect(limitHigh.status).toBe(400);
+    expect((await fields(limitHigh)).limit).toEqual([TASTING_NOTE_MESSAGES.limit]);
+
+    const q = await getNotes(ctx.app, a.cookie, `q=${"あ".repeat(101)}`);
+    expect(q.status).toBe(400);
+    expect((await fields(q)).q).toEqual([TASTING_NOTE_MESSAGES.q]);
+
+    await notFoundBody(await getNotes(ctx.app, a.cookie, `bottleId=${MISSING}`));
+  });
+
+  it("PATCH 他人 bottleId は 404 で変わらない。userId キーは 400", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    await seedBottle(ctx, OTHER_BOTTLE, b.userId, "他人の瓶");
+    const created = await createHandNote(ctx.app, a.cookie);
+
+    await notFoundBody(await patchNote(ctx.app, a.cookie, created.id, { bottleId: OTHER_BOTTLE }));
+    const again = tastingNoteSchema.parse(
+      await (await getNote(ctx.app, a.cookie, created.id)).json(),
+    );
+    expect(again.bottleId).toBeNull();
+    expect(again.drinkName).toBe("サンプル赤");
+
+    const leaked = await patchNote(ctx.app, a.cookie, created.id, {
+      ratingX10: 50,
+      userId: b.userId,
+    });
+    expect(leaked.status).toBe(400);
+    expect((await fields(leaked))[""]).toBeDefined();
+  });
+
+  it("4 欄 2001 文字と重複 photoIds は 400", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const tooLong = await postNote(ctx.app, a.cookie, {
+      ...HAND,
+      appearance: "あ".repeat(2001),
+    });
+    expect(tooLong.status).toBe(400);
+    expect((await fields(tooLong)).appearance).toEqual([TASTING_NOTE_MESSAGES.noteText]);
+
+    const duplicate = await postNote(ctx.app, a.cookie, {
+      ...HAND,
+      photoIds: [MISSING, MISSING],
+    });
+    expect(duplicate.status).toBe(400);
+    expect((await fields(duplicate)).photoIds).toEqual([TASTING_NOTE_MESSAGES.photoIdsDuplicate]);
+    expect(await ctx.db.select().from(tastingNotes)).toHaveLength(0);
+  });
+
+  it("ratingX10Max は上限フィルタになる", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    await createHandNote(ctx.app, a.cookie, {
+      drinkName: "低",
+      ratingX10: 30,
+      tastedOn: "2026-08-01",
+    });
+    await createHandNote(ctx.app, a.cookie, {
+      drinkName: "中",
+      ratingX10: 40,
+      tastedOn: "2026-08-02",
+    });
+    await createHandNote(ctx.app, a.cookie, {
+      drinkName: "高",
+      ratingX10: 45,
+      tastedOn: "2026-08-03",
+    });
+
+    const capped = tastingNotesResponseSchema.parse(
+      await (await getNotes(ctx.app, a.cookie, "ratingX10Max=40")).json(),
+    );
+    expect(capped.items.map((item) => item.drinkName)).toEqual(["中", "低"]);
+    expect(capped.totalCount).toBe(3);
   });
 });
