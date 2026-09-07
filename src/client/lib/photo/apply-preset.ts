@@ -3,7 +3,11 @@ import { supportsCanvasFilter } from "./filter-support.ts";
 
 export type ColorPreset = "table" | "cellar" | "none";
 
-export function applyPreset(canvas: HTMLCanvasElement, preset: ColorPreset): HTMLCanvasElement {
+export function applyPreset(
+  canvas: HTMLCanvasElement,
+  preset: ColorPreset,
+  options?: { vignette?: boolean },
+): HTMLCanvasElement {
   if (preset === "none" || !supportsCanvasFilter()) {
     return canvas;
   }
@@ -17,7 +21,7 @@ export function applyPreset(canvas: HTMLCanvasElement, preset: ColorPreset): HTM
   ctx.filter = PHOTO_FILTERS[preset];
   ctx.drawImage(canvas, 0, 0);
   ctx.filter = "none";
-  if (preset === "cellar") {
+  if (preset === "cellar" && options?.vignette !== false) {
     applyVignette(ctx, out.width, out.height);
   }
   return out;

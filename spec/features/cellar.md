@@ -371,7 +371,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | 比率 | 2:3 |
 | プリセット | `cellar`（既定 ON。設定 S4） |
 | キャラ合成 | **なし**（トグルも出さない） |
-| 切り抜き | セラーのみ。既定 ON（`photo.cutout`）。端末内 WASM。失敗・未対応は JPEG 長方形 |
+| 切り抜き | セラーのみ。既定 ON（`photo.cutout`）。端末内 WASM（`onnxruntime-web` + U2-Net-P）。失敗・未対応は JPEG 長方形 |
 | 出力 | cutout: 透過 WebP・長辺 1280・品質 0.9。photo: JPEG・長辺 1280・品質 0.82 |
 | サーバー | magic bytes、1MB、長辺 1600、キーはサーバー生成、配信は認可付き GET |
 | `kind` | サーバー判定（WebP VP8X alpha → `cutout`）。クライアント申告は受け取らない |

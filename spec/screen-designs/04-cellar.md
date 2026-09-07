@@ -318,7 +318,7 @@
 | 段の構成（種類ごと） | 1 種類 = 1 段、横スクロール。列幅 72px、間隔 22px。ゴースト見出し 44px / 700 `--shelf-ghost`、段の左上 −18px に重ねる |
 | 落ち影 | cutout の足元に楕円の影（幅 80%、高さ 6px、黒 25%）を画像側に焼き込む（`photo-edit`。棚板の上に立って見える） |
 | 写真なし | 種類別ボトル型 SVG（ワイン=肩なだらか、ビール=缶、ウイスキー=角瓶、日本酒=一升瓶、焼酎=瓶、カクテル=グラス、その他=汎用瓶）。線は `--muted`、inset-sm の枠 |
-| 背景除去 | ブラウザ WASM（候補 `@imgly/background-removal`）。初回にモデルを DL（数十 MB、Cache API に保存）。処理 2〜8 秒。失敗・未対応（WebGPU/WASM SIMD なし、メモリ不足）では `kind = photo` にフォールバック。詳細は [07-photo-capture.md](07-photo-capture.md) |
+| 背景除去 | ブラウザ WASM（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`）。初回にモデルを DL（Cache API に保存）。処理 2〜8 秒。失敗・未対応（WASM SIMD なし、メモリ不足）では `kind = photo` にフォールバック。詳細は [07-photo-capture.md](07-photo-capture.md) |
 
 ---
 

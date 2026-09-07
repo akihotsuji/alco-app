@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PHOTO_ASPECT, PHOTO_OUTPUT_LONG_EDGE } from "@/shared/constants.ts";
 import {
+  alphaBoundingBox,
   aspectForKind,
   computeCoverCrop,
   computeCutoutPlacement,
@@ -82,19 +83,45 @@ describe("computeMascotLayout", () => {
 });
 
 describe("computeCutoutPlacement", () => {
-  it("ボトルを下端揃え・落ち影は幅 80%", () => {
+  it("ボトルを下端から 4% 空け、落ち影はボトル幅の 80%", () => {
     const placed = computeCutoutPlacement({
       sourceWidth: 400,
       sourceHeight: 800,
       canvasWidth: 853,
       canvasHeight: 1280,
     });
-    expect(placed.y + placed.height).toBeCloseTo(1280);
+    expect(placed.y + placed.height).toBeCloseTo(1280 * 0.96);
     expect(placed.x).toBeCloseTo((853 - placed.width) / 2);
-    expect(placed.shadow.rx).toBeCloseTo((853 * 0.8) / 2);
+    expect(placed.shadow.rx).toBeCloseTo((placed.width * 0.8) / 2);
+    expect(placed.shadow.x).toBeCloseTo(placed.x + placed.width / 2);
+    expect(placed.shadow.y).toBeCloseTo(placed.y + placed.height);
     expect(placed.shadow.ry).toBe(3);
   });
 });
+
+describe("alphaBoundingBox", () => {
+  it("不透明画素の外接矩形を返す", () => {
+    const width = 4;
+    const height = 4;
+    const data = new Uint8ClampedArray(width * height * 4);
+    paintPixel(data, width, 1, 1, 200);
+    paintPixel(data, width, 2, 2, 200);
+    expect(alphaBoundingBox(data, width, height)).toEqual({ x: 1, y: 1, width: 2, height: 2 });
+  });
+
+  it("全面透明なら null", () => {
+    const data = new Uint8ClampedArray(16);
+    expect(alphaBoundingBox(data, 2, 2)).toBeNull();
+  });
+});
+
+function paintPixel(data: Uint8ClampedArray, width: number, x: number, y: number, alpha: number) {
+  const offset = (y * width + x) * 4;
+  data[offset] = 10;
+  data[offset + 1] = 10;
+  data[offset + 2] = 10;
+  data[offset + 3] = alpha;
+}
 
 describe("aspectForKind", () => {
   it("セラーだけ 2:3、記録とノートは 4:5", () => {

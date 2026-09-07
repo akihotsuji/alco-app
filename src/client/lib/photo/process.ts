@@ -2,7 +2,12 @@ import { applyPreset, type ColorPreset } from "./apply-preset.ts";
 import { composeMascot } from "./compose-mascot.ts";
 import { cropResize } from "./crop-resize.ts";
 import { aspectForKind, computeCoverCrop, outputSizeForAspect } from "./geometry.ts";
-import { removeBackground, supportsBackgroundRemoval } from "./remove-background.ts";
+import {
+  paintCutoutOnCanvas,
+  type RemoveBackgroundProgress,
+  removeBackground,
+  supportsBackgroundRemoval,
+} from "./remove-background.ts";
 import { toJpegBlob, toWebpBlob } from "./to-jpeg-blob.ts";
 
 export type PhotoProcessKind = "log" | "cellar" | "note";
@@ -18,6 +23,7 @@ export type ProcessPhotoInput = {
   filterOn: boolean;
   mascotOn: boolean;
   cutoutOn: boolean;
+  onCutoutProgress?: (progress: RemoveBackgroundProgress) => void;
 };
 
 export type ProcessedPhoto = {
@@ -44,26 +50,33 @@ export async function processPhoto(input: ProcessPhotoInput): Promise<ProcessedP
     offsetY: input.offsetY,
   });
   const output = outputSizeForAspect(aspect);
-  let canvas = cropResize(input.source, crop, output);
-  canvas = applyPreset(canvas, presetForKind(input.kind, input.filterOn));
+  const cropped = cropResize(input.source, crop, output);
+  const preset = presetForKind(input.kind, input.filterOn);
 
-  let recognizeJpeg: Blob | undefined;
   if (input.kind === "cellar") {
-    recognizeJpeg = await toJpegBlob(canvas);
+    const filtered = applyPreset(cropped, preset);
+    const recognizeJpeg = await toJpegBlob(filtered);
     if (input.cutoutOn && supportsBackgroundRemoval()) {
       try {
-        const cut = await removeBackground(canvas);
-        canvas = cut;
-        const blob = await toWebpBlob(canvas);
-        return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg };
+        const removed = await removeBackground(cropped, input.onCutoutProgress);
+        const colored = applyPreset(removed, preset, { vignette: false });
+        const dest = document.createElement("canvas");
+        dest.width = output.width;
+        dest.height = output.height;
+        paintCutoutOnCanvas(colored, dest);
+        const blob = await toWebpBlob(dest);
+        if (blob.type === "image/webp") {
+          return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg };
+        }
       } catch {
         // 長方形 JPEG へフォールバック
       }
     }
-    const blob = await toJpegBlob(canvas);
+    const blob = await toJpegBlob(filtered);
     return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg };
   }
 
+  let canvas = applyPreset(cropped, preset);
   if (input.mascotOn) {
     canvas = await composeMascot(canvas);
   }

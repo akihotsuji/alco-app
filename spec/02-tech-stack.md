@@ -36,7 +36,7 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 | 写真取り込み | `<input type="file" accept="image/*" capture>` | iOS / Android の PWA スタンドアロンで最も確実。`getUserMedia` は使わない |
 | キャラクター | インライン SVG の React コンポーネント（`<Mascot />`） | テーマ追従・拡縮自由・追加依存なし。ラスタ画像は持たない（[character.md](character.md)） |
 | 定期処理 | Workers **Cron Triggers**（`scheduled`） | 未紐付け写真の日次 GC、`ai_usage` の掃除。無料枠に含まれる |
-| 背景除去（切り抜き） | ブラウザ WASM（候補 `@imgly/background-removal`。Apache-2.0） | セラーの棚に切り抜きボトルを立てる（2026-09-05 に MVP へ）。端末内処理でサーバー費用ゼロ。初回にモデル数十 MB を DL（Cache API に保存）。失敗時は長方形にフォールバック。追加依存の理由は 4-06 の PR に明記 |
+| 背景除去（切り抜き） | ブラウザ WASM（`onnxruntime-web` MIT + U2-Net-P。同一オリジン `/models/`） | セラーの棚に切り抜きボトルを立てる（2026-09-05 に MVP へ）。`@imgly/background-removal` は AGPL-3.0 のため不採用。端末内処理でサーバー費用ゼロ。初回にモデルを DL（Cache API）。失敗時は長方形にフォールバック |
 | ラベル読み取り | **Cloudflare Workers AI**（Vision 対応の指示追従モデル。binding `AI`） | ボトルのラベル写真から銘柄名・生産者・年・種類などの候補を返す（2026-09-05 決定。セラーのみ）。無料枠（日次 Neurons）内。新ベンダー・鍵が不要で、写真が Cloudflare 外へ出ない。`LabelRecognizer` インターフェースで実装し、将来 **Gemini 等の外部 API** に差し替え可能にする（その場合は `wrangler secret` で鍵、外部送信の明記が必要） |
 | PWA | vite-plugin-pwa | manifest / アイコン（キャラクター由来）/ スタンドアロン表示を宣言的に設定 |
 | Lint / Format | Biome | ESLint+Prettierの2本立てを避け、1ツールで完結。高速で設定が少ない |
@@ -186,7 +186,7 @@ alco-app/
 | Workers AI binding | `wrangler.jsonc` に `"ai": { "binding": "AI" }`。`env.AI.run(model, input)`。dev / production で同じ binding 名。モデル名は `src/server/services/label-recognizer/` の定数 | 4-07 |
 | R2 の利用量 | 記録にも写真が付くため増える。1 枚 ≦300KB × 1 日 2 枚 → 年 220MB。切り抜き WebP は同程度。無料枠 10GB で 40 年分 | — |
 | Workers CPU | 画像はクライアント加工済み。サーバーは magic bytes / 寸法ヘッダ / R2 put と、AI 呼び出しの待ち（CPU 時間には数えられない） | 2-08 / 4-07 |
-| 背景除去モデル | クライアントが初回に DL。同一オリジン `/models/` に置くか CDN かは 4-06 で決める（CDN なら CSP `connect-src` に追加） | 4-06 |
+| 背景除去モデル | 同一オリジン `/models/u2netp.onnx` と ORT WASM（`/models/ort/`）。ビルド時に配置。実行時は Cache API。CSP の `connect-src` は `'self'` のまま | 4-06 |
 | 環境変数 | 追加なし（写真上限・AI 日次上限などは `src/shared` の定数） | — |
 | PWA アイコン | キャラクター SVG からビルド時に PNG 一式を生成（`vite-plugin-pwa` の assets generator） | 6-01 |
 

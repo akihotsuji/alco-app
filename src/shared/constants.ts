@@ -96,6 +96,18 @@ export const PHOTO_CUTOUT_SHADOW = {
   color: "rgba(0, 0, 0, 0.25)",
 } as const;
 
+/** ボトル下端とキャンバス下端の隙間（落ち影用。4-06） */
+export const PHOTO_CUTOUT_BOTTOM_RATIO = 0.04;
+export const PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS = 20_000;
+export const PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS = 120_000;
+export const PHOTO_CUTOUT_MODEL_SIZE = 320;
+/** 同一オリジン。ビルド時に public/models へ配置する */
+export const PHOTO_CUTOUT_MODEL_URL = "/models/u2netp.onnx";
+export const PHOTO_CUTOUT_CACHE = "alco-cutout-v1";
+export const PHOTO_CUTOUT_ORT_WASM_PATH = "/models/ort/";
+export const PHOTO_CUTOUT_MEAN = [0.485, 0.456, 0.406] as const;
+export const PHOTO_CUTOUT_STD = [0.229, 0.224, 0.225] as const;
+
 /** 設定・photo-edit が共有する localStorage キー（spec/screen-designs/07-photo-capture.md） */
 export const PHOTO_PREF_KEYS = {
   mascot: "photo.mascot",
