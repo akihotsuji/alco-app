@@ -18,7 +18,7 @@
 | 色補正 | プリセット `table` / `cellar` を既定 ON。OFF 可（設定で既定変更） | 「いい感じに加工」の MVP 範囲 |
 | キャラ合成 | 記録・ノートのみ。右下 `surprised`。既定 ON | オーナー指示 |
 | 背景除去（切り抜き） | **セラーのみ、MVP**（2026-09-05 決定）。ブラウザ WASM（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`）。トグル「切り抜く」既定 ON。出力は透過 WebP、`photos.kind = cutout`。失敗・未対応では長方形 JPEG（`kind = photo`）にフォールバック | ガラス棚に本物のシルエットで立たせる |
-| ラベル読み取り | セラーのみ。切り抜く**前**の 2:3 JPEG を保持し、「使う」で JPEG ができた時点（背景除去を待たない）に `POST /api/bottles/recognize` へ送る（画像は保存しない） | [04-cellar.md](04-cellar.md) B2 |
+| ラベル読み取り | セラーは切り抜く**前**の 2:3 JPEG を `POST /api/bottles/recognize` へ。記録はキャラ合成**前**の 4:5 JPEG を `POST /api/drink-logs/recognize` へ（種類・量の先埋め。画像は保存しない） | [04-cellar.md](04-cellar.md) B2 / [03-log.md](03-log.md) N1 |
 | HEIC | iOS の `capture` 撮影は JPEG で来る。ライブラリ選択で HEIC が来た場合、Safari は `<img>` でデコードできるので Canvas 経由で JPEG 化される。デコードできないブラウザでは「この形式は使えません。JPEG / PNG を選んでください」 | サーバーは常に JPEG を受ける |
 | アップロード時期 | 「使う」を押した直後に **未紐付けで `POST /api/photos`**。フォーム保存時に `photoIds` で紐付け | 保存ボタン押下を速くする。放棄分はサーバー GC（24h） |
 | 上限 | サーバー 1 枚 **1MB**（413）。クライアント出力は通常 300KB 以下 | 実体検証はサーバー（magic bytes + サイズ） |

@@ -234,12 +234,18 @@ export async function processPhoto(input: ProcessPhotoInput): Promise<ProcessedP
     return processCellarPhoto(input, prepared);
   }
 
-  let canvas = applyPreset(prepared.cropped, prepared.preset);
+  const filtered = applyPreset(prepared.cropped, prepared.preset);
+  let recognizeJpeg: Blob | undefined;
+  if (input.kind === "log") {
+    recognizeJpeg = await toJpegBlob(filtered);
+    input.onRecognizeJpeg?.(recognizeJpeg);
+  }
+  let canvas = filtered;
   if (input.mascotOn) {
     canvas = await composeMascot(canvas);
   }
   const blob = await toJpegBlob(canvas);
-  return { blob, previewUrl: URL.createObjectURL(blob) };
+  return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg };
 }
 
 async function processCellarPhoto(

@@ -241,6 +241,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | GET | `/api/drink-logs` | 必須 | 期間内の記録一覧＋合計 |
 | GET | `/api/drink-logs/summary` | 必須 | 日 / 週 / 月の集計 |
 | POST | `/api/drink-logs` | 必須 | 記録作成 |
+| POST | `/api/drink-logs/recognize` | 必須 | 記録写真から種類・量の候補（Workers AI）。保存しない |
 | GET | `/api/drink-logs/:id` | 必須 | 記録詳細 |
 | PATCH | `/api/drink-logs/:id` | 必須 | 記録の部分更新 |
 | DELETE | `/api/drink-logs/:id` | 必須 | 記録削除 |
@@ -269,7 +270,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | PATCH | `/api/photos/:id` | 必須 | 紐付け・並び |
 | DELETE | `/api/photos/:id` | 必須 | メタと R2 を削除 |
 
-`GET /api/drink-logs/summary` は `GET /api/drink-logs/:id` より**先に登録**する（`summary` を id と誤認しない）。同様に **`POST /api/bottles/recognize` は `/api/bottles/:id/*` より先**に登録する。`consume` / `restore` は `:id` の配下なので順序の問題はない。
+`GET /api/drink-logs/summary` と **`POST /api/drink-logs/recognize`** は `GET /api/drink-logs/:id` より**先に登録**する（`summary` / `recognize` を id と誤認しない）。同様に **`POST /api/bottles/recognize` は `/api/bottles/:id/*` より先**に登録する。`consume` / `restore` は `:id` の配下なので順序の問題はない。
 
 Cron（公開エンドポイントではない）: `scheduled` ハンドラで日次に未紐付け写真 GC を実行する。`wrangler.jsonc` の `triggers.crons`（例 `0 18 * * *` = JST 3:00）。
 
@@ -421,6 +422,34 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 #### DELETE /api/drink-logs/:id
 
 200 `{ "ok": true }`。物理削除。
+
+#### POST /api/drink-logs/recognize
+
+記録写真（グラス / 缶 / 瓶）から **種類・量・度数の候補**を返す。ラベル OCR ではない。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` と **同じ 30 回 / 日（JST）** を共有する。
+
+`multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。
+
+```json
+{
+  "fields": {
+    "drinkType": { "value": "beer", "confidence": 0.8 },
+    "volumeMl": { "value": 350, "confidence": 0.7 },
+    "abvPercent": { "value": 5, "confidence": 0.6 }
+  },
+  "provider": "workers-ai",
+  "remainingToday": 27
+}
+```
+
+| 規則 | 内容 |
+|---|---|
+| プロバイダ | 4.5.3 と同じ Workers AI Vision。プロンプトはサーバー固定（グラス/缶/瓶の見た目。ユーザー文を混ぜない） |
+| 出力 | `drinkType` は 7 種、`volumeMl` は 1〜5000 整数、`abvPercent` は 0〜100 小数 1 桁、`confidence` は 0〜1。検証落ちは省く。空 `fields` でも 200 |
+| 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）、20 秒タイムアウト |
+| クライアント | 確度 0.5 未満は捨てる。ユーザーが先に触った欄は上書きしない。種類を入れたら量は推測値を優先し、無ければ種類デフォルト。量チップにあればそのチップを選んだ状態にする |
+| 対象 | `log-new` のみ。`log-edit` では呼ばない |
+
+公開エンドポイントではない。
 
 ### 4.4 my-drinks
 

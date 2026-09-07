@@ -14,6 +14,12 @@ import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
+import {
+  applyRecognizeToLogForm,
+  countDrinkRecognizeFields,
+  DRINK_RECOGNIZE_BANNER,
+  type DrinkRecognizeTouched,
+} from "@/client/lib/drink-recognize.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { drinkLogUndoState, isPhotoHandoff } from "@/client/lib/history-state.ts";
 import {
@@ -33,6 +39,7 @@ import {
   validateLogForm,
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { DRINK_LOG_MESSAGES } from "@/shared/drink-logs.ts";
 
 const DISCARD_TITLE = "入力を破棄しますか";
@@ -48,7 +55,7 @@ export function LogNewForm() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { setGuard } = useLeaveGuard();
-  const { releaseAttachment, editAttachment } = usePhotoEdit();
+  const { releaseAttachment, editAttachment, pendingRecognizeJpeg } = usePhotoEdit();
   const { startCapture, attachments, retryUpload, clearAttachment } = useCaptureOnCameraQuery(
     "log",
     true,
@@ -67,6 +74,14 @@ export function LogNewForm() {
   const [discarding, setDiscarding] = useState(false);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
+  const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | null>(null);
+  const touchedRef = useRef<DrinkRecognizeTouched>({
+    drinkType: false,
+    volumeMl: false,
+    abvPercent: false,
+  });
+  const recognizedJpegRef = useRef<Blob | null>(null);
+  const recognizeRequestRef = useRef(0);
 
   const attachment = attachments.log;
   const photoStatus: PhotoSaveStatus = attachment ? attachment.status : "none";
@@ -106,10 +121,54 @@ export function LogNewForm() {
       if (!bottle) {
         return;
       }
+      touchedRef.current.drinkType = true;
       setState((current) => applySelectedBottle(current, bottle));
     },
     () => setServerErrors({ bottleId: DRINK_LOG_MESSAGES.bottleNotFound }),
   );
+
+  useEffect(() => {
+    if (!pendingRecognizeJpeg) {
+      return;
+    }
+    startDrinkRecognition(pendingRecognizeJpeg).catch(() => {});
+  }, [pendingRecognizeJpeg]);
+
+  useEffect(() => {
+    const jpeg = attachment?.recognizeJpeg ?? pendingRecognizeJpeg;
+    if (!jpeg || recognizedJpegRef.current === jpeg) {
+      return;
+    }
+    recognizedJpegRef.current = jpeg;
+    const requestId = recognizeRequestRef.current + 1;
+    recognizeRequestRef.current = requestId;
+    setRecognizeStatus("loading");
+    void startDrinkRecognition(jpeg)
+      .then((result) => {
+        if (requestId !== recognizeRequestRef.current) {
+          return;
+        }
+        if (countDrinkRecognizeFields(result.fields) === 0) {
+          setRecognizeStatus(null);
+          return;
+        }
+        setState((current) => {
+          const applied = applyRecognizeToLogForm({
+            state: current,
+            fields: result.fields,
+            touched: touchedRef.current,
+          });
+          return applied.next;
+        });
+        setRecognizeStatus("success");
+      })
+      .catch(() => {
+        if (requestId !== recognizeRequestRef.current) {
+          return;
+        }
+        setRecognizeStatus(null);
+      });
+  }, [attachment?.recognizeJpeg, pendingRecognizeJpeg]);
 
   function update(patch: Partial<typeof state>) {
     setState((current) => ({ ...current, ...patch }));
@@ -182,9 +241,21 @@ export function LogNewForm() {
         attachment={attachment}
         onEdit={() => void editAttachment("log")}
         onRetry={() => void retryUpload("log")}
-        onClear={() => void clearAttachment("log")}
+        onClear={() => {
+          recognizedJpegRef.current = null;
+          setRecognizeStatus(null);
+          void clearAttachment("log");
+        }}
         error={attachment ? errors.photoIds : undefined}
       />
+      {recognizeStatus ? (
+        <p className="bottle-batch-recognize" role="status">
+          {recognizeStatus === "loading" ? (
+            <span className="recognize-spinner" aria-hidden />
+          ) : null}
+          {DRINK_RECOGNIZE_BANNER[recognizeStatus]}
+        </p>
+      ) : null}
       {!attachment && errors.photoIds ? (
         <p className="field-error" role="alert">
           {errors.photoIds}
@@ -193,6 +264,9 @@ export function LogNewForm() {
       <DrinkTypeChips
         value={state.drinkType}
         onChange={(drinkType) => {
+          touchedRef.current.drinkType = true;
+          touchedRef.current.volumeMl = true;
+          touchedRef.current.abvPercent = true;
           setState((current) => applyDrinkType(current, drinkType));
           setServerErrors({});
           setFormError(null);
@@ -203,13 +277,19 @@ export function LogNewForm() {
         drinkType={state.drinkType}
         value={state.volumeMl}
         error={errors.volumeMl}
-        onChange={(volumeMl) => update({ volumeMl })}
+        onChange={(volumeMl) => {
+          touchedRef.current.volumeMl = true;
+          update({ volumeMl });
+        }}
       />
       <AbvField
         key={`abv-${state.drinkType}`}
         value={state.abvPercent}
         error={errors.abvPercent}
-        onChange={(abvPercent) => update({ abvPercent })}
+        onChange={(abvPercent) => {
+          touchedRef.current.abvPercent = true;
+          update({ abvPercent });
+        }}
       />
       <p className="live-grams" aria-live="polite">
         ＝ {formatGrams(grams)} g
@@ -225,6 +305,9 @@ export function LogNewForm() {
         bottleName={state.bottleName}
         error={errors.bottleId}
         onSelect={(bottle) => {
+          if (bottle) {
+            touchedRef.current.drinkType = true;
+          }
           setState((current) =>
             bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current),
           );

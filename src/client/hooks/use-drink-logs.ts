@@ -11,6 +11,16 @@ export function createDrinkLog(body: CreateDrinkLogInput, client: ApiClient = ap
   return unwrap(client.api["drink-logs"].$post({ json: body }));
 }
 
+export function recognizeDrinkPhoto(file: Blob, client: ApiClient = api) {
+  return unwrap(
+    client.api["drink-logs"].recognize.$post({
+      form: {
+        file: new File([file], "drink.jpg", { type: "image/jpeg" }),
+      },
+    }),
+  );
+}
+
 export function deleteDrinkLog(id: string, client: ApiClient = api) {
   return unwrap(client.api["drink-logs"][":id"].$delete({ param: { id } }));
 }

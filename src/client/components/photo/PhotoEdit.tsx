@@ -255,7 +255,7 @@ export function PhotoEdit() {
         cutoutOn: kind === "cellar" && cutoutOn && cutoutSupported,
         onCutoutProgress: setCutoutProgress,
         // 背景除去を待たずにラベル読み取りを始められるよう、切り抜く前の JPEG を先に渡す
-        onRecognizeJpeg: kind === "cellar" ? offerRecognizeJpeg : undefined,
+        onRecognizeJpeg: kind === "cellar" || kind === "log" ? offerRecognizeJpeg : undefined,
       });
       if (processed.cutout?.status === "failed") {
         // 一時的な失敗。`photo.cutout` はユーザーがトグルを操作したときだけ変える
