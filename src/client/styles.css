@@ -726,6 +726,23 @@
   animation: fade-in var(--dur-state) var(--ease-out) both;
 }
 
+/*
+  ダイアログは下 24px に浮く（00-common 2.2）。ソフトキーボード表示中は `--keyboard-inset`
+  （src/client/lib/keyboard-inset.ts）ぶん持ち上げ、残りの高さに収まるよう中身をスクロールさせる。
+*/
+.app-dialog-panel {
+  bottom: calc(var(--space-5) + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px));
+  --dialog-gap: calc(var(--space-5) * 2);
+  max-height: calc(
+    100dvh -
+    var(--dialog-gap) -
+    env(safe-area-inset-bottom) -
+    var(--keyboard-inset, 0px)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* M-13 / M-30: ダイアログの出入り（Radix の data-state に反応） */
 .app-dialog-scrim[data-state="open"] {
   animation: fade-in var(--dur-enter) var(--ease-out);
@@ -3215,6 +3232,8 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 .bottle-picker-list {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: 16rem;
   overflow-y: auto;
   margin: 0;
