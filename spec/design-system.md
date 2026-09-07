@@ -145,6 +145,7 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 | `--header-h` | 56px | ヘッダー |
 | `--tab-h` | 72px | 下部タブ＋余白（2026-09-05: 中央タブが浮くため 64 → 72） |
 | `--tab-center-size` | 60px | 中央「記録」タブの円 |
+| `--tab-center-lift` | 12px | 中央タブの円がタブバー上端から浮く量。ラベルは円の下 12px（2026-09-07 Issue #58） |
 | `--radius-photo` | 20px | 写真・写真タイル |
 
 影（値をそのまま `box-shadow` に入れる）。**部品の高さで 2 段階に分ける**（2026-09-05 改訂。小さい部品に大きい影を使うとハイライトが隣に被り、シールを重ねたように見える）:
@@ -266,6 +267,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | `--photo-ratio-log` | 4 / 5 | 同じ | 記録・ノート写真 |
 | `--photo-ratio-bottle` | 2 / 3 | 同じ | セラー写真 |
 | `--tab-center-size` | 60px | 同じ | 中央タブ円 |
+| `--tab-center-lift` | 12px | 同じ | 中央タブ円がバー上端から浮く量 |
 | `--tab-h` | **72px**（64 → 72 に改訂） | 同じ | 中央タブが浮く余白を確保 |
 
 写真の色補正プリセット（Canvas `filter`。数値は正本、変えるなら本表を直す）:
@@ -311,7 +313,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 --neu-light --neu-dark
 --text-caption --text-body --text-title --text-score
 --space-1 … --space-8 --tap-min
---radius --radius-card --radius-pill --radius-photo --header-h --tab-h --tab-center-size
+--radius --radius-card --radius-pill --radius-photo --header-h --tab-h --tab-center-size --tab-center-lift
 --shadow-outset --shadow-inset --shadow-outset-sm --shadow-inset-sm --shadow-primary
 --ease-out --ease-in --ease-settle --ease-fill
 --dur-press --dur-release --dur-state --dur-enter --dur-open --dur-fill --dur-toast-in --dur-toast-out

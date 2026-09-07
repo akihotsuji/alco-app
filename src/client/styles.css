@@ -58,6 +58,7 @@
   --header-h: 56px;
   --tab-h: 72px;
   --tab-center-size: 60px;
+  --tab-center-lift: 12px;
   --mascot-wine: #8e2f3c;
   --mascot-wine-light: #b34a5a;
   --mascot-ink: #1f1b17;
@@ -586,9 +587,13 @@
   padding-bottom: 0;
 }
 
+/*
+  円はタブバー上端から 12px 上に出す（00-common 1.2）。.tab-center はバーの上パディング 12px 分
+  下から始まるので、その分も含めて -24px。ラベルは円の下 12px（Issue #58: 円と重ならない）
+*/
 .tab-center-btn {
   position: absolute;
-  top: -12px;
+  top: calc(-12px - var(--tab-center-lift));
   width: var(--tab-center-size);
   height: var(--tab-center-size);
   border-radius: 50%;
@@ -632,6 +637,7 @@
 /* 中央タブは着地画面を持たない（(c)）ため現在地状態は無い。沈むのは押下中（M-21）だけ */
 .tab-center-label {
   font-size: 12px;
+  line-height: 1;
 }
 
 @media (max-width: 360px) {
