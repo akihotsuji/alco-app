@@ -102,7 +102,7 @@ dev リモート（3-07）はオーナーが次を実行する。手順の正本
 pnpm exec wrangler d1 migrations apply alco-app-dev --remote --env dev
 ```
 
-エージェントはデプロイトークンの値を受け取らない。GitHub Secrets の `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` を使う。
+エージェントはデプロイトークンの値を受け取らない。リモート適用の前に `wrangler login --device --browser=false` を実行し、オーナーがデバイスコードを承認してから `wrangler d1 migrations apply` する。詳細は [spec/dev-deploy.md](../../../spec/dev-deploy.md)。
 
 ## Better Auth スキーマの再生成
 
