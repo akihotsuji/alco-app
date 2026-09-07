@@ -33,7 +33,7 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 | 認証 | Better Auth | Hono + D1 + Drizzleで動作する。メール/パスワードから始めてOAuthを後付けできる |
 | 写真ストレージ | Cloudflare R2 | 無料枠10GB・転送料無料。アップロード前にクライアント側で切り抜き・リサイズ・色補正・合成まで済ませ、加工後 1 枚だけ保存 |
 | 画像処理 | **ブラウザ Canvas 2D**（`createImageBitmap` + `ctx.filter` + `toBlob`） | Workers で画像処理をしない（CPU 時間・無料枠）。Cloudflare Images / 外部 API は有料または依存増のため不採用。追加パッケージなし（2026-09-05） |
-| 写真取り込み | `<input type="file" accept="image/*" capture>` | iOS / Android の PWA スタンドアロンで最も確実。`getUserMedia` は使わない |
+| 写真取り込み | `<input type="file" accept="image/*">`（`capture` なし） | iOS / Android の PWA スタンドアロンで最も確実。OS の選択 UI でカメラと保存済み写真を両方選べる。`getUserMedia` は使わない |
 | キャラクター | インライン SVG の React コンポーネント（`<Mascot />`） | テーマ追従・拡縮自由・追加依存なし。ラスタ画像は持たない（[character.md](character.md)） |
 | 定期処理 | Workers **Cron Triggers**（`scheduled`） | 未紐付け写真の日次 GC、`ai_usage` の掃除。無料枠に含まれる |
 | 背景除去（切り抜き） | ブラウザ WASM（`onnxruntime-web` MIT + U2-Net-P。同一オリジン `/models/`） | セラーの棚に切り抜きボトルを立てる（2026-09-05 に MVP へ）。`@imgly/background-removal` は AGPL-3.0 のため不採用。端末内処理でサーバー費用ゼロ。初回にモデルを DL（Cache API）。失敗時は長方形にフォールバック |
@@ -55,7 +55,7 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 - **remove.bg 等の背景除去 API**: 有料・外部送信。端末内 WASM で足りる。
 - **Gemini / OpenAI Vision を最初から採用**: 精度は高いが鍵管理と外部送信が増える。まず Workers AI で始め、精度不足なら差し替える（設計は差し替え前提）。
 - **端末内 OCR（Tesseract.js）**: ワインラベルの書体・レイアウトに弱い。
-- **`getUserMedia` のカメラ UI**: PWA スタンドアロンでの権限・向き・解像度の差異が大きい。OS のカメラアプリに任せる `input[capture]` の方が確実。
+- **`getUserMedia` のカメラ UI**: PWA スタンドアロンでの権限・向き・解像度の差異が大きい。OS のカメラアプリ / 写真ライブラリに任せる `input[type=file]` の方が確実。
 
 ## リポジトリ構成（予定）
 
