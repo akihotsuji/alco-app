@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { PHOTO_PREF_KEYS, UI_PREF_KEYS } from "@/shared/constants.ts";
+import { CELLAR_PREF_KEYS, PHOTO_PREF_KEYS, UI_PREF_KEYS } from "@/shared/constants.ts";
 import {
+  getCellarListViewPref,
   getCellarRecognizePref,
   getColorCorrectionPref,
   getComposeMascotPref,
@@ -8,6 +9,7 @@ import {
   getHapticPref,
   getReduceMotionPref,
   parseReduceMotionPref,
+  setCellarListViewPref,
   setCellarRecognizePref,
   setColorCorrectionPref,
   setComposeMascotPref,
@@ -67,6 +69,18 @@ describe("flag preferences", () => {
     expect(getColorCorrectionPref()).toBe(false);
     expect(getCutoutPref()).toBe(false);
     expect(getCellarRecognizePref()).toBe(false);
+  });
+
+  it("棚の表示切替は cellar.listView、既定 one", () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: localStorageStub,
+    });
+    expect(CELLAR_PREF_KEYS.listView).toBe("cellar.listView");
+    expect(getCellarListViewPref()).toBe("one");
+    setCellarListViewPref("type");
+    expect(memory.get(CELLAR_PREF_KEYS.listView)).toBe("type");
+    expect(getCellarListViewPref()).toBe("type");
   });
 
   it("読むときは 1 も true とみなす", () => {

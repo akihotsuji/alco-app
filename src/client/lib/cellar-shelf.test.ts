@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
 import type { BottleItem } from "@/shared/bottles.ts";
+import { emptyCountsByType } from "@/shared/bottles.ts";
 import {
+  bottleTileVisual,
   chunkShelfRows,
   groupBottlesByConsumedMonth,
+  parseCellarListView,
   rankByCreatedAtDesc,
+  resolveCellarListView,
   shelfColumns,
+  shelfPageLimit,
   shelfRowIndex,
+  typeShelfWidthPx,
+  visibleDrinkTypes,
 } from "./cellar-shelf.ts";
 
 function item(partial: Partial<BottleItem> & Pick<BottleItem, "id" | "name">): BottleItem {
@@ -42,6 +49,35 @@ describe("shelfColumns / shelfRowIndex", () => {
     expect(shelfRowIndex(2, 3)).toBe(0);
     expect(shelfRowIndex(3, 3)).toBe(1);
     expect(shelfRowIndex(7, 4)).toBe(1);
+  });
+});
+
+describe("shelfPageLimit / list view / type shelf", () => {
+  it("2 段ずつ読む件数は列数の 2 倍", () => {
+    expect(shelfPageLimit(3)).toBe(6);
+    expect(shelfPageLimit(4)).toBe(8);
+  });
+
+  it("?view= が不正なら localStorage、それも無ければ one", () => {
+    expect(parseCellarListView("type")).toBe("type");
+    expect(parseCellarListView("foo")).toBeNull();
+    expect(resolveCellarListView("foo", "type")).toBe("type");
+    expect(resolveCellarListView(null, null)).toBe("one");
+    expect(resolveCellarListView("one", "type")).toBe("one");
+  });
+
+  it("在庫 0 の種類は出さず、棚板幅は本数分", () => {
+    const counts = { ...emptyCountsByType(), wine: 6, whisky: 2 };
+    expect(visibleDrinkTypes(counts)).toEqual(["wine", "whisky"]);
+    expect(typeShelfWidthPx(1)).toBe(72);
+    expect(typeShelfWidthPx(3)).toBe(72 * 3 + 22 * 2);
+    expect(typeShelfWidthPx(0)).toBe(72);
+  });
+
+  it("写真なしと kind で描き分ける", () => {
+    expect(bottleTileVisual(null, "photo")).toBe("silhouette");
+    expect(bottleTileVisual("p1", "cutout")).toBe("cutout");
+    expect(bottleTileVisual("p1", "photo")).toBe("photo");
   });
 });
 

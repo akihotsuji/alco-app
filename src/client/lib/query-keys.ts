@@ -15,7 +15,7 @@ export const queryKeys = {
   myDrinks: ["my-drinks"] as const,
   myDrink: (id: string) => ["my-drinks", id] as const,
   bottles: ["bottles"] as const,
-  bottlesList: (query: { view?: string; q?: string; drinkType?: string }) =>
+  bottlesList: (query: { view?: string; q?: string; drinkType?: string; limit?: number }) =>
     ["bottles", query] as const,
   bottle: (id: string) => ["bottles", id] as const,
   drinkLogsByBottle: (bottleId: string) => ["drink-logs", { bottleId }] as const,

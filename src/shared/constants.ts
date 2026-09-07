@@ -104,6 +104,18 @@ export const PHOTO_PREF_KEYS = {
   recognize: "cellar.recognize",
 } as const;
 
+/** 棚の表示切替（04-cellar C4）。API の `view=cellar|archive|all` とは別 */
+/** 画面上の並びは種類ごと → 1 本ずつ（spec/screen-designs/04-cellar.md bottle-list） */
+export const CELLAR_LIST_VIEWS = ["type", "one"] as const;
+
+export type CellarListView = (typeof CELLAR_LIST_VIEWS)[number];
+
+export const DEFAULT_CELLAR_LIST_VIEW: CellarListView = "one";
+
+export const CELLAR_PREF_KEYS = {
+  listView: "cellar.listView",
+} as const;
+
 /** 操作設定の localStorage キー（spec/screen-designs/06-settings.md S8 / S9、motion-design 6.5 / 6.7） */
 export const UI_PREF_KEYS = {
   haptic: "ui.haptic",

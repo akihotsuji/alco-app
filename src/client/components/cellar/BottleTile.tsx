@@ -2,42 +2,50 @@ import { Link } from "react-router";
 import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.tsx";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { vintageLabel } from "@/client/lib/bottle-form.ts";
+import { bottleTileVisual } from "@/client/lib/cellar-shelf.ts";
+import { cn } from "@/client/lib/utils.ts";
 import type { BottleItem } from "@/shared/bottles.ts";
 import { formatShortMonthDay } from "@/shared/tokyo-date.ts";
 
 export type BottleTileMode = "cellar" | "archived";
+export type BottleTileSize = "one" | "type";
 
 type BottleTileProps = {
   item: BottleItem;
   mode: BottleTileMode;
+  size?: BottleTileSize;
   enter?: boolean;
 };
 
-export function BottleTile({ item, mode, enter }: BottleTileProps) {
-  const photoId = item.thumbPhotoId;
-  const kind = item.thumbPhotoKind;
+export function BottleTile({ item, mode, size = "one", enter }: BottleTileProps) {
+  const visual = bottleTileVisual(item.thumbPhotoId, item.thumbPhotoKind);
+  const showSub = mode === "cellar" && size === "one";
 
   return (
-    <Link className="bottle-tile" data-enter={enter ? "1" : undefined} to={`/cellar/${item.id}`}>
+    <Link
+      className={cn("bottle-tile", size === "type" && "is-type")}
+      data-enter={enter ? "1" : undefined}
+      to={`/cellar/${item.id}`}
+    >
       <span className={mode === "archived" ? "bottle-tile-frame is-archived" : "bottle-tile-frame"}>
-        {photoId ? (
+        {visual === "silhouette" || !item.thumbPhotoId ? (
+          <BottleSilhouette className="bottle-tile-silhouette" drinkType={item.drinkType} />
+        ) : (
           <img
-            className={kind === "cutout" ? "bottle-tile-img is-cutout" : "bottle-tile-img is-photo"}
-            src={photoContentUrl(photoId)}
+            className={
+              visual === "cutout" ? "bottle-tile-img is-cutout" : "bottle-tile-img is-photo"
+            }
+            src={photoContentUrl(item.thumbPhotoId)}
             alt=""
             loading="lazy"
           />
-        ) : (
-          <BottleSilhouette className="bottle-tile-silhouette" />
         )}
         {mode === "archived" && item.consumedOn ? (
           <span className="bottle-tile-date">{formatShortMonthDay(item.consumedOn)}</span>
         ) : null}
       </span>
       <span className="bottle-tile-name">{item.name}</span>
-      {mode === "cellar" ? (
-        <span className="bottle-tile-sub">{vintageLabel(item.vintage)}</span>
-      ) : null}
+      {showSub ? <span className="bottle-tile-sub">{vintageLabel(item.vintage)}</span> : null}
     </Link>
   );
 }

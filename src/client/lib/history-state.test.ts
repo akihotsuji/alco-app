@@ -78,9 +78,11 @@ describe("bottle consume / placed state", () => {
     createdAt: "2026-09-06T00:00:00.000Z",
   };
 
-  it("開栓の left と undo フラグを読む", () => {
-    const state = bottleConsumeState(left);
-    expect(consumeLeftEvent(state)).toEqual(left);
+  it("開栓の left と undo フラグを読む。drinkType も残す", () => {
+    const withType = { ...left, drinkType: "wine" as const };
+    const state = bottleConsumeState(withType);
+    expect(consumeLeftEvent(state)).toEqual(withType);
+    expect(consumeLeftEvent(bottleConsumeState(left))).toEqual(left);
     expect(consumeUndoRequested(state)).toBe(true);
     expect(consumeLeftEvent({ left: { bottleId: left.bottleId } })).toBeNull();
     expect(consumeUndoRequested({ consumeUndo: "1" })).toBe(false);

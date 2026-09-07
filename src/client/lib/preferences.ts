@@ -1,4 +1,8 @@
+import { parseCellarListView } from "@/client/lib/cellar-shelf.ts";
 import {
+  CELLAR_PREF_KEYS,
+  type CellarListView,
+  DEFAULT_CELLAR_LIST_VIEW,
   PHOTO_PREF_KEYS,
   REDUCE_MOTION_PREFS,
   type ReduceMotionPref,
@@ -56,6 +60,26 @@ export const getCutoutPref = cutout.get;
 export const setCutoutPref = cutout.set;
 export const getCellarRecognizePref = cellarRecognize.get;
 export const setCellarRecognizePref = cellarRecognize.set;
+
+export function getCellarListViewPref(): CellarListView {
+  try {
+    return (
+      parseCellarListView(localStorage.getItem(CELLAR_PREF_KEYS.listView)) ??
+      DEFAULT_CELLAR_LIST_VIEW
+    );
+  } catch {
+    return DEFAULT_CELLAR_LIST_VIEW;
+  }
+}
+
+export function setCellarListViewPref(value: CellarListView): void {
+  try {
+    localStorage.setItem(CELLAR_PREF_KEYS.listView, value);
+  } catch {
+    // 保存できなくても URL の ?view= で動く
+  }
+  notifyPrefChange(CELLAR_PREF_KEYS.listView);
+}
 
 /** 触感フィードバック（06-settings S8）。既定 OFF */
 const hapticPref = flagPref(UI_PREF_KEYS.haptic, false);

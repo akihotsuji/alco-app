@@ -781,6 +781,7 @@
   box-shadow:
     var(--shelf-glass-shadow),
     inset 0 1px 0 var(--shelf-glass-edge);
+  backdrop-filter: blur(2px);
 }
 
 .shelf-board::before {
@@ -796,7 +797,8 @@
 }
 
 .shelf-row[data-highlight="1"] .shelf-board::before,
-.shelf-stage[data-highlight="1"] .shelf-board::before {
+.shelf-stage[data-highlight="1"] .shelf-board::before,
+.shelf-type[data-highlight="1"] .shelf-board::before {
   animation: shelf-edge-run var(--dur-open) var(--ease-out) both;
 }
 
@@ -2244,12 +2246,59 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
 
 .cellar-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
 }
 
 .cellar-toolbar .chip {
   flex: 0 0 auto;
+}
+
+.cellar-search-field {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 16rem;
+}
+
+.cellar-view-toggle {
+  display: flex;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 4px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.cellar-view-toggle-option {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+}
+
+.cellar-view-toggle-option.is-on {
+  box-shadow: var(--shadow-outset-sm);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.cellar-view-toggle-option:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.chip-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .cellar-filter-empty {
@@ -2325,6 +2374,17 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
   object-position: bottom center;
 }
 
+.bottle-tile-silhouette {
+  color: var(--muted);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.bottle-tile.is-type .bottle-tile-frame {
+  max-width: 72px;
+  height: 120px;
+}
+
 .bottle-tile-img.is-photo {
   object-fit: cover;
   border-radius: 8px;
@@ -2392,8 +2452,80 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
   font-weight: 600;
 }
 
-.cellar-archive-sentinel {
+.cellar-archive-sentinel,
+.cellar-load-sentinel {
   height: 1px;
+}
+
+.shelf-by-type {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.shelf-type {
+  position: relative;
+  margin-top: 18px;
+}
+
+.shelf-ghost {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  z-index: 0;
+  margin: 0;
+  color: var(--shelf-ghost);
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.shelf-type-scroll {
+  position: relative;
+  z-index: 1;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.shelf-type-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.shelf-type-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: max-content;
+  min-width: 100%;
+}
+
+.shelf-type-items {
+  display: flex;
+  gap: 22px;
+  align-items: end;
+}
+
+.shelf-type-items .bottle-tile {
+  flex: 0 0 72px;
+  scroll-snap-align: start;
+}
+
+.shelf-type .shelf-board {
+  width: 100%;
+  margin-top: 0;
+}
+
+.shelf-type-sentinel {
+  flex: 0 0 1px;
+  width: 1px;
+  align-self: stretch;
+}
+
+.cellar-type-dialog {
+  max-height: min(80dvh, 480px);
 }
 
 .cellar-empty[data-enter="1"] .empty-state-mascot,
@@ -2647,7 +2779,8 @@ html[data-reduce-motion="1"] .bottle-tile[data-enter="1"] {
 }
 
 html[data-reduce-motion="1"] .shelf-row[data-highlight="1"] .shelf-board::before,
-html[data-reduce-motion="1"] .shelf-stage[data-highlight="1"] .shelf-board::before {
+html[data-reduce-motion="1"] .shelf-stage[data-highlight="1"] .shelf-board::before,
+html[data-reduce-motion="1"] .shelf-type[data-highlight="1"] .shelf-board::before {
   animation: none !important;
 }
 
