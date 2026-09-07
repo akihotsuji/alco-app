@@ -13,6 +13,7 @@ const TIME_TOLERANCE_MS = 5_000;
 
 type TestDb = Awaited<ReturnType<typeof createTestApp>>["db"];
 type TestApp = Awaited<ReturnType<typeof createTestApp>>["app"];
+type SessionRow = Awaited<ReturnType<typeof loadSessions>>[number];
 
 function sessionCookieMaxAgeSeconds(setCookies: string[]): number | undefined {
   const cookie = setCookies.find((value) => /session_token=/i.test(value));
@@ -29,6 +30,15 @@ function expiresAtMs(row: { expiresAt: Date | number }): number {
 
 async function loadSessions(db: TestDb) {
   return db.select().from(session);
+}
+
+async function loadSoleSession(db: TestDb): Promise<SessionRow> {
+  const rows = await loadSessions(db);
+  const row = rows[0];
+  if (row === undefined || rows.length !== 1) {
+    throw new Error("セッションはちょうど 1 件である必要があります");
+  }
+  return row;
 }
 
 async function setSessionExpiresAt(db: TestDb, sessionId: string, expiresAt: Date) {
@@ -61,10 +71,11 @@ describe("セッション期限", () => {
     const maxAge = sessionCookieMaxAgeSeconds(signUpRes.headers.getSetCookie());
     expect(maxAge).toBe(SESSION_EXPIRES_IN_SECONDS);
 
-    const rows = await loadSessions(db);
-    expect(rows).toHaveLength(1);
-    expect(expiresAtMs(rows[0]!)).toBeGreaterThanOrEqual(loginAt + EXPIRES_IN_MS - TIME_TOLERANCE_MS);
-    expect(expiresAtMs(rows[0]!)).toBeLessThanOrEqual(loginAt + EXPIRES_IN_MS + TIME_TOLERANCE_MS);
+    const created = await loadSoleSession(db);
+    expect(expiresAtMs(created)).toBeGreaterThanOrEqual(
+      loginAt + EXPIRES_IN_MS - TIME_TOLERANCE_MS,
+    );
+    expect(expiresAtMs(created)).toBeLessThanOrEqual(loginAt + EXPIRES_IN_MS + TIME_TOLERANCE_MS);
   });
 
   it("更新から 1 日未満の利用では有効期限を延長しない", async () => {
@@ -72,9 +83,7 @@ describe("セッション期限", () => {
     vi.useFakeTimers({ now: loginAt, toFake: ["Date"] });
     const { app, db } = await createTestApp();
     const { cookie } = await signUpSession(app, "fresh@example.com");
-    const [created] = await loadSessions(db);
-    expect(created).toBeDefined();
-    const originalExpiresAt = expiresAtMs(created!);
+    const originalExpiresAt = expiresAtMs(await loadSoleSession(db));
 
     vi.setSystemTime(loginAt + UPDATE_AGE_MS - 1_000);
     const meRes = await app.request("/api/me", { headers: { Cookie: cookie } });
@@ -88,8 +97,7 @@ describe("セッション期限", () => {
     expect(await getSessionRes.json()).not.toBeNull();
     expect(sessionCookieMaxAgeSeconds(getSessionRes.headers.getSetCookie())).toBeUndefined();
 
-    const [after] = await loadSessions(db);
-    expect(expiresAtMs(after!)).toBe(originalExpiresAt);
+    expect(expiresAtMs(await loadSoleSession(db))).toBe(originalExpiresAt);
   });
 
   it("更新から 1 日以上経過した有効セッションは、確認した時点から約 30 日後へ延長され Cookie も更新される", async () => {
@@ -97,20 +105,22 @@ describe("セッション期限", () => {
     vi.useFakeTimers({ now: loginAt, toFake: ["Date"] });
     const { app, db } = await createTestApp();
     const { cookie } = await signUpSession(app, "refresh@example.com");
-    const [created] = await loadSessions(db);
-    const originalExpiresAt = expiresAtMs(created!);
+    const originalExpiresAt = expiresAtMs(await loadSoleSession(db));
 
     const refreshAt = loginAt + UPDATE_AGE_MS + 1_000;
     vi.setSystemTime(refreshAt);
     const meRes = await app.request("/api/me", { headers: { Cookie: cookie } });
     expect(meRes.status).toBe(200);
-    expect(sessionCookieMaxAgeSeconds(meRes.headers.getSetCookie())).toBe(SESSION_EXPIRES_IN_SECONDS);
+    expect(sessionCookieMaxAgeSeconds(meRes.headers.getSetCookie())).toBe(
+      SESSION_EXPIRES_IN_SECONDS,
+    );
     expect(meRes.headers.getSetCookie().some((value) => /HttpOnly/i.test(value))).toBe(true);
 
-    const [afterMe] = await loadSessions(db);
-    const refreshedExpiresAt = expiresAtMs(afterMe!);
+    const refreshedExpiresAt = expiresAtMs(await loadSoleSession(db));
     expect(refreshedExpiresAt).not.toBe(originalExpiresAt);
-    expect(refreshedExpiresAt).toBeGreaterThanOrEqual(refreshAt + EXPIRES_IN_MS - TIME_TOLERANCE_MS);
+    expect(refreshedExpiresAt).toBeGreaterThanOrEqual(
+      refreshAt + EXPIRES_IN_MS - TIME_TOLERANCE_MS,
+    );
     expect(refreshedExpiresAt).toBeLessThanOrEqual(refreshAt + EXPIRES_IN_MS + TIME_TOLERANCE_MS);
     expect(refreshedExpiresAt).not.toBe(originalExpiresAt + UPDATE_AGE_MS);
   });
@@ -132,29 +142,28 @@ describe("セッション期限", () => {
       SESSION_EXPIRES_IN_SECONDS,
     );
 
-    const [after] = await loadSessions(db);
-    expect(expiresAtMs(after!)).toBeGreaterThanOrEqual(refreshAt + EXPIRES_IN_MS - TIME_TOLERANCE_MS);
-    expect(expiresAtMs(after!)).toBeLessThanOrEqual(refreshAt + EXPIRES_IN_MS + TIME_TOLERANCE_MS);
+    const afterMs = expiresAtMs(await loadSoleSession(db));
+    expect(afterMs).toBeGreaterThanOrEqual(refreshAt + EXPIRES_IN_MS - TIME_TOLERANCE_MS);
+    expect(afterMs).toBeLessThanOrEqual(refreshAt + EXPIRES_IN_MS + TIME_TOLERANCE_MS);
   });
 
   it("既存セッションは設定変更だけでは延びず、延長条件を満たす確認でその時点から 30 日になる", async () => {
     const { app, db } = await createTestApp();
     const { cookie } = await signUpSession(app, "legacy@example.com");
-    const [created] = await loadSessions(db);
-    expect(created).toBeDefined();
+    const created = await loadSoleSession(db);
     const now = Date.now();
     const legacyExpiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000);
-    await setSessionExpiresAt(db, created!.id, legacyExpiresAt);
+    await setSessionExpiresAt(db, created.id, legacyExpiresAt);
 
-    const [before] = await loadSessions(db);
-    expect(expiresAtMs(before!)).toBe(legacyExpiresAt.getTime());
+    expect(expiresAtMs(await loadSoleSession(db))).toBe(legacyExpiresAt.getTime());
 
     const meRes = await app.request("/api/me", { headers: { Cookie: cookie } });
     expect(meRes.status).toBe(200);
-    expect(sessionCookieMaxAgeSeconds(meRes.headers.getSetCookie())).toBe(SESSION_EXPIRES_IN_SECONDS);
+    expect(sessionCookieMaxAgeSeconds(meRes.headers.getSetCookie())).toBe(
+      SESSION_EXPIRES_IN_SECONDS,
+    );
 
-    const [after] = await loadSessions(db);
-    const afterMs = expiresAtMs(after!);
+    const afterMs = expiresAtMs(await loadSoleSession(db));
     expect(afterMs).toBeGreaterThanOrEqual(now + EXPIRES_IN_MS - TIME_TOLERANCE_MS);
     expect(afterMs).toBeLessThanOrEqual(Date.now() + EXPIRES_IN_MS + TIME_TOLERANCE_MS);
   });
@@ -162,13 +171,17 @@ describe("セッション期限", () => {
   it("更新されないまま期限切れになると保護 API は 401 で、延長して復活しない", async () => {
     const { app, db } = await createTestApp();
     const { cookie } = await signUpSession(app, "expired@example.com");
-    const [created] = await loadSessions(db);
-    expect(created).toBeDefined();
-    await setSessionExpiresAt(db, created!.id, new Date(Date.now() - 1_000));
+    const created = await loadSoleSession(db);
+    await setSessionExpiresAt(db, created.id, new Date(Date.now() - 1_000));
 
     const meRes = await app.request("/api/me", { headers: { Cookie: cookie } });
     expect(meRes.status).toBe(401);
     expect(await meRes.json()).toEqual({ error: "unauthorized" });
+    expect(
+      meRes.headers
+        .getSetCookie()
+        .some((value) => /session_token=/i.test(value) && /Max-Age=0/i.test(value)),
+    ).toBe(true);
 
     const getSessionRes = await app.request("/api/auth/get-session", {
       headers: { Cookie: cookie },
@@ -186,9 +199,8 @@ describe("セッション期限", () => {
   it("期限切れセッションの GET /api/me は 401 でクライアントの onUnauthorized を呼ぶ", async () => {
     const { app, db } = await createTestApp();
     const { cookie } = await signUpSession(app, "client-expired@example.com");
-    const [created] = await loadSessions(db);
-    expect(created).toBeDefined();
-    await setSessionExpiresAt(db, created!.id, new Date(Date.now() - 1_000));
+    const created = await loadSoleSession(db);
+    await setSessionExpiresAt(db, created.id, new Date(Date.now() - 1_000));
 
     const client = createApiClient({
       fetch: (input: RequestInfo | URL, init?: RequestInit) => {
@@ -200,7 +212,9 @@ describe("セッション期限", () => {
     const onUnauthorized = vi.fn();
     const queryClient = createQueryClient({ onUnauthorized });
 
-    const error = await queryClient.fetchQuery(meQueryOptions(client)).catch((caught: unknown) => caught);
+    const error = await queryClient
+      .fetchQuery(meQueryOptions(client))
+      .catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(ApiClientError);
     expect(error).toMatchObject({ status: 401, code: "unauthorized" });
     expect(onUnauthorized).toHaveBeenCalledTimes(1);

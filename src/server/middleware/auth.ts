@@ -31,10 +31,7 @@ export function isPublicApiRoute(method: string, path: string): boolean {
  * サーバー内部呼び出しのヘッダーは HTTP 応答へ自動では乗らない（Better Auth 1.7.2）。
  * 複数の Set-Cookie は append し、値はログに出さない。
  */
-export function appendSetCookieHeaders(
-  c: Context<AppEnv>,
-  headers: Headers | undefined,
-): void {
+export function appendSetCookieHeaders(c: Context<AppEnv>, headers: Headers | undefined): void {
   if (!headers) {
     return;
   }
