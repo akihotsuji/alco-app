@@ -56,7 +56,7 @@ pnpm build
 pnpm exec wrangler dev --env dev
 ```
 
-デプロイ（dev）は Phase 3。コマンドは `wrangler deploy --env dev`。
+デプロイ（dev）は [spec/dev-deploy.md](spec/dev-deploy.md)。エージェントからは毎回 `wrangler login --device` をオーナーが承認してから `pnpm build` と `wrangler deploy --env dev` を実行する。
 
 ## クライアントのデータ取得
 
