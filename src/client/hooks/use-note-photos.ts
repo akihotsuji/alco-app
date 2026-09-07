@@ -19,6 +19,7 @@ import {
   unpersistedPhotoIds,
   upsertNotePhoto,
 } from "@/client/lib/note-photos.ts";
+import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import type { PhotoMeta } from "@/shared/photos.ts";
 
 function toItem(key: string, attachment: PhotoAttachment, persisted: boolean): NotePhotoItem {
@@ -54,13 +55,16 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = [], autoCapt
     [],
   );
 
-  const addPhoto = useCallback(async () => {
-    if (!canAddNotePhoto(itemsRef.current)) {
-      return;
-    }
-    const key = crypto.randomUUID();
-    await startCapture("note", undefined, bindKey(key, false));
-  }, [bindKey, startCapture]);
+  const addPhoto = useCallback(
+    async (source: ImagePickSource = "camera") => {
+      if (!canAddNotePhoto(itemsRef.current)) {
+        return;
+      }
+      const key = crypto.randomUUID();
+      await startCapture("note", { collect: bindKey(key, false), source });
+    },
+    [bindKey, startCapture],
+  );
 
   const camera = searchParams.get("camera") === "1";
   const capturedRef = useRef(false);
@@ -98,7 +102,7 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = [], autoCapt
         );
         return;
       }
-      await startCapture("note", undefined, bindKey(key, false));
+      await startCapture("note", { collect: bindKey(key, false) });
     },
     [bindKey, editFromBlob, startCapture],
   );

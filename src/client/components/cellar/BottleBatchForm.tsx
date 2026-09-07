@@ -24,6 +24,7 @@ import { haptic } from "@/client/lib/haptic.ts";
 import { rememberShelfEvent } from "@/client/lib/history-state.ts";
 import { RECOGNIZE_BANNER, type RecognizeMarkField } from "@/client/lib/label-recognize.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import {
   arrangedToastMessage,
   BOTTLE_COUNT_MAX,
@@ -135,16 +136,26 @@ export function BottleBatchForm() {
           />
         ))}
       </ol>
-      <Button
-        type="button"
-        variant="secondary"
-        className="bottle-batch-capture"
-        disabled={!batch.canAdd || batch.submitting}
-        onClick={() => void batch.addPhoto()}
-      >
-        <Camera size={20} aria-hidden />
-        {captureLabel}
-      </Button>
+      <div className="bottle-batch-add">
+        <Button
+          type="button"
+          variant="secondary"
+          className="bottle-batch-capture"
+          disabled={!batch.canAdd || batch.submitting}
+          onClick={() => void batch.addPhoto("camera")}
+        >
+          <Camera size={20} aria-hidden />
+          {captureLabel}
+        </Button>
+        <button
+          type="button"
+          className="header-text-link bottle-batch-library"
+          disabled={!batch.canAdd || batch.submitting}
+          onClick={() => void batch.addPhoto("library")}
+        >
+          {IMAGE_PICK_LABELS.library}
+        </button>
+      </div>
       {!batch.canAdd ? <p className="field-hint">{BOTTLE_BATCH_MESSAGES.rowLimit}</p> : null}
       <SaveBar
         label={BOTTLE_SAVE_LABELS.arrange(total)}

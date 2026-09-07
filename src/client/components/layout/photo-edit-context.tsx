@@ -11,7 +11,7 @@ import {
 import { deletePhoto, uploadPhoto } from "@/client/hooks/use-photos.ts";
 import { historyHasFlag, withHistoryFlag } from "@/client/lib/history-state.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
-import { pickImage } from "@/client/lib/photo/pick-image.ts";
+import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
 
 export type PhotoEditContextKind = "log" | "cellar" | "note";
@@ -26,7 +26,7 @@ export type PhotoAttachment = {
 
 /**
  * 「撮ってから入力へ」の意図（00-common 1.2 (c)。中央タブ / ホームのカメラ）。
- * 「使う」で `onUse` が 1 回呼ばれる。× / OS ピッカーのキャンセル / 戻るでは呼ばれず破棄される。
+ * 「使う」で `onUse` が 1 回呼ばれる。× / 撮影・ライブラリのキャンセル / 戻るでは呼ばれず破棄される。
  * `replace` は photo-edit が積んだ history 1 段がまだ先頭にあるとき真（呼び出し側は `navigate(to, { replace })`）。
  */
 export type CaptureIntent = {
@@ -38,6 +38,13 @@ export type PhotoCollectSession = {
   onUpdate: (attachment: PhotoAttachment) => void;
   /** 未紐付けの旧 id。再編集で置き換えるときだけ消し、既存の紐付きは送らない */
   previousPhotoId?: string | null;
+};
+
+export type StartCaptureOptions = {
+  intent?: CaptureIntent;
+  collect?: PhotoCollectSession;
+  /** 省略時は撮影。ライブラリ選択は `library` */
+  source?: ImagePickSource;
 };
 
 type PhotoEditValue = {
@@ -54,13 +61,9 @@ type PhotoEditValue = {
   pendingRecognizeJpeg: Blob | null;
   /** `photo-edit` が読み取り用 JPEG を作った時点で呼ぶ */
   offerRecognizeJpeg: (jpeg: Blob) => void;
-  /** 撮影を始める。OS ピッカーをキャンセルすると何も起きない。`intent` を渡すと「使う」で続きの処理を行う */
-  startCapture: (
-    kind: PhotoEditContextKind,
-    intent?: CaptureIntent,
-    collect?: PhotoCollectSession,
-  ) => Promise<void>;
-  retake: () => Promise<void>;
+  /** 撮影またはライブラリ選択を始める。OS 側をキャンセルすると何も起きない。`intent` を渡すと「使う」で続きの処理を行う */
+  startCapture: (kind: PhotoEditContextKind, options?: StartCaptureOptions) => Promise<void>;
+  retake: (source?: ImagePickSource) => Promise<void>;
   closePhotoEdit: () => void;
   applyProcessed: (processed: ProcessedPhoto) => void;
   retryUpload: (kind: PhotoEditContextKind) => Promise<void>;
@@ -188,26 +191,22 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
 
   const startCapture = useCallback(
-    async (
-      nextKind: PhotoEditContextKind,
-      intent?: CaptureIntent,
-      collect?: PhotoCollectSession,
-    ) => {
+    async (nextKind: PhotoEditContextKind, options?: StartCaptureOptions) => {
       intentRef.current = null;
       collectRef.current = null;
-      const file = await pickImage();
+      const file = await pickImage(options?.source ?? "camera");
       if (!file) {
         return;
       }
-      intentRef.current = intent ?? null;
-      collectRef.current = collect ?? null;
+      intentRef.current = options?.intent ?? null;
+      collectRef.current = options?.collect ?? null;
       await loadFile(nextKind, file);
     },
     [loadFile],
   );
 
-  const retake = useCallback(async () => {
-    const file = await pickImage();
+  const retake = useCallback(async (source: ImagePickSource = "camera") => {
+    const file = await pickImage(source);
     if (!file) {
       return;
     }

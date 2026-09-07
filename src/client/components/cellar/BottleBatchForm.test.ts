@@ -27,6 +27,9 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.captureNext(remainingBatchRows(batch.rows))");
     expect(source).toContain("disabled={!batch.canAdd || batch.submitting}");
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.rowLimit");
+    expect(source).toContain('batch.addPhoto("camera")');
+    expect(source).toContain('batch.addPhoto("library")');
+    expect(source).toContain("IMAGE_PICK_LABELS.library");
   });
 
   it("全成功で /cellar へ replace + トースト + M-32、一部失敗は行を残して上部に汎用文（G9）", () => {

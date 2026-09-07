@@ -1,13 +1,42 @@
 /**
- * 写真を 1 枚選ぶ（07-photo-capture 方針）。`capture` 属性は付けず、OS の選択 UI で
- * 「カメラで撮る」「保存済みの写真から選ぶ」のどちらも選べるようにする（Issue #55）。
+ * 写真の取り込み（07-photo-capture）。
+ * 撮影とライブラリ選択は別経路。iOS の `capture` はライブラリを出さず、
+ * Android の `capture` なしはカメラを出さない端末があるため、1 つの input に任せない。
  * `getUserMedia` は使わない。
  */
-export function pickImage(): Promise<File | null> {
+
+export type ImagePickSource = "camera" | "library";
+
+export const IMAGE_PICK_LABELS = {
+  library: "ライブラリから",
+  noteLibrary: "選ぶ",
+} as const;
+
+export function imagePickAttributes(source: ImagePickSource): {
+  accept: "image/*";
+  capture: "environment" | null;
+} {
+  return {
+    accept: "image/*",
+    capture: source === "camera" ? "environment" : null,
+  };
+}
+
+export function applyImagePickSource(input: HTMLInputElement, source: ImagePickSource): void {
+  const attrs = imagePickAttributes(source);
+  input.type = "file";
+  input.accept = attrs.accept;
+  if (attrs.capture) {
+    input.setAttribute("capture", attrs.capture);
+  } else {
+    input.removeAttribute("capture");
+  }
+}
+
+export function pickImage(source: ImagePickSource = "camera"): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
+    applyImagePickSource(input, source);
     input.hidden = true;
     document.body.appendChild(input);
 
