@@ -98,6 +98,11 @@ export function makeSvg(): Uint8Array {
   return new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
 }
 
+/** 著作権のない単色 HTML。magic bytes 検証用 */
+export function makeHtml(): Uint8Array {
+  return new TextEncoder().encode("<!DOCTYPE html><html><body>ok</body></html>");
+}
+
 export function makeHeic(): Uint8Array {
   return Uint8Array.from([
     0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63, 0x00, 0x00, 0x00, 0x00,

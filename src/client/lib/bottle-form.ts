@@ -19,7 +19,7 @@ import {
   vintageSchema,
 } from "@/shared/bottles.ts";
 import type { DrinkType } from "@/shared/constants.ts";
-import { parseCalendarDate } from "@/shared/tokyo-date.ts";
+import { formatShortMonthDay, parseCalendarDate } from "@/shared/tokyo-date.ts";
 
 export const DEFAULT_BOTTLE_DRINK_TYPE: DrinkType = "wine";
 
@@ -356,6 +356,19 @@ export function formatPriceJpy(value: number): string {
 
 export function vintageLabel(value: number | null): string {
   return value === null ? "NV" : String(value);
+}
+
+export function bottleStatusPill(input: { status: Bottle["status"]; consumedOn: string | null }): {
+  label: string;
+  consumed: boolean;
+} {
+  if (input.status === "consumed" && input.consumedOn) {
+    return {
+      label: `開栓（${formatShortMonthDay(input.consumedOn)}）`,
+      consumed: true,
+    };
+  }
+  return { label: "未開栓", consumed: false };
 }
 
 export function isUuid(value: string): boolean {

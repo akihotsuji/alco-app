@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useSearchParams } from "react-router";
-import { nextBottleSearchParams, replaceSearchKeepState } from "@/client/lib/history-state.ts";
-import { DRINK_TYPES, type DrinkType } from "@/shared/constants.ts";
+import { parseDrinkTypeParam } from "@/client/lib/cellar-shelf.ts";
+import { applyCellarToolbarParams, replaceSearchKeepState } from "@/client/lib/history-state.ts";
+import type { DrinkType } from "@/shared/constants.ts";
 
 function useDebounced(value: string, ms: number) {
   const [debounced, setDebounced] = useState(value);
@@ -17,10 +18,7 @@ export function useBottleListFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const qParam = searchParams.get("q") ?? "";
   const drinkTypeParam = searchParams.get("drinkType");
-  const drinkType =
-    drinkTypeParam && (DRINK_TYPES as readonly string[]).includes(drinkTypeParam)
-      ? (drinkTypeParam as DrinkType)
-      : undefined;
+  const drinkType = parseDrinkTypeParam(drinkTypeParam);
   const [qInput, setQInput] = useState(qParam);
   const [searchOpen, setSearchOpen] = useState(qParam.length > 0);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -28,44 +26,37 @@ export function useBottleListFilters() {
   const navigateOptions = replaceSearchKeepState(location.state);
 
   useEffect(() => {
-    const next = nextBottleSearchParams(searchParams, q);
+    const next = applyCellarToolbarParams(searchParams, { type: "setQuery", q });
     if (!next) {
       return;
     }
     setSearchParams(next, navigateOptions);
   }, [q, searchParams, setSearchParams, navigateOptions]);
 
-  function keepView(current: URLSearchParams): URLSearchParams {
-    const next = new URLSearchParams();
-    const view = current.get("view");
-    if (view) {
-      next.set("view", view);
-    }
-    return next;
-  }
-
   function clearFilters() {
     setQInput("");
     setSearchOpen(false);
     setTypeOpen(false);
-    setSearchParams((current) => keepView(current), navigateOptions);
+    setSearchParams(
+      (current) => applyCellarToolbarParams(current, { type: "clearFilters" }) ?? current,
+      navigateOptions,
+    );
   }
 
   function clearDrinkType() {
     setTypeOpen(false);
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      next.delete("drinkType");
-      return next;
-    }, navigateOptions);
+    setSearchParams(
+      (current) => applyCellarToolbarParams(current, { type: "clearDrinkType" }) ?? current,
+      navigateOptions,
+    );
   }
 
   function selectDrinkType(type: DrinkType) {
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      next.set("drinkType", type);
-      return next;
-    }, navigateOptions);
+    setSearchParams(
+      (current) =>
+        applyCellarToolbarParams(current, { type: "selectDrinkType", drinkType: type }) ?? current,
+      navigateOptions,
+    );
     setTypeOpen(false);
   }
 

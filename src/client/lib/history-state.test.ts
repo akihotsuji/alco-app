@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  applyCellarToolbarParams,
   bottleConsumeState,
   bottlePlacedState,
   captureCellarVisit,
@@ -167,6 +168,15 @@ describe("cellar visit hold / search params", () => {
     const next = nextBottleSearchParams(new URLSearchParams("drinkType=wine"), "赤");
     expect(next?.get("q")).toBe("赤");
     expect(next?.get("drinkType")).toBe("wine");
+  });
+
+  it("同じ種類の再選択は navigate しない", () => {
+    expect(
+      applyCellarToolbarParams(new URLSearchParams("drinkType=wine"), {
+        type: "selectDrinkType",
+        drinkType: "wine",
+      }),
+    ).toBeNull();
   });
 
   it("replace 時に location.state を保持する", () => {

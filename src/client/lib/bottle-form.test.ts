@@ -3,6 +3,7 @@ import { BOTTLE_MESSAGES, type Bottle } from "@/shared/bottles.ts";
 import { ApiClientError } from "./api.ts";
 import {
   bottleFormStateFromBottle,
+  bottleStatusPill,
   canSubmitBottleForm,
   describeBottleSaveFailure,
   formatPriceJpy,
@@ -106,6 +107,18 @@ describe("dirty / helpers", () => {
     expect(hasBottleDetails({ ...INITIAL_BOTTLE_FORM, vintage: "2020" })).toBe(true);
     expect(vintageLabel(null)).toBe("NV");
     expect(vintageLabel(2020)).toBe("2020");
+    expect(bottleStatusPill({ status: "sealed", consumedOn: null })).toEqual({
+      label: "未開栓",
+      consumed: false,
+    });
+    expect(bottleStatusPill({ status: "consumed", consumedOn: "2026-09-05" })).toEqual({
+      label: "開栓（9/5）",
+      consumed: true,
+    });
+    expect(bottleStatusPill({ status: "consumed", consumedOn: null })).toEqual({
+      label: "未開栓",
+      consumed: false,
+    });
     expect(formatPriceJpy(3800)).toBe("¥3,800");
     expect(isUuid("11111111-1111-4111-8111-111111111111")).toBe(true);
     expect(isUuid("not-a-uuid")).toBe(false);

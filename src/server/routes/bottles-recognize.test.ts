@@ -2,10 +2,18 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { aiUsage } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
-import { AI_RECOGNIZE_DAILY_LIMIT } from "@/shared/constants.ts";
+import { AI_RECOGNIZE_DAILY_LIMIT, PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { recognizeResponseSchema } from "@/shared/label-recognize.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
-import { makeGif, makeHeic, makeJpeg, makePng, makeSvg, makeWebpVp8x } from "../image-fixtures.ts";
+import {
+  makeGif,
+  makeHeic,
+  makeHtml,
+  makeJpeg,
+  makePng,
+  makeSvg,
+  makeWebpVp8x,
+} from "../image-fixtures.ts";
 import {
   createStubLabelRecognizer,
   createTestApp,
@@ -182,5 +190,28 @@ describe("POST /api/bottles/recognize", () => {
     expect(text).toBe(JSON.stringify({ error: "upstream_error" }));
     expect(text).not.toContain("llama");
     expect(text).not.toContain("boom");
+  });
+
+  it("HTML は 415。1MB 超は 413。長辺 1600 超は 400。回数は加算しない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const html = await postRecognize(ctx.app, a.cookie, makeHtml(), "x.html", "text/html");
+    expect(html.status).toBe(415);
+    const large = await postRecognize(ctx.app, a.cookie, makeJpeg(10, 10, PHOTO_MAX_BYTES));
+    expect(large.status).toBe(413);
+    const oversized = await postRecognize(ctx.app, a.cookie, makeJpeg(1601, 200));
+    expect(oversized.status).toBe(400);
+    expect(apiErrorBodySchema.parse(await oversized.json()).error).toBe("validation_error");
+    expect(await usageCount(ctx, a.userId)).toBe(0);
+  });
+
+  it("申告 MIME が text/html でも JPEG なら読む", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const res = await postRecognize(ctx.app, a.cookie, makeJpeg(200, 300), "x.html", "text/html");
+    expect(res.status).toBe(200);
+    expect(recognizeResponseSchema.parse(await res.json()).remainingToday).toBe(
+      AI_RECOGNIZE_DAILY_LIMIT - 1,
+    );
   });
 });

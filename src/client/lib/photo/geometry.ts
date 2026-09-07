@@ -2,6 +2,7 @@ import {
   PHOTO_ASPECT,
   PHOTO_CUTOUT_BOTTOM_RATIO,
   PHOTO_CUTOUT_SHADOW,
+  PHOTO_DECODE_MAX_EDGE,
   PHOTO_MASCOT_ASPECT,
   PHOTO_MASCOT_GLOW_RADIUS_RATIO,
   PHOTO_MASCOT_MARGIN_RATIO,
@@ -56,6 +57,23 @@ export function outputSizeForAspect(
     return { width: longEdge, height: Math.round(longEdge / ratio) };
   }
   return { width: Math.round(longEdge * ratio), height: longEdge };
+}
+
+/** 端末内デコード時の縮小。長辺が上限以下になる */
+export function decodeOutputSize(
+  width: number,
+  height: number,
+  maxEdge = PHOTO_DECODE_MAX_EDGE,
+): OutputSize {
+  const longEdge = Math.max(width, height);
+  if (longEdge <= maxEdge) {
+    return { width, height };
+  }
+  const scale = maxEdge / longEdge;
+  return {
+    width: Math.round(width * scale),
+    height: Math.round(height * scale),
+  };
 }
 
 /**
