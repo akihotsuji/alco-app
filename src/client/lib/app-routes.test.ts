@@ -137,11 +137,27 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/unknown", NOW).screenId).toBe("not-found");
   });
 
-  it("セラー一覧は左が貯蔵庫・右が追加", () => {
+  it("セラー一覧は左が貯蔵庫・右がまとめて追加 + 追加（04-cellar C3b / C3）", () => {
     const header = resolveAppRoute("/cellar", NOW).header;
     expect(header.left).toEqual({ kind: "archive" });
-    expect(header.right).toEqual({ kind: "plus", to: "/cellar/new?camera=1" });
+    expect(header.right).toEqual({
+      kind: "cellar-add",
+      to: "/cellar/new?camera=1",
+      batchTo: "/cellar/batch?camera=1",
+    });
     expect(header.titleMuted).toBe("0 本");
+  });
+
+  it("まとめて追加は予約セグメントで、戻る＋タブ隠しのフォーム画面", () => {
+    const route = resolveAppRoute("/cellar/batch", NOW, "?camera=1");
+    expect(route.screenId).toBe("bottle-batch");
+    expect(route.parentTab).toBe("cellar");
+    expect(route.hideTabBar).toBe(true);
+    expect(route.header).toEqual({
+      title: "まとめて追加",
+      left: { kind: "back", fallback: "/cellar" },
+      right: { kind: "spacer" },
+    });
   });
 
   it("作成は戻る＋タブ隠し、詳細は編集リンク", () => {

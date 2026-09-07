@@ -7,6 +7,7 @@ import { PhotoEditProvider } from "./components/layout/photo-edit-context.tsx";
 import { QueryProvider } from "./lib/query-provider.tsx";
 import {
   ArchivePage,
+  BottleBatchPage,
   BottleDetailPage,
   BottleFormPage,
   CellarPage,
@@ -48,6 +49,7 @@ export function App() {
                   <Route path="/cellar" element={<CellarPage />} />
                   <Route path="/cellar/archive" element={<ArchivePage />} />
                   <Route path="/cellar/new" element={<BottleFormPage mode="new" />} />
+                  <Route path="/cellar/batch" element={<BottleBatchPage />} />
                   <Route path="/cellar/:bottleId/edit" element={<BottleFormPage mode="edit" />} />
                   <Route path="/cellar/:bottleId" element={<BottleDetailPage />} />
                   <Route path="/notes" element={<NotesPage />} />

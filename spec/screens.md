@@ -118,10 +118,11 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 | bottle-list | セラー（棚） | `/cellar` | cellar | 表示 | 在庫（`sealed`）を 3 列の棚に陳列。種類・検索はクエリ |
 | bottle-archive | 貯蔵庫 | `/cellar/archive` | cellar | 表示 | 開栓済み（`consumed`）。月ごと。`/cellar/:bottleId` より静的ルートを優先 |
 | bottle-new | ボトルを追加 | `/cellar/new` | cellar | 隠す | `?camera=1`（既定で撮影から）。本数 N で N 行 |
+| bottle-batch | まとめて追加 | `/cellar/batch` | cellar | 隠す | `?camera=1`（既定で撮影から）。1 本ずつ撮って行に積み、最後に 1 回で棚に並べる（≦20 行）。Phase 5.5 #56 |
 | bottle-detail | ボトル詳細 | `/cellar/:bottleId` | cellar | 表示 | 主「開栓する」。貯蔵庫の本は「ノートを書く」「セラーに戻す」。ノート・記録セクション |
 | bottle-edit | ボトル編集 | `/cellar/:bottleId/edit` | cellar | 隠す | 削除もここ |
 
-`/cellar` 配下の予約セグメントは `new` / `archive`。
+`/cellar` 配下の予約セグメントは `new` / `batch` / `archive`。
 
 ### 認証後 — ノート
 
@@ -166,6 +167,7 @@ API が 404 を返した詳細（他ユーザーのボトル、存在しない I
 | bottle-list | セラータブ、開栓後、復元後 | — | — |
 | bottle-archive | 棚ヘッダー左の「貯蔵庫」 | 棚 | — |
 | bottle-new | 棚の「+」（撮影から） | 棚 | 作成した最初の `bottle-detail` |
+| bottle-batch | 棚の「まとめて追加」（撮影から） | 棚 | 棚（`/cellar`） |
 | bottle-detail | 棚 / 貯蔵庫のボトル、ノート詳細のボトル行、記録の「セラーから」 | 棚（貯蔵庫の本は貯蔵庫） | — |
 | bottle-edit | 詳細の編集 | 詳細 | 詳細 |
 | note-list | ノートタブ、詳細の「一覧」、ボトル詳細「すべて」 | — | — |

@@ -41,6 +41,8 @@ export type HeaderLeft =
 export type HeaderRight =
   | { kind: "spacer" }
   | { kind: "plus"; to: string }
+  /** 棚ヘッダー右の 2 ボタン（04-cellar C3b + C3）。左右スロットを 2 個ぶんに広げる */
+  | { kind: "cellar-add"; to: string; batchTo: string }
   | { kind: "edit"; to: string }
   | { kind: "text"; to: string; label: string }
   | { kind: "day-next"; date: string; disabled: boolean };
@@ -214,8 +216,15 @@ export function resolveAppRoute(
         title: "セラー",
         titleMuted: "0 本",
         left: { kind: "archive" },
-        right: { kind: "plus", to: "/cellar/new?camera=1" },
+        right: {
+          kind: "cellar-add",
+          to: "/cellar/new?camera=1",
+          batchTo: "/cellar/batch?camera=1",
+        },
       });
+    }
+    if (segments[1] === "batch" && segments.length === 2) {
+      return formRoute("bottle-batch", "cellar", "まとめて追加", "/cellar");
     }
     if (segments[1] === "archive" && segments.length === 2) {
       return found("bottle-archive", "cellar", {
