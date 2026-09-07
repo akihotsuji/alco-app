@@ -25,14 +25,32 @@ function rootBlock(source: string): string {
   return match[1];
 }
 
+/** 正本: 設定「外観」で解決された `html[data-theme="dark"]` */
 function darkBlock(source: string): string {
-  const match = source.match(
-    /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([\s\S]*?)\n\s*\}/,
-  );
+  const match = source.match(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/);
   if (!match?.[1]) {
-    throw new Error("ダークの :root ブロックが見つかりません");
+    throw new Error('html[data-theme="dark"] ブロックが見つかりません');
   }
   return match[1];
+}
+
+/** JS が data-theme を付ける前の初回描画用（OS がダークのとき）。正本と同じ値でなければならない */
+function darkFallbackBlock(source: string): string {
+  const match = source.match(
+    /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*html:not\(\[data-theme\]\)\s*\{([\s\S]*?)\n\s*\}/,
+  );
+  if (!match?.[1]) {
+    throw new Error("prefers-color-scheme のフォールバックブロックが見つかりません");
+  }
+  return match[1];
+}
+
+function tokenEntries(block: string): Record<string, string> {
+  const entries: Record<string, string> = {};
+  for (const match of block.matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
+    entries[match[1] ?? ""] = (match[2] ?? "").trim();
+  }
+  return entries;
 }
 
 function tokenValue(block: string, name: string): string {
@@ -51,17 +69,29 @@ describe("design tokens", () => {
     }
   });
 
-  it("ダークの色トークンが prefers-color-scheme で一致する", () => {
+  it("ダークの色トークンが html[data-theme=dark] で一致する", () => {
     const block = darkBlock(css);
     for (const [name, value] of Object.entries(DARK_COLOR_TOKENS)) {
       expect(tokenValue(block, name)).toBe(value);
     }
   });
 
-  it("html に .dark を固定しない", () => {
+  it("初回描画用の prefers-color-scheme フォールバックが正本と同じ値を持つ", () => {
+    const primary = tokenEntries(darkBlock(css));
+    const fallback = tokenEntries(darkFallbackBlock(css));
+    expect(Object.keys(primary).length).toBeGreaterThan(0);
+    expect(fallback).toEqual(primary);
+  });
+
+  it("html に .dark を固定せず、テーマは data-theme で切り替える（06-settings S10）", () => {
     expect(html).not.toMatch(/<html[^>]*class=/);
+    expect(html).not.toMatch(/<html[^>]*data-theme=/);
     expect(css).not.toMatch(/html\.dark/);
-    expect(css).toContain("@custom-variant dark (@media (prefers-color-scheme: dark))");
+    expect(css).toContain(
+      '@custom-variant dark (&:where(html[data-theme="dark"], html[data-theme="dark"] *))',
+    );
+    expect(css).toMatch(/html\[data-theme="light"\]\s*\{\s*color-scheme:\s*light;/);
+    expect(darkBlock(css)).toContain("color-scheme: dark;");
   });
 
   it("shadcn 対応表が design-system の写しになっている", () => {

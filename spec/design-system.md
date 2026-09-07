@@ -14,7 +14,7 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 2. **面はニューモーフィズムで統一する。** カード・チップ・入力・タブは、地と同じ色に柔らかい外光／内陰を置く。1px のハードべベルや OS スキンは使わない。
 3. **主アクションだけ色を置く。** 灰色の凹凸だけでは「記録する」が埋もれる。primary はワイン系の塗り。選択状態は影だけでなく色または字重でも示す。
 4. **ゲーミフィケーションは薄く。** 大きなスコア、休肝ピル、押して凹む、短いトースト。経験値・レベル・ガチャは置かない。
-5. **テーマは OS 追従。** ライト／ダーク両方。アプリ内切替は持たない（`prefers-color-scheme`。2026-08-13 確定）。
+5. **テーマは既定で OS 追従。** ライト／ダーク両方。設定「外観」で端末に従う / ライト / ダークを選べる（2026-08-13 に OS 追従のみで確定 → 2026-09-07 #62 で設定項目を追加）。
 6. **色と影はトークン経由だけ。** `bg-[#123]` やその場の `shadow` 直書きは禁止（`ui-design`）。
 7. **ポップさはキャラクター 1 体と写真で出す。** 面や色数を増やして賑やかにしない。キャラクターの置き場所は [character.md](character.md) と各画面設計に従う。
 8. **写真が主役の画面では、面より写真を大きく。** 記録・ノート・セラーの写真は角 `--radius-photo`、影は inset 枠。写真の上に文字を重ねない（キャラクターの合成だけ例外）。
@@ -82,7 +82,7 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 | `--neu-light` | `#3A3632` | 外光（暗い面のハイライト） |
 | `--neu-dark` | `#1A1816` | 外陰 |
 
-実装では `:root` にライト、`@media (prefers-color-scheme: dark)` にダーク。`html` に `.dark` を固定しない。質感モックだけクラス切替を使う。
+実装では `:root` にライト、`html[data-theme="dark"]` にダーク（正本）。`data-theme` は `src/client/lib/theme.ts` が設定「外観」と OS の外観設定から解決して付ける。JS が動く前の初回描画だけ `@media (prefers-color-scheme: dark) { html:not([data-theme]) }` のフォールバックが同じ値を持つ（`design-tokens.test.ts` で一致を検証）。`html` に `.dark` を固定しない。質感モックだけクラス切替を使う。
 
 ### コントラスト（検証済み）
 
@@ -323,7 +323,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 
 shadcn: `background`/`card` → `--background`、`primary` → `--primary`、`destructive` → `--danger`、`muted-foreground` → `--muted`、`radius` → `--radius`。`border` は `transparent` 相当。
 
-実装: `src/client/styles.css`（`:root` + `@media (prefers-color-scheme: dark)` + `@theme inline`）。対応表は `src/client/lib/design-tokens.ts`。参照モック: [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css)
+実装: `src/client/styles.css`（`:root` + `html[data-theme="dark"]` + 初回描画用 `prefers-color-scheme` フォールバック + `@theme inline`）。対応表は `src/client/lib/design-tokens.ts`。参照モック: [wireframes/mocks/tokens.css](wireframes/mocks/tokens.css)
 
 ---
 

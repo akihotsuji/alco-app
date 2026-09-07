@@ -6,6 +6,8 @@ import {
   PHOTO_PREF_KEYS,
   REDUCE_MOTION_PREFS,
   type ReduceMotionPref,
+  THEME_PREFS,
+  type ThemePref,
   UI_PREF_KEYS,
 } from "@/shared/constants.ts";
 
@@ -111,4 +113,31 @@ export function setReduceMotionPref(value: ReduceMotionPref): void {
     // 保存できなくても既定値で動く
   }
   notifyPrefChange(UI_PREF_KEYS.reduceMotion);
+}
+
+export function parseThemePref(raw: string | null): ThemePref {
+  for (const value of THEME_PREFS) {
+    if (raw === value) {
+      return value;
+    }
+  }
+  return "system";
+}
+
+/** 外観（06-settings S10）。`system` = 端末の外観設定に従う（既定）/ `light` / `dark` */
+export function getThemePref(): ThemePref {
+  try {
+    return parseThemePref(localStorage.getItem(UI_PREF_KEYS.theme));
+  } catch {
+    return "system";
+  }
+}
+
+export function setThemePref(value: ThemePref): void {
+  try {
+    localStorage.setItem(UI_PREF_KEYS.theme, value);
+  } catch {
+    // 保存できなくても既定値（端末に従う）で動く
+  }
+  notifyPrefChange(UI_PREF_KEYS.theme);
 }

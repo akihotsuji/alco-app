@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
-/* OS の外観設定に追従する。html に .dark は付けない（アプリ内切替なし）。 */
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/*
+  テーマは <html data-theme="light|dark">（src/client/lib/theme.ts が設定「外観」と OS の外観設定から解決して付ける。
+  06-settings S10）。html に .dark クラスは付けない。
+*/
+@custom-variant dark (&:where(html[data-theme="dark"], html[data-theme="dark"] *));
 
 /*
   design-system → shadcn / Tailwind 対応（値は :root が正）
@@ -92,8 +95,13 @@
   --fill-tint-surface: rgba(122, 53, 56, 0.14);
 }
 
+/*
+  ダークのトークン。正本は下の html[data-theme="dark"]。
+  上の @media 版は JS が data-theme を付ける前の初回描画（OS がダークのとき）だけが使う同じ値の写し。
+  design-tokens.test.ts が両者の一致を確認する。
+*/
 @media (prefers-color-scheme: dark) {
-  :root {
+  html:not([data-theme]) {
     --background: #2c2926;
     --surface: #2c2926;
     --foreground: #f4ede4;
@@ -118,6 +126,37 @@
     --shelf-glass-shadow: 0 10px 16px -6px rgba(0, 0, 0, 0.6);
     --shelf-ghost: rgba(244, 237, 228, 0.07);
   }
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #2c2926;
+  --surface: #2c2926;
+  --foreground: #f4ede4;
+  --muted: #c9bdb0;
+  --primary: #cc8484;
+  --primary-fg: #2a1818;
+  --danger: #e07070;
+  --danger-fg: #2a1818;
+  --rest: #8fcb9e;
+  --score: #cc8484;
+  --ring: #cc8484;
+  --fill-tint-surface: rgba(0, 0, 0, 0.25);
+  --neu-light: #3a3632;
+  --neu-dark: #1a1816;
+  --shadow-outset: 6px 6px 14px #1a1816, -5px -5px 12px #3a3632;
+  --shadow-inset: inset 5px 5px 10px #1a1816, inset -4px -4px 9px #3a3632;
+  --shadow-outset-sm: 3px 3px 6px #1a1816, -3px -3px 6px #3a3632;
+  --shadow-inset-sm: inset 2px 2px 5px #1a1816, inset -2px -2px 5px #3a3632;
+  --shadow-primary: 6px 10px 18px rgba(0, 0, 0, 0.45);
+  --shelf-glass: rgba(255, 255, 255, 0.1);
+  --shelf-glass-edge: rgba(255, 255, 255, 0.35);
+  --shelf-glass-shadow: 0 10px 16px -6px rgba(0, 0, 0, 0.6);
+  --shelf-ghost: rgba(244, 237, 228, 0.07);
 }
 
 @theme inline {
@@ -2210,6 +2249,19 @@
   flex-direction: column;
   align-items: stretch;
   padding: var(--space-4);
+}
+
+/* fieldset は UA スタイル（min-inline-size・legend の float）で行の見た目が崩れるので打ち消す */
+.settings-fieldset {
+  min-inline-size: 0;
+  margin-inline: 0;
+}
+
+.settings-legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin-bottom: var(--space-3);
 }
 
 .settings-row-main {
