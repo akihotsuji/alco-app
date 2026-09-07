@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 5.5 実機検証・機能安定化 |
-| ステータス | 未着手（調査基準は作成済み） |
+| ステータス | P0 / P1 実装済み（`feature` PR）。実機再確認と P2 / P3 の判断は未了 |
 | 追跡Issue | [#48 セラー登録時の写真処理](https://github.com/akihotsuji/alco-app/issues/48) |
-| 調査基準 | `e1056ae`（2026-09-07のmain）。着手時にPhase 5完了後のmainで再確認する |
+| 調査基準 | `e1056ae`（2026-09-07のmain）。着手時に `63dde4d`（#69 まとめて追加まで）で再確認し、下表の判定はすべて同じだった |
 
 ## 結論
 
@@ -140,6 +140,56 @@ P2 / P3は1PRへまとめない。新モデルはコードと重みのライセ�
 - [MDN: crossOriginIsolated](https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated)
 - [Cloudflare Workers AI: Llama 4 Scout](https://developers.cloudflare.com/workers-ai/models/llama-4-scout-17b-16e-instruct/)
 
+## 実装結果（2026-09-07。P0 / P1）
+
+子Issueへの分割はGitHub書き込み権限のない環境で着手したため、P0 / P1 を **1 PR・変更単位ごとのコミット**で解決した。P2 / P3 は含めていない。
+
+### Root Cause → 変更
+
+| 問題 | 直接原因 | 構造的原因 | 変更 |
+|---|---|---|---|
+| A-1 重複推論 | プレビューと「使う」がそれぞれ `processPhoto()` を実行 | プレビューが最終出力（WebP → ObjectURL → Image → canvas）を経由し、推論結果を保持する場所がなかった | `previewCutout()` と `processPhoto()` が `createSharedSegmentation`（同一キー = 画像 + 比率 + 位置 + 拡縮）でマスクを共有。色補正の切替もマスクを再利用 |
+| A-2 stale キュー | `runChain` が全依頼を FIFO 保持 | UI の世代番号は結果を捨てるだけで実行を制御しない | `createLatestOnlyScheduler`（実行中 1 + pending 最新 1）。プレビューは `AbortSignal` で pending を取り消す |
+| A-3 timeout 後も継続 | `raceWithTimeout` が外側だけを reject | 実処理の完了と枠の解放が結び付いていなかった | scheduler の `hold()` で `session.run()` が終わるまで枠を渡さない |
+| A-4 永続 OFF | フォールバック時に `setCutoutPref(false)` | 「今回失敗した」と「今後使わない」を同じ関数で扱っていた | `setCutoutPref` はトグル操作だけ。失敗は画面内 `setCutoutOn(false)` + 文言 |
+| A-5 catch {} | 全例外を JPEG へ吸収 | 失敗理由の型がなかった | `CutoutError(reason, detail)` と `CutoutOutcome`（`success / failed / skipped`）。MIME 判定を廃止 |
+| B-1 / B-2 偽成功 | `maskHasSubject`（alpha>16 が 1%）と bbox 閾値 8 | 品質判定と後処理がなかった | `cleanupMask`（薄い alpha 0 / 小成分除去）+ `validateBottleMask`（全面 foreground・左右端接触）。bbox 閾値は `PHOTO_CUTOUT_MASK.bboxAlpha` |
+| D-1 直列 | attachment 生成まで recognize 用 JPEG が渡らない | 「使う」の結果を 1 度にまとめて返していた | `onRecognizeJpeg` → `pendingRecognizeJpeg` → `startLabelRecognition`（Blob 単位で 1 リクエストにメモ化） |
+| 観測性 | 計測なし | — | `CutoutTiming`（download / ort / session / preprocess / queue / inference / postprocess / encode / total）と `photo-metrics`（開発ビルドの `console.debug` のみ）。サーバーは `providerMs / parseMs` を既存ログへ追加 |
+
+### Before / After
+
+```text
+Before: 編集条件ごとに processPhoto（推論）→ 「使う」で再度 processPhoto（推論）→ attachment → 認識
+After:  編集条件ごとに previewCutout（同一キーなら推論なし、pending は最新 1 件）
+        → 「使う」→ recognize JPEG → [認識開始] ∥ [キャッシュ済みマスクで合成 → WebP → アップロード]
+```
+
+通常フロー（撮影 → 位置合わせ → 使う）の推論回数は 2 回以上 → 1 回。パン・ズーム N 回でも実行は「実行中 1 + 最新 1」に有界。
+
+### テスト
+
+- `cutout-scheduler.test.ts`: 最新 1 件、10 回操作で実行 2 回、hold 中は次を始めない、abort、失敗後の継続
+- `cutout-cache.test.ts`: 同一キー 1 回実行と再利用、実行中の相乗り、依頼者離脱時の結果保持、失敗は非キャッシュ、LRU 上限
+- `cutout-quality.test.ts`: 人工マスク 5 ケース（中央縦長 valid / 全面 invalid / 1% 未満 empty / 薄い背景は cleanup 後 valid / 左右端 invalid）と片側接触・上下接触・横長は valid
+- `recognize-session.test.ts`: 同一 Blob 1 リクエスト、失敗の伝播、記録に文字を含めない
+- `PhotoEdit.test.ts` / `BottleForm.test.ts`: `setCutoutPref(false)` を呼ばない、結果型で判定、早期開始
+
+### 残るリスク
+
+- 閾値（`PHOTO_CUTOUT_MASK`）は人工マスクで決めた初期値。暗色瓶・透明瓶・反射・近似色背景での誤判定率は実機評価で確認する
+- U²-Net-P 自体の精度限界、複数本の写真、Android 端末の WASM 性能は未計測
+- 実行枠を timeout 後も保持するため、20 秒超の推論が残ると次の推論の開始が遅れる（重複より安全側を選択）
+
+### P2 / P3 の分類（計測前の暫定）
+
+| 案 | 判断 | 根拠 |
+|---|---|---|
+| WASM マルチスレッド | 延期 | `crossOriginIsolated`（COOP / COEP）が必須で、静的アセット配信ヘッダー・CSP・OAuth の影響調査が別途必要 |
+| WebGPU → WASM fallback | 延期 | 実機の対応状況と `onnxruntime-web/webgpu` の同梱サイズを P0 / P1 後の計測と合わせて判断 |
+| prompt / `max_tokens` / `abvPercent` 除外 | 延期 | API 契約（`recognizeFieldsSchema`）の変更を伴うため別 PR。`providerMs` の計測を先に取る |
+| モデル交換 | 不採用（現時点） | 重複・判定・観測性の修正後に実写真で評価してから |
+
 ## テスト
 
 - scheduler: 同一key再利用、pending最新1件、10回操作しても実行回数が有界、timeout後に重複実行しない
@@ -152,16 +202,16 @@ P2 / P3は1PRへまとめない。新モデルはコードと重みのライセ�
 
 ## 受け入れ条件
 
-- [ ] 着手時のmainで調査表を再確認し、#48へConfirmed / Partially / Not reproducedを記録
-- [ ] #48を追跡Issueとして、P0 / P1を1関心事のIssueへ分割
-- [ ] 同一写真・同一編集条件の通常フローで背景推論が原則1回
-- [ ] 操作を繰り返してもpendingが最新1件を超えず、timeout後に推論が重ならない
-- [ ] 一時失敗で`photo.cutout`が変わらず、失敗codeを識別できる
-- [ ] 全面foreground等を成功にしない品質判定があり、実画像で誤判定を記録
-- [ ] 背景除去を待たずラベル認識を開始でき、保存は認識待ちにならない
-- [ ] Before / Afterの推論回数・各工程時間・品質・失敗理由を同一条件で比較
-- [ ] log / noteを含む写真回帰、lint / typecheck / test / build、実機再確認が完了
-- [ ] P2 / P3の各案が計測根拠付きで実施・延期・不採用のいずれかに分類
+- [x] 着手時のmainで調査表を再確認し、#48へConfirmed / Partially / Not reproducedを記録（PR 本文に記載。#48 へのコメントはオーナー）
+- [ ] #48を追跡Issueとして、P0 / P1を1関心事のIssueへ分割（Issue 作成権限がなく未実施。PR は変更単位ごとにコミットを分けた）
+- [x] 同一写真・同一編集条件の通常フローで背景推論が原則1回
+- [x] 操作を繰り返してもpendingが最新1件を超えず、timeout後に推論が重ならない
+- [x] 一時失敗で`photo.cutout`が変わらず、失敗codeを識別できる
+- [x] 全面foreground等を成功にしない品質判定がある。実画像での誤判定記録は実機再確認で行う
+- [x] 背景除去を待たずラベル認識を開始でき、保存は認識待ちにならない
+- [ ] Before / Afterの推論回数・各工程時間・品質・失敗理由を同一条件で比較（推論回数は単体テストで確認。工程時間は実機で `console.debug` を取る）
+- [ ] log / noteを含む写真回帰、lint / typecheck / test / build、実機再確認が完了（自動テスト・lint・build は通過。実機再確認は未了）
+- [ ] P2 / P3の各案が計測根拠付きで実施・延期・不採用のいずれかに分類（暫定分類済み。計測後に確定）
 
 ## セキュリティ
 
