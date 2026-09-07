@@ -26,7 +26,7 @@ export const BOTTLE_MESSAGES = {
   name: `1文字以上${BOTTLE_NAME_MAX_LENGTH}文字以内で入力してください`,
   drinkType: "種類を選んでください",
   text: `${BOTTLE_TEXT_MAX_LENGTH}文字以内で入力してください`,
-  vintage: `${BOTTLE_VINTAGE_MIN}以上${BOTTLE_VINTAGE_MAX}以下の年を入力してください`,
+  vintage: `${BOTTLE_VINTAGE_MIN}以上${BOTTLE_VINTAGE_MAX}以下のビンテージを入力してください`,
   purchasedOn: "日付の形式が正しくありません",
   purchasedOnFuture: "未来の日付は指定できません",
   priceJpy: "0以上の整数で入力してください",
@@ -39,6 +39,11 @@ export const BOTTLE_MESSAGES = {
   q: `${BOTTLE_SEARCH_MAX_LENGTH}文字以内で入力してください`,
   limit: "件数は1以上100以下で指定してください",
   cursor: "ページ情報が正しくありません",
+} as const;
+
+export const BOTTLE_FIELD_LABELS = {
+  vintage: "ビンテージ",
+  purchasedOn: "購入日",
 } as const;
 
 const referenceId = z.string().uuid();

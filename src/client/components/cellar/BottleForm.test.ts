@@ -17,6 +17,10 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain("errors.name");
     expect(source).toContain("errors.vintage");
     expect(source).toContain("errors.purchasedOn");
+    expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
+    expect(source).toContain("BOTTLE_FIELD_LABELS.purchasedOn");
+    expect(source).toContain('layout="inline"');
+    expect(source).toContain('type="date"');
     expect(source).toContain('className="field-error"');
     expect(source).toContain('role="alert"');
     expect(source).toContain("disabled={!canSubmit}");

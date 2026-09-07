@@ -14,7 +14,7 @@ import { bottleConsumeState, rememberShelfEvent } from "@/client/lib/history-sta
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
-import type { Bottle } from "@/shared/bottles.ts";
+import { BOTTLE_FIELD_LABELS, type Bottle } from "@/shared/bottles.ts";
 import { DRINK_TYPE_LABELS } from "@/shared/constants.ts";
 import type { DrinkLogItem } from "@/shared/drink-logs.ts";
 import type { TastingNoteListItem } from "@/shared/tasting-notes.ts";
@@ -48,7 +48,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const rows: { label: string; value: string }[] = [
     { label: "銘柄名", value: bottle.name },
     { label: "種類", value: DRINK_TYPE_LABELS[bottle.drinkType] },
-    { label: "年", value: vintageLabel(bottle.vintage) },
+    { label: BOTTLE_FIELD_LABELS.vintage, value: vintageLabel(bottle.vintage) },
     ...(bottle.origin ? [{ label: "産地", value: bottle.origin }] : []),
     ...(bottle.producer ? [{ label: "生産者", value: bottle.producer }] : []),
     ...(bottle.purchasedOn ? [{ label: "購入日", value: bottle.purchasedOn }] : []),
