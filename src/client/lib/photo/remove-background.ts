@@ -1,11 +1,10 @@
 import type { InferenceSession } from "onnxruntime-web";
 import {
-  PHOTO_CUTOUT_CACHE,
   PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS,
   PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS,
   PHOTO_CUTOUT_MASK,
   PHOTO_CUTOUT_MODEL_SIZE,
-  PHOTO_CUTOUT_MODEL_URL,
+  PHOTO_CUTOUT_ORT_MJS_FILE,
   PHOTO_CUTOUT_ORT_WASM_FILE,
   PHOTO_CUTOUT_ORT_WASM_PATH,
   PHOTO_CUTOUT_SHADOW,
@@ -18,6 +17,7 @@ import {
   packU2NetTensor,
   raceWithTimeout,
 } from "./cutout-mask.ts";
+import { loadCutoutModelBytes } from "./cutout-model-cache.ts";
 import { type BottleMaskFeatures, refineBottleMask } from "./cutout-quality.ts";
 import { CutoutError, type CutoutTiming, emptyCutoutTiming } from "./cutout-result.ts";
 import { createLatestOnlyScheduler } from "./cutout-scheduler.ts";
@@ -269,7 +269,7 @@ async function createSession(
   timing.ortLoadMs = elapsed(ortStart);
 
   const downloadStart = performance.now();
-  const bytes = await loadModelBytes(onProgress).catch((error: unknown) => {
+  const bytes = await loadCutoutModelBytes(onProgress).catch((error: unknown) => {
     throw error instanceof CutoutError
       ? error
       : new CutoutError("model_download", undefined, { cause: error });
@@ -285,21 +285,24 @@ async function createSession(
     timing.sessionCreateMs = elapsed(createStart);
     return { session, timing };
   } catch (error) {
-    throw new CutoutError("session_init", undefined, { cause: error });
+    throw error instanceof CutoutError
+      ? error
+      : new CutoutError("session_init", undefined, { cause: error });
   }
 }
 
 /**
- * `onnxruntime-web/wasm` は JS グルーをバンドルしている。
- * 文字列の `wasmPaths` を渡すと内蔵グルーを捨て、`ort-wasm-simd-threaded.mjs` を
- * ディレクトリ接頭辞から import する。接頭辞 `/models/ort/` は `new URL` で
- * `/models/ort-wasm-simd-threaded.mjs` に潰れ、Vite がモジュールとして解釈して失敗する。
- * `.wasm` だけ明示する。
+ * onnxruntime-web 1.21.0 の `ort.wasm.bundle.min.mjs` は WASM 用 JS を内蔵していない。
+ * `importWasmModule` は常に `ort-wasm-simd-threaded.mjs` を dynamic import する。
+ * `.wasm` だけ渡すと glue の URL がバンドル JS の隣（`/assets/…mjs`）になり、
+ * SPA fallback の HTML を読んで初期化に失敗する。`.mjs` と `.wasm` を同一オリジンへ明示する。
  */
-export function resolveOrtWasmPaths(origin = ""): { wasm: string } {
+export function resolveOrtWasmPaths(origin = ""): { mjs: string; wasm: string } {
   const prefix = origin.replace(/\/$/, "");
+  const directory = `${prefix}${PHOTO_CUTOUT_ORT_WASM_PATH}`;
   return {
-    wasm: `${prefix}${PHOTO_CUTOUT_ORT_WASM_PATH}${PHOTO_CUTOUT_ORT_WASM_FILE}`,
+    mjs: `${directory}${PHOTO_CUTOUT_ORT_MJS_FILE}`,
+    wasm: `${directory}${PHOTO_CUTOUT_ORT_WASM_FILE}`,
   };
 }
 
@@ -311,75 +314,6 @@ async function loadOrt(): Promise<typeof import("onnxruntime-web")> {
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.proxy = false;
   return ort;
-}
-
-async function loadModelBytes(
-  onProgress?: (progress: RemoveBackgroundProgress) => void,
-): Promise<ArrayBuffer> {
-  const cache = "caches" in globalThis ? await caches.open(PHOTO_CUTOUT_CACHE) : null;
-  const cached = cache ? await cache.match(PHOTO_CUTOUT_MODEL_URL) : undefined;
-  if (cached) {
-    onProgress?.({ firstDownload: false, percent: 100 });
-    return cached.arrayBuffer();
-  }
-  onProgress?.({ firstDownload: true, percent: 0 });
-  const response = await raceWithTimeout(
-    fetch(PHOTO_CUTOUT_MODEL_URL),
-    PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS,
-  ).catch((error: unknown) => {
-    throw new CutoutError("model_download", "fetch", { cause: error });
-  });
-  if (!response.ok) {
-    throw new CutoutError("model_download", `http ${response.status}`);
-  }
-  const total = Number(response.headers.get("content-length") ?? 0);
-  const reader = response.body?.getReader();
-  if (!reader) {
-    const buffer = await response.arrayBuffer();
-    await putModelCache(cache, buffer);
-    onProgress?.({ firstDownload: true, percent: 100 });
-    return buffer;
-  }
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  for (;;) {
-    const read = await reader.read();
-    if (read.done) {
-      break;
-    }
-    if (read.value) {
-      chunks.push(read.value);
-      received += read.value.byteLength;
-      if (total > 0) {
-        onProgress?.({ firstDownload: true, percent: Math.round((received / total) * 100) });
-      }
-    }
-  }
-  const buffer = concatBytes(chunks);
-  await putModelCache(cache, buffer);
-  onProgress?.({ firstDownload: true, percent: 100 });
-  return buffer;
-}
-
-async function putModelCache(cache: Cache | null, buffer: ArrayBuffer): Promise<void> {
-  if (!cache) {
-    return;
-  }
-  await cache.put(
-    PHOTO_CUTOUT_MODEL_URL,
-    new Response(buffer, { headers: { "Content-Type": "application/octet-stream" } }),
-  );
-}
-
-function concatBytes(chunks: Uint8Array[]): ArrayBuffer {
-  const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return out.buffer;
 }
 
 function resizeToModel(source: HTMLCanvasElement, size: number): HTMLCanvasElement {

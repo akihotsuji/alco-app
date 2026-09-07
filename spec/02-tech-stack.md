@@ -186,7 +186,7 @@ alco-app/
 | Workers AI binding | `wrangler.jsonc` に `"ai": { "binding": "AI" }`。`env.AI.run(model, input)`。dev / production で同じ binding 名。モデルは `@cf/meta/llama-4-scout-17b-16e-instruct`（`WORKERS_AI_VISION_MODEL`） | 4-07 |
 | R2 の利用量 | 記録にも写真が付くため増える。1 枚 ≦300KB × 1 日 2 枚 → 年 220MB。切り抜き WebP は同程度。無料枠 10GB で 40 年分 | — |
 | Workers CPU | 画像はクライアント加工済み。サーバーは magic bytes / 寸法ヘッダ / R2 put と、AI 呼び出しの待ち（CPU 時間には数えられない） | 2-08 / 4-07 |
-| 背景除去モデル | 同一オリジン `/models/u2netp.onnx` と ORT WASM（`/models/ort/ort-wasm-simd-threaded.wasm`）。`onnxruntime-web/wasm` は JS をバンドルするため `wasmPaths` は `.wasm` だけ明示する。ビルド時に配置。実行時は Cache API。CSP の `connect-src` は `'self'` のまま | 4-06 |
+| 背景除去モデル | 同一オリジン `/models/u2netp.onnx` と ORT（`/models/ort/ort-wasm-simd-threaded.mjs` + `.wasm`）。`onnxruntime-web` 1.21.0 の `ort.wasm.bundle.min.mjs` は WASM 用 JS を内蔵しないため、`wasmPaths` は `.mjs` と `.wasm` の絶対 URL を両方明示する。ビルド時に配置。実行時は Cache API。CSP の `connect-src` は `'self'` のまま | 4-06 |
 | 環境変数 | 追加なし（写真上限・AI 日次上限などは `src/shared` の定数） | — |
 | PWA アイコン | キャラクター SVG からビルド時に PNG 一式を生成（`vite-plugin-pwa` の assets generator） | 6-01 |
 

@@ -12,7 +12,10 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(source).not.toContain("setCutoutPref(false)");
     const toggleCalls = source.match(/setCutoutPref\(([^)]*)\)/g) ?? [];
     expect(toggleCalls).toEqual(["setCutoutPref(value)"]);
-    expect(source).toContain("うまく抜けませんでした。長方形のまま保存します");
+    expect(source).toContain("cutoutFailedUserMessage");
+    expect(source).not.toContain(
+      'setCutoutMessage("うまく抜けませんでした。長方形のまま保存します")',
+    );
   });
 
   it("プレビューは previewCutout（マスク再利用）で、条件変更時に pending を取り消す", () => {

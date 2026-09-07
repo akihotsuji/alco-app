@@ -8,8 +8,8 @@ import {
   type CutoutFailureReason,
   type CutoutOutcome,
   type CutoutTiming,
+  cutoutFailureFields,
   emptyCutoutTiming,
-  toCutoutFailureReason,
 } from "./cutout-result.ts";
 import {
   type AspectRatio,
@@ -211,13 +211,11 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
     recordCutoutMetric("preview", { status: "success", cached, timing });
     return { status: "success", canvas, cached, timing };
   } catch (error) {
-    const reason = toCutoutFailureReason(error);
-    const detail = error instanceof CutoutError ? error.detail : undefined;
-    if (reason !== "superseded") {
+    const fields = cutoutFailureFields(error);
+    if (fields.reason !== "superseded") {
       recordCutoutMetric("preview", {
         status: "failed",
-        reason,
-        detail,
+        ...fields,
         timing: timingFrom(null, false, {
           composeMs: 0,
           encodeMs: 0,
@@ -225,7 +223,7 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
         }),
       });
     }
-    return { status: "failed", reason, detail };
+    return { status: "failed", ...fields };
   }
 }
 
@@ -304,8 +302,7 @@ async function processCellarPhoto(
   } catch (error) {
     const cutout: CutoutOutcome = {
       status: "failed",
-      reason: toCutoutFailureReason(error),
-      detail: error instanceof CutoutError ? error.detail : undefined,
+      ...cutoutFailureFields(error),
       timing: timingFrom(seg, cached, {
         composeMs,
         encodeMs,

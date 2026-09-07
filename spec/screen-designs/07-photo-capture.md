@@ -56,7 +56,7 @@
 | P3 | プレビュー | Canvas / `<img>` + 枠 | 比率枠に `cover`。1 本指ドラッグで平行移動、2 本指ピンチで 1.0〜3.0 倍。枠外は `--foreground` 60% で暗く |
 | P4 | 色補正トグル | Chip（✓） | ラベル: 記録・ノート「色補正: 食卓」、セラー「色補正: セラー」。ON/OFF でプレビュー即反映 |
 | P5 | キャラトグル | Chip（✓） | 記録・ノートのみ。ON でプレビュー右下に `surprised`（短辺 22%）。セラーでは **表示しない** |
-| P5b | 切り抜きトグル | Chip（✓） | **セラーのみ**、既定 ON。ON のときプレビュー背景を市松にして切り抜き結果を見せる（処理中はスピナー + 「切り抜き中…」、初回は「初回のみ数十 MB を取得します」）。失敗時は**今回の編集画面だけ**自動で OFF にし「うまく抜けませんでした。長方形のまま保存します」。`photo.cutout` は変更しない |
+| P5b | 切り抜きトグル | Chip（✓） | **セラーのみ**、既定 ON。ON のときプレビュー背景を市松にして切り抜き結果を見せる（処理中はスピナー + 「切り抜き中…」、初回は「初回のみ数十 MB を取得します」）。失敗時は**今回の編集画面だけ**自動で OFF。読み込み／初期化失敗は「切り抜きの読み込みに失敗しました。長方形のまま保存します」、被写体を切り抜けなかったときは「うまく抜けませんでした。長方形のまま保存します」。`photo.cutout` は変更しない |
 | P6 | 使う | Button 主 | 合成 → 画像化（cutout は WebP、他は JPEG）→ アップロード開始 → 閉じる。呼び出し元にサムネと `photoId`（アップロード中は進捗）。セラーでは切り抜く前の JPEG も呼び出し元へ渡す（読み取り用。保存しない） |
 
 モック: [photo-edit-bottle.png](../wireframes/mocks/photo-edit-bottle.png)（セラー。切り抜き ON）
@@ -82,7 +82,7 @@ File → createImageBitmap（EXIF orientation 補正）
 - 背景除去の実行条件: WebAssembly SIMD が使えること。使えない端末はトグルを非表示にし常に長方形
 - 推論は **同一画像・同一編集条件（比率・位置・拡縮）で原則 1 回**。プレビューで求めたマスクを「使う」で再利用し、色補正の切替ではマスクを使い回す（Issue #48）
 - 推論は端末内で **実行中 1 件 + pending 最新 1 件**。パン・ズームを繰り返しても古い依頼は置き換え、タイムアウトした推論が終わるまで次を始めない
-- 失敗理由は `unsupported / model_download / session_init / timeout / inference / invalid_output / invalid_mask / empty_mask / encode / superseded / unknown` を機械可読に保持する。UI には出さず、開発ビルドの `console.debug` と単体テストで追う
+- 失敗理由は `unsupported / model_download / session_init / timeout / inference / invalid_output / invalid_mask / empty_mask / encode / superseded / unknown` を機械可読に保持する。UI は読み込み／初期化失敗と切り抜けなかったの 2 種だけ出す。詳細（理由・工程時間・安全な例外名）は `sessionStorage` の `photo.cutout.diag` とメモリ上の `getRecentPhotoMetrics`。開発ビルドだけ `console.debug` する。画像・Cookie・トークンは書かない
 - マスクの後処理: 薄い alpha（背景残り）を 0、確かな alpha を 255 にし小さな連結成分を消す。品質判定は「被写体がほぼ無い」「ほぼ全面が被写体」「左右両端まで被写体」だけを失敗にし、縦横比・中心位置は記録にとどめる（閾値は `PHOTO_CUTOUT_MASK`。実機評価で調整）
 - `filter` は Canvas 2D の `ctx.filter`。未対応ブラウザ（古い Safari）では色補正をスキップし、トグルを無効化して「この端末では色補正を使えません」
 - メモリ: 4000×3000 の元画像は `createImageBitmap` の `resizeWidth` で先に縮める
@@ -97,7 +97,7 @@ File → createImageBitmap（EXIF orientation 補正）
 | アップロード中 | 呼び出し元のサムネに進捗リング。失敗時は「!」+ 再試行（同じ Blob を再送） |
 | キャラ ON→OFF | `--dur-state`（200ms）でフェード。OFF→ON は右下から 8px スライドイン（[../character.md](../character.md) 6 章）。reduced motion（`html[data-reduce-motion="1"]`）なら不透明度のみ即時 |
 | 切り抜き中 | プレビュー上にスピナー + 「切り抜き中…」。初回はモデル DL の進捗（%）。「使う」は処理完了まで無効 |
-| 切り抜き失敗 | 今回の編集画面だけトグル OFF に戻し、プレビューを長方形に。文言「うまく抜けませんでした。長方形のまま保存します」。一時的な処理失敗では `photo.cutout` を変更せず、次回はユーザーが最後に手動選択した既定値で始める |
+| 切り抜き失敗 | 今回の編集画面だけトグル OFF に戻し、プレビューを長方形に。読み込み／初期化失敗は「切り抜きの読み込みに失敗しました。長方形のまま保存します」、それ以外は「うまく抜けませんでした。長方形のまま保存します」。一時的な処理失敗では `photo.cutout` を変更せず、次回はユーザーが最後に手動選択した既定値で始める |
 
 ### 設定の既定
 

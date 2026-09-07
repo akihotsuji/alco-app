@@ -5,6 +5,7 @@ import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { applyPreset } from "@/client/lib/photo/apply-preset.ts";
+import { cutoutFailedUserMessage } from "@/client/lib/photo/cutout-result.ts";
 import { prefersReducedMotion, supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
 import {
   aspectForKind,
@@ -31,7 +32,6 @@ import {
   setCutoutPref,
 } from "@/client/lib/preferences.ts";
 
-const CUTOUT_FAILED_MESSAGE = "うまく抜けませんでした。長方形のまま保存します";
 const PREVIEW_DEBOUNCE_MS = 500;
 
 export function PhotoEdit() {
@@ -145,7 +145,7 @@ export function PhotoEdit() {
         // 一時的な失敗は今回の編集画面だけ OFF。`photo.cutout` は変えない（07-photo-capture P5b）
         setPreviewCutout(null);
         setCutoutOn(false);
-        setCutoutMessage(CUTOUT_FAILED_MESSAGE);
+        setCutoutMessage(cutoutFailedUserMessage(preview.reason));
       });
     }, PREVIEW_DEBOUNCE_MS);
     return () => {
@@ -253,7 +253,7 @@ export function PhotoEdit() {
         // 一時的な失敗。`photo.cutout` はユーザーがトグルを操作したときだけ変える
         setCutoutOn(false);
         setPreviewCutout(null);
-        setCutoutMessage(CUTOUT_FAILED_MESSAGE);
+        setCutoutMessage(cutoutFailedUserMessage(processed.cutout.reason));
       }
       applyProcessed(processed);
     } finally {

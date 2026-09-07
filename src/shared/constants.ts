@@ -113,9 +113,16 @@ export const PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS = 120_000;
 export const PHOTO_CUTOUT_MODEL_SIZE = 320;
 /** 同一オリジン。ビルド時に public/models へ配置する */
 export const PHOTO_CUTOUT_MODEL_URL = "/models/u2netp.onnx";
+/** rembg v0.0.0 の u2netp.onnx。差し替えるときはハッシュも更新する */
+export const PHOTO_CUTOUT_MODEL_BYTES = 4_574_861;
+export const PHOTO_CUTOUT_MODEL_SHA256 =
+  "309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8";
 export const PHOTO_CUTOUT_CACHE = "alco-cutout-v1";
 export const PHOTO_CUTOUT_ORT_WASM_PATH = "/models/ort/";
 export const PHOTO_CUTOUT_ORT_WASM_FILE = "ort-wasm-simd-threaded.wasm";
+export const PHOTO_CUTOUT_ORT_MJS_FILE = "ort-wasm-simd-threaded.mjs";
+/** 直近の切り抜き診断。画像・Cookie・トークンは書かない */
+export const PHOTO_CUTOUT_DIAG_KEY = "photo.cutout.diag";
 export const PHOTO_CUTOUT_MEAN = [0.485, 0.456, 0.406] as const;
 export const PHOTO_CUTOUT_STD = [0.229, 0.224, 0.225] as const;
 /**
