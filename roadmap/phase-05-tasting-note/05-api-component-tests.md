@@ -61,7 +61,7 @@ pnpm test && pnpm lint && pnpm typecheck
 
 ## 7. 仕様詳細
 
-Phase 5 DoD: 写真付きで記録・参照、3 機能が実機動作。本タスクは自動テスト側。実機は手動チェックリストを tasting-note.md に 5 行でよい。
+Phase 5 DoD: 写真付きで記録・参照、3機能が実機動作。本タスクは自動テストとノート機能の基本スモークまでを担当する。Phase 3〜5を横断する探索、Issue化、修正ループは [Phase 5.5](../phase-05-5-device-hardening/00-phase.md) で行う。
 
 ## 8. 受け入れ条件
 
