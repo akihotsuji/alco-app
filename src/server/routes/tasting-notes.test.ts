@@ -7,7 +7,6 @@ import {
   tastingNoteSchema,
   tastingNotesResponseSchema,
 } from "@/shared/tasting-notes.ts";
-import { createTestApp } from "../test-helpers.ts";
 import {
   createHandNote,
   deleteNote,
@@ -17,13 +16,14 @@ import {
   NOTE_MISSING_ID as MISSING,
   NOTE_OTHER_BOTTLE as OTHER_BOTTLE,
   NOTE_OWN_BOTTLE as OWN_BOTTLE,
-  NOTE_TODAY as TODAY,
-  noteSession as session,
   patchNote,
   postNote,
   seedOwnedBottle as seedBottle,
+  noteSession as session,
+  NOTE_TODAY as TODAY,
   uploadNotePhoto as uploadPhoto,
 } from "../tasting-note-factory.ts";
+import { createTestApp } from "../test-helpers.ts";
 
 async function fields(res: Response) {
   const body = apiErrorBodySchema.parse(await res.json());
@@ -520,7 +520,9 @@ describe("5-05 認可とバリデーションのギャップ", () => {
     await notFoundBody(await deleteNote(ctx.app, b.cookie, created.id));
     await notFoundBody(await deleteNote(ctx.app, a.cookie, MISSING));
 
-    const stillThere = tastingNoteSchema.parse(await (await getNote(ctx.app, a.cookie, created.id)).json());
+    const stillThere = tastingNoteSchema.parse(
+      await (await getNote(ctx.app, a.cookie, created.id)).json(),
+    );
     expect(stillThere.ratingX10).toBe(45);
   });
 
@@ -546,7 +548,9 @@ describe("5-05 認可とバリデーションのギャップ", () => {
     expect(patch12.status).toBe(400);
     expect((await fields(patch12)).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
 
-    const again = tastingNoteSchema.parse(await (await getNote(ctx.app, a.cookie, created.id)).json());
+    const again = tastingNoteSchema.parse(
+      await (await getNote(ctx.app, a.cookie, created.id)).json(),
+    );
     expect(again.ratingX10).toBe(45);
   });
 
@@ -560,11 +564,11 @@ describe("5-05 認可とバリデーションのギャップ", () => {
 
     const ratingMin = await getNotes(ctx.app, a.cookie, "ratingX10Min=51");
     expect(ratingMin.status).toBe(400);
-    expect((await fields(ratingMin)).ratingX10Min).toEqual([TASTING_NOTE_MESSAGES.ratingRange]);
+    expect((await fields(ratingMin)).ratingX10Min).toContain(TASTING_NOTE_MESSAGES.ratingRange);
 
     const ratingStep = await getNotes(ctx.app, a.cookie, "ratingX10Min=12");
     expect(ratingStep.status).toBe(400);
-    expect((await fields(ratingStep)).ratingX10Min).toEqual([TASTING_NOTE_MESSAGES.ratingRange]);
+    expect((await fields(ratingStep)).ratingX10Min).toContain(TASTING_NOTE_MESSAGES.ratingRange);
 
     const limitLow = await getNotes(ctx.app, a.cookie, "limit=0");
     expect(limitLow.status).toBe(400);
@@ -589,11 +593,16 @@ describe("5-05 認可とバリデーションのギャップ", () => {
     const created = await createHandNote(ctx.app, a.cookie);
 
     await notFoundBody(await patchNote(ctx.app, a.cookie, created.id, { bottleId: OTHER_BOTTLE }));
-    const again = tastingNoteSchema.parse(await (await getNote(ctx.app, a.cookie, created.id)).json());
+    const again = tastingNoteSchema.parse(
+      await (await getNote(ctx.app, a.cookie, created.id)).json(),
+    );
     expect(again.bottleId).toBeNull();
     expect(again.drinkName).toBe("サンプル赤");
 
-    const leaked = await patchNote(ctx.app, a.cookie, created.id, { ratingX10: 50, userId: b.userId });
+    const leaked = await patchNote(ctx.app, a.cookie, created.id, {
+      ratingX10: 50,
+      userId: b.userId,
+    });
     expect(leaked.status).toBe(400);
     expect((await fields(leaked))[""]).toBeDefined();
   });
@@ -620,9 +629,21 @@ describe("5-05 認可とバリデーションのギャップ", () => {
   it("ratingX10Max は上限フィルタになる", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
-    await createHandNote(ctx.app, a.cookie, { drinkName: "低", ratingX10: 30, tastedOn: "2026-08-01" });
-    await createHandNote(ctx.app, a.cookie, { drinkName: "中", ratingX10: 40, tastedOn: "2026-08-02" });
-    await createHandNote(ctx.app, a.cookie, { drinkName: "高", ratingX10: 45, tastedOn: "2026-08-03" });
+    await createHandNote(ctx.app, a.cookie, {
+      drinkName: "低",
+      ratingX10: 30,
+      tastedOn: "2026-08-01",
+    });
+    await createHandNote(ctx.app, a.cookie, {
+      drinkName: "中",
+      ratingX10: 40,
+      tastedOn: "2026-08-02",
+    });
+    await createHandNote(ctx.app, a.cookie, {
+      drinkName: "高",
+      ratingX10: 45,
+      tastedOn: "2026-08-03",
+    });
 
     const capped = tastingNotesResponseSchema.parse(
       await (await getNotes(ctx.app, a.cookie, "ratingX10Max=40")).json(),

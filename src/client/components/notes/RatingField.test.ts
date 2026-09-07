@@ -21,14 +21,15 @@ describe("RatingField ステッパー", () => {
     const stepped: number[] = [];
     let current: number | null = null;
     for (let i = 0; i < 10; i += 1) {
-      current = stepRatingX10(current, RATING_X10_STEP);
+      current = stepRatingX10(current, 5);
       stepped.push(current);
     }
     expect(stepped).toEqual([10, 15, 20, 25, 30, 35, 40, 45, 50, 50]);
     expect(formatRatingX10(stepped[0] ?? 0)).toBe("1.0");
     expect(formatRatingX10(RATING_X10_MAX)).toBe("5.0");
-    expect(stepRatingX10(RATING_X10_MIN, -RATING_X10_STEP)).toBe(RATING_X10_MIN);
-    expect(stepRatingX10(RATING_X10_MAX, RATING_X10_STEP)).toBe(RATING_X10_MAX);
+    expect(stepRatingX10(RATING_X10_MIN, -5)).toBe(RATING_X10_MIN);
+    expect(stepRatingX10(RATING_X10_MAX, 5)).toBe(RATING_X10_MAX);
+    expect(RATING_X10_STEP).toBe(5);
   });
 
   it("星タップは整数 1〜5。ステッパーは下限・上限で disabled", () => {

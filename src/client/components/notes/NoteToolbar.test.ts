@@ -37,9 +37,9 @@ describe("NoteToolbar 一覧フィルタ", () => {
         "drinkType",
       ),
     ).toBe("wine");
-    expect(applyNoteToolbarParams(withBottle, { type: "toggleRatingMin" })?.get("ratingX10Min")).toBe(
-      "40",
-    );
+    expect(
+      applyNoteToolbarParams(withBottle, { type: "toggleRatingMin" })?.get("ratingX10Min"),
+    ).toBe("40");
     const cleared = applyNoteToolbarParams(
       new URLSearchParams(`bottleId=${bottle}&q=赤&drinkType=wine&ratingX10Min=40`),
       { type: "clearFilters" },
