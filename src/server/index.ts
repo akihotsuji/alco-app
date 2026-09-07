@@ -14,6 +14,7 @@ import { meRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
+import { createWorkersAiDrinkRecognizer } from "./services/drink-recognizer/workers-ai.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import { createWorkersAiRecognizer } from "./services/label-recognizer/workers-ai.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
@@ -24,6 +25,7 @@ export type CreateAppOptions = {
   db?: AppBatchDb;
   photos?: PhotoBucket;
   labelRecognizer?: LabelRecognizer;
+  drinkRecognizer?: LabelRecognizer;
   recognizeTimeoutMs?: number;
 };
 
@@ -81,7 +83,11 @@ export function createApp(options: CreateAppOptions = {}) {
     getBucket: (c: { env: Env }) => getBucket(c),
   };
   const photosRoute = createPhotosRoute(routeDeps);
-  const drinkLogsRoute = createDrinkLogsRoute(routeDeps);
+  const drinkLogsRoute = createDrinkLogsRoute({
+    ...routeDeps,
+    getDrinkRecognizer: (c) => options.drinkRecognizer ?? createWorkersAiDrinkRecognizer(c.env.AI),
+    recognizeTimeoutMs: options.recognizeTimeoutMs,
+  });
   const myDrinksRoute = createMyDrinksRoute(routeDeps);
   const bottlesRoute = createBottlesRoute({
     ...routeDeps,
