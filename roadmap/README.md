@@ -14,7 +14,8 @@
 | **完了** | 0-01〜0-09、1-01〜1-09、2-01〜2-08、3-01〜3-07、4-01〜4-07（セラー CRUD・棚・開栓・切り抜き・ラベル読み取り・テスト総仕上げ）、5-01、5-02（ノート CRUD）。`protect-main` は 2026-09-05 適用（id `22315799`） |
 | **レビュー待ち** | なし |
 | **進行中** | Phase 5（5-03〜5-05） |
-| **未着手** | 5-03〜 |
+| **未着手** | 5-03〜、Phase 5.5〜 |
+| **Phase 5.5（2026-09-07 追加）** | Phase 5完了直後に、Phase 3〜5を主利用実機で探索し、1問題1Issue・同時着手1件で安定化する。既知の [#48 セラー登録時の写真処理](https://github.com/akihotsuji/alco-app/issues/48) を先頭の追跡Issueとする |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
@@ -107,6 +108,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 完了（3-07 の実デプロイ済み） |
 | Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と開栓・貯蔵庫・ラベル AI 読み取り | 完了（4-01〜4-07。4-05 は 2026-09-07） |
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 5-02 完了。5-03〜未着手 |
+| Phase 5.5 実機検証・機能安定化 | [phase-05-5-device-hardening](phase-05-5-device-hardening/00-phase.md) | Phase 3〜5の実機探索、Issue化、1件ずつ修正 | 未着手（Phase 5完了直後） |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
 | Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 未着手 |
 | Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 未着手 |
@@ -190,6 +192,16 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 5-04 | セラー連携 | [04-cellar-integration.md](phase-05-tasting-note/04-cellar-integration.md) | 未着手 |
 | 5-05 | APIテスト・コンポーネントテスト | [05-api-component-tests.md](phase-05-tasting-note/05-api-component-tests.md) | 未着手 |
 
+### Phase 5.5（5タスク）
+
+| # | ロードマップ原文 | ファイル | 状態 |
+|---|---|---|---|
+| 5.5-01 | 実機検証の準備 | [01-qa-baseline.md](phase-05-5-device-hardening/01-qa-baseline.md) | 未着手 |
+| 5.5-02 | セラー写真処理の安定化（Issue #48） | [02-cellar-photo-pipeline.md](phase-05-5-device-hardening/02-cellar-photo-pipeline.md) | 未着手（調査基準は作成済み） |
+| 5.5-03 | Phase 3〜5の実機探索 | [03-device-exploration.md](phase-05-5-device-hardening/03-device-exploration.md) | 未着手 |
+| 5.5-04 | Issue修正ループ | [04-issue-resolution-loop.md](phase-05-5-device-hardening/04-issue-resolution-loop.md) | 未着手 |
+| 5.5-05 | 回帰確認と終了判定 | [05-regression-exit.md](phase-05-5-device-hardening/05-regression-exit.md) | 未着手 |
+
 ### Phase 6（5タスク）
 
 | # | ロードマップ原文 | ファイル | 状態 |
@@ -225,7 +237,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 8-05 | レート制限・不正利用対策 | [05-rate-limit-abuse.md](phase-08-public-launch/05-rate-limit-abuse.md) | 未着手 |
 | 8-06 | 無料枠の使用量監視 | [06-usage-monitoring.md](phase-08-public-launch/06-usage-monitoring.md) | 未着手 |
 
-**合計: フェーズフォルダ 9、タスクファイル 64、フェーズ概要 9、本インデックス 1。**
+**合計: フェーズフォルダ 10、タスクファイル 69、フェーズ概要 10、本インデックス 1。**
 
 ## 共通ルール（全タスク）
 
@@ -236,6 +248,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 5. シークレットをコード・`wrangler.jsonc`・spec・本フォルダに書かない。
 6. 公開エンドポイントを新設する場合は仕様書に明記し、オーナー承認を得る。
 7. 完了時に `spec/03-roadmap.md` のチェックボックスを更新する。
+8. Phase 5.5の実機不良は [実機QAテンプレート](../.github/ISSUE_TEMPLATE/device-qa.yml) で1問題1Issueとし、同時に実装するIssueは1件だけにする。
 
 ## 関連spec
 
