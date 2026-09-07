@@ -61,6 +61,7 @@
   --header-h: 56px;
   --tab-h: 72px;
   --tab-center-size: 60px;
+  --tab-center-lift: 12px;
   --mascot-wine: #8e2f3c;
   --mascot-wine-light: #b34a5a;
   --mascot-ink: #1f1b17;
@@ -592,9 +593,13 @@
   padding-bottom: 0;
 }
 
+/*
+  円はタブバー上端から 12px 上に出す（00-common 1.2）。.tab-center はバーの上パディング 12px 分
+  下から始まるので、その分も含めて -24px。ラベルは円の下 12px（Issue #58: 円と重ならない）
+*/
 .tab-center-btn {
   position: absolute;
-  top: -12px;
+  top: calc(-12px - var(--tab-center-lift));
   width: var(--tab-center-size);
   height: var(--tab-center-size);
   border-radius: 50%;
@@ -638,6 +643,7 @@
 /* 中央タブは着地画面を持たない（(c)）ため現在地状態は無い。沈むのは押下中（M-21）だけ */
 .tab-center-label {
   font-size: 12px;
+  line-height: 1;
 }
 
 @media (max-width: 360px) {
@@ -730,6 +736,23 @@
 /* M-29: スケルトンから本体へのクロスフェード。到着した本体側に付ける */
 .skeleton-fade {
   animation: fade-in var(--dur-state) var(--ease-out) both;
+}
+
+/*
+  ダイアログは下 24px に浮く（00-common 2.2）。ソフトキーボード表示中は `--keyboard-inset`
+  （src/client/lib/keyboard-inset.ts）ぶん持ち上げ、残りの高さに収まるよう中身をスクロールさせる。
+*/
+.app-dialog-panel {
+  bottom: calc(var(--space-5) + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px));
+  --dialog-gap: calc(var(--space-5) * 2);
+  max-height: calc(
+    100dvh -
+    var(--dialog-gap) -
+    env(safe-area-inset-bottom) -
+    var(--keyboard-inset, 0px)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* M-13 / M-30: ダイアログの出入り（Radix の data-state に反応） */
@@ -3226,6 +3249,8 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 .bottle-picker-list {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: 16rem;
   overflow-y: auto;
   margin: 0;

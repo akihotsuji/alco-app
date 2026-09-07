@@ -49,6 +49,7 @@ export function BottlePickerRow({
   onSelect,
 }: BottlePickerRowProps) {
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState("");
   const qDebounced = useDebounced(q.trim(), 300);
   const searched = qDebounced.length > 0;
@@ -90,7 +91,16 @@ export function BottlePickerRow({
           }
         }}
       >
-        <DialogContent className="bottle-picker-panel">
+        <DialogContent
+          ref={panelRef}
+          className="bottle-picker-panel"
+          onOpenAutoFocus={(event) => {
+            // 検索欄へ自動フォーカスするとキーボードが即座に開いて一覧が隠れる。
+            // まず一覧から選べるようにパネル自体へフォーカスし、検索は任意でタップさせる
+            event.preventDefault();
+            panelRef.current?.focus();
+          }}
+        >
           <DialogTitle>ボトル</DialogTitle>
           <DialogDescription className="visually-hidden">セラーと貯蔵庫から選ぶ</DialogDescription>
           <Input
