@@ -305,6 +305,61 @@ describe("GET /api/tasting-notes", () => {
     expect(second.nextCursor).toBeNull();
     expect((await getNotes(ctx.app, a.cookie, "cursor=broken")).status).toBe(400);
   });
+
+  it("T6: bottleId と limit=3 は最新 3 件、totalCount は総数。貯蔵庫も可。他人は 404", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    const archiveId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    await seedBottle(ctx, OWN_BOTTLE, a.userId, "棚の赤");
+    await seedBottle(ctx, archiveId, a.userId, "貯蔵庫の赤", "consumed");
+    await seedBottle(ctx, OTHER_BOTTLE, b.userId, "他人の赤");
+    for (const day of ["2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04"]) {
+      expect(
+        (
+          await postNote(ctx.app, a.cookie, {
+            ...HAND,
+            bottleId: OWN_BOTTLE,
+            tastedOn: day,
+            ratingX10: 40,
+          })
+        ).status,
+      ).toBe(201);
+    }
+    expect(
+      (
+        await postNote(ctx.app, a.cookie, {
+          ...HAND,
+          bottleId: archiveId,
+          tastedOn: "2026-08-05",
+          ratingX10: 50,
+        })
+      ).status,
+    ).toBe(201);
+
+    const preview = tastingNotesResponseSchema.parse(
+      await (await getNotes(ctx.app, a.cookie, `bottleId=${OWN_BOTTLE}&limit=3`)).json(),
+    );
+    expect(preview.items).toHaveLength(3);
+    expect(preview.totalCount).toBe(4);
+    expect(preview.items.map((item) => item.tastedOn)).toEqual([
+      "2026-08-04",
+      "2026-08-03",
+      "2026-08-02",
+    ]);
+
+    const archived = tastingNotesResponseSchema.parse(
+      await (await getNotes(ctx.app, a.cookie, `bottleId=${archiveId}`)).json(),
+    );
+    expect(archived.items).toHaveLength(1);
+    expect(archived.totalCount).toBe(1);
+
+    expect((await getNotes(ctx.app, a.cookie, `bottleId=${OTHER_BOTTLE}&limit=3`)).status).toBe(
+      404,
+    );
+    expect((await getNotes(ctx.app, b.cookie, `bottleId=${OWN_BOTTLE}&limit=3`)).status).toBe(404);
+    expect((await getNotes(ctx.app, "", `bottleId=${OWN_BOTTLE}&limit=3`)).status).toBe(401);
+  });
 });
 
 describe("GET / PATCH / DELETE /api/tasting-notes/:id", () => {

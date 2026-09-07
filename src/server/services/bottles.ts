@@ -18,7 +18,7 @@ import {
   normalizeOptionalText,
   type UpdateBottleInput,
 } from "@/shared/bottles.ts";
-import type { DrinkType, PhotoContentType, PhotoKind } from "@/shared/constants.ts";
+import type { BottleStatus, DrinkType, PhotoContentType, PhotoKind } from "@/shared/constants.ts";
 import { DEFAULT_BOTTLE_STATUS, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
@@ -432,6 +432,34 @@ export async function createBottles(input: {
   return {
     items: rows.map((row) => toBottle(row, photoByBottle.get(row.id) ?? [])),
   };
+}
+
+export type OwnBottleSnap = {
+  id: string;
+  name: string;
+  drinkType: DrinkType;
+  status: BottleStatus;
+};
+
+/** 自分のボトルのみ。貯蔵庫も含む。他人・不在は同じ 404（存在を漏らさない）。 */
+export async function requireOwnBottle(
+  db: AppBatchDb,
+  userId: string,
+  bottleId: string,
+): Promise<OwnBottleSnap> {
+  const [row] = await db
+    .select({
+      id: bottles.id,
+      name: bottles.name,
+      drinkType: bottles.drinkType,
+      status: bottles.status,
+    })
+    .from(bottles)
+    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
+  if (!row) {
+    throw new ApiError("not_found");
+  }
+  return row;
 }
 
 export async function getOwnBottle(

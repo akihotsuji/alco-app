@@ -17,6 +17,7 @@ import {
   type UpdateTastingNoteInput,
 } from "@/shared/tasting-notes.ts";
 import { ApiError } from "../errors.ts";
+import { requireOwnBottle } from "./bottles.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
 type NoteRow = typeof tastingNotes.$inferSelect;
@@ -118,25 +119,6 @@ function decodeCursor(cursor: string): z.infer<typeof noteCursorSchema> {
 }
 
 /** 貯蔵庫の本も選べる。他人・不在は同じ 404。 */
-export async function resolveOwnBottle(
-  db: AppBatchDb,
-  userId: string,
-  bottleId: string,
-): Promise<BottleSnap> {
-  const [row] = await db
-    .select({
-      id: bottles.id,
-      name: bottles.name,
-      drinkType: bottles.drinkType,
-      status: bottles.status,
-    })
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  if (!row) {
-    throw new ApiError("not_found");
-  }
-  return row;
-}
 
 async function resolveUnattachedPhotos(
   db: AppBatchDb,
@@ -271,7 +253,7 @@ export async function createTastingNote(input: {
   let bottle: BottleSnap | null = null;
   const bottleId = body.bottleId ?? null;
   if (bottleId) {
-    bottle = await resolveOwnBottle(db, userId, bottleId);
+    bottle = await requireOwnBottle(db, userId, bottleId);
     drinkName = bottle.name;
     drinkType = bottle.drinkType;
   }
@@ -363,7 +345,7 @@ export async function listTastingNotes(input: {
 }): Promise<TastingNotesResponse> {
   const { db, userId, query } = input;
   if (query.bottleId) {
-    await resolveOwnBottle(db, userId, query.bottleId);
+    await requireOwnBottle(db, userId, query.bottleId);
   }
 
   const scope = [eq(tastingNotes.userId, userId)];
@@ -462,7 +444,7 @@ export async function updateTastingNote(input: {
   let drinkType = current.drinkType;
   let bottleId = current.bottleId;
   if (body.bottleId) {
-    const bottle = await resolveOwnBottle(db, userId, body.bottleId);
+    const bottle = await requireOwnBottle(db, userId, body.bottleId);
     drinkName = bottle.name;
     drinkType = bottle.drinkType;
     bottleId = bottle.id;

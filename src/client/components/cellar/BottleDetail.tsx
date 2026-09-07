@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { BottleNotesSection } from "@/client/components/cellar/BottleNotesSection.tsx";
 import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { noteCreateHref } from "@/client/lib/app-routes.ts";
 import { bottleStatusPill, formatPriceJpy, vintageLabel } from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { bottleConsumeState, rememberShelfEvent } from "@/client/lib/history-state.ts";
@@ -15,14 +17,17 @@ import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import type { Bottle } from "@/shared/bottles.ts";
 import { DRINK_TYPE_LABELS } from "@/shared/constants.ts";
 import type { DrinkLogItem } from "@/shared/drink-logs.ts";
+import type { TastingNoteListItem } from "@/shared/tasting-notes.ts";
 import { formatShortMonthDay, formatTokyoTime } from "@/shared/tokyo-date.ts";
 
 type BottleDetailProps = {
   bottle: Bottle;
   logs: readonly DrinkLogItem[];
+  notes: readonly TastingNoteListItem[];
+  notesTotalCount: number;
 };
 
-export function BottleDetail({ bottle, logs }: BottleDetailProps) {
+export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDetailProps) {
   const [lightbox, setLightbox] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [consumeState, setConsumeState] = useState<MotionState>("idle");
@@ -147,7 +152,7 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
       </div>
       {archived ? (
         <Button asChild>
-          <Link to={`/notes/new?bottleId=${bottle.id}&camera=1`}>ノートを書く</Link>
+          <Link to={noteCreateHref(bottle.id)}>ノートを書く</Link>
         </Button>
       ) : (
         <Button
@@ -177,6 +182,7 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
           </div>
         ))}
       </dl>
+      <BottleNotesSection bottleId={bottle.id} notes={notes} totalCount={notesTotalCount} />
       {logs.length > 0 ? (
         <section className="bottle-section">
           <h2 className="bottle-section-title">記録</h2>

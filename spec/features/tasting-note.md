@@ -2,7 +2,7 @@
 
 Phase 5-01 の成果物。テイスティングノート（作成・編集・削除・写真グリッド一覧・詳細・セラー連携）の **機能仕様**。5-02〜5-05 の実装はこのファイルと画面設計のとおりに作る。
 
-- 状態: **承認済み**（5-01 #46）。5-02 CRUD 実装済み。複数写真 UI は 5-03、ボトル詳細のノート節は 5-04
+- 状態: **承認済み**（5-01 #46）。5-02 CRUD / 5-03 複数写真 / 5-04 セラー連携 実装済み
 - 要件: [01-requirements.md](../01-requirements.md) 1.4 / 1.5 / 1.6
 - 画面の正本: [screen-designs/05-notes.md](../screen-designs/05-notes.md)。ボトル詳細のノート節は [screen-designs/04-cellar.md](../screen-designs/04-cellar.md) T6。**要素表・状態・遷移・モックは画面設計が正**。本ファイルは項目・規則・API・エッジケースを 1 か所にまとめる
 - API の正本: [api-design.md](../api-design.md) 4.6 / 4.7。列は [data-model.md](../data-model.md) 5.3 / 5.5 / 5.6 / 6.4 / 6.5

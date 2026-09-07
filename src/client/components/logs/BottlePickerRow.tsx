@@ -10,6 +10,7 @@ import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle, useBottles } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { vintageLabel } from "@/client/lib/bottle-form.ts";
+import { pickerBottlesQueryEnabled, pickerRowClassName } from "@/client/lib/bottle-picker.ts";
 import { type BottleStatus, DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
 
 function useDebounced(value: string, ms: number) {
@@ -33,6 +34,7 @@ type BottlePickerRowProps = {
   bottleName: string | null;
   valueLabel?: string;
   clearable?: boolean;
+  requireSearch?: boolean;
   error?: string;
   onSelect: (bottle: PickedBottle | null) => void;
 };
@@ -42,13 +44,18 @@ export function BottlePickerRow({
   bottleName,
   valueLabel,
   clearable = false,
+  requireSearch = false,
   error,
   onSelect,
 }: BottlePickerRowProps) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const qDebounced = useDebounced(q.trim(), 300);
-  const list = useBottles({ view: "all", ...(qDebounced ? { q: qDebounced } : {}) });
+  const searched = qDebounced.length > 0;
+  const list = useBottles(
+    { view: "all", ...(searched ? { q: qDebounced } : {}) },
+    pickerBottlesQueryEnabled(open, qDebounced, requireSearch),
+  );
 
   return (
     <section className="log-form-section">
@@ -74,7 +81,15 @@ export function BottlePickerRow({
           {error}
         </p>
       ) : null}
-      <DialogRoot open={open} onOpenChange={setOpen}>
+      <DialogRoot
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) {
+            setQ("");
+          }
+        }}
+      >
         <DialogContent className="bottle-picker-panel">
           <DialogTitle>ボトル</DialogTitle>
           <DialogDescription className="visually-hidden">セラーと貯蔵庫から選ぶ</DialogDescription>
@@ -91,11 +106,13 @@ export function BottlePickerRow({
             onClick={() => {
               onSelect(null);
               setOpen(false);
+              setQ("");
             }}
           >
             なし
           </button>
           {list.isError ? <p className="bottle-picker-error">読み込めませんでした</p> : null}
+          {requireSearch && !searched ? <p className="bottle-picker-empty">銘柄名で検索</p> : null}
           {list.isSuccess && list.data.items.length === 0 ? (
             <p className="bottle-picker-empty">該当するボトルがありません</p>
           ) : null}
@@ -104,7 +121,7 @@ export function BottlePickerRow({
               <li key={item.id}>
                 <button
                   type="button"
-                  className={item.id === bottleId ? "bottle-picker-row is-on" : "bottle-picker-row"}
+                  className={pickerRowClassName(item.id === bottleId, item.status === "consumed")}
                   onClick={() => {
                     onSelect({
                       id: item.id,
@@ -113,6 +130,7 @@ export function BottlePickerRow({
                       status: item.status,
                     });
                     setOpen(false);
+                    setQ("");
                   }}
                 >
                   {item.thumbPhotoId ? (

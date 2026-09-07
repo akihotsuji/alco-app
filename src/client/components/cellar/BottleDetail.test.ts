@@ -27,4 +27,10 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).toContain("セラーに戻す");
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });
+
+  it("ノート節 T6 を出し、記録節の前に置く", () => {
+    expect(source).toContain("BottleNotesSection");
+    expect(source.indexOf("BottleNotesSection")).toBeLessThan(source.indexOf("記録"));
+    expect(source).toContain("notesTotalCount");
+  });
 });

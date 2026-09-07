@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TASTING_NOTE_MESSAGES } from "@/shared/tasting-notes.ts";
 import {
   applySelectedBottle,
+  bottleRowLabel,
   canSubmitNoteForm,
   clearSelectedBottle,
   initialNoteFormState,
@@ -108,6 +109,12 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
     ).toEqual({
       photoIds: ["cccccccc-cccc-4ccc-8ccc-cccccccccccc", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"],
     });
+  });
+
+  it("ボトル行は棚と貯蔵庫でラベルが違う", () => {
+    expect(bottleRowLabel("棚の赤", "sealed")).toBe("棚の赤（セラー）");
+    expect(bottleRowLabel("開栓した赤", "consumed")).toBe("開栓した赤（貯蔵庫）");
+    expect(bottleRowLabel("不明", null)).toBe("不明（セラー）");
   });
 
   it("初期状態から評価を入れると dirty", () => {

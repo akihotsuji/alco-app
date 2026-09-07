@@ -64,6 +64,22 @@ export function useInfiniteTastingNotes(query: TastingNotesListQuery = {}, enabl
   });
 }
 
+export function getTastingNotesByBottle(bottleId: string, client: ApiClient = api) {
+  return unwrap(
+    client.api["tasting-notes"].$get({
+      query: { bottleId, limit: "3" },
+    }),
+  );
+}
+
+export function useTastingNotesByBottle(bottleId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.tastingNotesList({ bottleId: bottleId ?? "", limit: 3 }),
+    queryFn: () => getTastingNotesByBottle(bottleId ?? ""),
+    enabled: Boolean(bottleId),
+  });
+}
+
 export function useTastingNote(id: string | undefined) {
   return useQuery({
     queryKey: queryKeys.tastingNote(id ?? ""),
