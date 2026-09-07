@@ -6,6 +6,7 @@ import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { DisplayNameRow } from "@/client/components/settings/DisplayNameRow.tsx";
 import { HapticPrefRow } from "@/client/components/settings/HapticPrefRow.tsx";
 import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPrefRow.tsx";
+import { ThemePrefRow } from "@/client/components/settings/ThemePrefRow.tsx";
 import { Switch } from "@/client/components/ui/switch.tsx";
 import { useMe } from "@/client/hooks/use-me.ts";
 import {
@@ -87,6 +88,11 @@ export function SettingsPage() {
       </section>
 
       <section className="settings-section">
+        <h2 className="settings-heading">表示</h2>
+        <ThemePrefRow />
+      </section>
+
+      <section className="settings-section">
         <h2 className="settings-heading">操作</h2>
         <HapticPrefRow />
         <ReduceMotionPrefRow />
@@ -99,7 +105,6 @@ export function SettingsPage() {
         </button>
       </section>
 
-      <p className="settings-note">テーマは端末の外観設定に追従します</p>
       <p className="settings-note">alco-app {APP_VERSION}</p>
 
       <Dialog
