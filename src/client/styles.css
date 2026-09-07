@@ -2258,6 +2258,7 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
 .cellar-search-field {
   flex: 1 1 140px;
   min-width: 0;
+  max-width: 16rem;
 }
 
 .cellar-view-toggle {
