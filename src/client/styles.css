@@ -1045,10 +1045,40 @@ html[data-theme="dark"] {
   color: var(--muted);
 }
 
+.field-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  min-width: 0;
+}
+
+.field-inline .field-label {
+  margin: 0;
+  flex: 0 0 6.5em;
+  line-height: 1.3;
+}
+
+.field-inline .field-with-ai {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-date {
+  display: flex;
+  align-items: center;
+  color-scheme: inherit;
+}
+
 .field-error {
   margin: 0;
   font-size: 13px;
   color: var(--danger);
+}
+
+.field-inline .field-error {
+  flex: 1 0 100%;
 }
 
 .field-hint {

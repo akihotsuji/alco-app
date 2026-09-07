@@ -40,6 +40,7 @@ import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import {
   arrangedToastMessage,
+  BOTTLE_FIELD_LABELS,
   BOTTLE_MEMO_MAX_LENGTH,
   BOTTLE_NAME_MAX_LENGTH,
   BOTTLE_TEXT_MAX_LENGTH,
@@ -391,32 +392,25 @@ export function BottleFormFields({
             />
             <DetailField
               id="bottle-vintage"
-              label="年"
+              label={BOTTLE_FIELD_LABELS.vintage}
               value={state.vintage}
               inputMode="numeric"
               placeholder="NV"
+              layout="inline"
               error={errors.vintage}
               aiMarked={aiMarks.has("vintage")}
               onChange={(vintage) => update({ vintage })}
             />
-            <div className="log-form-section">
-              <label className="field-label" htmlFor="bottle-purchased-on">
-                購入日
-              </label>
-              <Input
-                id="bottle-purchased-on"
-                type="date"
-                value={state.purchasedOn}
-                max={tokyoToday()}
-                aria-invalid={errors.purchasedOn ? true : undefined}
-                onChange={(event) => update({ purchasedOn: event.target.value })}
-              />
-              {errors.purchasedOn ? (
-                <p className="field-error" role="alert">
-                  {errors.purchasedOn}
-                </p>
-              ) : null}
-            </div>
+            <DetailField
+              id="bottle-purchased-on"
+              label={BOTTLE_FIELD_LABELS.purchasedOn}
+              value={state.purchasedOn}
+              type="date"
+              max={tokyoToday()}
+              layout="inline"
+              error={errors.purchasedOn}
+              onChange={(purchasedOn) => update({ purchasedOn })}
+            />
             <DetailField
               id="bottle-price"
               label="価格"
@@ -527,6 +521,9 @@ function DetailField({
   maxLength,
   inputMode,
   placeholder,
+  type,
+  max,
+  layout = "stack",
   aiMarked = false,
 }: {
   id: string;
@@ -537,20 +534,26 @@ function DetailField({
   maxLength?: number;
   inputMode?: "numeric";
   placeholder?: string;
+  type?: "date";
+  max?: string;
+  layout?: "stack" | "inline";
   aiMarked?: boolean;
 }) {
   return (
-    <div className="log-form-section">
+    <div className={layout === "inline" ? "field-inline" : "log-form-section"}>
       <label className="field-label" htmlFor={id}>
         {label}
       </label>
       <FieldWithAiMark marked={aiMarked}>
         <Input
           id={id}
+          type={type}
           value={value}
+          max={max}
           maxLength={maxLength}
           inputMode={inputMode}
           placeholder={placeholder}
+          className={type === "date" ? "field-date" : undefined}
           aria-invalid={error ? true : undefined}
           onChange={(event) => onChange(event.target.value)}
         />

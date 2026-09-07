@@ -33,4 +33,9 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source.indexOf("BottleNotesSection")).toBeLessThan(source.indexOf("記録"));
     expect(source).toContain("notesTotalCount");
   });
+
+  it("プロパティの年はビンテージと書く", () => {
+    expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
+    expect(source).not.toContain('label: "年"');
+  });
 });

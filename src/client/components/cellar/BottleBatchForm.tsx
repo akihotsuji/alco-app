@@ -29,6 +29,7 @@ import {
   arrangedToastMessage,
   BOTTLE_COUNT_MAX,
   BOTTLE_COUNT_MIN,
+  BOTTLE_FIELD_LABELS,
   BOTTLE_NAME_MAX_LENGTH,
   BOTTLE_TEXT_MAX_LENGTH,
   formatBottleCount,
@@ -344,10 +345,11 @@ function BatchRowCard({
           />
           <DetailField
             id={`${id}-vintage`}
-            label="年"
+            label={BOTTLE_FIELD_LABELS.vintage}
             value={row.form.vintage}
             inputMode="numeric"
             placeholder="NV"
+            layout="inline"
             disabled={disabled}
             error={errors.vintage}
             aiMarked={marks.has("vintage")}
@@ -398,6 +400,7 @@ function DetailField({
   inputMode,
   placeholder,
   disabled,
+  layout = "stack",
   aiMarked = false,
 }: {
   id: string;
@@ -409,10 +412,11 @@ function DetailField({
   inputMode?: "numeric";
   placeholder?: string;
   disabled: boolean;
+  layout?: "stack" | "inline";
   aiMarked?: boolean;
 }) {
   return (
-    <div className="log-form-section">
+    <div className={layout === "inline" ? "field-inline" : "log-form-section"}>
       <label className="field-label" htmlFor={id}>
         {label}
       </label>
