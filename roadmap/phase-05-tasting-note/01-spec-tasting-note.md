@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 5 テイスティングノート |
-| ステータス | **未着手** |
+| ステータス | **レビュー待ち**（`spec/features/tasting-note.md` 作成。オーナー承認後に 5-02） |
 | 要件 | [spec/01-requirements.md](../../spec/01-requirements.md) 1.4 |
 | ソース | Phase 5 先頭 |
 
@@ -33,7 +33,7 @@
 
 ## 4. 成果物
 
-- `spec/features/tasting-note.md`
+- [spec/features/tasting-note.md](../../spec/features/tasting-note.md)（作成済み。要確認は 11 章で確定）
 - spec/README 更新
 
 ## 5. 細分化タスク
@@ -59,10 +59,10 @@ feature-dev Step 1。5-02 と混ぜない。
 
 ## 8. 受け入れ条件
 
-- [ ] 画面・バリデーション・API・連携・写真枚数が書いてある
-- [ ] オーナー承認
-- [ ] v1.x と分離
-- [ ] Phase 4 写真基盤を再利用すると明記
+- [x] 画面・バリデーション・API・連携・写真枚数が書いてある
+- [ ] オーナー承認（仕様 PR のマージをもって承認とする）
+- [x] v1.x と分離
+- [x] Phase 4 写真基盤を再利用すると明記
 
 ## 9. セキュリティ観点
 
