@@ -3,15 +3,22 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { srcAlias } from "./vite.alias.ts";
+import { cutoutAssets } from "./vite.cutout-assets.ts";
 
 export default defineConfig(() => {
   // 日常の vite / vite build は wrangler の env.dev を使う
   process.env.CLOUDFLARE_ENV ??= "dev";
 
   return {
-    plugins: [react(), tailwindcss(), cloudflare()],
+    plugins: [react(), tailwindcss(), cutoutAssets(), cloudflare()],
     resolve: {
       alias: srcAlias,
+    },
+    optimizeDeps: {
+      exclude: ["onnxruntime-web"],
+    },
+    ssr: {
+      external: ["onnxruntime-web"],
     },
   };
 });

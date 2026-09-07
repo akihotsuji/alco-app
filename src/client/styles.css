@@ -1253,6 +1253,45 @@
   aspect-ratio: var(--photo-ratio-bottle);
 }
 
+.photo-edit-frame.is-cutout {
+  background-color: color-mix(in srgb, var(--muted) 16%, var(--background));
+  background-image: repeating-conic-gradient(
+    from 90deg at 50% 50%,
+    color-mix(in srgb, var(--foreground) 10%, var(--background)) 0% 25%,
+    var(--background) 0% 50%
+  );
+  background-size: 16px 16px;
+}
+
+.photo-edit-cutout-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--foreground) 35%, transparent);
+  color: var(--primary-fg);
+  text-align: center;
+  pointer-events: none;
+}
+
+.photo-edit-cutout-status p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.photo-edit-cutout-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid color-mix(in srgb, var(--primary-fg) 40%, transparent);
+  border-top-color: var(--primary-fg);
+  border-radius: 50%;
+  animation: photo-spin var(--dur-spin) linear infinite;
+}
+
 .photo-edit-placeholder {
   margin: 0;
   padding: var(--space-4);

@@ -13,8 +13,8 @@
 |---|---|
 | **完了** | 0-01〜0-09、1-01〜1-09、2-01〜2-08、3-01〜3-07（機能仕様、記録入力、マイドリンク、計算、日別、週/月、設定操作節、dev デプロイ）。`protect-main` は 2026-09-05 適用（id `22315799`） |
 | **レビュー待ち** | なし |
-| **進行中** | Phase 4（4-04 陳列まで完了。次は 4-06 / 4-07 / 4-05） |
-| **未着手** | 4-05 / 4-06 / 4-07 |
+| **進行中** | Phase 4（4-06 切り抜きまで完了。次は 4-07 / 4-05） |
+| **未着手** | 4-05 / 4-07 |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
@@ -105,7 +105,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 1 設計 | [phase-01-design](phase-01-design/00-phase.md) | 画面・デザイン・データ・API・**詳細画面設計・キャラクター** | 完了（1-01〜06 は 2026-09-04、1-07 / 08 は 2026-09-06 承認） |
 | Phase 2 土台実装 | [phase-02-platform](phase-02-platform/00-phase.md) | DB・認証・レイアウト・型共有・**写真パイプライン** | 完了（2-01〜2-08） |
 | Phase 3 飲酒記録 | [phase-03-drink-log](phase-03-drink-log/00-phase.md) | MVPコア（記録・写真・マイドリンク・サマリー） | 完了（3-07 の実デプロイ済み） |
-| Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と開栓・貯蔵庫・ラベル AI 読み取り | 4-01〜4-03 完了。次は 4-04 |
+| Phase 4 セラー管理 | [phase-04-cellar](phase-04-cellar/00-phase.md) | ガラス棚（陳列・切り抜き）・追加と開栓・貯蔵庫・ラベル AI 読み取り | 4-01〜4-04・4-06 完了。次は 4-07 / 4-05 |
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 未着手 |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
 | Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 未着手 |
@@ -177,7 +177,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 4-03 | 開栓・貯蔵庫・復元（ステータス管理） | [03-status-management.md](phase-04-cellar/03-status-management.md) | 完了 |
 | 4-04 | 陳列（ガラス棚。種類ごと / 1 本ずつ。R2 基盤は 2-08 へ） | [04-photo-upload-r2.md](phase-04-cellar/04-photo-upload-r2.md) | 完了 |
 | 4-05 | APIテスト・コンポーネントテスト | [05-api-component-tests.md](phase-04-cellar/05-api-component-tests.md) | 未着手 |
-| 4-06 | 切り抜き（端末内 背景除去 → 透過 WebP） | [06-background-removal.md](phase-04-cellar/06-background-removal.md) | 未着手 |
+| 4-06 | 切り抜き（端末内 背景除去 → 透過 WebP） | [06-background-removal.md](phase-04-cellar/06-background-removal.md) | 完了 |
 | 4-07 | ラベル読み取り（Workers AI） | [07-label-recognition.md](phase-04-cellar/07-label-recognition.md) | 未着手 |
 
 ### Phase 5（5タスク）

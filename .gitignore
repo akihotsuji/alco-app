@@ -97,6 +97,10 @@ $RECYCLE.BIN/
 # --- ローカル検証の一時ファイル（スクリーンショット・ヘッドレスブラウザのプロファイル） ---
 .tmp-shots/
 
+# 切り抜きモデル / ORT WASM（4-06。ビルド時に public/models へ配置）
+public/models/*.onnx
+public/models/ort/
+
 # --- キャッシュ ---
 .cache/
 .turbo/

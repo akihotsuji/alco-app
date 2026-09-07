@@ -1,5 +1,6 @@
 import {
   PHOTO_ASPECT,
+  PHOTO_CUTOUT_BOTTOM_RATIO,
   PHOTO_CUTOUT_SHADOW,
   PHOTO_MASCOT_ASPECT,
   PHOTO_MASCOT_GLOW_RADIUS_RATIO,
@@ -116,33 +117,71 @@ export function computeMascotLayout(photoWidth: number, photoHeight: number): Ma
   };
 }
 
-/** 切り抜き結果を 2:3 キャンバスの下端に揃える（4-06 用。2-08 で座標を固定する） */
+/** 切り抜き結果を 2:3 キャンバスの下端から 4% 空けて置く。落ち影はボトル幅の 80% */
 export function computeCutoutPlacement(input: {
   sourceWidth: number;
   sourceHeight: number;
   canvasWidth: number;
   canvasHeight: number;
 }): CutoutPlacement {
+  const bottomInset = input.canvasHeight * PHOTO_CUTOUT_BOTTOM_RATIO;
+  const availableHeight = Math.max(1, input.canvasHeight - bottomInset);
   const scale = Math.min(
     input.canvasWidth / input.sourceWidth,
-    input.canvasHeight / input.sourceHeight,
+    availableHeight / input.sourceHeight,
   );
   const width = input.sourceWidth * scale;
   const height = input.sourceHeight * scale;
   const x = (input.canvasWidth - width) / 2;
-  const y = input.canvasHeight - height;
+  const y = input.canvasHeight - bottomInset - height;
   return {
     x,
     y,
     width,
     height,
     shadow: {
-      x: input.canvasWidth / 2,
-      y: input.canvasHeight - PHOTO_CUTOUT_SHADOW.heightPx / 2,
-      rx: (input.canvasWidth * PHOTO_CUTOUT_SHADOW.widthRatio) / 2,
+      x: x + width / 2,
+      y: y + height,
+      rx: (width * PHOTO_CUTOUT_SHADOW.widthRatio) / 2,
       ry: PHOTO_CUTOUT_SHADOW.heightPx / 2,
     },
   };
+}
+
+/** 不透明画素の外接矩形。全面透明なら null */
+export function alphaBoundingBox(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  alphaThreshold = 8,
+): { x: number; y: number; width: number; height: number } | null {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const alpha = data[(y * width + x) * 4 + 3] ?? 0;
+      if (alpha > alphaThreshold) {
+        if (x < minX) {
+          minX = x;
+        }
+        if (y < minY) {
+          minY = y;
+        }
+        if (x > maxX) {
+          maxX = x;
+        }
+        if (y > maxY) {
+          maxY = y;
+        }
+      }
+    }
+  }
+  if (maxX < 0) {
+    return null;
+  }
+  return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
 }
 
 export function aspectForKind(kind: "log" | "note" | "cellar"): AspectRatio {

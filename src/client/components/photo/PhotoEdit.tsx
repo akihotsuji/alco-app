@@ -13,7 +13,10 @@ import {
   outputSizeForAspect,
 } from "@/client/lib/photo/geometry.ts";
 import { presetForKind, processPhoto } from "@/client/lib/photo/process.ts";
-import { supportsBackgroundRemoval } from "@/client/lib/photo/remove-background.ts";
+import {
+  type RemoveBackgroundProgress,
+  supportsBackgroundRemoval,
+} from "@/client/lib/photo/remove-background.ts";
 import {
   getColorCorrectionPref,
   getComposeMascotPref,
@@ -33,6 +36,9 @@ export function PhotoEdit() {
   const [mascotOn, setMascotOn] = useState(getComposeMascotPref);
   const [cutoutOn, setCutoutOn] = useState(getCutoutPref);
   const [processing, setProcessing] = useState(false);
+  const [cutoutBusy, setCutoutBusy] = useState(false);
+  const [cutoutProgress, setCutoutProgress] = useState<RemoveBackgroundProgress | null>(null);
+  const [previewCutout, setPreviewCutout] = useState<HTMLCanvasElement | null>(null);
   const [cutoutMessage, setCutoutMessage] = useState<string | null>(null);
   const [mascotMounted, setMascotMounted] = useState(getComposeMascotPref);
   const filterSupported = useMemo(() => supportsCanvasFilter(), []);
@@ -40,6 +46,7 @@ export function PhotoEdit() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ distance: number; scale: number } | null>(null);
+  const previewGen = useRef(0);
 
   useEffect(() => {
     if (!open) {
@@ -54,6 +61,9 @@ export function PhotoEdit() {
     setMascotMounted(nextMascot);
     setCutoutOn(getCutoutPref());
     setProcessing(false);
+    setCutoutBusy(false);
+    setCutoutProgress(null);
+    setPreviewCutout(null);
     setCutoutMessage(null);
   }, [open, filterSupported]);
 
@@ -79,6 +89,84 @@ export function PhotoEdit() {
   const aspect = aspectForKind(kind);
   const output = outputSizeForAspect(aspect);
 
+  useEffect(() => {
+    if (!open || kind !== "cellar" || !cutoutOn || !cutoutSupported || !source) {
+      setPreviewCutout(null);
+      setCutoutBusy(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const gen = previewGen.current + 1;
+      previewGen.current = gen;
+      setCutoutBusy(true);
+      setCutoutProgress({ firstDownload: false });
+      void processPhoto({
+        source,
+        sourceWidth: source.width,
+        sourceHeight: source.height,
+        kind: "cellar",
+        scale,
+        offsetX,
+        offsetY,
+        filterOn: filterOn && filterSupported,
+        mascotOn: false,
+        cutoutOn: true,
+        onCutoutProgress: setCutoutProgress,
+      }).then((processed) => {
+        if (previewGen.current !== gen) {
+          URL.revokeObjectURL(processed.previewUrl);
+          return;
+        }
+        if (processed.blob.type !== "image/webp") {
+          URL.revokeObjectURL(processed.previewUrl);
+          setPreviewCutout(null);
+          setCutoutBusy(false);
+          return;
+        }
+        const image = new Image();
+        image.onload = () => {
+          if (previewGen.current !== gen) {
+            URL.revokeObjectURL(processed.previewUrl);
+            return;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = output.width;
+          canvas.height = output.height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(image, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(processed.previewUrl);
+          setPreviewCutout(canvas);
+          setCutoutBusy(false);
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(processed.previewUrl);
+          if (previewGen.current === gen) {
+            setPreviewCutout(null);
+            setCutoutBusy(false);
+          }
+        };
+        image.src = processed.previewUrl;
+      });
+    }, 500);
+    return () => {
+      window.clearTimeout(timer);
+      previewGen.current += 1;
+    };
+  }, [
+    cutoutOn,
+    cutoutSupported,
+    filterOn,
+    filterSupported,
+    kind,
+    offsetX,
+    offsetY,
+    open,
+    output.height,
+    output.width,
+    scale,
+    source,
+  ]);
+
   const drawPreview = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !source) {
@@ -88,6 +176,11 @@ export function PhotoEdit() {
     canvas.height = output.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (kind === "cellar" && cutoutOn && previewCutout) {
+      ctx.drawImage(previewCutout, 0, 0, canvas.width, canvas.height);
       return;
     }
     const crop = computeCoverCrop({
@@ -107,10 +200,6 @@ export function PhotoEdit() {
     }
     rawCtx.drawImage(source, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, raw.width, raw.height);
     const framed = filterOn && filterSupported ? applyPreset(raw, presetForKind(kind, true)) : raw;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (kind === "cellar" && cutoutOn) {
-      paintCheckerboard(ctx, canvas.width, canvas.height);
-    }
     ctx.drawImage(framed, 0, 0);
   }, [
     aspect,
@@ -122,6 +211,7 @@ export function PhotoEdit() {
     offsetY,
     output.height,
     output.width,
+    previewCutout,
     scale,
     source,
   ]);
@@ -136,12 +226,14 @@ export function PhotoEdit() {
 
   const ratioClass = kind === "cellar" ? "photo-edit-frame-bottle" : "photo-edit-frame-log";
   const filterLabel = kind === "cellar" ? "色補正: セラー" : "色補正: 食卓";
+  const busy = processing || cutoutBusy;
 
   async function onUse() {
     if (!source || processing) {
       return;
     }
     setProcessing(true);
+    setCutoutProgress(null);
     try {
       const processed = await processPhoto({
         source,
@@ -154,6 +246,7 @@ export function PhotoEdit() {
         filterOn: filterOn && filterSupported,
         mascotOn: kind !== "cellar" && mascotOn,
         cutoutOn: kind === "cellar" && cutoutOn && cutoutSupported,
+        onCutoutProgress: setCutoutProgress,
       });
       if (
         kind === "cellar" &&
@@ -163,11 +256,13 @@ export function PhotoEdit() {
       ) {
         setCutoutOn(false);
         setCutoutPref(false);
+        setPreviewCutout(null);
         setCutoutMessage("うまく抜けませんでした。長方形のまま保存します");
       }
       applyProcessed(processed);
     } finally {
       setProcessing(false);
+      setCutoutProgress(null);
     }
   }
 
@@ -247,6 +342,18 @@ export function PhotoEdit() {
               <Mascot pose="surprised" size={64} aria-hidden />
             </span>
           ) : null}
+          {kind === "cellar" && cutoutOn && (cutoutBusy || processing) ? (
+            <div className="photo-edit-cutout-status">
+              <span className="photo-edit-cutout-spinner" aria-hidden />
+              <p>切り抜き中…</p>
+              {cutoutProgress?.firstDownload ? (
+                <p>
+                  初回のみ数十 MB を取得します
+                  {cutoutProgress.percent !== undefined ? ` ${cutoutProgress.percent}%` : ""}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
       {cutoutMessage ? <p className="photo-edit-note">{cutoutMessage}</p> : null}
@@ -279,6 +386,9 @@ export function PhotoEdit() {
               setCutoutOn(value);
               setCutoutPref(value);
               setCutoutMessage(null);
+              if (!value) {
+                setPreviewCutout(null);
+              }
             }}
           />
         ) : null}
@@ -287,9 +397,9 @@ export function PhotoEdit() {
         <Button
           type="button"
           onClick={() => void onUse()}
-          disabled={!source || Boolean(decodeError) || processing}
+          disabled={!source || Boolean(decodeError) || busy}
         >
-          {processing ? "処理中" : "使う"}
+          {busy ? "処理中" : "使う"}
         </Button>
       </div>
     </div>
@@ -319,16 +429,6 @@ function Chip({
       {label}
     </button>
   );
-}
-
-function paintCheckerboard(ctx: CanvasRenderingContext2D, width: number, height: number) {
-  const size = 16;
-  for (let y = 0; y < height; y += size) {
-    for (let x = 0; x < width; x += size) {
-      ctx.fillStyle = ((x + y) / size) % 2 === 0 ? "#d9d4cb" : "#f4efe6";
-      ctx.fillRect(x, y, size, size);
-    }
-  }
 }
 
 function distanceBetween(a: { x: number; y: number }, b: { x: number; y: number }): number {

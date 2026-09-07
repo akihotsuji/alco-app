@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 4 セラー管理 |
-| ステータス | **未着手** |
+| ステータス | **完了** |
 | 要件 | ボトル写真の背景を端末内で除去し、ガラス棚の上に本物のシルエットで立たせる |
 | ソース | オーナー決定（2026-09-05）。画面は [spec/screen-designs/04-cellar.md](../../spec/screen-designs/04-cellar.md) 陳列の写真、処理は [07-photo-capture.md](../../spec/screen-designs/07-photo-capture.md) P5b |
 
@@ -21,7 +21,7 @@
 
 **対象**
 
-- `src/client/lib/photo/remove-background.ts`（ライブラリを隔離。候補 `@imgly/background-removal`）
+- `src/client/lib/photo/remove-background.ts`（ライブラリを隔離。`onnxruntime-web` + U2-Net-P。`@imgly/background-removal` は AGPL のため不採用）
 - 切り抜き結果を 2:3 透過キャンバスに下端揃えで配置し、足元に楕円の落ち影を焼き込む純粋関数
 - `photo-edit` の P5b トグル、処理中 UI、初回モデル DL の進捗、失敗時のフォールバック文言
 - モデルの配布先（同一オリジン `/models/` か CDN）。CDN なら CSP `connect-src` 更新
