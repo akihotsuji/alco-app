@@ -40,9 +40,30 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
   });
 
   it("切り抜く前の JPEG を先に呼び出し元へ渡し、ラベル読み取りを背景除去と並列に始められる", () => {
-    expect(source).toContain('onRecognizeJpeg: kind === "cellar" ? offerRecognizeJpeg : undefined');
+    expect(source).toContain(
+      'onRecognizeJpeg: kind === "cellar" || kind === "log" ? offerRecognizeJpeg : undefined',
+    );
     expect(context).toContain("pendingRecognizeJpeg");
     expect(context).toContain("offerRecognizeJpeg");
     expect(context).toContain("setPendingRecognizeJpeg(null)");
+  });
+
+  it("セラーの処理中はマスコットと『この写真を切り抜いています』で伝える", () => {
+    expect(source).toContain('<Mascot pose="surprised" size={72} aria-hidden />');
+    expect(source).toContain("この写真を切り抜いています");
+    expect(source).toContain("この写真を変換しています");
+    expect(source).toContain('"切り抜き中"');
+    expect(source).not.toContain('"処理中"');
+  });
+
+  it("まとめて追加の「使う」は同じタップで次のカメラを開き、処理は裏で進める（G8）", () => {
+    expect(source).toContain('pickImage("camera")');
+    expect(source).toContain("applyProcessed(processed, { keepOpen: Boolean(nextFile) })");
+    expect(source).toContain("loadBurstFile(nextFile)");
+    expect(source).toContain("BOTTLE_BATCH_MESSAGES.burstProcessing(collectedCount)");
+    expect(context).toContain("PhotoBurstSession");
+    expect(context).toContain("keepOpen");
+    expect(context).toContain("loadBurstFile");
+    expect(context).toContain("ingestCollected");
   });
 });

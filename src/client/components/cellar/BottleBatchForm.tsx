@@ -7,6 +7,7 @@ import { useSetHeaderOverride } from "@/client/components/layout/header-override
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
+import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
@@ -29,6 +30,7 @@ import {
   arrangedToastMessage,
   BOTTLE_COUNT_MAX,
   BOTTLE_COUNT_MIN,
+  BOTTLE_FIELD_LABELS,
   BOTTLE_NAME_MAX_LENGTH,
   BOTTLE_TEXT_MAX_LENGTH,
   formatBottleCount,
@@ -48,7 +50,9 @@ export function BottleBatchForm() {
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const total = batchTotalCount(batch.rows);
-  const canSubmit = canSubmitBatch(batch.rows) && !batch.submitting;
+  const libraryBusy = batch.libraryProgress !== null;
+  const formBusy = batch.submitting || libraryBusy;
+  const canSubmit = canSubmitBatch(batch.rows) && !formBusy;
 
   useSetHeaderOverride({
     titleMuted: batch.rows.length > 0 ? formatBottleCount(total) : undefined,
@@ -127,7 +131,7 @@ export function BottleBatchForm() {
             key={row.key}
             row={row}
             index={index}
-            disabled={batch.submitting}
+            disabled={formBusy}
             onPatch={(patch) => batch.patchRow(row.key, patch)}
             onToggleDetails={() => batch.toggleDetails(row.key)}
             onEditPhoto={() => void batch.editPhoto(row.key)}
@@ -136,12 +140,21 @@ export function BottleBatchForm() {
           />
         ))}
       </ol>
+      {batch.libraryProgress ? (
+        <p className="bottle-batch-recognize" role="status">
+          <Mascot pose="surprised" size={32} aria-hidden />
+          {BOTTLE_BATCH_MESSAGES.libraryProgress(
+            batch.libraryProgress.current,
+            batch.libraryProgress.total,
+          )}
+        </p>
+      ) : null}
       <div className="bottle-batch-add">
         <Button
           type="button"
           variant="secondary"
           className="bottle-batch-capture"
-          disabled={!batch.canAdd || batch.submitting}
+          disabled={!batch.canAdd || formBusy}
           onClick={() => void batch.addPhoto("camera")}
         >
           <Camera size={20} aria-hidden />
@@ -150,10 +163,10 @@ export function BottleBatchForm() {
         <button
           type="button"
           className="header-text-link bottle-batch-library"
-          disabled={!batch.canAdd || batch.submitting}
-          onClick={() => void batch.addPhoto("library")}
+          disabled={!batch.canAdd || formBusy}
+          onClick={() => void batch.addLibraryPhotos()}
         >
-          {IMAGE_PICK_LABELS.library}
+          {IMAGE_PICK_LABELS.libraryMultiple}
         </button>
       </div>
       {!batch.canAdd ? <p className="field-hint">{BOTTLE_BATCH_MESSAGES.rowLimit}</p> : null}
@@ -333,10 +346,11 @@ function BatchRowCard({
           />
           <DetailField
             id={`${id}-vintage`}
-            label="年"
+            label={BOTTLE_FIELD_LABELS.vintage}
             value={row.form.vintage}
             inputMode="numeric"
             placeholder="NV"
+            layout="inline"
             disabled={disabled}
             error={errors.vintage}
             aiMarked={marks.has("vintage")}
@@ -387,6 +401,7 @@ function DetailField({
   inputMode,
   placeholder,
   disabled,
+  layout = "stack",
   aiMarked = false,
 }: {
   id: string;
@@ -398,10 +413,11 @@ function DetailField({
   inputMode?: "numeric";
   placeholder?: string;
   disabled: boolean;
+  layout?: "stack" | "inline";
   aiMarked?: boolean;
 }) {
   return (
-    <div className="log-form-section">
+    <div className={layout === "inline" ? "field-inline" : "log-form-section"}>
       <label className="field-label" htmlFor={id}>
         {label}
       </label>
