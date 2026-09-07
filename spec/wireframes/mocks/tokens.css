@@ -42,6 +42,7 @@
   --header-h: 56px;
   --tab-h: 72px;
   --tab-center-size: 60px;
+  --tab-center-lift: 12px;
   /* 1-08 キャラクター（テーマで変えない） */
   --mascot-wine: #8e2f3c;
   --mascot-wine-light: #b34a5a;
