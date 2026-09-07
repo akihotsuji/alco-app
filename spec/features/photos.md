@@ -13,7 +13,8 @@
 
 | 関数 | 役割 |
 |---|---|
-| `pickImage` | `source: "camera" \| "library"`。撮影は `capture=environment`、ライブラリは `capture` なし。キャンセルなら overlay を開かない |
+| `pickImage` / `pickImages` | `source: "camera" \| "library"`。撮影は `capture=environment`、ライブラリは `capture` なし。ライブラリは `multiple` 可（まとめて追加）。キャンセルなら overlay を開かない |
+| `processCellarFile` | まとめて追加のライブラリ複数選択用。photo-edit を挟まず中央・拡縮 1 でセラー処理する |
 | `decodeImage` | `createImageBitmap` + EXIF orientation。長辺 2560 超は先に縮小 |
 | `computeCoverCrop` / `cropResize` | 4:5 / 2:3、拡縮 1.0〜3.0、長辺 1280 |
 | `applyPreset` | `table` / `cellar` / `none`。`ctx.filter` 未対応ならスキップ |

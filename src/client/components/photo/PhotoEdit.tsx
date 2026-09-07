@@ -4,6 +4,7 @@ import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx"
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
+import { BOTTLE_BATCH_MESSAGES } from "@/client/lib/bottle-batch.ts";
 import { applyPreset } from "@/client/lib/photo/apply-preset.ts";
 import { cutoutFailedUserMessage } from "@/client/lib/photo/cutout-result.ts";
 import { prefersReducedMotion, supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
@@ -13,7 +14,7 @@ import {
   computeCoverCrop,
   outputSizeForAspect,
 } from "@/client/lib/photo/geometry.ts";
-import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
+import { IMAGE_PICK_LABELS, pickImage } from "@/client/lib/photo/pick-image.ts";
 import {
   presetForKind,
   processPhoto,
@@ -44,6 +45,10 @@ export function PhotoEdit() {
     retake,
     applyProcessed,
     offerRecognizeJpeg,
+    burstActive,
+    collectedCount,
+    canCollectMore,
+    loadBurstFile,
   } = usePhotoEdit();
   const [scale, setScale] = useState(1);
   const [offsetX, setOffsetX] = useState(0);
@@ -231,6 +236,9 @@ export function PhotoEdit() {
     if (!source || processing) {
       return;
     }
+    // 「使う」の同じタップで次のカメラを開く（切り抜き完了を待たない。G8）
+    const nextPickPromise =
+      burstActive && canCollectMore() ? pickImage("camera") : Promise.resolve<File | null>(null);
     setProcessing(true);
     setCutoutProgress(null);
     try {
@@ -255,7 +263,11 @@ export function PhotoEdit() {
         setPreviewCutout(null);
         setCutoutMessage(cutoutFailedUserMessage(processed.cutout.reason));
       }
-      applyProcessed(processed);
+      const nextFile = await nextPickPromise;
+      applyProcessed(processed, { keepOpen: Boolean(nextFile) });
+      if (nextFile) {
+        await loadBurstFile(nextFile);
+      }
     } finally {
       setProcessing(false);
       setCutoutProgress(null);
@@ -355,6 +367,11 @@ export function PhotoEdit() {
           ) : null}
         </div>
       </div>
+      {burstActive && collectedCount > 0 ? (
+        <p className="photo-edit-note" role="status">
+          {BOTTLE_BATCH_MESSAGES.burstProcessing(collectedCount)}
+        </p>
+      ) : null}
       {cutoutMessage ? <p className="photo-edit-note">{cutoutMessage}</p> : null}
       {!filterSupported ? <p className="photo-edit-note">この端末では色補正を使えません</p> : null}
       <div className="photo-edit-toggles">

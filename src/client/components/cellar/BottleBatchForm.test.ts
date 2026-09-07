@@ -23,13 +23,14 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).not.toContain("bottle-memo");
   });
 
-  it("「使う」の直後にカメラを開き直さず、「次を撮る」で 1 本ずつ撮る（G8）", () => {
+  it("「次を撮る」は連続撮影、「ライブラリから（複数枚）」は複数選択（G8 / G8b）", () => {
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.captureNext(remainingBatchRows(batch.rows))");
-    expect(source).toContain("disabled={!batch.canAdd || batch.submitting}");
+    expect(source).toContain("disabled={!batch.canAdd || formBusy}");
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.rowLimit");
+    expect(source).toContain("BOTTLE_BATCH_MESSAGES.libraryProgress");
     expect(source).toContain('batch.addPhoto("camera")');
-    expect(source).toContain('batch.addPhoto("library")');
-    expect(source).toContain("IMAGE_PICK_LABELS.library");
+    expect(source).toContain("batch.addLibraryPhotos()");
+    expect(source).toContain("IMAGE_PICK_LABELS.libraryMultiple");
   });
 
   it("全成功で /cellar へ replace + トースト + M-32、一部失敗は行を残して上部に汎用文（G9）", () => {

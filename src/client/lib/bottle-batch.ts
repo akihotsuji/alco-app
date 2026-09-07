@@ -19,6 +19,8 @@ export const BOTTLE_BATCH_MESSAGES = {
   partialFailure: (failed: number) => `${failed} 行を並べられませんでした。もう一度お試しください`,
   captureFirst: "撮る",
   captureNext: (remaining: number) => `次を撮る（あと ${remaining} 本）`,
+  libraryProgress: (current: number, total: number) => `${current} / ${total} 枚を変換しています`,
+  burstProcessing: (count: number) => `${count} 本を裏で処理しています`,
   discardBody: "入力した内容は保存されず、撮った写真も削除されます",
 } as const;
 
@@ -55,6 +57,11 @@ export function canAddBatchRow(rows: readonly BottleBatchRow[]): boolean {
 
 export function remainingBatchRows(rows: readonly BottleBatchRow[]): number {
   return Math.max(0, BOTTLE_BATCH_MAX_ROWS - rows.length);
+}
+
+/** 連続撮影で確保済みの枠（既存行 + 今の写真 + 次の予約）が上限未満か */
+export function canReserveBatchRow(reservedCount: number): boolean {
+  return reservedCount < BOTTLE_BATCH_MAX_ROWS;
 }
 
 /** 写真が来た行を追加、または同じ key の写真を置き換える（再編集・再試行） */

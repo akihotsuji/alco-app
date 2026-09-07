@@ -48,7 +48,9 @@ export function BottleBatchForm() {
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const total = batchTotalCount(batch.rows);
-  const canSubmit = canSubmitBatch(batch.rows) && !batch.submitting;
+  const libraryBusy = batch.libraryProgress !== null;
+  const formBusy = batch.submitting || libraryBusy;
+  const canSubmit = canSubmitBatch(batch.rows) && !formBusy;
 
   useSetHeaderOverride({
     titleMuted: batch.rows.length > 0 ? formatBottleCount(total) : undefined,
@@ -127,7 +129,7 @@ export function BottleBatchForm() {
             key={row.key}
             row={row}
             index={index}
-            disabled={batch.submitting}
+            disabled={formBusy}
             onPatch={(patch) => batch.patchRow(row.key, patch)}
             onToggleDetails={() => batch.toggleDetails(row.key)}
             onEditPhoto={() => void batch.editPhoto(row.key)}
@@ -136,12 +138,21 @@ export function BottleBatchForm() {
           />
         ))}
       </ol>
+      {batch.libraryProgress ? (
+        <p className="bottle-batch-recognize" role="status">
+          <span className="recognize-spinner" aria-hidden />
+          {BOTTLE_BATCH_MESSAGES.libraryProgress(
+            batch.libraryProgress.current,
+            batch.libraryProgress.total,
+          )}
+        </p>
+      ) : null}
       <div className="bottle-batch-add">
         <Button
           type="button"
           variant="secondary"
           className="bottle-batch-capture"
-          disabled={!batch.canAdd || batch.submitting}
+          disabled={!batch.canAdd || formBusy}
           onClick={() => void batch.addPhoto("camera")}
         >
           <Camera size={20} aria-hidden />
@@ -150,10 +161,10 @@ export function BottleBatchForm() {
         <button
           type="button"
           className="header-text-link bottle-batch-library"
-          disabled={!batch.canAdd || batch.submitting}
-          onClick={() => void batch.addPhoto("library")}
+          disabled={!batch.canAdd || formBusy}
+          onClick={() => void batch.addLibraryPhotos()}
         >
-          {IMAGE_PICK_LABELS.library}
+          {IMAGE_PICK_LABELS.libraryMultiple}
         </button>
       </div>
       {!batch.canAdd ? <p className="field-hint">{BOTTLE_BATCH_MESSAGES.rowLimit}</p> : null}
