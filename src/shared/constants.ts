@@ -118,6 +118,31 @@ export const PHOTO_CUTOUT_ORT_WASM_PATH = "/models/ort/";
 export const PHOTO_CUTOUT_ORT_WASM_FILE = "ort-wasm-simd-threaded.wasm";
 export const PHOTO_CUTOUT_MEAN = [0.485, 0.456, 0.406] as const;
 export const PHOTO_CUTOUT_STD = [0.229, 0.224, 0.225] as const;
+/**
+ * マスク後処理と品質判定（Issue #48 B-1〜B-3）。値は 0..255 の alpha か比率。
+ * 初期値は人工マスクと手元の判定で決めたもの。実機の評価セットで誤判定を記録してから調整する。
+ * 透明瓶・暗色瓶を一律に落とさないよう、判定は「全面 foreground」「両側の端まで foreground」だけに絞る。
+ */
+export const PHOTO_CUTOUT_MASK = {
+  /** これ以下の alpha は背景残りとみなして 0 にする */
+  lowAlpha: 40,
+  /** これ以上の alpha は被写体とみなして 255 にする */
+  highAlpha: 216,
+  /** foreground 全体に対してこの比率未満の連結成分（ゴミ）は消す。最大成分は常に残す */
+  minComponentRatio: 0.02,
+  /** foreground 比率がこれ未満なら被写体なし */
+  minForegroundRatio: 0.01,
+  /** foreground 比率がこれ以上なら背景がほぼ残っている（切り抜きになっていない） */
+  maxForegroundRatio: 0.85,
+  /** 左右両端の接触率が両方これ以上なら背景を被写体と誤認している */
+  maxSideContact: 0.6,
+  /** 外接矩形・foreground 判定に使う alpha 閾値 */
+  subjectAlpha: 128,
+  /** 切り抜き配置の外接矩形を取る alpha 閾値（縮尺後のにじみを除く） */
+  bboxAlpha: 32,
+} as const;
+/** 同じ画像・同じ切り抜き条件のマスクを再利用する件数（1 件 ≒ 100KB） */
+export const PHOTO_CUTOUT_MASK_CACHE_SIZE = 4;
 
 /** 設定・photo-edit が共有する localStorage キー（spec/screen-designs/07-photo-capture.md） */
 export const PHOTO_PREF_KEYS = {
