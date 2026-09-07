@@ -64,6 +64,8 @@ export type AppRoute = {
   screenId: string;
   parentTab: TabId | null;
   hideTabBar: boolean;
+  /** `home` だけ true。共通ヘッダーと画面内見出しの二重表示を避ける */
+  hideHeader: boolean;
   header: ShellHeader;
   notFound: boolean;
 };
@@ -83,8 +85,9 @@ function found(
   parentTab: TabId,
   header: ShellHeader,
   hideTabBar = false,
+  hideHeader = false,
 ): AppRoute {
-  return { screenId, parentTab, hideTabBar, header, notFound: false };
+  return { screenId, parentTab, hideTabBar, hideHeader, header, notFound: false };
 }
 
 function backHeader(title: string, fallback: string, right: HeaderRight = SPACER): ShellHeader {
@@ -110,6 +113,7 @@ function notFoundRoute(): AppRoute {
     screenId: "not-found",
     parentTab: null,
     hideTabBar: false,
+    hideHeader: false,
     header: {
       title: "見つかりません",
       left: SPACER,
@@ -151,7 +155,7 @@ export function resolveAppRoute(
   const today = tokyoToday(now);
 
   if (segments.length === 0) {
-    return found("home", "home", { title: "ホーム", left: SPACER, right: SPACER });
+    return found("home", "home", { title: "ホーム", left: SPACER, right: SPACER }, false, true);
   }
 
   if (segments[0] === "summary" && segments.length === 2) {

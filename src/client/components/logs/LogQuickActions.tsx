@@ -1,12 +1,11 @@
-import { Camera } from "lucide-react";
+import { Camera, Plus } from "lucide-react";
 import { Link } from "react-router";
 import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
-import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { cn } from "@/client/lib/utils.ts";
 
 type LogQuickActionsProps = {
   newHref: string;
-  /** カメラ円ボタンの挙動。`onCamera` があれば「撮ってから入力へ」（02-home H9）、無ければ `cameraHref` へ遷移 */
+  /** カメラボタンの挙動。`onCamera` があれば「撮ってから入力へ」（02-home H9）、無ければ `cameraHref` へ遷移 */
   onCamera?: () => void;
   cameraHref?: string;
   disabled?: boolean;
@@ -26,7 +25,8 @@ export function LogQuickActions({
     <div className="home-actions">
       {disabled ? (
         <Button className="home-log-btn" type="button" disabled>
-          記録する
+          <Plus size={20} aria-hidden />
+          お酒を記録する
         </Button>
       ) : (
         <Link
@@ -34,41 +34,44 @@ export function LogQuickActions({
           to={newHref}
           onClick={onPrimary}
         >
-          記録する
+          <Plus size={20} aria-hidden />
+          お酒を記録する
         </Link>
       )}
-      <CameraButton onCamera={onCamera} cameraHref={cameraHref} disabled={disabled} />
+      <PhotoButton onCamera={onCamera} cameraHref={cameraHref} disabled={disabled} />
     </div>
   );
 }
 
-function CameraButton({
+function PhotoButton({
   onCamera,
   cameraHref,
   disabled,
 }: Pick<LogQuickActionsProps, "onCamera" | "cameraHref" | "disabled">) {
-  const label = "写真を撮って記録";
+  const label = "写真から記録";
+  const className = cn(buttonVariants({ variant: "secondary" }), "home-photo-btn");
   if (disabled) {
     return (
-      <IconButton label={label} size="icon-lg" disabled>
-        <Camera size={22} />
-      </IconButton>
+      <Button className="home-photo-btn" type="button" variant="secondary" disabled>
+        <Camera size={20} aria-hidden />
+        {label}
+      </Button>
     );
   }
   if (onCamera) {
     return (
-      <IconButton label={label} size="icon-lg" onClick={onCamera}>
-        <Camera size={22} />
-      </IconButton>
+      <button type="button" className={className} onClick={onCamera}>
+        <Camera size={20} aria-hidden />
+        {label}
+      </button>
     );
   }
   if (cameraHref) {
     return (
-      <IconButton label={label} size="icon-lg" asChild>
-        <Link to={cameraHref}>
-          <Camera size={22} />
-        </Link>
-      </IconButton>
+      <Link className={className} to={cameraHref}>
+        <Camera size={20} aria-hidden />
+        {label}
+      </Link>
     );
   }
   return null;

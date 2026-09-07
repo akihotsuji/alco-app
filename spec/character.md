@@ -61,7 +61,7 @@ viewBox `0 0 120 160`。比率は 3:4。
 |---|---|---|---|---|---|
 | `default` | [mascot-default.svg](assets/character/mascot-default.svg) | 正面、黒目は内寄り | 水平 | なし | ホーム（記録あり）、ログイン、設定 |
 | `surprised` | [mascot-surprised.svg](assets/character/mascot-surprised.svg) | 見開く、黒目は小さく **左上**を見る | 傾いて跳ねる（滴 2） | 閃き 3 本 | **写真合成の標準**、写真編集画面、セラーの空状態 |
-| `rest` | [mascot-rest.svg](assets/character/mascot-rest.svg) | 閉じる（︶） | 少なめ | z z | ホーム（記録 0 = 休肝）、週マスの休肝日ツールチップは使わない |
+| `rest` | [mascot-rest.svg](assets/character/mascot-rest.svg) | 閉じる（︶） | 少なめ | z z | ホーム（未記録）、週マスの休肝日ツールチップは使わない |
 | `cheer` | [mascot-cheer.svg](assets/character/mascot-cheer.svg) | 細め、黒目は上 | 揺れて盛り上がる | 星 2 | 保存成功トーストの左端、1 タップ記録直後の 300ms |
 
 ポーズは 4 つで凍結する。増やすときは本ファイルを更新しオーナー承認。
@@ -77,7 +77,7 @@ viewBox `0 0 120 160`。比率は 3:4。
 | 画面 | ポーズ | サイズ | 位置 | 出す条件 |
 |---|---|---|---|---|
 | `auth-login` / `auth-signup` | default | 120px | カードの上、中央 | 常時 |
-| `home` | default / rest | 72px | 今日カードの右下に「覗く」（カード外へ 12px はみ出す） | 記録あり = default、記録 0 = rest |
+| `home` | default / rest | 72px | 今日カードの右側（カード内。数値・文言に重ねない） | 記録あり = default、未記録 = rest |
 | `home` 1 タップ直後 | cheer | 72px | 同位置 | 300ms だけ差し替え、その後 default |
 | トースト（保存成功） | cheer | 32px | 文言の左 | 保存成功時のみ。エラートーストには出さない |
 | 空状態（各一覧） | surprised（セラー）/ default（他） | 96px | 説明文の上 | 一覧 0 件 |

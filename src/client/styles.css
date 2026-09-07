@@ -1818,6 +1818,19 @@ html[data-theme="dark"] {
   gap: var(--space-4);
 }
 
+.home-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.home-heading-title {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 .home-date {
   margin: 0;
   font-size: 13px;
@@ -1825,82 +1838,87 @@ html[data-theme="dark"] {
   color: var(--muted);
 }
 
-.today-card {
-  position: relative;
-  display: block;
-  padding: var(--space-4) var(--space-4) 28px;
-  color: inherit;
-  overflow: visible;
+.home-record-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.today-card-main {
+.home-today-card,
+.home-week-card {
+  box-shadow: var(--shadow-outset-sm);
+}
+
+.home-today-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  grid-template-rows: auto 1fr;
+  column-gap: var(--space-3);
+  padding: var(--space-4);
   color: inherit;
   text-decoration: none;
 }
 
-.today-card-main::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+.home-today-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
   border-radius: var(--radius-card);
 }
 
-.today-card-main:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: var(--radius);
-}
-
-.today-card-head {
-  min-height: var(--tap-min);
+.home-today-head {
+  grid-column: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--muted);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.home-today-title {
   font-size: 13px;
   font-weight: 600;
+  color: var(--muted);
 }
 
-.today-week-link {
-  position: relative;
-  z-index: 1;
-  min-height: var(--tap-min);
+.home-status-pill {
   display: inline-flex;
   align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  box-shadow: var(--shadow-inset-sm);
+  flex-shrink: 0;
+  transition: opacity var(--dur-state) var(--ease-out);
+}
+
+.home-status-logged {
   color: var(--primary);
-  text-decoration: none;
 }
 
-.today-week-link:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: var(--radius);
-}
-
-/* H3 / H4: 杯は左、g は右端に寄せて 2 つのスコアをはっきり分ける（モック home.png。Issue #59） */
-.today-scores {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.today-score {
+.home-today-body {
+  grid-column: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-3);
 }
 
-.today-score-end {
-  align-items: flex-end;
-  text-align: right;
-}
-
-/* H5: 休肝ピルは杯数の右、数字の中央高さに並べる */
-.today-score-row {
-  display: inline-flex;
+.home-today-metrics {
+  display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
+}
+
+.home-today-count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  flex-shrink: 0;
 }
 
 .today-score-num {
@@ -1910,9 +1928,239 @@ html[data-theme="dark"] {
   color: var(--score);
 }
 
-.today-score-unit {
+.home-today-count-unit {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.home-today-divider {
+  width: 1px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--neu-dark);
+}
+
+.home-today-alcohol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.home-today-alcohol-label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.home-today-alcohol-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: var(--text-score-sm);
+  font-weight: 650;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.home-today-alcohol-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.home-today-note {
+  margin: 0;
   font-size: 13px;
   color: var(--muted);
+}
+
+.today-mascot {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  justify-self: center;
+  pointer-events: none;
+}
+
+.today-mascot[data-cheer="1"] {
+  animation: home-mascot-cheer var(--dur-open) var(--ease-out);
+}
+
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.home-log-btn,
+.home-photo-btn {
+  width: 100%;
+  gap: var(--space-2);
+}
+
+.home-log-btn-enter {
+  animation: home-primary-enter var(--dur-enter) var(--ease-out);
+}
+
+.home-week {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.home-week-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.home-week-title {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.home-week-link {
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.home-week-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+.home-week-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  column-gap: var(--space-1);
+}
+
+.home-week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  min-width: 0;
+  padding: var(--space-1) 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+}
+
+.home-week-day:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+.home-week-day:disabled {
+  cursor: default;
+}
+
+.home-week-dow {
+  font-size: var(--text-caption);
+  line-height: 1;
+  color: var(--muted);
+}
+
+.home-week-num {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.home-week-num-today {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.home-week-mark {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+}
+
+.home-week-mark-empty {
+  background: var(--foreground);
+  opacity: 0.16;
+}
+
+.home-week-mark-filled {
+  background: var(--primary);
+}
+
+.home-week-mark-filling {
+  overflow: hidden;
+  background: transparent;
+}
+
+.home-week-mark-filling::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--primary);
+  clip-path: inset(100% 0 0);
+  animation: week-fill var(--dur-fill) var(--ease-fill) forwards;
+}
+
+.home-week-day-future .home-week-dow,
+.home-week-day-future .home-week-num {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.home-week-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-caption);
+  color: var(--muted);
+}
+
+.home-week-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.home-week-legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+}
+
+.home-week-legend-today {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.home-week-skeleton {
+  height: 132px;
 }
 
 .rest-pill {
@@ -1925,111 +2173,6 @@ html[data-theme="dark"] {
   font-size: 13px;
   font-weight: 600;
   box-shadow: var(--shadow-inset-sm);
-}
-
-/*
-  H6: 曜日ラベルはマスの上に出し、7 列を左端からキャラ（右下 72px）の手前まで均等に配る。
-  マスの中に文字を詰めない（28px に 10px 文字は読めない。Issue #59）
-*/
-.week-dots {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(28px, 1fr));
-  column-gap: 10px;
-  margin-top: var(--space-4);
-  padding-right: 64px;
-}
-
-.week-day {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  text-align: center;
-  gap: var(--space-2);
-}
-
-.week-day-label {
-  font-size: var(--text-caption);
-  line-height: 1;
-  color: var(--muted);
-}
-
-.week-day-future {
-  opacity: 0.45;
-}
-
-.week-dot {
-  position: relative;
-  width: 100%;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  box-shadow: var(--shadow-inset-sm);
-  display: grid;
-  place-items: center;
-  color: inherit;
-  font: inherit;
-  text-decoration: none;
-  overflow: hidden;
-}
-
-.week-dot-today {
-  box-shadow:
-    var(--shadow-inset-sm),
-    0 0 0 2px var(--primary);
-}
-
-.week-dot-filled {
-  background: var(--primary);
-  box-shadow: none;
-}
-
-.week-dot-filled.week-dot-today {
-  box-shadow:
-    0 0 0 2px var(--background),
-    0 0 0 4px var(--primary);
-}
-
-.week-dot-filling {
-  background: transparent;
-}
-
-.week-dot-filling::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: var(--primary);
-  clip-path: inset(100% 0 0);
-  animation: week-fill var(--dur-fill) var(--ease-fill) forwards;
-}
-
-.today-mascot {
-  position: absolute;
-  right: 8px;
-  bottom: -12px;
-  pointer-events: none;
-}
-
-.today-mascot[data-cheer="1"] {
-  animation: home-mascot-cheer var(--dur-open) var(--ease-out);
-}
-
-.home-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.home-log-btn {
-  flex: 1;
-}
-
-.home-log-btn-enter {
-  animation: home-primary-enter var(--dur-enter) var(--ease-out);
 }
 
 .home-mydrinks-head {

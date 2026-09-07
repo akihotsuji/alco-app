@@ -1,28 +1,26 @@
-import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { AnimatedNumber } from "@/client/components/feedback/AnimatedNumber.tsx";
 import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { HomeWeekStrip } from "@/client/components/home/HomeWeekStrip.tsx";
+import { TodaySummaryCard } from "@/client/components/home/TodaySummaryCard.tsx";
 import { LogQuickActions } from "@/client/components/logs/LogQuickActions.tsx";
 import { MyDrinkQuickList } from "@/client/components/logs/MyDrinkQuickList.tsx";
-import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Card } from "@/client/components/ui/card.tsx";
 import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
 import { useDrinkLogSummary } from "@/client/hooks/use-drink-log-summary.ts";
 import { useMyDrinks } from "@/client/hooks/use-my-drinks.ts";
-import { logFormHrefs, summaryWeekHref } from "@/client/lib/app-routes.ts";
+import { logFormHrefs } from "@/client/lib/app-routes.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
-import { displayAlcoholGrams } from "@/shared/alcohol.ts";
-import { formatHomeDateLabel, tokyoToday, WEEKDAY_LABELS_MON_SUN } from "@/shared/tokyo-date.ts";
+import { formatHomeDateLabel, tokyoToday } from "@/shared/tokyo-date.ts";
 
 let homePrimaryEntered = false;
 
 export function HomePage() {
   const today = tokyoToday();
-  // H8「記録する」は写真なしで log-new。H9 カメラは中央タブと同じ「撮ってから入力へ」
+  // H8 は写真なしで log-new。H9 は中央タブと同じ「撮ってから入力へ」
   const { newHref } = logFormHrefs();
   const captureLog = useCaptureLog();
   const daySummary = useDrinkLogSummary("day", today);
@@ -68,103 +66,50 @@ export function HomePage() {
     cheerTimer.current = setTimeout(() => setCheering(false), MOTION_MS.open);
   }
 
+  const summaryPending = daySummary.isPending || weekSummary.isPending;
+  const summaryError = daySummary.isError || weekSummary.isError;
+
   return (
     <div className="home-page">
-      <p className="home-date">{formatHomeDateLabel(today)}</p>
-      {daySummary.isPending || weekSummary.isPending ? <CardSkeleton /> : null}
-      {daySummary.isError || weekSummary.isError ? (
-        <Card>
-          <QueryError
-            onRetry={() => {
-              void daySummary.refetch();
-              void weekSummary.refetch();
-            }}
-            retrying={daySummary.isFetching || weekSummary.isFetching}
+      <header className="home-heading">
+        <h1 className="home-heading-title">ホーム</h1>
+        <p className="home-date">{formatHomeDateLabel(today)}</p>
+      </header>
+      <div className="home-record-block">
+        {summaryPending ? <CardSkeleton /> : null}
+        {summaryError ? (
+          <Card>
+            <QueryError
+              onRetry={() => {
+                void daySummary.refetch();
+                void weekSummary.refetch();
+              }}
+              retrying={daySummary.isFetching || weekSummary.isFetching}
+            />
+          </Card>
+        ) : null}
+        {daySummary.data ? (
+          <TodaySummaryCard
+            totalCount={daySummary.data.totalCount}
+            totalAlcoholG={daySummary.data.totalAlcoholG}
+            cheering={cheering}
           />
-        </Card>
+        ) : null}
+        <LogQuickActions
+          newHref={newHref}
+          onCamera={captureLog}
+          primaryEnter={playPrimaryEnter.current}
+          onPrimary={() => haptic("light")}
+        />
+      </div>
+      {summaryPending ? (
+        <div className="skeleton-card home-week-skeleton" role="status">
+          <span className="visually-hidden">読み込み中</span>
+        </div>
       ) : null}
-      {daySummary.data && weekSummary.data ? (
-        <Card className="overflow-visible">
-          <div className="today-card">
-            <div className="today-card-head">
-              <span>今日</span>
-              <Link className="today-week-link" to={summaryWeekHref(today)}>
-                今週
-                <ChevronRight size={16} aria-hidden />
-              </Link>
-            </div>
-            <Link className="today-card-main" to="/logs" aria-label="今日の記録を見る">
-              <div className="today-scores">
-                <div className="today-score">
-                  <span className="today-score-row">
-                    <AnimatedNumber
-                      className="today-score-num"
-                      value={daySummary.data.totalCount}
-                    />
-                    {daySummary.data.totalCount === 0 ? (
-                      <span className="rest-pill">休肝</span>
-                    ) : null}
-                  </span>
-                  <span className="today-score-unit">杯</span>
-                </div>
-                <div className="today-score today-score-end">
-                  <AnimatedNumber
-                    className="today-score-num"
-                    value={displayAlcoholGrams(daySummary.data.totalAlcoholG)}
-                    decimals={1}
-                  />
-                  <span className="today-score-unit">g 純アルコール</span>
-                </div>
-              </div>
-            </Link>
-            <nav className="week-dots" aria-label="今週の記録">
-              {weekSummary.data.days.map((item, index) => {
-                const filled = item.count > 0;
-                const weekday = WEEKDAY_LABELS_MON_SUN[index] ?? "";
-                const className = [
-                  "week-dot",
-                  item.date === today && "week-dot-today",
-                  filled && "week-dot-filled",
-                  item.date === today && todayFilling && "week-dot-filling",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                const label = `${weekday}曜日 ${
-                  item.isFuture ? "未来" : filled ? `${item.count}杯` : "記録なし"
-                }`;
-                return (
-                  <span
-                    key={item.date}
-                    className={item.isFuture ? "week-day week-day-future" : "week-day"}
-                  >
-                    <span className="week-day-label" aria-hidden>
-                      {weekday}
-                    </span>
-                    {item.isFuture ? (
-                      <button type="button" className={className} aria-label={label} disabled />
-                    ) : (
-                      <Link className={className} to={`/logs/${item.date}`} aria-label={label} />
-                    )}
-                  </span>
-                );
-              })}
-            </nav>
-            <span className="today-mascot" data-cheer={cheering ? "1" : undefined}>
-              <Mascot
-                pose={cheering ? "cheer" : daySummary.data.totalCount > 0 ? "default" : "rest"}
-                size={72}
-                aria-hidden
-              />
-            </span>
-          </div>
-        </Card>
+      {weekSummary.data ? (
+        <HomeWeekStrip today={today} days={weekSummary.data.days} todayFilling={todayFilling} />
       ) : null}
-      <LogQuickActions
-        newHref={newHref}
-        onCamera={captureLog}
-        primaryEnter={playPrimaryEnter.current}
-        onPrimary={() => haptic("light")}
-      />
       <div className="home-mydrinks">
         <div className="home-mydrinks-head">
           <h2 className="section-title">マイドリンク</h2>

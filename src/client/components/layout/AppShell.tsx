@@ -82,7 +82,7 @@ function AppShellFrame() {
 
   return (
     <div className={hideTabs ? "app-shell app-shell-no-tabs" : "app-shell"}>
-      <AppHeader header={header} />
+      {route.hideHeader ? null : <AppHeader header={header} />}
       <div ref={contentRef} className={addFab ? "app-content has-add-fab" : "app-content"}>
         <Outlet />
       </div>
