@@ -223,7 +223,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | `?bottleId=` | 事前選択。上と同じ |
 | サーバー | 自分のボトルでなければ 404。`drinkName` / `drinkType` をボトルからコピー（量・度数はリクエストが正） |
 | 解除 | 「なし」。`PATCH { bottleId: null }` でも `drinkName` は残す |
-| ノート | Phase 5。貯蔵庫の本も選べる。スナップショットは data-model 6.4 |
+| ノート | [tasting-note.md](tasting-note.md)。貯蔵庫の本も選べる。スナップショットは data-model 6.4。ノート節 T6 は 5-04 |
 | 開栓 | 記録もノートも作らない・消さない |
 
 ### 3.8 日付の扱い
