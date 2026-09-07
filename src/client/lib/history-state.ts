@@ -221,6 +221,38 @@ export function nextBottleSearchParams(
   return next.toString() === current.toString() ? null : next;
 }
 
+export type CellarToolbarAction =
+  | { type: "setQuery"; q: string }
+  | { type: "selectDrinkType"; drinkType: DrinkType }
+  | { type: "clearDrinkType" }
+  | { type: "clearFilters" };
+
+/** ツールバー操作を URL に写す。変化がなければ null */
+export function applyCellarToolbarParams(
+  current: URLSearchParams,
+  action: CellarToolbarAction,
+): URLSearchParams | null {
+  if (action.type === "setQuery") {
+    return nextBottleSearchParams(current, action.q);
+  }
+  if (action.type === "selectDrinkType") {
+    const next = new URLSearchParams(current);
+    next.set("drinkType", action.drinkType);
+    return next.toString() === current.toString() ? null : next;
+  }
+  if (action.type === "clearDrinkType") {
+    const next = new URLSearchParams(current);
+    next.delete("drinkType");
+    return next.toString() === current.toString() ? null : next;
+  }
+  const next = new URLSearchParams();
+  const view = current.get("view");
+  if (view) {
+    next.set("view", view);
+  }
+  return next.toString() === current.toString() ? null : next;
+}
+
 /** `setSearchParams` の replace で location.state を落とさない */
 export function replaceSearchKeepState(locationState: unknown): { replace: true; state: unknown } {
   return { replace: true, state: locationState ?? null };

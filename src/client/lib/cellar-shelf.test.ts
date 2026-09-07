@@ -6,6 +6,7 @@ import {
   chunkShelfRows,
   groupBottlesByConsumedMonth,
   parseCellarListView,
+  parseDrinkTypeParam,
   rankByCreatedAtDesc,
   resolveCellarListView,
   shelfColumns,
@@ -14,6 +15,7 @@ import {
   typeShelfWidthPx,
   visibleDrinkTypes,
 } from "./cellar-shelf.ts";
+import { applyCellarToolbarParams } from "./history-state.ts";
 
 function item(partial: Partial<BottleItem> & Pick<BottleItem, "id" | "name">): BottleItem {
   return {
@@ -66,6 +68,12 @@ describe("shelfPageLimit / list view / type shelf", () => {
     expect(resolveCellarListView("one", "type")).toBe("one");
   });
 
+  it("未知の drinkType はフィルタなし", () => {
+    expect(parseDrinkTypeParam("wine")).toBe("wine");
+    expect(parseDrinkTypeParam("evil")).toBeUndefined();
+    expect(parseDrinkTypeParam(null)).toBeUndefined();
+  });
+
   it("在庫 0 の種類は出さず、棚板幅は本数分", () => {
     const counts = { ...emptyCountsByType(), wine: 6, whisky: 2 };
     expect(visibleDrinkTypes(counts)).toEqual(["wine", "whisky"]);
@@ -78,6 +86,46 @@ describe("shelfPageLimit / list view / type shelf", () => {
     expect(bottleTileVisual(null, "photo")).toBe("silhouette");
     expect(bottleTileVisual("p1", "cutout")).toBe("cutout");
     expect(bottleTileVisual("p1", "photo")).toBe("photo");
+  });
+});
+
+describe("applyCellarToolbarParams", () => {
+  it("種類選択と検索で一覧が絞られ、解除で戻る", () => {
+    const items = [
+      item({
+        id: "1",
+        name: "山の赤",
+        drinkType: "wine",
+        producer: "山の生産者",
+        status: "sealed",
+      }),
+      item({ id: "2", name: "別の白", drinkType: "wine", status: "sealed" }),
+      item({ id: "3", name: "ラガー", drinkType: "beer", status: "sealed" }),
+    ];
+    let params = new URLSearchParams("view=one");
+    const wine = applyCellarToolbarParams(params, { type: "selectDrinkType", drinkType: "wine" });
+    expect(wine?.get("drinkType")).toBe("wine");
+    expect(wine?.get("view")).toBe("one");
+    params = wine ?? params;
+    expect(itemsMatchingToolbar(items, params).map((row) => row.id)).toEqual(["1", "2"]);
+
+    const searched = applyCellarToolbarParams(params, { type: "setQuery", q: "山の" });
+    params = searched ?? params;
+    expect(itemsMatchingToolbar(items, params).map((row) => row.id)).toEqual(["1"]);
+
+    const clearedType = applyCellarToolbarParams(params, { type: "clearDrinkType" });
+    params = clearedType ?? params;
+    expect(params.get("q")).toBe("山の");
+    expect(params.get("drinkType")).toBeNull();
+    expect(itemsMatchingToolbar(items, params).map((row) => row.id)).toEqual(["1"]);
+
+    const cleared = applyCellarToolbarParams(params, { type: "clearFilters" });
+    expect(cleared?.toString()).toBe("view=one");
+    expect(itemsMatchingToolbar(items, cleared ?? params).map((row) => row.id)).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
   });
 });
 
@@ -131,3 +179,17 @@ describe("groupBottlesByConsumedMonth", () => {
     );
   });
 });
+
+function itemsMatchingToolbar(items: BottleItem[], params: URLSearchParams): BottleItem[] {
+  const q = params.get("q") ?? "";
+  const drinkType = parseDrinkTypeParam(params.get("drinkType"));
+  return items.filter((row) => {
+    if (drinkType && row.drinkType !== drinkType) {
+      return false;
+    }
+    if (!q) {
+      return true;
+    }
+    return row.name.includes(q) || (row.producer ?? "").includes(q);
+  });
+}

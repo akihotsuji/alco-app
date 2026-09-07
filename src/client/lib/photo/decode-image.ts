@@ -1,4 +1,4 @@
-import { PHOTO_DECODE_MAX_EDGE } from "@/shared/constants.ts";
+import { decodeOutputSize } from "./geometry.ts";
 
 export class PhotoDecodeError extends Error {
   constructor() {
@@ -10,14 +10,13 @@ export class PhotoDecodeError extends Error {
 export async function decodeImage(file: Blob): Promise<ImageBitmap> {
   try {
     const first = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const longEdge = Math.max(first.width, first.height);
-    if (longEdge <= PHOTO_DECODE_MAX_EDGE) {
+    const target = decodeOutputSize(first.width, first.height);
+    if (target.width === first.width && target.height === first.height) {
       return first;
     }
-    const scale = PHOTO_DECODE_MAX_EDGE / longEdge;
     const resized = await createImageBitmap(first, {
-      resizeWidth: Math.round(first.width * scale),
-      resizeHeight: Math.round(first.height * scale),
+      resizeWidth: target.width,
+      resizeHeight: target.height,
     });
     first.close();
     return resized;

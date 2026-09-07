@@ -6,7 +6,7 @@ import { useSetHeaderOverride } from "@/client/components/layout/header-override
 import { Button } from "@/client/components/ui/button.tsx";
 import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
-import { formatPriceJpy, vintageLabel } from "@/client/lib/bottle-form.ts";
+import { bottleStatusPill, formatPriceJpy, vintageLabel } from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { bottleConsumeState, rememberShelfEvent } from "@/client/lib/history-state.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
@@ -33,6 +33,7 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
   useSetHeaderOverride({ title: bottle.name });
   const photo = bottle.photos[0];
   const archived = bottle.status === "consumed";
+  const statusPill = bottleStatusPill(bottle);
   const pending = consume.isPending || restore.isPending;
   const summary = [
     DRINK_TYPE_LABELS[bottle.drinkType],
@@ -137,12 +138,10 @@ export function BottleDetail({ bottle, logs }: BottleDetailProps) {
         <span className="shelf-board bottle-hero-shelf" />
       </button>
       <div className="bottle-status-row">
-        {archived && bottle.consumedOn ? (
-          <span className="bottle-status-pill is-consumed">
-            開栓（{formatShortMonthDay(bottle.consumedOn)}）
-          </span>
+        {statusPill.consumed ? (
+          <span className="bottle-status-pill is-consumed">{statusPill.label}</span>
         ) : (
-          <span className="bottle-status-pill">未開栓</span>
+          <span className="bottle-status-pill">{statusPill.label}</span>
         )}
         <p className="bottle-summary">{summary.join(" ・ ")}</p>
       </div>

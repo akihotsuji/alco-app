@@ -139,6 +139,11 @@ describe("bottlesQuerySchema", () => {
     const q = bottlesQuerySchema.safeParse({ q: "x".repeat(101) });
     expect(q.success).toBe(false);
   });
+
+  it("drinkType=evil と未知キー status はエラー", () => {
+    expect(bottlesQuerySchema.safeParse({ drinkType: "evil" }).success).toBe(false);
+    expect(bottlesQuerySchema.safeParse({ status: "evil" }).success).toBe(false);
+  });
 });
 
 describe("emptyJsonBodySchema", () => {

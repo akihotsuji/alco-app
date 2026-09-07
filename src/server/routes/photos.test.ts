@@ -4,7 +4,7 @@ import { bottles, photos } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
-import { makeGif, makeHeic, makeJpeg, makeSvg, makeWebpVp8x } from "../image-fixtures.ts";
+import { makeGif, makeHeic, makeHtml, makeJpeg, makeSvg, makeWebpVp8x } from "../image-fixtures.ts";
 import { createTestApp, createTestUser } from "../test-helpers.ts";
 
 async function session(app: Awaited<ReturnType<typeof createTestApp>>["app"], email: string) {
@@ -72,6 +72,18 @@ describe("POST /api/photos", () => {
     );
     expect(res.status).toBe(201);
     expect(photoMetaSchema.parse(await res.json()).kind).toBe("cutout");
+  });
+
+  it("text/html は 415。申告 MIME は信用せず JPEG の magic なら通す", async () => {
+    const { app } = await createTestApp();
+    const { cookie } = await session(app, "a@example.com");
+    const html = await postPhoto(app, cookie, makeHtml(), {}, "x.html", "text/html");
+    expect(html.status).toBe(415);
+    expect(await html.json()).toEqual({ error: "unsupported_media_type" });
+
+    const spoofed = await postPhoto(app, cookie, makeJpeg(100, 100), {}, "x.html", "text/html");
+    expect(spoofed.status).toBe(201);
+    expect(photoMetaSchema.parse(await spoofed.json()).contentType).toBe("image/jpeg");
   });
 
   it("SVG / GIF / HEIC は 415", async () => {
@@ -198,6 +210,16 @@ describe("GET /api/photos/:id と content", () => {
     const { app } = await createTestApp();
     const res = await app.request("/api/photos/11111111-1111-4111-8111-111111111111/content");
     expect(res.status).toBe(401);
+  });
+
+  it("未認証のメタも 401。存在漏洩しない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const created = await postPhoto(ctx.app, a.cookie, makeJpeg(80, 80));
+    const meta = photoMetaSchema.parse(await created.json());
+    const res = await ctx.app.request(`/api/photos/${meta.id}`);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
   });
 });
 

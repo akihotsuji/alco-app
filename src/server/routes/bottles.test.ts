@@ -216,6 +216,22 @@ describe("POST /api/bottles", () => {
     expect(f.vintage).toEqual([BOTTLE_MESSAGES.vintage]);
     expect(f.priceJpy).toEqual([BOTTLE_MESSAGES.priceJpy]);
   });
+
+  it("未来の購入日は 400。同名は許可する", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const future = await postBottle(ctx.app, a.cookie, { ...BASE, purchasedOn: "2099-01-01" });
+    expect(future.status).toBe(400);
+    expect((await fields(future)).purchasedOn).toEqual([BOTTLE_MESSAGES.purchasedOnFuture]);
+    expect((await postBottle(ctx.app, a.cookie, { name: "同名", drinkType: "wine" })).status).toBe(
+      201,
+    );
+    expect((await postBottle(ctx.app, a.cookie, { name: "同名", drinkType: "wine" })).status).toBe(
+      201,
+    );
+    const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
+    expect(cellar.items.filter((item) => item.name === "同名")).toHaveLength(2);
+  });
 });
 
 describe("GET /api/bottles", () => {
@@ -334,6 +350,50 @@ describe("GET /api/bottles", () => {
     expect(cursor.status).toBe(400);
     expect((await fields(cursor)).cursor).toEqual([BOTTLE_MESSAGES.cursor]);
   });
+
+  it("drinkType=evil / status=evil / 長すぎる q / 範囲外 limit は 400", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const drinkType = await getBottles(ctx.app, a.cookie, "drinkType=evil");
+    expect(drinkType.status).toBe(400);
+    expect((await fields(drinkType)).drinkType).toBeDefined();
+    const status = await getBottles(ctx.app, a.cookie, "status=evil");
+    expect(status.status).toBe(400);
+    expect((await fields(status))[""]).toBeDefined();
+    const q = await getBottles(ctx.app, a.cookie, `q=${"x".repeat(101)}`);
+    expect(q.status).toBe(400);
+    expect((await fields(q)).q).toEqual([BOTTLE_MESSAGES.q]);
+    const limit = await getBottles(ctx.app, a.cookie, "limit=0");
+    expect(limit.status).toBe(400);
+    expect((await fields(limit)).limit).toEqual([BOTTLE_MESSAGES.limit]);
+  });
+
+  it("limit と cursor で次ページを返す。他人の行は混ざらない", async () => {
+    const ctx = await createTestApp();
+    const [a, b] = await createTestUserPair(ctx.app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+    const created = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { ...BASE, count: 3 })).json(),
+    );
+    await postBottle(ctx.app, b.cookie, { name: "他人", drinkType: "wine" });
+    const first = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "limit=2")).json(),
+    );
+    expect(first.items).toHaveLength(2);
+    expect(first.totalCount).toBe(3);
+    expect(first.nextCursor).toBeTruthy();
+    expect(first.items.every((item) => item.name === BASE.name)).toBe(true);
+    const second = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, `limit=2&cursor=${first.nextCursor}`)).json(),
+    );
+    expect(second.items).toHaveLength(1);
+    expect(second.nextCursor).toBeNull();
+    const ids = [...first.items, ...second.items].map((item) => item.id);
+    expect(new Set(ids).size).toBe(3);
+    expect(ids.sort()).toEqual(created.items.map((item) => item.id).sort());
+  });
 });
 
 describe("GET / PATCH / DELETE /api/bottles/:id", () => {
@@ -364,6 +424,7 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     expect(bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, id)).json()).name).toBe(
       "サンプル赤",
     );
+    expect(await ctx.db.select().from(bottles).where(eq(bottles.userId, a.id))).toHaveLength(1);
   });
 
   it("PATCH は部分更新。status は受け取らない", async () => {
@@ -384,6 +445,21 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     expect(body.name).toBe("改名");
     expect(body.memo).toBe("メモ");
     expect(body.status).toBe("sealed");
+  });
+
+  it("他人の photoIds は PATCH でも 404。行は変わらない", async () => {
+    const ctx = await createTestApp();
+    const [a, b] = await createTestUserPair(ctx.app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+    const otherPhoto = await uploadPhoto(ctx.app, b.cookie);
+    const res = await patchBottle(ctx.app, a.cookie, id, { photoIds: [otherPhoto.id] });
+    expect(res.status).toBe(404);
+    expect(
+      bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, id)).json()).photos,
+    ).toEqual([]);
   });
 
   it("DELETE 後も記録は残り bottleId は null。写真は消える", async () => {
@@ -547,6 +623,23 @@ describe("POST /api/bottles/:id/consume", () => {
     expect(bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, id)).json()).status).toBe(
       "sealed",
     );
+  });
+
+  it("N 本のうち 1 本だけ貯蔵庫へ移る", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const created = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { ...BASE, count: 3 })).json(),
+    );
+    const first = created.items[0]?.id ?? "";
+    expect((await consumeBottleReq(ctx.app, a.cookie, first)).status).toBe(200);
+    const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
+    expect(cellar.totalCount).toBe(2);
+    expect(cellar.items.map((item) => item.id)).not.toContain(first);
+    const archive = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=archive")).json(),
+    );
+    expect(archive.items.map((item) => item.id)).toEqual([first]);
   });
 });
 

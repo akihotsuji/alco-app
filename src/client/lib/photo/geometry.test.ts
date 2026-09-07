@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { PHOTO_ASPECT, PHOTO_OUTPUT_LONG_EDGE } from "@/shared/constants.ts";
+import { PHOTO_ASPECT, PHOTO_DECODE_MAX_EDGE, PHOTO_OUTPUT_LONG_EDGE } from "@/shared/constants.ts";
 import {
   alphaBoundingBox,
   aspectForKind,
   computeCoverCrop,
   computeCutoutPlacement,
   computeMascotLayout,
+  decodeOutputSize,
   outputSizeForAspect,
 } from "./geometry.ts";
 
@@ -22,6 +23,32 @@ describe("outputSizeForAspect", () => {
       width: Math.round((PHOTO_OUTPUT_LONG_EDGE * 2) / 3),
       height: PHOTO_OUTPUT_LONG_EDGE,
     });
+  });
+
+  it("幅も高さも長辺上限以下", () => {
+    const portrait = outputSizeForAspect(PHOTO_ASPECT.cellar);
+    expect(portrait.width).toBeLessThanOrEqual(PHOTO_OUTPUT_LONG_EDGE);
+    expect(portrait.height).toBeLessThanOrEqual(PHOTO_OUTPUT_LONG_EDGE);
+    const landscape = outputSizeForAspect({ width: 16, height: 9 });
+    expect(landscape.width).toBe(PHOTO_OUTPUT_LONG_EDGE);
+    expect(landscape.height).toBeLessThanOrEqual(PHOTO_OUTPUT_LONG_EDGE);
+    const square = outputSizeForAspect({ width: 1, height: 1 }, 800);
+    expect(square.width).toBe(800);
+    expect(square.height).toBe(800);
+  });
+});
+
+describe("decodeOutputSize", () => {
+  it("長辺が上限以下ならそのまま", () => {
+    expect(decodeOutputSize(1280, 1920)).toEqual({ width: 1280, height: 1920 });
+  });
+
+  it("超えた辺を上限に合わせ、幅は上限以下", () => {
+    const sized = decodeOutputSize(4000, 3000);
+    expect(sized.width).toBe(PHOTO_DECODE_MAX_EDGE);
+    expect(sized.height).toBe(Math.round((3000 * PHOTO_DECODE_MAX_EDGE) / 4000));
+    expect(sized.width).toBeLessThanOrEqual(PHOTO_DECODE_MAX_EDGE);
+    expect(sized.height).toBeLessThanOrEqual(PHOTO_DECODE_MAX_EDGE);
   });
 });
 

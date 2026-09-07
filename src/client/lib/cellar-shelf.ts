@@ -34,6 +34,11 @@ export function parseCellarListView(raw: string | null | undefined): CellarListV
   return raw === "one" || raw === "type" ? raw : null;
 }
 
+/** URL の drinkType。未知値はフィルタなし（404 にしない） */
+export function parseDrinkTypeParam(raw: string | null | undefined): DrinkType | undefined {
+  return raw && (DRINK_TYPES as readonly string[]).includes(raw) ? (raw as DrinkType) : undefined;
+}
+
 export function resolveCellarListView(
   urlView: string | null | undefined,
   storedView: string | null | undefined,
