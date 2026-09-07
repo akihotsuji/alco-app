@@ -69,7 +69,11 @@ export function createStubLabelRecognizer(
 }
 
 export async function createTestApp(
-  options: { labelRecognizer?: LabelRecognizer; recognizeTimeoutMs?: number } = {},
+  options: {
+    labelRecognizer?: LabelRecognizer;
+    drinkRecognizer?: LabelRecognizer;
+    recognizeTimeoutMs?: number;
+  } = {},
 ) {
   const client = createClient({ url: ":memory:" });
   await applyDrizzleMigrations(client);
@@ -89,6 +93,12 @@ export async function createTestApp(
     db,
     photos,
     labelRecognizer: options.labelRecognizer ?? createStubLabelRecognizer(),
+    drinkRecognizer:
+      options.drinkRecognizer ??
+      createStubLabelRecognizer(async () => ({
+        drinkType: { value: "beer", confidence: 0.8 },
+        volumeMl: { value: 350, confidence: 0.7 },
+      })),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
   });
   appCount += 1;
