@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router";
+import { BottleBatchForm } from "@/client/components/cellar/BottleBatchForm.tsx";
 import { BottleDetail } from "@/client/components/cellar/BottleDetail.tsx";
 import { BottleFormFields, useBottleFormSubmit } from "@/client/components/cellar/BottleForm.tsx";
 import { CellarList } from "@/client/components/cellar/CellarList.tsx";
@@ -38,6 +39,10 @@ import { formatBottleCount } from "@/shared/bottles.ts";
 
 export function CellarPage() {
   return <CellarList />;
+}
+
+export function BottleBatchPage() {
+  return <BottleBatchForm />;
 }
 
 export function ArchivePage() {

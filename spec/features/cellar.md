@@ -128,6 +128,19 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 
 - 写真なしでも保存できる（名前と種類があれば）
 - 成功: 作成した **最初の本**の `bottle-detail` へ `replace`（B7 は M-04〜M-06）。トースト「棚に並べました」（`cheer` + M-25）。N ≥ 2 なら「棚に N 本並べました」。その後一覧へ戻ると該当棚板に M-32（`history.state`）
+
+### 3.3b `bottle-batch` まとめて追加（`/cellar/batch?camera=1`。Phase 5.5 #56）
+
+タブバーは隠す。入口は C3b（棚ヘッダー右の `images`）。何本もあるときに **1 本撮る → 「使う」→ 行に積む → 「次を撮る」** を繰り返し、最後に 1 回で棚に並べる。画面の詳細は [screen-designs/04-cellar.md](../screen-designs/04-cellar.md) `bottle-batch`。
+
+| 項目 | 規則 |
+|---|---|
+| 行 | 1 枚の写真 = 1 行 = 1 銘柄。本数 N 可（1〜12）。上限 **20 行**。行の項目は銘柄名 / 種類 / 本数 / 生産者 / 産地 / 年（購入日・価格・場所・メモは持たない。あとで `bottle-edit`） |
+| 写真 | `bottle-new` と同じパイプライン（2:3、`cellar`、切り抜き既定 ON、キャラ合成なし）。「使う」直後に未紐付け `POST /api/photos`。行を外す × と破棄で未紐付けの写真を `DELETE /api/photos/:id` |
+| ラベル読み取り | 行ごとに `POST /api/bottles/recognize`（切り抜く前の 2:3 JPEG）。結果はその行の空欄にだけ入れて AI 印。設定 `cellar.recognize` OFF なら呼ばない。1 日 30 回の上限はそのまま（超えた行は失敗帯、保存は止めない） |
+| 連続撮影 | 「使う」の直後にカメラを **自動で開き直さない**。`input[type=file]` はユーザー操作から開く必要があり、切り抜き処理（2〜8 秒）を挟むと開けない端末があるため。1 本ごとに「次を撮る」を押す |
+| 保存 | 「棚に並べる（N 本）」N = 全行の `count` 合計。行を上から順に `POST /api/bottles`（**1 行 = 1 リクエスト**。バッチ API は作らない）。全部成功で `/cellar` へ `replace` + トースト「棚に N 本並べました」+ 最初に作った本の段に M-32。一部失敗は成功行だけ消し、失敗行を残して再送できる |
+| 無効条件 | 行 0 / 銘柄名が空・範囲外の行 / アップロード中・失敗の行 / 送信中。**読み取り中は無効にしない** |
 - 失敗: フォーム上部に「保存できませんでした。もう一度試してください」。入力は保持
 - 戻る（未保存）: 入力を触っていれば確認「入力を破棄しますか」。破棄時、未紐付け写真は `DELETE /api/photos/:id`
 - 戻り先: 履歴。無ければ `/cellar`
@@ -392,6 +405,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | 貯蔵庫 | `GET /api/bottles?view=archive&…` | 4-03 |
 | ボトルピッカー | `GET /api/bottles?view=all&q=` | 4-02（`log-new` 行の有効化） |
 | 追加 | `POST /api/bottles`（`count`, `photoIds`） | 4-02 |
+| まとめて追加 | `POST /api/bottles` を行ごとに（1 行 = 1 リクエスト） | 5.5 #56 |
 | 詳細 / 編集 / 削除 | `GET` / `PATCH` / `DELETE /api/bottles/:id` | 4-02 |
 | 開栓 / 復元 | `POST /api/bottles/:id/consume` / `restore` | 4-03 |
 | ラベル | `POST /api/bottles/recognize` | 4-07 |
