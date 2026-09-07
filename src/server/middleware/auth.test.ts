@@ -1,5 +1,7 @@
+import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { isPublicApiRoute, PUBLIC_API_ROUTES } from "./auth.ts";
+import type { AppEnv } from "../app-env.ts";
+import { appendSetCookieHeaders, isPublicApiRoute, PUBLIC_API_ROUTES } from "./auth.ts";
 
 describe("isPublicApiRoute", () => {
   it("公開リストは health と auth のみ（spec/api-design.md 2.3）", () => {
@@ -34,5 +36,24 @@ describe("isPublicApiRoute", () => {
     expect(isPublicApiRoute("GET", "/api/photos/1/content")).toBe(false);
     expect(isPublicApiRoute("GET", "/api/drink-logs")).toBe(false);
     expect(isPublicApiRoute("GET", "/api")).toBe(false);
+  });
+});
+
+describe("appendSetCookieHeaders", () => {
+  it("複数の Set-Cookie を潰さず append する", async () => {
+    const app = new Hono<AppEnv>().get("/cookies", (c) => {
+      const headers = new Headers();
+      headers.append("Set-Cookie", "first=1; Path=/; HttpOnly");
+      headers.append("Set-Cookie", "second=2; Path=/; HttpOnly");
+      appendSetCookieHeaders(c, headers);
+      return c.json({ ok: true });
+    });
+
+    const res = await app.request("/cookies");
+    expect(res.status).toBe(200);
+    expect(res.headers.getSetCookie()).toEqual([
+      "first=1; Path=/; HttpOnly",
+      "second=2; Path=/; HttpOnly",
+    ]);
   });
 });
