@@ -353,10 +353,10 @@ export function PhotoEdit() {
               <Mascot pose="surprised" size={64} aria-hidden />
             </span>
           ) : null}
-          {kind === "cellar" && cutoutOn && (cutoutBusy || processing) ? (
+          {kind === "cellar" && (cutoutBusy || processing) ? (
             <div className="photo-edit-cutout-status">
-              <span className="photo-edit-cutout-spinner" aria-hidden />
-              <p>切り抜き中…</p>
+              <Mascot pose="surprised" size={72} aria-hidden />
+              <p>{cutoutOn ? "この写真を切り抜いています" : "この写真を変換しています"}</p>
               {cutoutProgress?.firstDownload ? (
                 <p>
                   初回のみ数十 MB を取得します
@@ -415,7 +415,7 @@ export function PhotoEdit() {
           onClick={() => void onUse()}
           disabled={!source || Boolean(decodeError) || busy}
         >
-          {busy ? "処理中" : "使う"}
+          {busy ? (kind === "cellar" && cutoutOn ? "切り抜き中" : "変換中") : "使う"}
         </Button>
       </div>
     </div>
