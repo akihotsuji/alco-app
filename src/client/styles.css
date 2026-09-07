@@ -503,11 +503,6 @@ html[data-theme="dark"] {
   flex-shrink: 0;
 }
 
-/* 右に円ボタンが 2 つ並ぶ棚ヘッダー（04-cellar C3b / C3）。左右を同じ幅にしてタイトルを中央に保つ */
-.app-header-wide {
-  grid-template-columns: 88px 1fr 88px;
-}
-
 .app-header-slot {
   display: flex;
   align-items: center;
@@ -555,6 +550,18 @@ html[data-theme="dark"] {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-2) 20px calc(var(--tab-h) + 12px + env(safe-area-inset-bottom));
+}
+
+.app-content.has-add-fab {
+  padding-bottom: calc(var(--tab-h) + 12px + 52px + 16px + env(safe-area-inset-bottom));
+}
+
+/* 00-common 1.4。タブより上・トーストより下。primary にはしない */
+.add-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(var(--tab-h) + 16px + env(safe-area-inset-bottom));
+  z-index: 12;
 }
 
 .app-shell-no-tabs .app-content {

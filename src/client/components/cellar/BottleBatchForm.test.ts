@@ -44,10 +44,10 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain("await batch.discardAll()");
   });
 
-  it("棚ヘッダー右は「まとめて追加」「追加」の 2 ボタンで、左右スロットを広げる（C3b）", () => {
-    expect(header).toContain('case "cellar-add":');
+  it("棚ヘッダー右は「まとめて追加」だけ（C3b）。追加は右下 FAB", () => {
+    expect(header).toContain('case "batch":');
     expect(header).toContain('label="まとめて追加"');
-    expect(header).toContain('header.right.kind === "cellar-add"');
-    expect(header).toContain("app-header-wide");
+    expect(header).not.toContain("app-header-wide");
+    expect(header).not.toContain("cellar-add");
   });
 });
