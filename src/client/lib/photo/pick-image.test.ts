@@ -6,15 +6,24 @@ describe("imagePickAttributes", () => {
     expect(imagePickAttributes("camera")).toEqual({
       accept: "image/*",
       capture: "environment",
+      multiple: false,
     });
     expect(imagePickAttributes("library")).toEqual({
       accept: "image/*",
       capture: null,
+      multiple: false,
     });
+    expect(imagePickAttributes("library", { multiple: true })).toEqual({
+      accept: "image/*",
+      capture: null,
+      multiple: true,
+    });
+    expect(imagePickAttributes("camera", { multiple: true }).multiple).toBe(false);
   });
 
   it("ライブラリの文言は「ライブラリから」とノートの「選ぶ」", () => {
     expect(IMAGE_PICK_LABELS.library).toBe("ライブラリから");
+    expect(IMAGE_PICK_LABELS.libraryMultiple).toBe("ライブラリから（複数枚）");
     expect(IMAGE_PICK_LABELS.noteLibrary).toBe("選ぶ");
   });
 });

@@ -45,4 +45,15 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(context).toContain("offerRecognizeJpeg");
     expect(context).toContain("setPendingRecognizeJpeg(null)");
   });
+
+  it("まとめて追加の「使う」は同じタップで次のカメラを開き、処理は裏で進める（G8）", () => {
+    expect(source).toContain('pickImage("camera")');
+    expect(source).toContain("applyProcessed(processed, { keepOpen: Boolean(nextFile) })");
+    expect(source).toContain("loadBurstFile(nextFile)");
+    expect(source).toContain("BOTTLE_BATCH_MESSAGES.burstProcessing(collectedCount)");
+    expect(context).toContain("PhotoBurstSession");
+    expect(context).toContain("keepOpen");
+    expect(context).toContain("loadBurstFile");
+    expect(context).toContain("ingestCollected");
+  });
 });

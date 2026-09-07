@@ -9,6 +9,7 @@ import {
   batchTotalCount,
   batchUnlinkedPhotoIds,
   canAddBatchRow,
+  canReserveBatchRow,
   canSubmitBatch,
   newBatchRow,
   patchBatchRowForm,
@@ -82,6 +83,10 @@ describe("行の追加・置き換え", () => {
     expect(BOTTLE_BATCH_MESSAGES.captureNext(remainingBatchRows(next.slice(0, 3)))).toBe(
       "次を撮る（あと 17 本）",
     );
+    expect(canReserveBatchRow(BOTTLE_BATCH_MAX_ROWS - 1)).toBe(true);
+    expect(canReserveBatchRow(BOTTLE_BATCH_MAX_ROWS)).toBe(false);
+    expect(BOTTLE_BATCH_MESSAGES.burstProcessing(3)).toBe("3 本を裏で処理しています");
+    expect(BOTTLE_BATCH_MESSAGES.libraryProgress(2, 8)).toBe("2 / 8 枚を変換しています");
   });
 
   it("行を外すとプレビューを解放する", () => {

@@ -14,7 +14,9 @@ import {
   batchRowBody,
   batchUnlinkedPhotoIds,
   canAddBatchRow,
+  canReserveBatchRow,
   patchBatchRowForm,
+  remainingBatchRows,
   removeBatchRow,
   revokeBatchPreviewUrls,
   updateBatchRow,
@@ -24,7 +26,8 @@ import type { BottleFormState } from "@/client/lib/bottle-form.ts";
 import { describeBottleSaveFailure } from "@/client/lib/bottle-form.ts";
 import { applyRecognizeToForm, countRecognizeFields } from "@/client/lib/label-recognize.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
-import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
+import { type ImagePickSource, pickImages } from "@/client/lib/photo/pick-image.ts";
+import { processCellarFile, takeFilesForBatch } from "@/client/lib/photo/process-file.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
@@ -42,11 +45,23 @@ export type BatchSubmitResult = {
 export function useBottleBatch(autoCapture: boolean) {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { startCapture, editFromBlob, retryCollectedUpload, pendingRecognizeJpeg } = usePhotoEdit();
+  const {
+    startCapture,
+    editFromBlob,
+    retryCollectedUpload,
+    pendingRecognizeJpeg,
+    ingestCollected,
+  } = usePhotoEdit();
   const [rows, setRows] = useState<BottleBatchRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [libraryProgress, setLibraryProgress] = useState<{ current: number; total: number } | null>(
+    null,
+  );
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
+  /** 連続撮影で確保した枠（既存行 + 今の写真 + 次の予約）。addPhoto のたびに既存行数へ戻す */
+  const reservedRef = useRef(0);
+  const libraryBusyRef = useRef(false);
   // 行ごとに「どの JPEG を読み取ったか」。再編集で写真が変われば読み直す
   const recognizedJpegRef = useRef(new Map<string, Blob>());
 
@@ -60,14 +75,59 @@ export function useBottleBatch(autoCapture: boolean) {
     return session;
   }, []);
 
+  const reserveCollect = useCallback(() => {
+    reservedRef.current += 1;
+    return bindKey(crypto.randomUUID());
+  }, [bindKey]);
+
+  const addLibraryPhotos = useCallback(async () => {
+    const remaining = remainingBatchRows(rowsRef.current);
+    if (remaining <= 0 || libraryBusyRef.current) {
+      return;
+    }
+    const files = await pickImages("library", { multiple: true });
+    const taken = takeFilesForBatch(files, remaining);
+    if (taken.length === 0) {
+      return;
+    }
+    libraryBusyRef.current = true;
+    setLibraryProgress({ current: 0, total: taken.length });
+    try {
+      for (const [index, file] of taken.entries()) {
+        setLibraryProgress({ current: index + 1, total: taken.length });
+        try {
+          const processed = await processCellarFile(file);
+          void ingestCollected(processed, bindKey(crypto.randomUUID()));
+        } catch {
+          // 読めないファイルは飛ばす。残りは続ける
+        }
+      }
+    } finally {
+      libraryBusyRef.current = false;
+      setLibraryProgress(null);
+    }
+  }, [bindKey, ingestCollected]);
+
   const addPhoto = useCallback(
     async (source: ImagePickSource = "camera") => {
       if (!canAddBatchRow(rowsRef.current)) {
         return;
       }
-      await startCapture("cellar", { collect: bindKey(crypto.randomUUID()), source });
+      if (source === "library") {
+        await addLibraryPhotos();
+        return;
+      }
+      reservedRef.current = rowsRef.current.length;
+      await startCapture("cellar", {
+        collect: reserveCollect(),
+        source,
+        burst: {
+          canCollectMore: () => canReserveBatchRow(reservedRef.current),
+          nextCollect: reserveCollect,
+        },
+      });
     },
-    [bindKey, startCapture],
+    [addLibraryPhotos, reserveCollect, startCapture],
   );
 
   const camera = searchParams.get("camera") === "1";
@@ -236,8 +296,10 @@ export function useBottleBatch(autoCapture: boolean) {
   return {
     rows,
     submitting,
+    libraryProgress,
     canAdd: canAddBatchRow(rows),
     addPhoto,
+    addLibraryPhotos,
     editPhoto,
     retryPhoto,
     removeRow,

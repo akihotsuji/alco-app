@@ -40,11 +40,18 @@ export type PhotoCollectSession = {
   previousPhotoId?: string | null;
 };
 
+/** セラーまとめて追加。使う直後に次の撮影を開き、処理は裏で進める */
+export type PhotoBurstSession = {
+  canCollectMore: () => boolean;
+  nextCollect: () => PhotoCollectSession;
+};
+
 export type StartCaptureOptions = {
   intent?: CaptureIntent;
   collect?: PhotoCollectSession;
   /** 省略時は撮影。ライブラリ選択は `library` */
   source?: ImagePickSource;
+  burst?: PhotoBurstSession;
 };
 
 type PhotoEditValue = {
@@ -59,13 +66,20 @@ type PhotoEditValue = {
    * `attachments.cellar.recognizeJpeg` と同じ Blob なので結果は 1 リクエストにまとまる
    */
   pendingRecognizeJpeg: Blob | null;
+  burstActive: boolean;
+  collectedCount: number;
+  canCollectMore: () => boolean;
   /** `photo-edit` が読み取り用 JPEG を作った時点で呼ぶ */
   offerRecognizeJpeg: (jpeg: Blob) => void;
   /** 撮影またはライブラリ選択を始める。OS 側をキャンセルすると何も起きない。`intent` を渡すと「使う」で続きの処理を行う */
   startCapture: (kind: PhotoEditContextKind, options?: StartCaptureOptions) => Promise<void>;
   retake: (source?: ImagePickSource) => Promise<void>;
   closePhotoEdit: () => void;
-  applyProcessed: (processed: ProcessedPhoto) => void;
+  applyProcessed: (processed: ProcessedPhoto, options?: { keepOpen?: boolean }) => void;
+  /** 連続撮影の次のファイル。history は積まない */
+  loadBurstFile: (file: File) => Promise<void>;
+  /** ライブラリ複数選択など、photo-edit を挟まず行に積む */
+  ingestCollected: (processed: ProcessedPhoto, collect: PhotoCollectSession) => Promise<void>;
   retryUpload: (kind: PhotoEditContextKind) => Promise<void>;
   /** 「削除」。未紐付けの `photoId` があれば `DELETE /api/photos/:id` してローカルも消す */
   clearAttachment: (kind: PhotoEditContextKind) => Promise<void>;
@@ -93,11 +107,16 @@ const PhotoEditContext = createContext<PhotoEditValue>({
   decodeError: null,
   attachments: {},
   pendingRecognizeJpeg: null,
+  burstActive: false,
+  collectedCount: 0,
+  canCollectMore: () => false,
   offerRecognizeJpeg: () => {},
   startCapture: async () => {},
   retake: async () => {},
   closePhotoEdit: () => {},
   applyProcessed: () => {},
+  loadBurstFile: async () => {},
+  ingestCollected: async () => {},
   retryUpload: async () => {},
   clearAttachment: async () => {},
   releaseAttachment: () => {},
@@ -131,15 +150,23 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     Partial<Record<PhotoEditContextKind, PhotoAttachment>>
   >({});
   const [pendingRecognizeJpeg, setPendingRecognizeJpeg] = useState<Blob | null>(null);
+  const [collectedCount, setCollectedCount] = useState(0);
+  const [burstActive, setBurstActive] = useState(false);
   // 「使う」まで持ち越す意図。閉じる・戻る・キャンセルで必ず捨てる（空の入力画面を開かないため）
   const intentRef = useRef<CaptureIntent | null>(null);
   const collectRef = useRef<PhotoCollectSession | null>(null);
+  const burstRef = useRef<PhotoBurstSession | null>(null);
+
+  const canCollectMore = useCallback(() => burstRef.current?.canCollectMore() ?? false, []);
 
   useEffect(() => {
     const onPop = () => {
       intentRef.current = null;
       collectRef.current = null;
+      burstRef.current = null;
       setPendingRecognizeJpeg(null);
+      setCollectedCount(0);
+      setBurstActive(false);
       setOpen(false);
     };
     window.addEventListener("popstate", onPop);
@@ -149,7 +176,10 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const closeOverlay = useCallback(() => {
     intentRef.current = null;
     collectRef.current = null;
+    burstRef.current = null;
     setPendingRecognizeJpeg(null);
+    setCollectedCount(0);
+    setBurstActive(false);
     setOpen(false);
     setDecodeError(null);
   }, []);
@@ -194,12 +224,17 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     async (nextKind: PhotoEditContextKind, options?: StartCaptureOptions) => {
       intentRef.current = null;
       collectRef.current = null;
+      burstRef.current = null;
+      setCollectedCount(0);
+      setBurstActive(false);
       const file = await pickImage(options?.source ?? "camera");
       if (!file) {
         return;
       }
       intentRef.current = options?.intent ?? null;
       collectRef.current = options?.collect ?? null;
+      burstRef.current = options?.burst ?? null;
+      setBurstActive(options?.burst !== undefined);
       await loadFile(nextKind, file);
     },
     [loadFile],
@@ -296,19 +331,26 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
 
   const applyProcessed = useCallback(
-    (processed: ProcessedPhoto) => {
+    (processed: ProcessedPhoto, options?: { keepOpen?: boolean }) => {
       const intent = intentRef.current;
       const collect = collectRef.current;
-      collectRef.current = null;
+      const burst = burstRef.current;
+      const keepOpen = options?.keepOpen === true && burst !== null;
+      collectRef.current = keepOpen && burst ? burst.nextCollect() : null;
       // 読み取り用 JPEG は attachment 側へ移る
       setPendingRecognizeJpeg(null);
       const commit = () => {
         if (collect) {
           void beginCollectedUpload(processed, collect);
+          setCollectedCount((count) => count + 1);
           return;
         }
         void beginUpload(kind, processed);
       };
+      if (keepOpen) {
+        commit();
+        return;
+      }
       if (!intent) {
         closePhotoEdit();
         commit();
@@ -323,6 +365,17 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     },
     [beginCollectedUpload, beginUpload, closeOverlay, closePhotoEdit, kind],
   );
+
+  const loadBurstFile = useCallback(async (file: File) => {
+    const decoded = await decodePickedFile(file);
+    setSource((prev) => {
+      if (prev && prev !== decoded.bitmap) {
+        prev.close();
+      }
+      return decoded.bitmap;
+    });
+    setDecodeError(decoded.error);
+  }, []);
 
   const retryUpload = useCallback(
     async (targetKind: PhotoEditContextKind) => {
@@ -386,10 +439,20 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     [kind, openWithSource, source, startCapture],
   );
 
+  const ingestCollected = useCallback(
+    async (processed: ProcessedPhoto, collect: PhotoCollectSession) => {
+      setCollectedCount((count) => count + 1);
+      await beginCollectedUpload(processed, collect);
+    },
+    [beginCollectedUpload],
+  );
+
   const editFromBlob = useCallback(
     async (nextKind: PhotoEditContextKind, blob: Blob, collect: PhotoCollectSession) => {
       intentRef.current = null;
       collectRef.current = collect;
+      burstRef.current = null;
+      setBurstActive(false);
       const file = new File([blob], blob.type === "image/webp" ? "photo.webp" : "photo.jpg", {
         type: blob.type || "image/jpeg",
       });
@@ -420,11 +483,16 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       decodeError,
       attachments,
       pendingRecognizeJpeg,
+      burstActive,
+      collectedCount,
+      canCollectMore,
       offerRecognizeJpeg,
       startCapture,
       retake,
       closePhotoEdit,
       applyProcessed,
+      loadBurstFile,
+      ingestCollected,
       retryUpload,
       clearAttachment,
       releaseAttachment,
@@ -439,11 +507,16 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       decodeError,
       attachments,
       pendingRecognizeJpeg,
+      burstActive,
+      collectedCount,
+      canCollectMore,
       offerRecognizeJpeg,
       startCapture,
       retake,
       closePhotoEdit,
       applyProcessed,
+      loadBurstFile,
+      ingestCollected,
       retryUpload,
       clearAttachment,
       releaseAttachment,
