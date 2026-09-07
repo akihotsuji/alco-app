@@ -371,7 +371,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | 比率 | 2:3 |
 | プリセット | `cellar`（既定 ON。設定 S4） |
 | キャラ合成 | **なし**（トグルも出さない） |
-| 切り抜き | セラーのみ。既定 ON（`photo.cutout`）。端末内 WASM（`onnxruntime-web` + U2-Net-P）。失敗・未対応は JPEG 長方形 |
+| 切り抜き | セラーのみ。既定 ON（`photo.cutout`）。端末内 WASM（`onnxruntime-web` + U2-Net-P）。失敗・未対応は JPEG 長方形。処理失敗時の自動 OFF は今回の編集画面だけで、`photo.cutout` はユーザーがトグルを手動操作したときだけ変更する |
 | 出力 | cutout: 透過 WebP・長辺 1280・品質 0.9。photo: JPEG・長辺 1280・品質 0.82 |
 | サーバー | magic bytes、1MB、長辺 1600、キーはサーバー生成、配信は認可付き GET |
 | `kind` | サーバー判定（WebP VP8X alpha → `cutout`）。クライアント申告は受け取らない |
@@ -450,7 +450,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | E34 | 価格 0 | 可（贈り物）。表示「¥0」 |
 | E35 | メモに HTML | テキスト描画。`dangerouslySetInnerHTML` 禁止。URL 化しない |
 | E36 | セッション切れ | `RequireAuth`。入力は失われる（MVP） |
-| E37 | 切り抜き失敗 / WASM 非対応 | `kind = photo` で保存。棚は角 8px。登録は止まらない |
+| E37 | 切り抜き失敗 / WASM 非対応 | `kind = photo` で保存。棚は角 8px。登録は止まらない。一時失敗では `photo.cutout` を変更しない |
 | E38 | 4-02 時点の `/cellar` | 仮一覧でよい。T3 は出さない。棚の見た目は 4-04 |
 | E39 | ピッカーに貯蔵庫の本 | 出る（`view=all`）。記録・ノートから選べる |
 | E40 | 表示切替を変えても在庫は同じ | API `view=cellar` のまま。変わるのはレイアウト |
@@ -498,7 +498,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | 4-04 | 表示切替の記憶 | URL `?view=one\|type` + `localStorage` `cellar.listView`。既定 1 本ずつ | 04-cellar C4 |
 | 4-04 | ヘッダー本数 | フィルタ前の `totalCount` | C2 |
 | 4-04 | 貯蔵庫の減彩 | `saturate(0.5) brightness(0.9)`（要素表） | モック数値は使わない |
-| 4-06 | 切り抜き失敗 | 長方形 JPEG で登録継続 | 07-photo-capture |
+| 4-06 | 切り抜き失敗 | 長方形 JPEG で登録継続。今回の編集画面だけ自動 OFF とし、`photo.cutout` は変更しない | 07-photo-capture / Issue #48 |
 | 4-07 | 自動保存 | **しない**。空欄に候補のみ | 要件 1.3 |
 | 4-07 | 日次上限 | **30 回 / ユーザー / JST 日**。先加算。502 は加算しない | api-design 4.5.3 |
 | 4-07 | 確度 | クライアント 0.5 未満は捨てる | 04-cellar バリデーション |

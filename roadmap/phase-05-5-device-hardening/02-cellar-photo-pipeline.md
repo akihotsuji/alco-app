@@ -13,6 +13,8 @@ Issue #48の中心となる「重複推論、古い推論の蓄積、一時失�
 
 ただし、1件に確定バグ、計測基盤、並列化、WebGPU、COOP / COEP、モデル・プロンプト変更、50〜100枚の評価まで含めるのは大きすぎる。#48は追跡Issueにし、下記の小さなIssueを依存順に1件ずつ解決する。ランタイム・モデル変更は、P0/P1後の実測で必要性が示された場合だけ行う。
 
+画面仕様にあった「失敗時は自動でOFF」は、今回の編集画面だけの状態を指すものと明確化した。処理失敗では`photo.cutout`を変更せず、ユーザーがトグルを手動操作したときだけ既定値を保存する。
+
 ## Investigation Result
 
 ### Confirmed
@@ -94,6 +96,7 @@ ONNX推論自体を安全に中断できない場合は「実行中1件 + pendin
 2. **一時失敗とユーザー設定の分離**
    - 処理失敗では画面内だけOFF / JPEGフォールバック
    - `photo.cutout`はユーザーがトグルを操作したときだけ更新
+   - [写真編集の画面仕様](../../spec/screen-designs/07-photo-capture.md) と [セラー機能仕様](../../spec/features/cellar.md) の確定済み挙動に合わせる
 3. **cutout結果型と失敗理由**
    - download / session / unsupported / timeout / inference / output / mask / encode / unknownを機械可読にする
    - `catch {}`をなくし、JPEGフォールバックを明示的な結果にする
