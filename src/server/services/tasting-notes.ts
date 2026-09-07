@@ -147,7 +147,9 @@ async function resolveUnattachedPhotos(
     return [];
   }
   if (photoIds.length > TASTING_NOTE_PHOTO_MAX) {
-    throw new ApiError("not_found");
+    throw new ApiError("validation_error", {
+      fields: { photoIds: [TASTING_NOTE_MESSAGES.photoIdsMax] },
+    });
   }
   const rows = await db
     .select()
@@ -181,7 +183,9 @@ async function resolvePatchPhotos(
   photoIds: readonly string[],
 ): Promise<PhotoRow[]> {
   if (photoIds.length > TASTING_NOTE_PHOTO_MAX) {
-    throw new ApiError("not_found");
+    throw new ApiError("validation_error", {
+      fields: { photoIds: [TASTING_NOTE_MESSAGES.photoIdsMax] },
+    });
   }
   if (photoIds.length === 0) {
     return [];

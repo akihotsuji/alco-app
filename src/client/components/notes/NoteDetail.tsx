@@ -3,8 +3,8 @@ import { Link } from "react-router";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
+import { NotePhotoCarousel } from "@/client/components/notes/NotePhotoCarousel.tsx";
 import { RatingStars } from "@/client/components/notes/RatingStars.tsx";
-import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { useTastingNote } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { isUuid } from "@/client/lib/bottle-form.ts";
@@ -42,15 +42,9 @@ function NoteDetailBody({ note }: { note: TastingNote }) {
     { label: "味わい", value: note.taste },
     { label: "余韻", value: note.finish },
   ].filter((entry): entry is { label: string; value: string } => Boolean(entry.value));
-  const firstPhoto = note.photos[0];
-
   return (
     <article className="note-detail">
-      {firstPhoto ? (
-        <div className="note-detail-photo">
-          <img src={photoContentUrl(firstPhoto.id)} alt="" />
-        </div>
-      ) : null}
+      <NotePhotoCarousel photos={note.photos} />
       <div className="note-detail-rating">
         <RatingStars ratingX10={note.ratingX10} size={20} />
         <strong>{formatRatingX10(note.ratingX10)}</strong>

@@ -967,6 +967,12 @@
   color: var(--danger);
 }
 
+.field-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .form-error {
   margin: 0;
   padding: var(--space-3) var(--space-4);
@@ -2624,6 +2630,172 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
 
 .note-bottle-link {
   text-decoration: none;
+}
+
+.note-photo-strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.note-photo-strip-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.note-photo-strip-count {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.note-photo-strip-scroller {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+  scroll-snap-type: x proximity;
+}
+
+.note-photo-capture {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  width: 96px;
+  height: 120px;
+  min-width: 96px;
+  min-height: var(--tap-min);
+  border: none;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-inset-sm);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.note-photo-capture:disabled {
+  opacity: 0.5;
+}
+
+.note-photo-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 96px;
+  height: 120px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-inset-sm);
+  overflow: hidden;
+  background: var(--surface);
+  scroll-snap-align: start;
+}
+
+.note-photo-thumb-button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.note-photo-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.note-photo-carousel-scroller,
+.note-photo-viewer-scroller {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.note-photo-carousel-scroller::-webkit-scrollbar,
+.note-photo-viewer-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.note-photo-carousel-slide {
+  flex: 0 0 100%;
+  aspect-ratio: 4 / 5;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-photo);
+  overflow: hidden;
+  background: var(--surface);
+  scroll-snap-align: start;
+}
+
+.note-photo-carousel-slide img,
+.note-photo-viewer-slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.note-photo-dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.note-photo-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--muted);
+  opacity: 0.4;
+}
+
+.note-photo-dot.is-on {
+  opacity: 1;
+  background: var(--primary);
+}
+
+.note-photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--foreground) 88%, transparent);
+}
+
+.note-photo-viewer-slide {
+  flex: 0 0 100%;
+  aspect-ratio: 4 / 5;
+  scroll-snap-align: start;
+}
+
+.note-photo-viewer-close {
+  align-self: center;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border: none;
+  background: transparent;
+  color: var(--background);
+  font: inherit;
+  font-weight: 600;
+}
+
+html[data-reduce-motion="1"] .note-photo-carousel-scroller,
+html[data-reduce-motion="1"] .note-photo-viewer-scroller,
+html[data-reduce-motion="1"] .note-photo-strip-scroller {
+  scroll-behavior: auto;
 }
 
 .shelf {

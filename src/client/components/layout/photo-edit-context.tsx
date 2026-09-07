@@ -33,6 +33,13 @@ export type CaptureIntent = {
   onUse: (options: { replace: boolean }) => void;
 };
 
+/** ノートの複数枚ストリップ用。`attachments[kind]` には書かず、呼び出し側の配列へ渡す */
+export type PhotoCollectSession = {
+  onUpdate: (attachment: PhotoAttachment) => void;
+  /** 未紐付けの旧 id。再編集で置き換えるときだけ消し、既存の紐付きは送らない */
+  previousPhotoId?: string | null;
+};
+
 type PhotoEditValue = {
   open: boolean;
   kind: PhotoEditContextKind;
@@ -40,7 +47,11 @@ type PhotoEditValue = {
   decodeError: string | null;
   attachments: Partial<Record<PhotoEditContextKind, PhotoAttachment>>;
   /** 撮影を始める。OS ピッカーをキャンセルすると何も起きない。`intent` を渡すと「使う」で続きの処理を行う */
-  startCapture: (kind: PhotoEditContextKind, intent?: CaptureIntent) => Promise<void>;
+  startCapture: (
+    kind: PhotoEditContextKind,
+    intent?: CaptureIntent,
+    collect?: PhotoCollectSession,
+  ) => Promise<void>;
   retake: () => Promise<void>;
   closePhotoEdit: () => void;
   applyProcessed: (processed: ProcessedPhoto) => void;
@@ -51,6 +62,14 @@ type PhotoEditValue = {
   releaseAttachment: (kind: PhotoEditContextKind) => void;
   /** 「編集」。元の画像がメモリに残っていれば再編集、無ければ撮り直し */
   editAttachment: (kind: PhotoEditContextKind) => Promise<void>;
+  /** ノート用。保持している Blob から再編集し、結果を `collect` へ返す */
+  editFromBlob: (
+    kind: PhotoEditContextKind,
+    blob: Blob,
+    collect: PhotoCollectSession,
+  ) => Promise<void>;
+  /** ノート用。同じ Blob を未紐付けで再送する */
+  retryCollectedUpload: (attachment: PhotoAttachment, collect: PhotoCollectSession) => Promise<void>;
 };
 
 const PhotoEditContext = createContext<PhotoEditValue>({
@@ -67,6 +86,8 @@ const PhotoEditContext = createContext<PhotoEditValue>({
   clearAttachment: async () => {},
   releaseAttachment: () => {},
   editAttachment: async () => {},
+  editFromBlob: async () => {},
+  retryCollectedUpload: async () => {},
 });
 
 const HISTORY_FLAG = "alcoPhotoEdit";
@@ -95,10 +116,12 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   >({});
   // 「使う」まで持ち越す意図。閉じる・戻る・キャンセルで必ず捨てる（空の入力画面を開かないため）
   const intentRef = useRef<CaptureIntent | null>(null);
+  const collectRef = useRef<PhotoCollectSession | null>(null);
 
   useEffect(() => {
     const onPop = () => {
       intentRef.current = null;
+      collectRef.current = null;
       setOpen(false);
     };
     window.addEventListener("popstate", onPop);
@@ -107,6 +130,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
   const closeOverlay = useCallback(() => {
     intentRef.current = null;
+    collectRef.current = null;
     setOpen(false);
     setDecodeError(null);
   }, []);
@@ -144,13 +168,15 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
 
   const startCapture = useCallback(
-    async (nextKind: PhotoEditContextKind, intent?: CaptureIntent) => {
+    async (nextKind: PhotoEditContextKind, intent?: CaptureIntent, collect?: PhotoCollectSession) => {
       intentRef.current = null;
+      collectRef.current = null;
       const file = await pickImage({ capture: true });
       if (!file) {
         return;
       }
       intentRef.current = intent ?? null;
+      collectRef.current = collect ?? null;
       await loadFile(nextKind, file);
     },
     [loadFile],
@@ -223,22 +249,54 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const beginCollectedUpload = useCallback(
+    async (processed: ProcessedPhoto, collect: PhotoCollectSession) => {
+      if (collect.previousPhotoId) {
+        void deletePhoto(collect.previousPhotoId).catch(() => {});
+      }
+      const draft: PhotoAttachment = {
+        previewUrl: processed.previewUrl,
+        blob: processed.blob,
+        photoId: null,
+        status: "uploading",
+        recognizeJpeg: processed.recognizeJpeg,
+      };
+      collect.onUpdate(draft);
+      try {
+        const meta = await uploadPhoto(processed.blob);
+        collect.onUpdate({ ...draft, photoId: meta.id, status: "ready" });
+      } catch {
+        collect.onUpdate({ ...draft, status: "error" });
+      }
+    },
+    [],
+  );
+
   const applyProcessed = useCallback(
     (processed: ProcessedPhoto) => {
       const intent = intentRef.current;
+      const collect = collectRef.current;
+      collectRef.current = null;
+      const commit = () => {
+        if (collect) {
+          void beginCollectedUpload(processed, collect);
+          return;
+        }
+        void beginUpload(kind, processed);
+      };
       if (!intent) {
         closePhotoEdit();
-        void beginUpload(kind, processed);
+        commit();
         return;
       }
       // 「撮ってから入力へ」: history.back() で閉じると直後の navigate と競合するので、
       // オーバーレイだけ閉じ、積んだ 1 段は呼び出し側の navigate(replace) に置き換えさせる
       const replace = historyHasFlag(window.history.state, HISTORY_FLAG);
       closeOverlay();
-      void beginUpload(kind, processed);
+      commit();
       intent.onUse({ replace });
     },
-    [beginUpload, closeOverlay, closePhotoEdit, kind],
+    [beginCollectedUpload, beginUpload, closeOverlay, closePhotoEdit, kind],
   );
 
   const retryUpload = useCallback(
@@ -303,6 +361,32 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     [kind, openWithSource, source, startCapture],
   );
 
+  const editFromBlob = useCallback(
+    async (nextKind: PhotoEditContextKind, blob: Blob, collect: PhotoCollectSession) => {
+      intentRef.current = null;
+      collectRef.current = collect;
+      const file = new File([blob], blob.type === "image/webp" ? "photo.webp" : "photo.jpg", {
+        type: blob.type || "image/jpeg",
+      });
+      await loadFile(nextKind, file);
+    },
+    [loadFile],
+  );
+
+  const retryCollectedUpload = useCallback(
+    async (attachment: PhotoAttachment, collect: PhotoCollectSession) => {
+      await beginCollectedUpload(
+        {
+          blob: attachment.blob,
+          previewUrl: attachment.previewUrl,
+          recognizeJpeg: attachment.recognizeJpeg,
+        },
+        collect,
+      );
+    },
+    [beginCollectedUpload],
+  );
+
   const value = useMemo<PhotoEditValue>(
     () => ({
       open,
@@ -318,6 +402,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       clearAttachment,
       releaseAttachment,
       editAttachment,
+      editFromBlob,
+      retryCollectedUpload,
     }),
     [
       open,
@@ -333,6 +419,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       clearAttachment,
       releaseAttachment,
       editAttachment,
+      editFromBlob,
+      retryCollectedUpload,
     ],
   );
 
