@@ -37,6 +37,19 @@ describe("validateNoteForm / canSubmitNoteForm", () => {
     expect(canSubmitNoteForm(state, errors, "uploading")).toBe(false);
   });
 
+  it("評価 5.1 / 1.2 相当は保存できない", () => {
+    const invalid51 = {
+      ...initialNoteFormState(NOW),
+      drinkName: "赤",
+      drinkType: "wine" as const,
+      ratingX10: 51,
+    };
+    const invalid12 = { ...invalid51, ratingX10: 12 };
+    expect(validateNoteForm(invalid51, NOW).ratingX10).toBe(TASTING_NOTE_MESSAGES.rating);
+    expect(validateNoteForm(invalid12, NOW).ratingX10).toBe(TASTING_NOTE_MESSAGES.rating);
+    expect(canSubmitNoteForm(invalid51, validateNoteForm(invalid51, NOW), "none")).toBe(false);
+  });
+
   it("未来の飲んだ日は不可", () => {
     const state = {
       ...initialNoteFormState(NOW),

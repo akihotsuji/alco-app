@@ -49,6 +49,9 @@ describe("ratingX10 helpers", () => {
     expect(isValidRatingX10(11)).toBe(false);
     expect(isValidRatingX10(33)).toBe(false);
     expect(isValidRatingX10(3.3)).toBe(false);
+    expect(isValidRatingX10(5.1)).toBe(false);
+    expect(isValidRatingX10(1.2)).toBe(false);
+    expect(isValidRatingX10(51)).toBe(false);
   });
 
   it("表示は小数第 1 位、星は整数＋半星", () => {
@@ -105,8 +108,14 @@ describe("createTastingNoteSchema", () => {
     expect(fields.drinkType).toEqual([TASTING_NOTE_MESSAGES.drinkType]);
   });
 
-  it("評価 3.3 / 0 / 11 は不可", () => {
+  it("評価 3.3 / 5.1 / 1.2 / 0 / 11 は不可", () => {
     expect(createMessages({ ...HAND, ratingX10: 3.3 }).ratingX10).toEqual([
+      TASTING_NOTE_MESSAGES.rating,
+    ]);
+    expect(createMessages({ ...HAND, ratingX10: 5.1 }).ratingX10).toEqual([
+      TASTING_NOTE_MESSAGES.rating,
+    ]);
+    expect(createMessages({ ...HAND, ratingX10: 1.2 }).ratingX10).toEqual([
       TASTING_NOTE_MESSAGES.rating,
     ]);
     expect(createMessages({ ...HAND, ratingX10: 0 }).ratingX10).toEqual([
