@@ -128,6 +128,9 @@ describe("design tokens", () => {
     expect(tokenValue(block, "--shelf-ghost")).toBe("rgba(43, 38, 31, 0.07)");
     expect(tokenValue(block, "--tab-center-size")).toBe("60px");
     expect(tokenValue(block, "--tab-center-lift")).toBe("12px");
+    expect(tokenValue(block, "--switch-track-off")).toBe("#bfb7aa");
+    expect(tokenValue(block, "--switch-knob")).toBe("#fffdfa");
+    expect(tokenValue(block, "--shadow-knob")).toBe("0 1px 2px rgba(43, 38, 31, 0.35)");
     expect(tokenValue(block, "--radius-photo")).toBe("20px");
     expect(tokenValue(block, "--tab-h")).toBe("72px");
   });
