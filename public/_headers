@@ -9,3 +9,16 @@
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer
   Permissions-Policy: geolocation=(), microphone=()
+
+# 4-06: SPA fallback で HTML と誤認されないよう、モデルと ORT の MIME を固定する
+/models/u2netp.onnx
+  Content-Type: application/octet-stream
+  X-Content-Type-Options: nosniff
+
+/models/ort/*.mjs
+  Content-Type: text/javascript
+  X-Content-Type-Options: nosniff
+
+/models/ort/*.wasm
+  Content-Type: application/wasm
+  X-Content-Type-Options: nosniff

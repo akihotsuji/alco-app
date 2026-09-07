@@ -217,7 +217,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 - `script-src` / `style-src` に `'unsafe-inline'` を入れない。Vite のビルド出力は外部ファイル参照のみで、React の `style` prop は CSSOM 経由なので CSP に当たらない
 - Zod v4 は既定で `new Function("")` を試して JIT 可否を判定し、これが CSP 違反として記録される。`z.config({ jitless: true })`（`src/shared/zod-config.ts`）で抑止する。`'unsafe-eval'` は足さない
-- 4-06: 端末内 WASM 背景除去のため `script-src` / `worker-src` に `'wasm-unsafe-eval'` を追加。モデルと ORT WASM は同一オリジン `/models/`（`connect-src 'self'` のまま。CDN は使わない）
+- 4-06: 端末内 WASM 背景除去のため `script-src` / `worker-src` に `'wasm-unsafe-eval'` を追加。モデルと ORT（`.mjs` / `.wasm`）は同一オリジン `/models/`（`connect-src 'self'` のまま。CDN は使わない）。`/models/*` の Content-Type は `_headers` で固定し、欠落時の SPA fallback HTML をモデルや WASM 用 JS と誤認しないようにする
 - Vite 開発サーバー（`pnpm dev`）では `_headers` は適用されない（React Fast Refresh がインラインスクリプトを使うため、適用すると開発が止まる）。CSP の確認は `pnpm build` → `wrangler dev --env dev` で行う
 
 ### 2.11 入力検証
