@@ -2101,7 +2101,8 @@ html[data-theme="dark"] {
 }
 
 .home-week-mark-empty {
-  background: var(--neu-dark);
+  background: var(--foreground);
+  opacity: 0.16;
 }
 
 .home-week-mark-filled {
