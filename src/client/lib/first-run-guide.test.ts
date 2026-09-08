@@ -3,6 +3,7 @@ import { GUIDE_PREF_KEY } from "../../shared/constants";
 import {
   guideDoneCopy,
   guideSpotlight,
+  guideSpotlightPath,
   guideStepProgress,
   hasExistingUserData,
   nextGuideStep,
@@ -131,6 +132,10 @@ describe("nextGuideStep / spotlight", () => {
     expect(guideSpotlight("cellar-save")?.target).toContain("save");
     expect(guideSpotlight("notes-save")?.target).toContain("save");
     expect(guideSpotlight("done")).toBeNull();
+    expect(guideSpotlightPath("home-record")).toBe("/");
+    expect(guideSpotlightPath("cellar-add")).toBe("/cellar");
+    expect(guideSpotlightPath("notes-create")).toBe("/notes");
+    expect(guideSpotlightPath("practice-volume")).toBeNull();
   });
 
   it("記録完了は設定の使い方へつなぐ", () => {

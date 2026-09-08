@@ -13,6 +13,8 @@ type LogQuickActionsProps = {
   onPrimary?: () => void;
   /** 初回ガイド中は本番フォームへ進まず練習へ */
   onPrimaryIntercept?: () => void;
+  /** ホーム案内のスポットライト対象。練習中は付けない（下の画面が前面に浮く） */
+  guideTarget?: string;
 };
 
 export function LogQuickActions({
@@ -23,6 +25,7 @@ export function LogQuickActions({
   primaryEnter = false,
   onPrimary,
   onPrimaryIntercept,
+  guideTarget,
 }: LogQuickActionsProps) {
   return (
     <div className="home-actions">
@@ -35,7 +38,7 @@ export function LogQuickActions({
         <Link
           className={cn(buttonVariants(), "home-log-btn", primaryEnter && "home-log-btn-enter")}
           to={newHref}
-          data-guide-target={onPrimaryIntercept ? "record" : undefined}
+          data-guide-target={guideTarget}
           onClick={(event) => {
             onPrimary?.();
             if (onPrimaryIntercept) {
