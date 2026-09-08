@@ -1,5 +1,6 @@
 import { Minus, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
+import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { ABV_STEP, formatGrams, liveAlcoholGrams, stepAbv } from "@/client/lib/log-form.ts";
@@ -62,7 +63,7 @@ export function AbvField({ value, volumeMl = null, error, onChange }: AbvFieldPr
   return (
     <fieldset className="log-form-section">
       <legend>
-        <FieldLabel>アルコール度数</FieldLabel>
+        <FieldLabel htmlFor="log-abv-percent">アルコール度数</FieldLabel>
       </legend>
       <div className="abv-cluster">
         <IconButton
@@ -89,11 +90,12 @@ export function AbvField({ value, volumeMl = null, error, onChange }: AbvFieldPr
         </IconButton>
         <div className="unit-field abv-input">
           <input
+            id="log-abv-percent"
             type="number"
             inputMode="decimal"
             className="unit-field-input"
-            aria-label="度数（%）"
             aria-invalid={error ? true : undefined}
+            aria-describedby={fieldDescribedBy("log-abv-percent", error)}
             min={ABV_PERCENT_MIN}
             max={ABV_PERCENT_MAX}
             step={ABV_STEP}
@@ -128,11 +130,7 @@ export function AbvField({ value, volumeMl = null, error, onChange }: AbvFieldPr
       <p className="live-grams" aria-live="polite">
         純アルコール量 {formatGrams(grams)} g
       </p>
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id="log-abv-percent" error={error} />
     </fieldset>
   );
 }

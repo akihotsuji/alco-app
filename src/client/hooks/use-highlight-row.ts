@@ -1,6 +1,7 @@
 import { type RefCallback, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { APP_HEADER_TITLE_ID } from "@/client/lib/a11y.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 
 export type HighlightPhase = "enter" | "opening" | "highlight" | "fading" | null;
@@ -41,6 +42,7 @@ export function useHighlightRow(highlightId: string | null, itemIds: readonly st
       return;
     }
 
+    document.getElementById(APP_HEADER_TITLE_ID)?.focus({ preventScroll: true });
     rowRef.current?.scrollIntoView({
       block: "center",
       behavior: reduceMotion ? "auto" : "smooth",

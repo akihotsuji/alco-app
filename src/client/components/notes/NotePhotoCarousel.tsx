@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
+import { useFocusTrap } from "@/client/hooks/use-focus-trap.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import type { PhotoMeta } from "@/shared/photos.ts";
@@ -7,10 +8,12 @@ import type { PhotoMeta } from "@/shared/photos.ts";
 export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const viewerRootRef = useRef<HTMLDivElement>(null);
   const viewerIndexRef = useRef(0);
   const [index, setIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const reduceMotion = useReducedMotion();
+  useFocusTrap(viewerOpen, viewerRootRef);
   const safeIndex = Math.min(index, Math.max(0, photos.length - 1));
 
   useEffect(() => {
@@ -67,6 +70,7 @@ export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) 
               key={photo.id}
               type="button"
               className="note-photo-carousel-slide"
+              aria-label={`写真 ${photoIndex + 1}`}
               onClick={() => {
                 viewerIndexRef.current = photoIndex;
                 setIndex(photoIndex);
@@ -96,7 +100,13 @@ export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) 
         ) : null}
       </div>
       {viewerOpen ? (
-        <div className="note-photo-viewer" role="dialog" aria-modal="true" aria-label="写真">
+        <div
+          ref={viewerRootRef}
+          className="note-photo-viewer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="写真"
+        >
           <button
             type="button"
             className="note-photo-viewer-backdrop"

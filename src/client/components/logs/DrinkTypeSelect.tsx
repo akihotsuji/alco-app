@@ -32,7 +32,14 @@ export function DrinkTypeSelect({
   return (
     <section className="log-form-section">
       <FieldLabel required={required}>種類</FieldLabel>
-      <button type="button" className="form-select-row" onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className="form-select-row"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-invalid={error ? true : undefined}
+        onClick={() => setOpen(true)}
+      >
         <span className={value ? "form-select-value" : "form-select-placeholder"}>
           {value ? DRINK_TYPE_LABELS[value] : placeholder}
         </span>

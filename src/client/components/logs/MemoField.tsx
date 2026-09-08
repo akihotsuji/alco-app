@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { MEMO_MAX_LENGTH } from "@/shared/drink-logs.ts";
 
@@ -22,6 +23,7 @@ export function MemoField({ value, error, onChange }: MemoFieldProps) {
         id={textareaId}
         className="memo-textarea"
         aria-invalid={error ? true : undefined}
+        aria-describedby={fieldDescribedBy(textareaId, error)}
         maxLength={MEMO_MAX_LENGTH}
         rows={3}
         placeholder="味や相手など"
@@ -31,11 +33,7 @@ export function MemoField({ value, error, onChange }: MemoFieldProps) {
       <p className={remaining < 0 ? "memo-count field-error" : "memo-count"}>
         残り {remaining} 文字
       </p>
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id={textareaId} error={error} />
     </section>
   );
 }

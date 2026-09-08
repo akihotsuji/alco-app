@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import { extraVolumeChips, isManualVolume, primaryVolumeChips } from "@/client/lib/log-form.ts";
@@ -31,15 +32,16 @@ export function VolumeField({ drinkType, value, error, guideTarget, onChange }: 
   return (
     <fieldset className="log-form-section" data-guide-target={guideTarget}>
       <legend>
-        <FieldLabel>飲んだ量</FieldLabel>
+        <FieldLabel htmlFor="log-volume-ml">飲んだ量</FieldLabel>
       </legend>
       <div className="unit-field">
         <input
+          id="log-volume-ml"
           type="number"
           inputMode="numeric"
           className="unit-field-input"
-          aria-label="飲んだ量（ml）"
           aria-invalid={error ? true : undefined}
+          aria-describedby={fieldDescribedBy("log-volume-ml", error)}
           min={VOLUME_ML_MIN}
           max={VOLUME_ML_MAX}
           step={1}
@@ -91,11 +93,7 @@ export function VolumeField({ drinkType, value, error, guideTarget, onChange }: 
       {isManualVolume(drinkType, value) && value !== null ? (
         <p className="field-hint">手入力中</p>
       ) : null}
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id="log-volume-ml" error={error} />
     </fieldset>
   );
 }

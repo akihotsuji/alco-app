@@ -45,8 +45,10 @@ describe("RatingField 星タップと数値", () => {
     expect(field).toContain("評価（1.0〜5.0、0.5刻み）");
     expect(field).not.toContain("評価を下げる");
     expect(field).not.toContain("評価を上げる");
-    expect(field).toContain('className="field-error"');
+    expect(field).toContain("<FieldError");
     expect(stars).toContain("[1, 2, 3, 4, 5]");
+    expect(stars).toContain('role="radiogroup"');
+    expect(stars).toContain('role="radio"');
     expect(stars).toContain("ratingX10FromStar(star)");
     expect(ratingX10FromStar(1)).toBe(10);
     expect(ratingX10FromStar(5)).toBe(50);

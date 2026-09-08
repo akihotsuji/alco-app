@@ -2,6 +2,7 @@ import { Archive, ChevronLeft, ChevronRight, Images, Plus } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
+import { APP_HEADER_TITLE_ID } from "@/client/lib/a11y.ts";
 import {
   type HeaderLeft,
   type HeaderRight,
@@ -32,7 +33,7 @@ export function AppHeader({ header }: AppHeaderProps) {
       <div className="app-header-slot">
         <HeaderLeftSlot left={header.left} navigate={navigate} />
       </div>
-      <h1 className="app-header-title">
+      <h1 className="app-header-title" id={APP_HEADER_TITLE_ID} tabIndex={-1}>
         {header.title}
         {header.titleMuted ? <span className="app-header-muted">{header.titleMuted}</span> : null}
       </h1>

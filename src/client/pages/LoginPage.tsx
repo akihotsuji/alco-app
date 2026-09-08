@@ -74,6 +74,8 @@ export function LoginPage() {
         type="email"
         autoComplete="email"
         value={email}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? "auth-form-error" : undefined}
         onChange={(event) => setEmail(event.target.value)}
         required
       />
@@ -82,6 +84,8 @@ export function LoginPage() {
         id="login-password"
         autoComplete="current-password"
         value={password}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? "auth-form-error" : undefined}
         onChange={setPassword}
       />
     </AuthPageLayout>

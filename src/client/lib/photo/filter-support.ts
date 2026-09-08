@@ -11,10 +11,6 @@ export function supportsCanvasFilter(): boolean {
   return ctx.filter === "brightness(1.1)";
 }
 
-export function prefersReducedMotion(): boolean {
-  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 export function supportsWasmSimd(): boolean {
   try {
     return WebAssembly.validate(

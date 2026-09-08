@@ -22,7 +22,7 @@ export const buttonVariants = cva(
       },
       size: {
         default: "h-[52px] w-full rounded-[var(--radius)] px-4",
-        icon: "size-10 shrink-0 rounded-full p-0",
+        icon: "h-[var(--tap-min)] w-[var(--tap-min)] shrink-0 rounded-full p-0",
         "icon-lg": "size-[52px] shrink-0 rounded-full p-0",
       },
     },
