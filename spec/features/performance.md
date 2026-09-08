@@ -100,31 +100,41 @@
 
 Vite が 500 kB 超を警告。ボトルネックは **初期 JS 1 本に全画面が入っていること**。画像 CDN・有料プランは対象外。
 
-### 6.2 バンドル（修正後・2026-09-08）
+### 6.2 バンドル（修正後・2026-09-09 JST）
+
+`pnpm build` の Vite 表示。初期 HTML は `bootPrefetch` と `main` の 2 本の module と、main の静的 import 向け `modulepreload`。
 
 | ファイル | raw | gzip | 役割 |
 |---|---:|---:|---|
-| `assets/index-*.js`（エントリ） | 449.01 kB | 142.15 kB | シェル共通（React / 認証 / Query）。修正前 749.56 / 234.13 |
-| `AuthenticatedLayout-*.js` | 16.09 kB | 5.53 kB | 認証後タブ・写真コンテキスト |
-| `HomePage-*.js` | 9.03 kB | 3.31 kB | ホーム |
-| `LoginPage-*.js` | 1.46 kB | 0.86 kB | ログイン |
-| `LogFormPage-*.js` | 15.15 kB | 5.63 kB | 記録フォーム |
-| `CellarPages-*.js` | 43.87 kB | 14.61 kB | セラー |
-| `NotePages-*.js` | 35.11 kB | 11.58 kB | ノート |
-| `SummaryPages-*.js` | 4.78 kB | 1.88 kB | 週/月サマリー＋チャート |
-| `PhotoEdit-*.js` | 6.67 kB | 2.90 kB | 写真編集 UI |
-| `process-*.js` | 25.37 kB | 9.25 kB | 切り抜き・色補正（編集時） |
+| `assets/bootPrefetch-*.js` | 5.06 kB | 2.11 kB | 起動専用。パスの画面 chunk と初回 GET を先に取る |
+| `assets/main-*.js` | 203.72 kB | 64.01 kB | React 起動・Router・Query。修正前の単一エントリ 749.56 / 234.13 |
+| 共有 `early-fetch-*.js`（Vite 命名。実体は React / Zod 等） | 126.66 kB | 39.20 kB | main と画面 chunk の共有 |
+| `auth-client-*.js` | 27.00 kB | 9.99 kB | Better Auth クライアント |
+| `api-*.js` | 21.09 kB | 7.68 kB | Hono RPC クライアント |
+| `AuthenticatedLayout-*.js` | 16.43 kB | 5.64 kB | 認証後タブ・写真コンテキスト |
+| `HomePage-*.js` | 9.24 kB | 3.41 kB | ホーム |
+| `LoginPage-*.js` | 1.59 kB | 0.92 kB | ログイン |
+| `LogFormPage-*.js` | 15.29 kB | 5.65 kB | 記録フォーム |
+| `CellarPages-*.js` | 44.03 kB | 14.63 kB | セラー |
+| `NotePages-*.js` | 35.25 kB | 11.62 kB | ノート |
+| `SummaryPages-*.js` | 4.85 kB | 1.91 kB | 週/月サマリー＋チャート |
+| `PhotoEdit-*.js` | 6.82 kB | 2.98 kB | 写真編集 UI |
+| `process-*.js` | 25.46 kB | 9.30 kB | 切り抜き・色補正（編集時） |
 | `onnxruntime` | 45.40 kB | 14.70 kB | 使ったときだけ（既存） |
-| `assets/index-*.css` | 82.89 kB | 14.85 kB | 全画面 CSS |
+| `assets/main-*.css` | 82.89 kB | 14.85 kB | 全画面 CSS |
 
-初期エントリは **gzip 234 → 142 kB（約 39% 減）**。500 kB 警告は解消。
+初期 HTML が読む JS 合計は raw 約 400 kB / gzip 約 130 kB。単一エントリ 749.56 / 234.13 から **gzip 約 45% 減**。500 kB 警告は解消。分割のファイル数は増えたが、`bootPrefetch`（gzip 2 kB）が main の解析を待たずに画面 chunk と GET を始められる。
 
-### 6.3 Lighthouse モバイル（修正後・2026-09-08）
+### 6.3 Lighthouse モバイル（修正後・2026-09-09 JST）
+
+環境: `pnpm build` 済みクライアントを `wrangler dev --local`（127.0.0.1:8787）。Lighthouse 12.8.2、モバイルプリセット、各 3 回。認証後は計測用ルートを作らず、サインアップ後の Cookie を `--extra-headers` で付けて `/` を測った。
 
 | 画面 | Performance | Best Practices | 備考 |
 |---|---:|---:|---|
-| `/login`（未ログイン） | （計測後） | （計測後） | 3 回平均 |
-| `/`（ログイン後ホーム） | （計測後） | （計測後） | 3 回平均。認証 Cookie 付き |
+| `/login`（未ログイン） | **94**（3 回とも） | **96**（3 回とも） | LCP 2.6s（ログイン見出し）。FCP 2.4s |
+| `/`（ログイン後ホーム） | **85**（3 回とも） | **93**（3 回とも） | LCP 3.7s（`p.home-mydrinks-empty`）。FCP 2.8s。TBT 0 |
+
+目安 80 は両画面で達成。ホーム LCP の Render Delay は約 88%（空状態文言は API 後に出る。画面設計は変えない）。Best Practices の減点は既存どおり Radix Dialog の inline style が CSP `style-src 'self'` に当たる件。CSP は緩めない。
 
 開発モードの点数は使わない。
 
@@ -151,9 +161,9 @@ Vite が 500 kB 超を警告。ボトルネックは **初期 JS 1 本に全画�
 
 ## 9. 受け入れ
 
-- [ ] 主要ルートが分割されている
-- [ ] 一覧写真に遅延読み込みと寸法がある
-- [ ] 楽観的更新を入れていない
-- [ ] Lighthouse モバイル Performance / Best Practices が目安 80+（根拠を 6 章に残す）
-- [ ] lint / typecheck / test
-- [ ] 監査: CSP を緩めていない。計測用ルートを足していない
+- [x] 主要ルートが分割されている
+- [x] 一覧写真に遅延読み込みと寸法がある
+- [x] 楽観的更新を入れていない
+- [x] Lighthouse モバイル Performance / Best Practices が目安 80+（根拠を 6 章に残す）
+- [x] lint / typecheck / test
+- [x] 監査: CSP を緩めていない。計測用ルートを足していない

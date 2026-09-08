@@ -67,10 +67,10 @@ Lighthouse: 認証壁があるため、ログイン後 URL を計測する方法
 
 ## 8. 受け入れ条件
 
-- [ ] Lighthouse モバイル Performance / Best Practices が目安 80+（Phase 6 DoD。点数は spec 6.3）
+- [x] Lighthouse モバイル Performance / Best Practices が目安 80+（Phase 6 DoD。点数は spec 6.3）
 - [x] 画像遅延読み込みがある
 - [x] 主要ルートが分割されている
-- [x] 点数の根拠が PR か spec に残る（バンドルは 6.2。Lighthouse は計測後）
+- [x] 点数の根拠が PR か spec に残る（バンドルは 6.2。Lighthouse は 6.3）
 - [x] lint / typecheck / test
 
 ## 9. セキュリティ観点
