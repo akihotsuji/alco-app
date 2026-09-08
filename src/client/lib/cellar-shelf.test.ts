@@ -26,6 +26,7 @@ function item(partial: Partial<BottleItem> & Pick<BottleItem, "id" | "name">): B
     purchasedOn: null,
     priceJpy: null,
     shop: null,
+    storedOn: null,
     storage: null,
     memo: null,
     status: "consumed",

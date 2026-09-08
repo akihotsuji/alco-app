@@ -7,6 +7,7 @@ import {
   bottleSchema,
   bottlesResponseSchema,
   createBottlesResponseSchema,
+  DEFAULT_BOTTLE_STORAGE,
 } from "@/shared/bottles.ts";
 import { drinkLogSchema } from "@/shared/drink-logs.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
@@ -122,6 +123,9 @@ describe("POST /api/bottles", () => {
     expect(body.items[0]?.drinkType).toBe("wine");
     expect(body.items[0]?.status).toBe("sealed");
     expect(body.items[0]?.consumedAt).toBeNull();
+    expect(body.items[0]?.storedOn).toBe(tokyoToday());
+    expect(body.items[0]?.storage).toBe(DEFAULT_BOTTLE_STORAGE);
+    expect(body.items[0]?.purchasedOn).toBeNull();
     expect(body.items[0]?.photos).toEqual([]);
     expect(JSON.stringify(body)).not.toContain("userId");
     expect(JSON.stringify(body)).not.toContain("r2Key");
@@ -231,6 +235,43 @@ describe("POST /api/bottles", () => {
     );
     const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
     expect(cellar.items.filter((item) => item.name === "同名")).toHaveLength(2);
+  });
+
+  it("保管日と購入日は独立。省略時だけ保管日は当日・保管場所は自宅セラー", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const explicit = createBottlesResponseSchema.parse(
+      await (
+        await postBottle(ctx.app, a.cookie, {
+          ...BASE,
+          name: "明示",
+          storedOn: "2026-01-02",
+          purchasedOn: "2026-01-03",
+          storage: "リビング",
+        })
+      ).json(),
+    );
+    expect(explicit.items[0]?.storedOn).toBe("2026-01-02");
+    expect(explicit.items[0]?.purchasedOn).toBe("2026-01-03");
+    expect(explicit.items[0]?.storage).toBe("リビング");
+
+    const cleared = createBottlesResponseSchema.parse(
+      await (
+        await postBottle(ctx.app, a.cookie, {
+          ...BASE,
+          name: "空欄",
+          storedOn: null,
+          storage: null,
+        })
+      ).json(),
+    );
+    expect(cleared.items[0]?.storedOn).toBeNull();
+    expect(cleared.items[0]?.storage).toBeNull();
+    expect(cleared.items[0]?.purchasedOn).toBeNull();
+
+    const futureStored = await postBottle(ctx.app, a.cookie, { ...BASE, storedOn: "2099-01-01" });
+    expect(futureStored.status).toBe(400);
+    expect((await fields(futureStored)).storedOn).toEqual([BOTTLE_MESSAGES.storedOnFuture]);
   });
 });
 
@@ -445,6 +486,40 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     expect(body.name).toBe("改名");
     expect(body.memo).toBe("メモ");
     expect(body.status).toBe("sealed");
+    expect(body.storedOn).toBe(tokyoToday());
+    expect(body.storage).toBe(DEFAULT_BOTTLE_STORAGE);
+  });
+
+  it("既存の空の保管日・保管場所は PATCH で補完しない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const id = crypto.randomUUID();
+    const now = new Date();
+    await ctx.db.insert(bottles).values({
+      id,
+      userId: a.userId,
+      name: "旧レコード",
+      drinkType: "wine",
+      status: "sealed",
+      createdAt: now,
+      updatedAt: now,
+    });
+    const ok = await patchBottle(ctx.app, a.cookie, id, { name: "改名だけ" });
+    expect(ok.status).toBe(200);
+    const body = bottleSchema.parse(await ok.json());
+    expect(body.name).toBe("改名だけ");
+    expect(body.storedOn).toBeNull();
+    expect(body.storage).toBeNull();
+    expect(body.purchasedOn).toBeNull();
+
+    const dates = await patchBottle(ctx.app, a.cookie, id, {
+      storedOn: "2026-02-01",
+      purchasedOn: "2026-03-01",
+    });
+    expect(dates.status).toBe(200);
+    const updated = bottleSchema.parse(await dates.json());
+    expect(updated.storedOn).toBe("2026-02-01");
+    expect(updated.purchasedOn).toBe("2026-03-01");
   });
 
   it("他人の photoIds は PATCH でも 404。行は変わらない", async () => {

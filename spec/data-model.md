@@ -20,7 +20,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | Auth テーブル名 | ライブラリ既定（`user` / `session` / `account` / `verification`）に従う。**名前は凍結しない** | CLI 生成物を正とする |
 | アプリ主キー | **UUID v4**（`crypto.randomUUID()`）、型は `text` | Workers で利用可能。推測耐性 |
 | 日時（瞬間） | **INTEGER（Unix ミリ秒、UTC）** | 範囲検索が容易。表示・集計は Asia/Tokyo |
-| 日付のみ | **TEXT `YYYY-MM-DD`（Asia/Tokyo のカレンダー日）** | 購入日・飲んだ日・開栓日（`consumed_on`）。UTC 日付に変換しない |
+| 日付のみ | **TEXT `YYYY-MM-DD`（Asia/Tokyo のカレンダー日）** | 購入日・保管日・飲んだ日・開栓日（`consumed_on`）。UTC 日付に変換しない |
 | 日次集計キー | `drink_logs.drunk_on` をサーバーが `drunk_at` から算出して保存 | D1/SQLite の TZ 関数に頼らない |
 | 純アルコール量 | **`alcohol_g` を保存**。クライアント値は信じず、サーバーが再計算 | サマリー負荷と改ざん防止。式の正は要件 1.2 / [alcohol-calculation.md](features/alcohol-calculation.md) |
 | 記録メモ上限 | 500 文字 | モバイルの短メモ |
@@ -174,6 +174,7 @@ erDiagram
         text purchased_on
         integer price_jpy
         text shop
+        text stored_on
         text storage
         text memo
         text status
@@ -295,6 +296,7 @@ erDiagram
 | `my_drinks.name` | 1〜40 |
 | `bottles.name` / `tasting_notes.drink_name` | 1〜100 |
 | `producer` / `origin` / `shop` / `storage` | 0〜100 |
+| `purchased_on` / `stored_on` | `YYYY-MM-DD`（JST）または NULL。未来不可 |
 | `bottles.memo` / ノート 4 欄 | 0〜2000 |
 | `vintage` | 1800〜2100 または NULL（NV / 未入力） |
 | `price_jpy` | 0 以上の整数円、または NULL |
@@ -365,10 +367,11 @@ erDiagram
 | producer | producer | text | YES | ≦100 | 生産者 |
 | origin | origin | text | YES | ≦100 | 産地 |
 | vintage | vintage | integer | YES | 1800〜2100 | 年。NV は NULL |
-| purchasedOn | purchased_on | text | YES | `YYYY-MM-DD` | 購入日（JST） |
+| purchasedOn | purchased_on | text | YES | `YYYY-MM-DD` | 購入日（JST）。未入力可。当日に自動設定しない |
 | priceJpy | price_jpy | integer | YES | >= 0 | 購入価格（円、小数なし） |
 | shop | shop | text | YES | ≦100 | 購入場所 |
-| storage | storage | text | YES | ≦100 | 保管場所 |
+| storedOn | stored_on | text | YES | `YYYY-MM-DD` | 保管日（JST）。`created_at` とは別列。新規作成で省略時はサーバーの JST 当日。既存行は NULL のまま（一括補完しない） |
+| storage | storage | text | YES | ≦100 | 保管場所。新規作成で省略時は「自宅セラー」。既存行の空欄は補完しない |
 | memo | memo | text | YES | ≦2000 | メモ |
 | status | status | text | NO | CHECK enum, default `sealed` | 未開栓（棚） / 開栓（貯蔵庫） |
 | consumedAt | consumed_at | integer | YES | | 開栓日時（UTC ms）。`consumed` のとき必須、それ以外 NULL |
@@ -618,6 +621,7 @@ export const bottles = sqliteTable(
     purchasedOn: text("purchased_on"),
     priceJpy: integer("price_jpy"),
     shop: text("shop"),
+    storedOn: text("stored_on"),
     storage: text("storage"),
     memo: text("memo"),
     status: text("status", { enum: bottleStatusEnum }).notNull().default("sealed"),

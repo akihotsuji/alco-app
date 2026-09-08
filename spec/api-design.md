@@ -187,7 +187,7 @@ WHERE id = :id AND user_id = :sessionUserId
 | JSON | 意味 | 例 |
 |---|---|---|
 | 瞬間（`drunkAt`, `createdAt`, `updatedAt`） | UTC の ISO 8601 | `2026-09-04T12:00:00.000Z` |
-| カレンダー日（`drunkOn`, `tastedOn`, `purchasedOn`, `consumedOn`、クエリの `date` / `from` / `to`） | **Asia/Tokyo** の `YYYY-MM-DD` | `2026-09-04` |
+| カレンダー日（`drunkOn`, `tastedOn`, `purchasedOn`, `storedOn`, `consumedOn`、クエリの `date` / `from` / `to`） | **Asia/Tokyo** の `YYYY-MM-DD` | `2026-09-04` |
 
 - 保存は data-model どおり（瞬間は Unix ms UTC、日付は JST 文字列）
 - `drunkOn` は入力項目ではない。`drunkAt` からサーバーが算出する（data-model 5.2）
@@ -496,7 +496,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 ### 4.5 bottles
 
-**共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。日付は `purchasedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`priceJpy` は整数円または null。`status` は `sealed` \| `consumed`。`quantity` は無い（1 行 = 1 本）。`openedOn` は持たない。
+**共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。日付は `purchasedOn` / `storedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`storedOn` は保管日で `purchasedOn` とは別項目。`priceJpy` は整数円または null。`status` は `sealed` \| `consumed`。`quantity` は無い（1 行 = 1 本）。`openedOn` は持たない。
 
 詳細・作成応答に `photos`（4.7 のメタ配列、最大 1）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。
 
@@ -513,7 +513,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 #### POST /api/bottles
 
-必須: `name`, `drinkType`。`status` は受け取らない（常に `sealed`）。**`count`（1〜12、省略時 1）** の本数だけ同じ属性の行を作る。`photoIds`（最大 1。同じ写真 id を N 行に付けることはできないため、**N ≥ 2 のときサーバーが photo 行を複製**する。R2 オブジェクトは 1 つを共有せず N 個にコピーする — 削除の独立性のため）。
+必須: `name`, `drinkType`。`status` は受け取らない（常に `sealed`）。**`count`（1〜12、省略時 1）** の本数だけ同じ属性の行を作る。`photoIds`（最大 1。同じ写真 id を N 行に付けることはできないため、**N ≥ 2 のときサーバーが photo 行を複製**する。R2 オブジェクトは 1 つを共有せず N 個にコピーする — 削除の独立性のため）。`storedOn` 省略時はサーバーの JST 当日、`storage` 省略時は「自宅セラー」。`null` を送った欄は空のまま（デフォルトを再適用しない）。`purchasedOn` は省略時 null（当日にしない）。
 
 成功: 201 `{ "items": Bottle[] }`（`createdAt` は同一、`id` は個別）。
 

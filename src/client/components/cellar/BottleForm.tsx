@@ -12,14 +12,19 @@ import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import {
+  BOTTLE_DETAILS_ERROR_FIELDS,
   BOTTLE_SAVE_LABELS,
   type BottleFormErrors,
+  type BottleFormField,
   type BottleFormState,
   canSubmitBottleForm,
+  createEmptyBottleForm,
+  firstBottleDetailsErrorField,
   hasBottleDetails,
-  INITIAL_BOTTLE_FORM,
   isBottleFormDirty,
+  resolveCreateStoredOn,
   toCreateBottleBody,
   toUpdateBottleBody,
   validateBottleForm,
@@ -49,6 +54,18 @@ import {
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { CountStepper } from "./CountStepper.tsx";
 
+const DETAIL_FIELD_IDS: Record<(typeof BOTTLE_DETAILS_ERROR_FIELDS)[number], string> = {
+  producer: "bottle-producer",
+  origin: "bottle-origin",
+  vintage: "bottle-vintage",
+  storedOn: "bottle-stored-on",
+  storage: "bottle-storage",
+  purchasedOn: "bottle-purchased-on",
+  priceJpy: "bottle-price",
+  shop: "bottle-shop",
+  memo: "bottle-memo",
+};
+
 const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";
 const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真も削除されます";
@@ -72,7 +89,7 @@ type BottleFormProps = {
 
 export function BottleFormFields({
   mode,
-  initial = INITIAL_BOTTLE_FORM,
+  initial,
   existingPhotoId = null,
   onCreate,
   onUpdate,
@@ -91,8 +108,10 @@ export function BottleFormFields({
     mode === "new",
   );
   const { showToast } = useToast();
-  const [state, setState] = useState(initial);
-  const [detailsOpen, setDetailsOpen] = useState(hasBottleDetails(initial));
+  const reduceMotion = useReducedMotion();
+  const [baseline] = useState(() => initial ?? createEmptyBottleForm());
+  const [state, setState] = useState(baseline);
+  const [detailsOpen, setDetailsOpen] = useState(() => hasBottleDetails(baseline));
   const [keptPhotoId, setKeptPhotoId] = useState(existingPhotoId);
   const [photoDeleting, setPhotoDeleting] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -100,6 +119,9 @@ export function BottleFormFields({
   const [recognizeStatus, setRecognizeStatus] = useState<RecognizeBannerStatus | null>(null);
   const [aiMarks, setAiMarks] = useState<Set<RecognizeMarkField>>(new Set());
   const [drinkTypeTouched, setDrinkTypeTouched] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<BottleFormField, boolean>>>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [storedOnTouched, setStoredOnTouched] = useState(false);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const ignoreRecognizeRef = useRef(false);
@@ -107,21 +129,33 @@ export function BottleFormFields({
   const recognizeRequestRef = useRef(0);
   const drinkTypeTouchedRef = useRef(false);
   const aiMarksRef = useRef(aiMarks);
+  const storedOnTouchedRef = useRef(false);
   drinkTypeTouchedRef.current = drinkTypeTouched;
   aiMarksRef.current = aiMarks;
+  storedOnTouchedRef.current = storedOnTouched;
   const attachment = attachments.cellar;
   const photoStatus: PhotoSaveStatus = attachment
     ? attachment.status
     : keptPhotoId
       ? "ready"
       : "none";
-  const errors: BottleFormErrors = { ...validateBottleForm(state), ...serverErrors };
+  const clientErrors = validateBottleForm(state);
+  const errors: BottleFormErrors = visibleFieldErrors(clientErrors, serverErrors, {
+    touched,
+    submitAttempted,
+  });
   const dirty =
-    isBottleFormDirty(state, initial, mode === "new") ||
+    isBottleFormDirty(state, baseline, mode === "new") ||
     attachment !== undefined ||
     keptPhotoId !== existingPhotoId;
+  const blockingErrors: BottleFormErrors = { ...clientErrors, ...serverErrors };
+  if (!detailsOpen && firstBottleDetailsErrorField(blockingErrors)) {
+    for (const field of BOTTLE_DETAILS_ERROR_FIELDS) {
+      delete blockingErrors[field];
+    }
+  }
   const canSubmit =
-    dirty && canSubmitBottleForm(state, errors, photoStatus) && !photoDeleting && !deleting;
+    dirty && canSubmitBottleForm(state, blockingErrors, photoStatus) && !photoDeleting && !deleting;
   const detailsId = useId();
 
   useEffect(() => {
@@ -160,8 +194,27 @@ export function BottleFormFields({
     if (patch.vintage !== undefined) {
       clearAiMark("vintage");
     }
+    if (patch.storedOn !== undefined) {
+      storedOnTouchedRef.current = true;
+      setStoredOnTouched(true);
+    }
+    setTouched((current) => {
+      const next = { ...current };
+      for (const key of Object.keys(patch) as (keyof BottleFormState)[]) {
+        next[key] = true;
+      }
+      return next;
+    });
     setState((current) => ({ ...current, ...patch }));
     onClearServer();
+  }
+
+  function scrollToDetailsField(field: (typeof BOTTLE_DETAILS_ERROR_FIELDS)[number]) {
+    const node = document.getElementById(DETAIL_FIELD_IDS[field]);
+    node?.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+    if (node instanceof HTMLElement) {
+      node.focus({ preventScroll: true });
+    }
   }
 
   // 「使う」直後、切り抜き・アップロードを待たずに読み取りを始める（Issue #48 D-1）。
@@ -228,19 +281,62 @@ export function BottleFormFields({
       });
   }, [attachment, mode]);
 
+  useEffect(() => {
+    const field = firstBottleDetailsErrorField(serverErrors);
+    if (!field) {
+      return;
+    }
+    setDetailsOpen(true);
+    setSubmitAttempted(true);
+    const frame = requestAnimationFrame(() => {
+      const node = document.getElementById(DETAIL_FIELD_IDS[field]);
+      node?.scrollIntoView({ block: "center", behavior: "auto" });
+      if (node instanceof HTMLElement) {
+        node.focus({ preventScroll: true });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [serverErrors]);
+
   function submit() {
-    if (!canSubmit || pending) {
+    if (pending || photoDeleting || deleting) {
+      return;
+    }
+    setSubmitAttempted(true);
+    const now = new Date();
+    const resolvedState: BottleFormState =
+      mode === "new"
+        ? {
+            ...state,
+            storedOn: resolveCreateStoredOn(state, storedOnTouchedRef.current, now) ?? "",
+          }
+        : state;
+    if (mode === "new" && resolvedState.storedOn !== state.storedOn) {
+      setState(resolvedState);
+    }
+    const nextErrors = { ...validateBottleForm(resolvedState, now), ...serverErrors };
+    const detailsField = firstBottleDetailsErrorField(nextErrors);
+    if (detailsField) {
+      setDetailsOpen(true);
+      requestAnimationFrame(() => scrollToDetailsField(detailsField));
+    }
+    if (!dirty || !canSubmitBottleForm(resolvedState, nextErrors, photoStatus) || pending) {
       return;
     }
     ignoreRecognizeRef.current = true;
     if (mode === "new") {
-      onCreate?.(toCreateBottleBody(state, attachment?.photoId ?? null));
+      onCreate?.(
+        toCreateBottleBody(resolvedState, attachment?.photoId ?? null, {
+          now,
+          storedOnTouched: storedOnTouchedRef.current,
+        }),
+      );
       return;
     }
     onUpdate?.(
       toUpdateBottleBody(
-        state,
-        initial,
+        resolvedState,
+        baseline,
         attachment?.photoId ?? null,
         keptPhotoId === null && existingPhotoId !== null,
       ),
@@ -372,89 +468,116 @@ export function BottleFormFields({
         </button>
         {detailsOpen ? (
           <div id={detailsId} className="bottle-details">
-            <DetailField
-              id="bottle-producer"
-              label="生産者"
-              value={state.producer}
-              maxLength={BOTTLE_TEXT_MAX_LENGTH}
-              error={errors.producer}
-              aiMarked={aiMarks.has("producer")}
-              onChange={(producer) => update({ producer })}
-            />
-            <DetailField
-              id="bottle-origin"
-              label="産地"
-              value={state.origin}
-              maxLength={BOTTLE_TEXT_MAX_LENGTH}
-              error={errors.origin}
-              aiMarked={aiMarks.has("origin")}
-              onChange={(origin) => update({ origin })}
-            />
-            <DetailField
-              id="bottle-vintage"
-              label={BOTTLE_FIELD_LABELS.vintage}
-              value={state.vintage}
-              inputMode="numeric"
-              placeholder="NV"
-              layout="inline"
-              error={errors.vintage}
-              aiMarked={aiMarks.has("vintage")}
-              onChange={(vintage) => update({ vintage })}
-            />
-            <DetailField
-              id="bottle-purchased-on"
-              label={BOTTLE_FIELD_LABELS.purchasedOn}
-              value={state.purchasedOn}
-              type="date"
-              max={tokyoToday()}
-              layout="inline"
-              error={errors.purchasedOn}
-              onChange={(purchasedOn) => update({ purchasedOn })}
-            />
-            <DetailField
-              id="bottle-price"
-              label="価格"
-              value={state.priceJpy}
-              inputMode="numeric"
-              error={errors.priceJpy}
-              onChange={(priceJpy) => update({ priceJpy })}
-            />
-            <DetailField
-              id="bottle-shop"
-              label="購入場所"
-              value={state.shop}
-              maxLength={BOTTLE_TEXT_MAX_LENGTH}
-              error={errors.shop}
-              onChange={(shop) => update({ shop })}
-            />
-            <DetailField
-              id="bottle-storage"
-              label="保管場所"
-              value={state.storage}
-              maxLength={BOTTLE_TEXT_MAX_LENGTH}
-              error={errors.storage}
-              onChange={(storage) => update({ storage })}
-            />
-            <div className="log-form-section">
-              <label className="field-label" htmlFor="bottle-memo">
-                メモ
-              </label>
-              <textarea
-                id="bottle-memo"
-                className="memo-textarea"
-                maxLength={BOTTLE_MEMO_MAX_LENGTH}
-                rows={3}
-                value={state.memo}
-                aria-invalid={errors.memo ? true : undefined}
-                onChange={(event) => update({ memo: event.target.value })}
+            <DetailsSection title="ボトル情報" optional>
+              <DetailField
+                id="bottle-producer"
+                label="生産者"
+                value={state.producer}
+                maxLength={BOTTLE_TEXT_MAX_LENGTH}
+                error={errors.producer}
+                aiMarked={aiMarks.has("producer")}
+                onChange={(producer) => update({ producer })}
               />
-              <p className="memo-count">残り {BOTTLE_MEMO_MAX_LENGTH - state.memo.length} 文字</p>
-              {errors.memo ? (
-                <p className="field-error" role="alert">
-                  {errors.memo}
+              <div className="bottle-details-pair">
+                <DetailField
+                  id="bottle-origin"
+                  label="産地"
+                  value={state.origin}
+                  maxLength={BOTTLE_TEXT_MAX_LENGTH}
+                  placeholder="例：シチリア"
+                  error={errors.origin}
+                  aiMarked={aiMarks.has("origin")}
+                  onChange={(origin) => update({ origin })}
+                />
+                <DetailField
+                  id="bottle-vintage"
+                  label={BOTTLE_FIELD_LABELS.vintage}
+                  value={state.vintage}
+                  inputMode="numeric"
+                  placeholder="NV"
+                  error={errors.vintage}
+                  aiMarked={aiMarks.has("vintage")}
+                  onChange={(vintage) => update({ vintage })}
+                />
+              </div>
+            </DetailsSection>
+            <DetailsSection title="保管情報">
+              <DetailField
+                id="bottle-stored-on"
+                label={BOTTLE_FIELD_LABELS.storedOn}
+                value={state.storedOn}
+                type="date"
+                max={tokyoToday()}
+                hint={mode === "new" ? "初期値は登録日です。変更できます。" : undefined}
+                error={errors.storedOn}
+                onChange={(storedOn) => update({ storedOn })}
+              />
+              <DetailField
+                id="bottle-storage"
+                label={BOTTLE_FIELD_LABELS.storage}
+                value={state.storage}
+                maxLength={BOTTLE_TEXT_MAX_LENGTH}
+                error={errors.storage}
+                onChange={(storage) => update({ storage })}
+              />
+            </DetailsSection>
+            <DetailsSection title="購入情報" optional>
+              <div className="bottle-details-pair">
+                <DetailField
+                  id="bottle-purchased-on"
+                  label={BOTTLE_FIELD_LABELS.purchasedOn}
+                  value={state.purchasedOn}
+                  type="date"
+                  max={tokyoToday()}
+                  placeholder="日付を選択"
+                  error={errors.purchasedOn}
+                  onChange={(purchasedOn) => update({ purchasedOn })}
+                />
+                <DetailField
+                  id="bottle-price"
+                  label={BOTTLE_FIELD_LABELS.priceJpy}
+                  value={state.priceJpy}
+                  inputMode="numeric"
+                  placeholder="¥ 未入力"
+                  error={errors.priceJpy}
+                  onChange={(priceJpy) => update({ priceJpy })}
+                />
+              </div>
+              <DetailField
+                id="bottle-shop"
+                label="購入場所"
+                value={state.shop}
+                maxLength={BOTTLE_TEXT_MAX_LENGTH}
+                placeholder="店舗名・オンラインショップなど"
+                error={errors.shop}
+                onChange={(shop) => update({ shop })}
+              />
+            </DetailsSection>
+            <DetailsSection title="メモ" optional>
+              <div className="bottle-details-field">
+                <label className="field-label" htmlFor="bottle-memo">
+                  メモ
+                </label>
+                <textarea
+                  id="bottle-memo"
+                  className="memo-textarea bottle-details-memo"
+                  maxLength={BOTTLE_MEMO_MAX_LENGTH}
+                  rows={3}
+                  placeholder="保管やボトルについてのメモ"
+                  value={state.memo}
+                  aria-invalid={errors.memo ? true : undefined}
+                  onChange={(event) => update({ memo: event.target.value })}
+                />
+                <p className="memo-count">
+                  {state.memo.length} / {BOTTLE_MEMO_MAX_LENGTH}
                 </p>
-              ) : null}
-            </div>
+                {errors.memo ? (
+                  <p className="field-error" role="alert">
+                    {errors.memo}
+                  </p>
+                ) : null}
+              </div>
+            </DetailsSection>
           </div>
         ) : null}
       </section>
@@ -512,6 +635,26 @@ function FieldWithAiMark({ marked, children }: { marked: boolean; children: Reac
   );
 }
 
+function DetailsSection({
+  title,
+  optional = false,
+  children,
+}: {
+  title: string;
+  optional?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className="bottle-details-section">
+      <header className="bottle-details-heading">
+        <h3 className="bottle-details-title">{title}</h3>
+        {optional ? <span className="bottle-details-optional">任意</span> : null}
+      </header>
+      {children}
+    </section>
+  );
+}
+
 function DetailField({
   id,
   label,
@@ -523,7 +666,7 @@ function DetailField({
   placeholder,
   type,
   max,
-  layout = "stack",
+  hint,
   aiMarked = false,
 }: {
   id: string;
@@ -536,11 +679,11 @@ function DetailField({
   placeholder?: string;
   type?: "date";
   max?: string;
-  layout?: "stack" | "inline";
+  hint?: string;
   aiMarked?: boolean;
 }) {
   return (
-    <div className={layout === "inline" ? "field-inline" : "log-form-section"}>
+    <div className="bottle-details-field">
       <label className="field-label" htmlFor={id}>
         {label}
       </label>
@@ -558,6 +701,7 @@ function DetailField({
           onChange={(event) => onChange(event.target.value)}
         />
       </FieldWithAiMark>
+      {hint ? <p className="field-hint">{hint}</p> : null}
       {error ? (
         <p className="field-error" role="alert">
           {error}
@@ -565,6 +709,23 @@ function DetailField({
       ) : null}
     </div>
   );
+}
+
+function visibleFieldErrors(
+  clientErrors: BottleFormErrors,
+  serverErrors: BottleFormErrors,
+  options: {
+    touched: Partial<Record<BottleFormField, boolean>>;
+    submitAttempted: boolean;
+  },
+): BottleFormErrors {
+  const visible: BottleFormErrors = { ...serverErrors };
+  for (const [key, message] of Object.entries(clientErrors) as [BottleFormField, string][]) {
+    if (options.submitAttempted || options.touched[key]) {
+      visible[key] = serverErrors[key] ?? message;
+    }
+  }
+  return visible;
 }
 
 export function useBottleFormSubmit() {

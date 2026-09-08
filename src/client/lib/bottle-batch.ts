@@ -3,7 +3,7 @@ import {
   type BottleFormErrors,
   type BottleFormState,
   canSubmitBottleForm,
-  INITIAL_BOTTLE_FORM,
+  createEmptyBottleForm,
   toCreateBottleBody,
   validateBottleForm,
 } from "@/client/lib/bottle-form.ts";
@@ -42,7 +42,7 @@ export function newBatchRow(key: string, photo: PhotoAttachment): BottleBatchRow
   return {
     key,
     photo,
-    form: { ...INITIAL_BOTTLE_FORM },
+    form: createEmptyBottleForm(),
     aiMarks: [],
     recognize: null,
     drinkTypeTouched: false,

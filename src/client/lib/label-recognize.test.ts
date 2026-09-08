@@ -22,6 +22,8 @@ describe("applyRecognizeToForm", () => {
     expect(result.next.origin).toBe("");
     expect(result.next.vintage).toBe("2020");
     expect(result.next.drinkType).toBe("whisky");
+    expect(result.next.storedOn).toBe(INITIAL_BOTTLE_FORM.storedOn);
+    expect(result.next.storage).toBe(INITIAL_BOTTLE_FORM.storage);
     expect(result.marks.has("name")).toBe(false);
     expect(result.marks.has("producer")).toBe(true);
     expect(result.marks.has("vintage")).toBe(true);

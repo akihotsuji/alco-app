@@ -46,6 +46,7 @@ describe("createBottleSchema", () => {
       purchasedOn: "2026-06-01",
       priceJpy: 3800,
       shop: "酒店",
+      storedOn: "2026-06-02",
       storage: "リビング",
       memo: "メモ",
       count: 3,
@@ -96,6 +97,9 @@ describe("createBottleSchema", () => {
     expect(
       messagesOf(createBottleSchema, { ...BASE, purchasedOn: "2026-02-30" }).purchasedOn,
     ).toEqual([BOTTLE_MESSAGES.purchasedOn]);
+    expect(messagesOf(createBottleSchema, { ...BASE, storedOn: "2026-02-30" }).storedOn).toEqual([
+      BOTTLE_MESSAGES.storedOn,
+    ]);
   });
 });
 

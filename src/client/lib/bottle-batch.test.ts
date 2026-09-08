@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PhotoAttachment } from "@/client/components/layout/photo-edit-context.tsx";
+import { DEFAULT_BOTTLE_STORAGE } from "@/shared/bottles.ts";
+import { tokyoToday } from "@/shared/tokyo-date.ts";
 import {
   applyBatchOutcome,
   BOTTLE_BATCH_MAX_ROWS,
@@ -153,7 +155,8 @@ describe("保存可否と本数", () => {
       purchasedOn: null,
       priceJpy: null,
       shop: null,
-      storage: null,
+      storedOn: tokyoToday(),
+      storage: DEFAULT_BOTTLE_STORAGE,
       memo: null,
       photoIds: ["photo-a"],
     });
