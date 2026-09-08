@@ -47,6 +47,33 @@ describe("applyRecognizeToForm", () => {
     expect(result.openDetails).toBe(false);
     expect(result.applied).toEqual([]);
   });
+
+  it("再読取は AI 印の欄を上書きし、手入力は残す", () => {
+    const first = applyRecognizeToForm({
+      state: INITIAL_BOTTLE_FORM,
+      fields: {
+        name: { value: "一枚目", confidence: 0.9 },
+        origin: { value: "フランス", confidence: 0.8 },
+      },
+      drinkTypeTouched: false,
+      marks: new Set(),
+    });
+    const second = applyRecognizeToForm({
+      state: { ...first.next, producer: "手入力" },
+      fields: {
+        name: { value: "二枚目", confidence: 0.9 },
+        origin: { value: "イタリア", confidence: 0.8 },
+        producer: { value: "AI生産者", confidence: 0.9 },
+      },
+      drinkTypeTouched: false,
+      marks: first.marks,
+    });
+    expect(second.next.name).toBe("二枚目");
+    expect(second.next.origin).toBe("イタリア");
+    expect(second.next.producer).toBe("手入力");
+    expect(second.marks.has("name")).toBe(true);
+    expect(second.marks.has("producer")).toBe(false);
+  });
 });
 
 describe("countRecognizeFields", () => {

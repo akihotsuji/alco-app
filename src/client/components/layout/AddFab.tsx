@@ -7,7 +7,7 @@ type AddFabProps = {
   fab: AddFabDef;
 };
 
-/** セラー / ノート一覧の右下追加（00-common 1.4）。親指が届く位置。primary にはしない */
+/** セラー一覧とノート一覧の右下「＋」（00-common 1.4）。親指が届く位置。primary にはしない */
 export function AddFab({ fab }: AddFabProps) {
   return (
     <IconButton label={fab.label} size="icon-lg" className="add-fab" asChild>

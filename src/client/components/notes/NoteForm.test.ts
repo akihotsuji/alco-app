@@ -19,6 +19,7 @@ describe("NoteForm 写真先頭と AI / 識別", () => {
     expect(source).toContain("IDENTITY_FIELD_LABELS.drinkName");
     expect(source).toContain("startNoteRecognition");
     expect(source).toContain("applyRecognizeToNoteForm");
+    expect(source).toContain("latestNoteRecognizeJpeg");
     expect(source).toContain("NOTE_RECOGNIZE_BANNER");
     expect(source).toContain("capturedAtToCalendarDate");
     expect(source).toContain("fromLog");

@@ -229,17 +229,13 @@ describe("note hrefs", () => {
     expect(noteCreateHref()).toBe("/notes/new");
     const header = resolveAppRoute("/notes", NOW, `?bottleId=${id}`).header;
     expect(header.left).toEqual({ kind: "back", fallback: `/cellar/${id}` });
-    expect(header.right).toEqual({
-      kind: "create",
+    expect(header.right).toEqual({ kind: "spacer" });
+    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toEqual({
       to: `/notes/new?bottleId=${id}`,
-      label: "＋\u00a0作成",
+      label: "作成",
     });
-    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toBeNull();
-    expect(resolveAppRoute("/notes", NOW).header.right).toEqual({
-      kind: "create",
-      to: "/notes/new",
-      label: "＋\u00a0作成",
-    });
+    expect(resolveAppRoute("/notes", NOW).header.right).toEqual({ kind: "spacer" });
+    expect(addFabForRoute("/notes")).toEqual({ to: "/notes/new", label: "作成" });
     expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}`).header.left).toEqual({
       kind: "back",
       fallback: `/notes?bottleId=${id}`,

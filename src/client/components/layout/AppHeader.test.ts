@@ -7,13 +7,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const header = readFileSync(join(here, "AppHeader.tsx"), "utf8");
 const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
-describe("AppHeader ノート一覧の作成ボタン", () => {
-  it("「＋ 作成」は折り返さず、右スロット幅を広げる", () => {
-    expect(header).toContain("app-header-has-create");
-    expect(header).toContain('className="header-create"');
-    expect(css).toContain(".app-header-has-create");
-    expect(css).toMatch(/\.header-create\s*\{[^}]*white-space:\s*nowrap/s);
-    expect(css).toContain("flex-flow: row nowrap");
-    expect(css).toContain(".app-header:has(.header-create)");
+describe("AppHeader", () => {
+  it("ノート作成はヘッダーに置かず、右下 FAB に揃える", () => {
+    expect(header).not.toContain("header-create");
+    expect(header).not.toContain("app-header-has-create");
+    expect(css).not.toContain(".header-create");
+    expect(css).not.toContain(".app-header-has-create");
   });
 });
