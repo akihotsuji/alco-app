@@ -35,10 +35,10 @@ import {
 const NOW = new Date("2026-09-05T04:05:00.000Z");
 
 describe("initial state", () => {
-  it("初期はワイン 125 / 12、日時いま、メモ空（すぐ保存できる）", () => {
+  it("初期は赤ワイン 125 / 12、日時いま、メモ空（すぐ保存できる）", () => {
     const state = initialLogFormState(null, NOW);
     expect(state).toEqual({
-      drinkType: "wine",
+      drinkType: "wine_red",
       drinkName: "",
       volumeMl: 125,
       abvPercent: 12,

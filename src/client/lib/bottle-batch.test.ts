@@ -53,7 +53,7 @@ describe("行の追加・置き換え", () => {
     const next = upsertBatchPhoto(rows, "b", photo());
     expect(next.map((row) => row.key)).toEqual(["a", "b"]);
     expect(next[0]?.form.name).toBe("");
-    expect(next[0]?.form.drinkType).toBe("wine");
+    expect(next[0]?.form.drinkType).toBe("wine_red");
     expect(next[0]?.form.count).toBe(1);
   });
 

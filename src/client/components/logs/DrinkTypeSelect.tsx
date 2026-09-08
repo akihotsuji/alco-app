@@ -19,7 +19,7 @@ type DrinkTypeSelectProps = {
   error?: string;
 };
 
-/** 種類セレクト。全 7 種へアクセスする。横スクロールに頼らない */
+/** 種類セレクト。全 12 種へアクセスする。横スクロールに頼らない */
 export function DrinkTypeSelect({
   value,
   onChange,

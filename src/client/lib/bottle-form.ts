@@ -24,7 +24,7 @@ import {
 import type { DrinkType } from "@/shared/constants.ts";
 import { formatShortMonthDay, parseCalendarDate, tokyoToday } from "@/shared/tokyo-date.ts";
 
-export const DEFAULT_BOTTLE_DRINK_TYPE: DrinkType = "wine";
+export const DEFAULT_BOTTLE_DRINK_TYPE: DrinkType = "wine_red";
 
 export type BottleFormState = {
   name: string;

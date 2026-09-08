@@ -194,6 +194,7 @@ describe("escapeLike / helpers", () => {
     expect(arrangedToastMessage(1)).toBe("棚に並べました");
     expect(arrangedToastMessage(3)).toBe("棚に 3 本並べました");
     expect(emptyCountsByType().wine).toBe(0);
-    expect(Object.keys(emptyCountsByType())).toHaveLength(7);
+    expect(emptyCountsByType().wine_red).toBe(0);
+    expect(Object.keys(emptyCountsByType())).toHaveLength(12);
   });
 });

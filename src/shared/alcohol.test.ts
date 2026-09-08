@@ -79,7 +79,7 @@ describe("isDryDay", () => {
 });
 
 describe("DRINK_TYPE_PRESETS", () => {
-  it("7 種類すべてのキーがあり、密度と入力範囲の定数が spec と一致する", () => {
+  it("12 種類すべてのキーがあり、密度と入力範囲の定数が spec と一致する", () => {
     expect(ETHANOL_DENSITY).toBe(0.8);
     expect(VOLUME_ML_MIN).toBe(1);
     expect(VOLUME_ML_MAX).toBe(5000);
@@ -90,7 +90,10 @@ describe("DRINK_TYPE_PRESETS", () => {
 
   it("種類デフォルトから計算した保存値が 8.1 と一致する", () => {
     expect(
-      calculateAlcoholGrams(DRINK_TYPE_PRESETS.wine.volumeMl, DRINK_TYPE_PRESETS.wine.abvPercent),
+      calculateAlcoholGrams(
+        DRINK_TYPE_PRESETS.wine_red.volumeMl,
+        DRINK_TYPE_PRESETS.wine_red.abvPercent,
+      ),
     ).toBe(12);
     expect(
       calculateAlcoholGrams(DRINK_TYPE_PRESETS.beer.volumeMl, DRINK_TYPE_PRESETS.beer.abvPercent),
@@ -122,6 +125,7 @@ describe("DRINK_TYPE_PRESETS", () => {
 
   it("量チップは種類の値にボトル量を足す", () => {
     expect(BOTTLE_VOLUME_CHIPS).toEqual([375, 750, 1500]);
+    expect(volumeChipsFor("wine_red")).toEqual([125, 150, 375, 750, 1500]);
     expect(volumeChipsFor("wine")).toEqual([125, 150, 375, 750, 1500]);
     expect(volumeChipsFor("other")).toEqual([375, 750, 1500]);
   });

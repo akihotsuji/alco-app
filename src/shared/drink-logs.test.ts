@@ -95,7 +95,7 @@ describe("createDrinkLogSchema", () => {
     ]);
   });
 
-  it("種類は 7 種の enum", () => {
+  it("種類は 12 種の enum", () => {
     expect(messagesOf({ ...BASE, drinkType: "vodka" }).drinkType).toEqual([
       DRINK_LOG_MESSAGES.drinkType,
     ]);

@@ -8,10 +8,10 @@ import {
 } from "./my-drink-form.ts";
 
 describe("my-drink-form", () => {
-  it("初期値はワイン 125ml / 12%", () => {
+  it("初期値は赤ワイン 125ml / 12%", () => {
     expect(INITIAL_MY_DRINK_FORM).toEqual({
       name: "",
-      drinkType: "wine",
+      drinkType: "wine_red",
       volumeMl: 125,
       abvPercent: 12,
     });
@@ -52,7 +52,7 @@ describe("my-drink-form", () => {
   it("保存値は名前をtrimし、不正値では生成しない", () => {
     expect(toMyDrinkBody({ ...INITIAL_MY_DRINK_FORM, name: "  赤ラベル  " })).toEqual({
       name: "赤ラベル",
-      drinkType: "wine",
+      drinkType: "wine_red",
       volumeMl: 125,
       abvPercent: 12,
     });

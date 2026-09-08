@@ -4,13 +4,14 @@ import { DRINK_TYPE_LABELS, DRINK_TYPES, type DrinkType } from "@/shared/constan
 
 type DrinkTypeChipsProps = {
   value: DrinkType | null;
+  guideTarget?: string;
   onChange: (drinkType: DrinkType) => void;
 };
 
-/** N3: 種類チップ ×7（横スクロール）。選択で量・度数の上書きは呼び元（applyDrinkType）が行う */
-export function DrinkTypeChips({ value, onChange }: DrinkTypeChipsProps) {
+/** N3: 種類チップ（12 種、横スクロール）。選択で量・度数の上書きは呼び元（applyDrinkType）が行う */
+export function DrinkTypeChips({ value, guideTarget, onChange }: DrinkTypeChipsProps) {
   return (
-    <fieldset className="log-form-section">
+    <fieldset className="log-form-section" data-guide-target={guideTarget}>
       <legend className="field-label">種類</legend>
       <div className="chip-row">
         {DRINK_TYPES.map((type) => (

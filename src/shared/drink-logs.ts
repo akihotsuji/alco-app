@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ABV_PERCENT_MAX, ABV_PERCENT_MIN, VOLUME_ML_MAX, VOLUME_ML_MIN } from "./alcohol.ts";
-import { DRINK_TYPES } from "./constants.ts";
+import { DRINK_TYPES, normalizeRecognizedDrinkType } from "./constants.ts";
 import { IDENTITY_MESSAGES, optionalIdentityText, optionalVintage } from "./identity.ts";
 import { photoMetaSchema } from "./photos.ts";
 import {
@@ -56,6 +56,16 @@ export function isDrunkAtAllowed(drunkAt: Date, now: Date = new Date()): boolean
 }
 
 export const drinkTypeSchema = z.enum(DRINK_TYPES, { error: DRINK_LOG_MESSAGES.drinkType });
+
+/** 認識出力用。enum に無い別名（red_wine 等）を 12 種へ寄せる */
+export const recognizedDrinkTypeValueSchema = z.string().transform((value, ctx) => {
+  const normalized = normalizeRecognizedDrinkType(value);
+  if (!normalized) {
+    ctx.addIssue({ code: "custom", message: DRINK_LOG_MESSAGES.drinkType });
+    return z.NEVER;
+  }
+  return normalized;
+});
 
 export const volumeMlSchema = z
   .number({ error: DRINK_LOG_MESSAGES.volumeMl })

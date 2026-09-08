@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_LABEL_RECOGNIZE_PROVIDER, LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
-import { drinkTypeSchema } from "./drink-logs.ts";
+import { recognizedDrinkTypeValueSchema } from "./drink-logs.ts";
 import { pickIdentityRecognizeFields } from "./identity-recognize.ts";
 import { extractModelPayload } from "./label-recognize.ts";
 
@@ -12,7 +12,7 @@ import { extractModelPayload } from "./label-recognize.ts";
 const confidenceSchema = z.number().min(0).max(1);
 
 const drinkTypeCandidateSchema = z.object({
-  value: drinkTypeSchema,
+  value: recognizedDrinkTypeValueSchema,
   confidence: confidenceSchema,
 });
 

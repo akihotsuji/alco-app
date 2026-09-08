@@ -92,6 +92,7 @@
   --dur-gaze: 240ms;
   --dur-wink: 380ms;
   --dur-react: 400ms;
+  --dur-fan: 240ms;
   --dur-toast-in: 180ms;
   --dur-toast-out: 150ms;
   --dur-stagger: 80ms;
@@ -4325,7 +4326,8 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
 .guide-spotlight {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  /* 練習 overlay（45）より上。穴から下の操作へ通す */
+  z-index: 50;
   pointer-events: none;
 }
 
@@ -4349,6 +4351,15 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   pointer-events: auto;
 }
 
+.guide-spotlight-ring {
+  position: absolute;
+  pointer-events: none;
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 0 0 3px var(--background),
+    0 0 0 5px var(--primary);
+}
+
 .guide-spotlight-tip::before {
   content: "";
   position: absolute;
@@ -4357,6 +4368,15 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   border: 8px solid transparent;
   border-top-width: 0;
   border-bottom-color: var(--background);
+}
+
+.guide-spotlight-tip[data-placement="above"]::before {
+  top: auto;
+  bottom: -8px;
+  border-bottom-width: 0;
+  border-top-width: 8px;
+  border-bottom-color: transparent;
+  border-top-color: var(--background);
 }
 
 .guide-spotlight-copy {
@@ -4423,4 +4443,57 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   font-size: 13px;
   font-weight: 600;
   box-shadow: var(--shadow-inset-sm);
+}
+
+.guide-fan-anchor {
+  position: relative;
+}
+
+.guide-fan-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 48;
+  border: 0;
+  background: rgb(0 0 0 / 35%);
+}
+
+.guide-fan-items {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  z-index: 49;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.guide-fan-item {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow-outset);
+  pointer-events: auto;
+  transform-origin: bottom center;
+  transform: translate(-50%, 0) rotate(var(--fan-deg)) translateY(-72px)
+    rotate(calc(-1 * var(--fan-deg)));
+  animation: guide-fan-in var(--dur-fan) var(--ease-out);
+}
+
+@keyframes guide-fan-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+}
+
+html[data-reduce-motion="1"] .guide-fan-item {
+  transform: translate(-50%, calc(-56px - var(--fan-index, 0) * 52px));
 }

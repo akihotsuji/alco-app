@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
+import { guideStepProgress } from "@/client/lib/first-run-guide.ts";
 import {
   applyDrinkType,
   canSubmitLogForm,
@@ -14,10 +16,13 @@ import {
 } from "@/client/lib/log-form.ts";
 
 type PracticeLogFormProps = {
+  onFieldUsed: () => void;
   onSaved: () => void;
 };
 
-export function PracticeLogForm({ onSaved }: PracticeLogFormProps) {
+export function PracticeLogForm({ onFieldUsed, onSaved }: PracticeLogFormProps) {
+  const guide = useFirstRunGuide();
+  const progress = guide.step === "off" ? null : guideStepProgress(guide.step);
   const [now] = useState(() => new Date());
   const [state, setState] = useState(() => initialLogFormState(null, now));
   const [submitted, setSubmitted] = useState(false);
@@ -37,7 +42,11 @@ export function PracticeLogForm({ onSaved }: PracticeLogFormProps) {
     <div className="form-page log-form">
       <p className="guide-practice-banner" role="status">
         <span>練習中・保存されません</span>
-        <span>2 / 2</span>
+        {progress ? (
+          <span>
+            {progress.current} / {progress.total}
+          </span>
+        ) : null}
       </p>
       <p className="form-lead">量を選んで保存。写真はなくても大丈夫です</p>
       <DrinkTypeSelect
@@ -49,7 +58,11 @@ export function PracticeLogForm({ onSaved }: PracticeLogFormProps) {
         drinkType={state.drinkType}
         value={state.volumeMl}
         error={visibleErrors.volumeMl}
-        onChange={(volumeMl) => update({ volumeMl }, "volumeMl")}
+        guideTarget="volume"
+        onChange={(volumeMl) => {
+          update({ volumeMl }, "volumeMl");
+          onFieldUsed();
+        }}
       />
       <AbvField
         key={`practice-abv-${state.drinkType}`}
@@ -70,6 +83,7 @@ export function PracticeLogForm({ onSaved }: PracticeLogFormProps) {
         disabled={!canSubmit}
         hint={!canSubmit ? "量と度数を入力してください" : null}
         state="idle"
+        guideTarget="save"
         onSave={() => {
           setSubmitted(true);
           if (canSubmit) {

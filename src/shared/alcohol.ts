@@ -30,16 +30,17 @@ type OtherDrinkTypePreset = {
   readonly volumeChips: readonly [];
 };
 
+const WINE_PRESET: DrinkTypePreset = { volumeMl: 125, abvPercent: 12, volumeChips: [125, 150] };
+
 export const DRINK_TYPE_PRESETS: {
-  readonly wine: DrinkTypePreset;
-  readonly beer: DrinkTypePreset;
-  readonly whisky: DrinkTypePreset;
-  readonly sake: DrinkTypePreset;
-  readonly shochu: DrinkTypePreset;
-  readonly cocktail: DrinkTypePreset;
-  readonly other: OtherDrinkTypePreset;
+  readonly [K in DrinkType]: K extends "other" ? OtherDrinkTypePreset : DrinkTypePreset;
 } = {
-  wine: { volumeMl: 125, abvPercent: 12, volumeChips: [125, 150] },
+  wine_red: WINE_PRESET,
+  wine_white: WINE_PRESET,
+  wine_rose: WINE_PRESET,
+  wine_sparkling: WINE_PRESET,
+  wine_orange: WINE_PRESET,
+  wine: WINE_PRESET,
   beer: { volumeMl: 350, abvPercent: 5, volumeChips: [200, 350, 500] },
   whisky: { volumeMl: 30, abvPercent: 40, volumeChips: [15, 30, 60] },
   sake: { volumeMl: 180, abvPercent: 15, volumeChips: [90, 180] },

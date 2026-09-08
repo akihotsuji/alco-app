@@ -9,6 +9,7 @@ type VolumeFieldProps = {
   drinkType: DrinkType;
   value: number | null;
   error?: string;
+  guideTarget?: string;
   onChange: (value: number | null) => void;
 };
 
@@ -21,14 +22,14 @@ function parseVolume(raw: string): number | null {
 }
 
 /** N4: 数値 + ml を一つの入力。種類のよく使う量を近くに、残りは「その他」 */
-export function VolumeField({ drinkType, value, error, onChange }: VolumeFieldProps) {
+export function VolumeField({ drinkType, value, error, guideTarget, onChange }: VolumeFieldProps) {
   const primary = primaryVolumeChips(drinkType);
   const extra = extraVolumeChips(drinkType);
   const extrasOpenNeeded = extra.includes(value ?? -1);
   const [extrasOpen, setExtrasOpen] = useState(extrasOpenNeeded);
 
   return (
-    <fieldset className="log-form-section">
+    <fieldset className="log-form-section" data-guide-target={guideTarget}>
       <legend>
         <FieldLabel>飲んだ量</FieldLabel>
       </legend>

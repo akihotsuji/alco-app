@@ -306,7 +306,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | id | string | UUID |
 | drunkAt | string | ISO UTC |
 | drunkOn | string | JST 日（サーバー算出） |
-| drinkType | enum | 7 種（data-model 5.3） |
+| drinkType | enum | 12 種（data-model 5.3） |
 | drinkName | string \| null | 品名スナップショット |
 | producer | string \| null | 生産者 ≦100 |
 | origin | string \| null | 生産国 ≦100 |
@@ -404,7 +404,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | フィールド | 必須 | 備考 |
 |---|---|---|
 | drunkAt | 任意 | 省略時はサーバーの現在時刻。未来は **15 分まで**（時計ズレ）。それ以上は 400。過去は制限なし |
-| drinkType | 必須 | 7 種 |
+| drinkType | 必須 | 12 種 |
 | volumeMl | 必須 | 整数 1〜5000 |
 | abvPercent | 必須 | 0〜100、小数第 1 位。**0 は可** |
 | memo | 任意 | 空は null |
@@ -461,7 +461,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | 規則 | 内容 |
 |---|---|
 | プロバイダ | 4.5.3 と同じ Workers AI Vision。プロンプトはサーバー固定（グラス/缶/瓶の見た目。ユーザー文を混ぜない） |
-| 出力 | `drinkType` は 7 種、`volumeMl` は 1〜5000 整数、`abvPercent` は 0〜100 小数 1 桁、`confidence` は 0〜1。検証落ちは省く。空 `fields` でも 200 |
+| 出力 | `drinkType` は 12 種、`volumeMl` は 1〜5000 整数、`abvPercent` は 0〜100 小数 1 桁、`confidence` は 0〜1。検証落ちは省く。空 `fields` でも 200 |
 | 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）、20 秒タイムアウト |
 | クライアント | 確度 0.5 未満は捨てる。空欄と直前の AI 値は再読取で上書きする。触った欄は上書きしない。種類を入れたら量は推測値を優先し、無ければ種類デフォルト。量チップにあればそのチップを選んだ状態にする |
 | 対象 | `log-new` のみ。`log-edit` では呼ばない |
@@ -523,7 +523,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 |---|---|
 | `view` | `cellar`（既定。`sealed`、`createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用） |
 | `q` | 品名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
-| `drinkType` | 7 種のいずれか |
+| `drinkType` | 12 種のいずれか |
 | `limit`, `cursor` | 2.7 |
 
 ノート・記録のボトルピッカーは `view=all&q=` を使う（貯蔵庫の本も選べる）。
@@ -584,7 +584,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 |---|---|
 | プロバイダ | **Cloudflare Workers AI**（binding `AI`。モデルは `@cf/meta/llama-4-scout-17b-16e-instruct`。公式一覧の Vision 対応・指示追従。定数は `WORKERS_AI_VISION_MODEL`）。実装は `LabelRecognizer` インターフェースにし、将来 Gemini 等を差し替えられるようにする |
 | プロンプト | サーバー固定。ユーザー入力を含めない。「JSON のみで返す」指示 + スキーマ例。言語は日本語ラベル・英語ラベル両対応 |
-| 出力の扱い | モデル出力は **信頼しない入力**として Zod で検証する。`name` / `producer` / `origin` / `variety` ≦100 文字、`vintage` 1800〜2100 の整数、`drinkType` 7 種、`abvPercent` 0〜100 小数 1 桁、`confidence` 0〜1。検証に落ちたフィールドは **省く**（全体を失敗にしない）。文字列は制御文字を除去 |
+| 出力の扱い | モデル出力は **信頼しない入力**として Zod で検証する。`name` / `producer` / `origin` / `variety` ≦100 文字、`vintage` 1800〜2100 の整数、`drinkType` 12 種、`abvPercent` 0〜100 小数 1 桁、`confidence` 0〜1。検証に落ちたフィールドは **省く**（全体を失敗にしない）。文字列は制御文字を除去 |
 | 欠落 | 読めなかったフィールドは省く。`fields` が空でも 200 |
 | 上限 | ユーザーごと **30 回 / 日（JST）**。`ai_usage` を先に加算し、超過は 429 `rate_limited`。失敗（502）は加算しない |
 | タイムアウト | 20 秒。超過は 502 `upstream_error` |
@@ -607,7 +607,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 |---|---|
 | `bottleId` | 指定時、**自分のボトル**でなければ 404（空配列にしない。5-04） |
 | `q` | 品名（スナップショット）の部分一致。最大 100 文字 |
-| `drinkType` | 7 種 |
+| `drinkType` | 12 種 |
 | `ratingX10Min`, `ratingX10Max` | 10〜50、5 刻み。`min <= max` |
 | `limit`, `cursor` | 2.7 |
 
@@ -653,7 +653,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | 規則 | 内容 |
 |---|---|
 | プロバイダ | 4.5.3 と同じ Workers AI Vision。実装は `NoteRecognizer`（`LabelRecognizer` と同じ口）。プロンプトはサーバー固定（ユーザー文を混ぜない） |
-| 出力 | `drinkName` ≦100、`drinkType` 7 種、`producer` / `origin` / `variety` ≦100、`vintage` 1800〜2100、`confidence` 0〜1。検証落ちは省く。空 `fields` でも 200。`name` / `drinkName` はどちらも品名 |
+| 出力 | `drinkName` ≦100、`drinkType` 12 種、`producer` / `origin` / `variety` ≦100、`vintage` 1800〜2100、`confidence` 0〜1。検証落ちは省く。空 `fields` でも 200。`name` / `drinkName` はどちらも品名 |
 | 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）、20 秒タイムアウト |
 | クライアント | 確度 0.5 未満は捨てる。空欄と直前の AI 値は再読取で上書きする。ボトル選択中は種類を変えない |
 | 対象 | `note-new` / `note-edit` |
