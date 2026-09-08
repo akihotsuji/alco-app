@@ -47,7 +47,7 @@ export function RatingField({ value, error, onChange }: RatingFieldProps) {
             min={1}
             max={5}
             step={0.5}
-            placeholder="—"
+            placeholder="未選択"
             value={value === null ? "" : String(value / 10)}
             aria-invalid={error ? true : undefined}
             onChange={(event) => {

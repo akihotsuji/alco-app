@@ -41,6 +41,7 @@ describe("RatingField 星タップと数値", () => {
     expect(ratingX10FromStarTap(45, 5)).toBe(50);
     expect(field).toContain("ratingX10FromStarTap");
     expect(field).toContain("step={0.5}");
+    expect(field).toContain('placeholder="未選択"');
     expect(field).toContain("評価（1.0〜5.0、0.5刻み）");
     expect(field).not.toContain("評価を下げる");
     expect(field).not.toContain("評価を上げる");
