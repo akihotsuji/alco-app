@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 7 本番リリース |
-| ステータス | **未着手** |
+| ステータス | **一部完了**（dev 自動デプロイを開発 Phase で先行。本番は未着手） |
 | 要件 | main マージ→dev 自動、タグ/手動承認→本番 |
 | ソース | Phase 7 デプロイパイプライン |
 
@@ -19,11 +19,14 @@
 
 ## 3. スコープ
 
-**対象**
+**先行済み（開発 Phase）**
 
-- `deploy-dev.yml`: push to main
+- `deploy-dev.yml`: `CI` が `main` の push で成功したあと `env.dev` へ。`workflow_dispatch` あり。リモート migrate も自動。正本は [spec/features/dev-deploy-ci.md](../../spec/features/dev-deploy-ci.md)
+
+**対象（残り）**
+
 - `deploy-prod.yml`: tag `v*` または `workflow_dispatch` + environment 承認
-- デプロイ前に migrate remote（**要確認**: CI から D1 migrate するか手動か。自動化するならトークン権限最小）
+- 本番向け migrate を CI にするか（dev は自動化済み）
 
 **対象外**
 
@@ -38,8 +41,8 @@
 
 ## 5. 細分化タスク
 
-1. API トークン権限（Workers 編集、D1、R2。Account 全権限は避ける）
-2. dev 自動デプロイ
+1. API トークン権限（Workers 編集、D1、R2。Account 全権限は避ける）— オーナーが GitHub Secrets に入れる（キー名のみ文書化）
+2. dev 自動デプロイ — 先行済み（`deploy-dev.yml`）
 3. 本番は environment protection
 4. CI 成功が必要（`workflow_run` または同じ workflow の job needs）
 5. 失敗通知は 7-05 でも可。最低限 Actions メール
@@ -70,10 +73,10 @@
 
 ## 8. 受け入れ条件
 
-- [ ] main マージで dev が更新される
-- [ ] 本番は承認またはタグなしでは変わらない
-- [ ] トークンが git に無い
-- [ ] CI 赤でデプロイされない
+- [x] main マージで dev が更新される（ワークフロー先行。GitHub Secrets 投入後に実デプロイが通る）
+- [ ] 本番は承認またはタグなしでは変わらない（本番ワークフロー未作成）
+- [x] トークンが git に無い
+- [x] CI 赤でデプロイされない（`workflow_run` の `conclusion == success` かつ triggering event が `push`）
 
 ## 9. セキュリティ観点
 
@@ -85,6 +88,8 @@
 
 - [03-secret-management.md](03-secret-management.md)
 - [spec/02-tech-stack.md](../../spec/02-tech-stack.md) CI/CD
+- [spec/features/dev-deploy-ci.md](../../spec/features/dev-deploy-ci.md)
+- `.github/workflows/deploy-dev.yml`
 
 ## 11. リスク・注意点
 

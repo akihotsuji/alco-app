@@ -127,11 +127,11 @@ alco-app/
 
 ## CI（0-07 FIX）
 
-検証のみ。デプロイは Phase 7-02。正本は [roadmap/phase-00-project-foundation/07-github-actions-ci.md](../roadmap/phase-00-project-foundation/07-github-actions-ci.md)。
+検証のみ。正本は [roadmap/phase-00-project-foundation/07-github-actions-ci.md](../roadmap/phase-00-project-foundation/07-github-actions-ci.md)。dev への自動デプロイは別ワークフロー（下記 CD）。
 
 | 項目 | 決定 |
 |---|---|
-| ワークフロー | `.github/workflows/ci.yml`（1 ファイル） |
+| ワークフロー | `.github/workflows/ci.yml`（検証専用） |
 | 起動 | `pull_request` と `push` to `main` |
 | Node | `.node-version`（22）。`actions/setup-node` の `node-version-file` |
 | pnpm | `package.json` の `packageManager`（`pnpm@10.11.0`）。`pnpm/action-setup@v6`（pnpm 10 向け。`pnpm/setup` は v11+） |
@@ -142,6 +142,19 @@ alco-app/
 | 権限 | `permissions.contents: read` のみ。`pull_request_target` は使わない |
 | 禁止 | デプロイ、`CLOUDFLARE_API_TOKEN`、Better Auth secret の参照 |
 | ジョブ名 | `lint / typecheck / test / audit`（ruleset の必須チェックには使わない。2026-09-04） |
+
+## CD（dev 自動デプロイ）
+
+7-02 の「main → Cloudflare `env.dev`」を開発 Phase で先行。正本は [features/dev-deploy-ci.md](features/dev-deploy-ci.md)。本番デプロイは Phase 7。
+
+| 項目 | 決定 |
+|---|---|
+| ワークフロー | `.github/workflows/deploy-dev.yml`（`ci.yml` とは分ける） |
+| 起動 | `CI` が `main` の push で成功した `workflow_run`、または `workflow_dispatch` |
+| 対象 | `pnpm build` → リモート D1 migrate → `wrangler deploy --env dev` |
+| シークレット | GitHub Secrets の `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`（値はリポジトリに書かない）。`BETTER_AUTH_SECRET` は Worker の wrangler secret |
+| 禁止 | `--env production`、`pull_request` / `pull_request_target` でのデプロイ、PR Preview、ログへの `workers.dev` URL |
+| Git ブランチ | トリガーは `main`。長期ブランチ `dev` は作らない（理由は feature spec） |
 
 ## ブランチ運用（0-08 FIX）
 

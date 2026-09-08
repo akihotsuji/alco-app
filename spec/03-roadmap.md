@@ -135,7 +135,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] 週/月サマリー: 推移グラフ（自前 SVG。初回 1 回だけ伸びる M-19）、休肝日表示。入口はホームの「今週 ›」→ 週、週の「今月 ›」→ 月、月の行 → 週、週の行 → 日別。**3-06**（2026-09-06）
 - [ ] ホームのキャラクター（`default` / `rest` / 1 タップ後 `cheer` + 4px 移動。週マスのタップ先はその日の日別 X6）
 - [x] 設定「操作」節: 表示名インライン編集、触感フィードバック（既定 OFF）・動きを減らす（[screen-designs/06-settings.md](screen-designs/06-settings.md) S1 / S8 / S9。3-07。2026-09-06）
-- [x] この時点でdev環境にデプロイし、オーナーの日常利用を開始（手順は [dev-deploy.md](dev-deploy.md)。2026-09-06 オーナーがリモート migrate / `BETTER_AUTH_SECRET` / `wrangler deploy --env dev` を実行。公開 URL はドキュメントに書かない）
+- [x] この時点でdev環境にデプロイし、オーナーの日常利用を開始（手順は [dev-deploy.md](dev-deploy.md)。2026-09-06 オーナーがリモート migrate / `BETTER_AUTH_SECRET` / `wrangler deploy --env dev` を実行。公開 URL はドキュメントに書かない。日常更新は [features/dev-deploy-ci.md](features/dev-deploy-ci.md) の `main` 自動デプロイ）
 
 ### 完了条件（DoD）
 
@@ -241,7 +241,8 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 ### タスク
 
 - [ ] 本番用リソース作成: Workers環境分離（wranglerのenv機能）、本番D1・本番R2
-- [ ] GitHub Actions デプロイパイプライン: mainマージ→dev自動デプロイ、タグ/手動承認→本番デプロイ
+- [x] GitHub Actions: mainマージ→dev自動デプロイ（開発 Phase で 7-02 の dev 側を先行。正本は [features/dev-deploy-ci.md](features/dev-deploy-ci.md)）
+- [ ] GitHub Actions デプロイパイプライン: タグ/手動承認→本番デプロイ
 - [ ] シークレット管理の整理（wrangler secret / GitHub Secrets、`.dev.vars`はコミット禁止）
 - [ ] D1日次バックアップ（D1のTime Travel確認＋定期エクスポートをGitHub Actionsで実行）
 - [ ] 監視: Workers Logsの確認手順、エラー通知（Sentry無料枠 or Cloudflare通知）
