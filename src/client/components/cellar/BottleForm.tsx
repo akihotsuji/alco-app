@@ -9,7 +9,7 @@ import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.ts
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
-import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
+import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
@@ -41,7 +41,6 @@ import {
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
-import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
@@ -385,56 +384,25 @@ export function BottleFormFields({
           {formError}
         </p>
       ) : null}
-      {attachment ? (
-        <PhotoTile
-          onClick={() => void startCapture("cellar")}
-          showMascot={false}
-          ratio="bottle"
-          attachment={attachment}
-          onEdit={() => void editAttachment("cellar")}
-          onRetry={() => void retryUpload("cellar")}
-          onClear={() => void clearAttachment("cellar")}
-          error={errors.photoIds}
-        />
-      ) : keptPhotoId ? (
-        <div className="photo-thumb-row">
-          <div className="photo-thumb photo-thumb-bottle">
-            <img className="photo-thumb-img" src={photoContentUrl(keptPhotoId)} alt="" />
-          </div>
-          <div className="photo-thumb-actions">
-            <button
-              type="button"
-              className="header-text-link"
-              onClick={() => void startCapture("cellar")}
-            >
-              撮り直す
-            </button>
-            <button
-              type="button"
-              className="header-text-link"
-              onClick={() => void startCapture("cellar", { source: "library" })}
-            >
-              {IMAGE_PICK_LABELS.library}
-            </button>
-            <button
-              type="button"
-              className="header-text-link"
-              disabled={photoDeleting}
-              onClick={() => void removeExistingPhoto()}
-            >
-              {photoDeleting ? "削除中" : "削除"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <PhotoTile
-          onClick={() => void startCapture("cellar")}
-          onLibraryClick={() => void startCapture("cellar", { source: "library" })}
-          showMascot={false}
-          ratio="bottle"
-          error={errors.photoIds}
-        />
-      )}
+      <CompactPhotoField
+        ratio="bottle"
+        onCapture={() => void startCapture("cellar")}
+        onLibrary={() => void startCapture("cellar", { source: "library" })}
+        attachment={attachment}
+        existingPreviewUrl={keptPhotoId ? photoContentUrl(keptPhotoId) : null}
+        onEdit={
+          attachment ? () => void editAttachment("cellar") : () => void startCapture("cellar")
+        }
+        onRetry={() => void retryUpload("cellar")}
+        onClear={
+          attachment
+            ? () => void clearAttachment("cellar")
+            : keptPhotoId
+              ? () => void removeExistingPhoto()
+              : undefined
+        }
+        error={errors.photoIds}
+      />
       {mode === "new" && recognizeStatus ? <RecognizeBanner status={recognizeStatus} /> : null}
       <div className="log-form-section">
         <label className="field-label" htmlFor="bottle-name">

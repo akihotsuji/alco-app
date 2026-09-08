@@ -244,7 +244,7 @@ export function resolveAppRoute(
         title: "セラー",
         titleMuted: "0 本",
         left: { kind: "archive" },
-        right: { kind: "batch", to: "/cellar/batch?camera=1" },
+        right: { kind: "batch", to: "/cellar/batch" },
       });
     }
     if (segments[1] === "batch" && segments.length === 2) {
@@ -399,7 +399,7 @@ export function addFabForRoute(
 ): AddFab | null {
   const route = resolveAppRoute(pathname, now, search);
   if (route.screenId === "bottle-list") {
-    return { to: "/cellar/new?camera=1", label: "追加" };
+    return { to: "/cellar/new", label: "追加" };
   }
   return null;
 }

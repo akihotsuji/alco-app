@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { GUIDE_PREF_KEY } from "../../shared/constants";
 import {
+  guideStepProgress,
   hasExistingUserData,
   readGuidePref,
   resolveInitialGuide,
@@ -84,6 +85,12 @@ describe("resolveInitialGuide", () => {
         replayRequested: false,
       }),
     ).toEqual({ status: "unset", step: "invite" });
+  });
+
+  it("ホーム案内は 1/2、練習は 2/2", () => {
+    expect(guideStepProgress("home-record")).toEqual({ current: 1, total: 2 });
+    expect(guideStepProgress("practice")).toEqual({ current: 2, total: 2 });
+    expect(guideStepProgress("invite")).toBeNull();
   });
 
   it("再実行は招待を省略してホーム案内から始める", () => {

@@ -35,6 +35,8 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain('batch.addPhoto("camera")');
     expect(source).toContain("batch.addLibraryPhotos()");
     expect(source).toContain("IMAGE_PICK_LABELS.libraryMultiple");
+    expect(source).toContain("photo-action-row");
+    expect(source).toContain('className="photo-action"');
   });
 
   it("全成功で /cellar へ replace + トースト + M-32、一部失敗は行を残して上部に汎用文（G9）", () => {

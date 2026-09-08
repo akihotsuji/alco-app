@@ -1864,10 +1864,7 @@ html[data-theme="dark"] {
 }
 
 .bottle-batch-add {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
+  align-items: stretch;
 }
 
 .photo-tile-progress {
@@ -4352,37 +4349,79 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
 }
 
 .home-log-btn[data-guide-target="record"] {
-  box-shadow: var(--shadow-primary);
+  position: relative;
+  z-index: 41;
+  box-shadow:
+    var(--shadow-primary),
+    0 0 0 3px var(--background),
+    0 0 0 5px var(--primary);
 }
 
-.guide-home-banner {
+.guide-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.guide-spotlight-panel {
+  position: absolute;
+  /* テーマに依らず暗くする。ダークで --foreground を使うと逆に明るくなる */
+  background: rgb(0 0 0 / 55%);
+  pointer-events: auto;
+}
+
+.guide-spotlight-tip {
+  position: absolute;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
-  margin-top: var(--space-3);
+  width: min(320px, calc(100vw - 32px));
   padding: var(--space-3);
   border-radius: var(--radius-card);
   background: var(--background);
   box-shadow: var(--shadow-outset);
+  pointer-events: auto;
 }
 
-.guide-home-copy {
+.guide-spotlight-tip::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 28px;
+  border: 8px solid transparent;
+  border-top-width: 0;
+  border-bottom-color: var(--background);
+}
+
+.guide-spotlight-copy {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
+  flex: 1;
 }
 
-.guide-home-copy p {
+.guide-spotlight-copy p {
   margin: 0;
+}
+
+.guide-spotlight-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .guide-exit {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--muted);
+  color: var(--primary);
   font-size: 13px;
+  font-weight: 600;
   text-align: left;
 }
 
@@ -4408,6 +4447,10 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
 }
 
 .guide-practice-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   margin: 0;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);

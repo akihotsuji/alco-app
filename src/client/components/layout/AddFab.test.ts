@@ -10,7 +10,7 @@ const shell = readFileSync(join(here, "AppShell.tsx"), "utf8");
 
 describe("AddFab（00-common 1.4）", () => {
   it("セラー一覧だけ FAB。ノート作成はヘッダー", () => {
-    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new?camera=1", label: "追加" });
+    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new", label: "追加" });
     expect(addFabForRoute("/notes")).toBeNull();
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     expect(addFabForRoute("/notes", `?bottleId=${id}`)).toBeNull();

@@ -30,6 +30,7 @@ import {
 import { isApiClientError } from "@/client/lib/api.ts";
 import { notesListHref } from "@/client/lib/app-routes.ts";
 import { isUuid } from "@/client/lib/bottle-form.ts";
+import { firstPhotoId } from "@/client/lib/copy-owned-photo.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import {
@@ -107,7 +108,13 @@ function NoteNewWithLog({ logId }: { logId: string }) {
       <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />
     );
   }
-  return <NoteNewFields keepPrefillDate prefill={noteFormStateFromDrinkLog(query.data)} />;
+  return (
+    <NoteNewFields
+      keepPrefillDate
+      prefill={noteFormStateFromDrinkLog(query.data)}
+      inheritPhotoId={firstPhotoId(query.data.photos)}
+    />
+  );
 }
 
 function NoteNewWithBottle({
@@ -131,6 +138,7 @@ function NoteNewWithBottle({
   return (
     <NoteNewFields
       formOrigin={formOrigin}
+      inheritPhotoId={firstPhotoId(query.data.photos)}
       prefill={applySelectedBottle(initialNoteFormState(), {
         id: query.data.id,
         name: query.data.name,
@@ -149,15 +157,18 @@ function NoteNewFields({
   prefill,
   formOrigin = null,
   keepPrefillDate = false,
+  inheritPhotoId = null,
 }: {
   prefill?: NoteFormState;
   formOrigin?: ReturnType<typeof parseFormOrigin>;
   keepPrefillDate?: boolean;
+  inheritPhotoId?: string | null;
 }) {
   const navigate = useNavigate();
   const { setGuard } = useLeaveGuard();
   const { showToast } = useToast();
   const photos = useNotePhotos([]);
+  const inheritFrom = photos.inheritFrom;
   const create = useCreateTastingNote();
   const [now] = useState(() => new Date());
   const [initial] = useState(() => prefill ?? initialNoteFormState(now));
@@ -175,6 +186,13 @@ function NoteNewFields({
   const visibleErrors = visibleNoteFormErrors(errors, { submitted, touched });
   const canSubmit = canSubmitNoteForm(state, errors, photoStatus);
   const dirty = isNoteFormDirty(state, initial) || photos.items.length > 0;
+
+  useEffect(() => {
+    if (!inheritPhotoId) {
+      return;
+    }
+    void inheritFrom(inheritPhotoId);
+  }, [inheritFrom, inheritPhotoId]);
 
   useEffect(() => {
     if (!dirty || savedRef.current) {

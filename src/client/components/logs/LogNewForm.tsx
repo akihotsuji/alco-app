@@ -20,8 +20,10 @@ import { PlaceField } from "@/client/components/logs/PlaceField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
+import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { logDayHref, noteFromLogHref } from "@/client/lib/app-routes.ts";
+import { firstPhotoId } from "@/client/lib/copy-owned-photo.ts";
 import {
   applyRecognizeToLogForm,
   countDrinkRecognizeFields,
@@ -77,6 +79,7 @@ export function LogNewForm() {
     attachments,
     retryUpload,
     clearAttachment,
+    inheritOwnedPhoto,
   } = usePhotoEdit();
   const create = useCreateDrinkLog();
 
@@ -125,12 +128,39 @@ export function LogNewForm() {
   const clearRef = useRef(clearAttachment);
   clearRef.current = clearAttachment;
   const hadStaleAttachment = useRef(attachment !== undefined && !isPhotoHandoff(location.state));
+  const [staleCleared, setStaleCleared] = useState(!hadStaleAttachment.current);
   useEffect(() => {
     if (hadStaleAttachment.current) {
       hadStaleAttachment.current = false;
-      void clearRef.current("log");
+      void clearRef.current("log").finally(() => setStaleCleared(true));
+      return;
     }
+    setStaleCleared(true);
   }, []);
+
+  const bottleQuery = useBottle(queryBottleId ?? undefined);
+  const inheritedPhoto = useRef(false);
+  useEffect(() => {
+    if (!staleCleared || inheritedPhoto.current || isPhotoHandoff(location.state)) {
+      return;
+    }
+    if (attachments.log) {
+      return;
+    }
+    const sourceId = firstPhotoId(bottleQuery.data?.photos);
+    if (!queryBottleId || !sourceId) {
+      return;
+    }
+    inheritedPhoto.current = true;
+    void inheritOwnedPhoto("log", sourceId);
+  }, [
+    attachments.log,
+    bottleQuery.data?.photos,
+    inheritOwnedPhoto,
+    location.state,
+    queryBottleId,
+    staleCleared,
+  ]);
 
   useEffect(() => {
     if (!dirty || savedRef.current) {
@@ -456,7 +486,7 @@ export function LogNewForm() {
       <Dialog
         open={notePrompt !== null}
         title="テイスティングノートをつける？"
-        body="記録した品名や識別を引き継ぎます。写真はコピーしません。"
+        body="記録した品名・識別と写真を引き継ぎます。"
         primaryLabel="つける"
         secondaryLabel="あとで"
         onPrimary={() => {

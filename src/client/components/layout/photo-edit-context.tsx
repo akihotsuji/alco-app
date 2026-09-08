@@ -8,7 +8,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { deletePhoto, uploadPhoto } from "@/client/hooks/use-photos.ts";
+import { deletePhoto, photoContentUrl, uploadPhoto } from "@/client/hooks/use-photos.ts";
+import { copyOwnedPhoto } from "@/client/lib/copy-owned-photo.ts";
 import { historyHasFlag, withHistoryFlag } from "@/client/lib/history-state.ts";
 import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
@@ -102,6 +103,8 @@ type PhotoEditValue = {
     attachment: PhotoAttachment,
     collect: PhotoCollectSession,
   ) => Promise<void>;
+  /** 連続導線。自分の写真を未紐付け複製してフォームへ載せる */
+  inheritOwnedPhoto: (kind: PhotoEditContextKind, sourcePhotoId: string) => Promise<void>;
 };
 
 const PhotoEditContext = createContext<PhotoEditValue>({
@@ -127,6 +130,7 @@ const PhotoEditContext = createContext<PhotoEditValue>({
   editAttachment: async () => {},
   editFromBlob: async () => {},
   retryCollectedUpload: async () => {},
+  inheritOwnedPhoto: async () => {},
 });
 
 const HISTORY_FLAG = "alcoPhotoEdit";
@@ -478,6 +482,57 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     [openWithSource],
   );
 
+  const inheritOwnedPhoto = useCallback(
+    async (targetKind: PhotoEditContextKind, sourcePhotoId: string) => {
+      const previewUrl = photoContentUrl(sourcePhotoId);
+      setAttachments((current) => {
+        const previous = current[targetKind];
+        if (previous?.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(previous.previewUrl);
+        }
+        return {
+          ...current,
+          [targetKind]: {
+            previewUrl,
+            blob: new Blob(),
+            photoId: null,
+            status: "uploading",
+          },
+        };
+      });
+      try {
+        const copied = await copyOwnedPhoto(sourcePhotoId);
+        setAttachments((current) => {
+          const existing = current[targetKind];
+          if (!existing || existing.previewUrl !== previewUrl) {
+            URL.revokeObjectURL(copied.previewUrl);
+            return current;
+          }
+          return {
+            ...current,
+            [targetKind]: {
+              previewUrl: copied.previewUrl,
+              blob: copied.blob,
+              photoId: copied.meta.id,
+              status: "ready",
+            },
+          };
+        });
+      } catch {
+        setAttachments((current) => {
+          const existing = current[targetKind];
+          if (!existing || existing.previewUrl !== previewUrl) {
+            return current;
+          }
+          const next = { ...current };
+          delete next[targetKind];
+          return next;
+        });
+      }
+    },
+    [],
+  );
+
   const retryCollectedUpload = useCallback(
     async (attachment: PhotoAttachment, collect: PhotoCollectSession) => {
       await beginCollectedUpload(
@@ -517,6 +572,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       editAttachment,
       editFromBlob,
       retryCollectedUpload,
+      inheritOwnedPhoto,
     }),
     [
       open,
@@ -541,6 +597,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       editAttachment,
       editFromBlob,
       retryCollectedUpload,
+      inheritOwnedPhoto,
     ],
   );
 

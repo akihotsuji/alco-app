@@ -4,7 +4,8 @@ import {
   type PhotoCollectSession,
   usePhotoEdit,
 } from "@/client/components/layout/photo-edit-context.tsx";
-import { deletePhoto } from "@/client/hooks/use-photos.ts";
+import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { copyOwnedPhoto } from "@/client/lib/copy-owned-photo.ts";
 import {
   canAddNotePhoto,
   itemsFromNotePhotos,
@@ -41,6 +42,7 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
   const [initialIds] = useState(() => initialPhotos.map((photo) => photo.id));
   const itemsRef = useRef(items);
   itemsRef.current = items;
+  const inheritedRef = useRef<string | null>(null);
 
   const bindKey = useCallback(
     (
@@ -141,6 +143,40 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
     setItems((current) => movePhotoFirst(current, key));
   }, []);
 
+  const inheritFrom = useCallback(async (sourcePhotoId: string) => {
+    if (inheritedRef.current === sourcePhotoId || itemsRef.current.length > 0) {
+      return;
+    }
+    inheritedRef.current = sourcePhotoId;
+    const key = `inherit-${sourcePhotoId}`;
+    setItems((current) =>
+      upsertNotePhoto(current, key, {
+        key,
+        photoId: null,
+        previewUrl: photoContentUrl(sourcePhotoId),
+        blob: null,
+        status: "uploading",
+        persisted: false,
+      }),
+    );
+    try {
+      const copied = await copyOwnedPhoto(sourcePhotoId);
+      setItems((current) =>
+        upsertNotePhoto(current, key, {
+          key,
+          photoId: copied.meta.id,
+          previewUrl: copied.previewUrl,
+          blob: copied.blob,
+          status: "ready",
+          persisted: false,
+        }),
+      );
+    } catch {
+      inheritedRef.current = null;
+      setItems((current) => removeNotePhoto(current, key));
+    }
+  }, []);
+
   const discardUnpersisted = useCallback(async () => {
     const ids = unpersistedPhotoIds(itemsRef.current);
     await Promise.all(ids.map((id) => deletePhoto(id).catch(() => {})));
@@ -161,6 +197,7 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
     photoStatus: photoListStatus(items),
     canAdd: canAddNotePhoto(items),
     addPhoto,
+    inheritFrom,
     editPhoto,
     retryPhoto,
     removePhoto,

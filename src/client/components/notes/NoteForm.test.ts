@@ -22,6 +22,8 @@ describe("NoteForm 写真先頭と AI / 識別", () => {
     expect(source).toContain("NOTE_RECOGNIZE_BANNER");
     expect(source).toContain("capturedAtToCalendarDate");
     expect(source).toContain("fromLog");
+    expect(source).toContain("inheritPhotoId");
+    expect(source).toContain("inheritFrom");
   });
 
   it("関連付けは種類の次。後選択は手入力を残す", () => {

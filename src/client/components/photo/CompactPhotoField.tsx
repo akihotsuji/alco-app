@@ -16,6 +16,8 @@ type CompactPhotoFieldProps = {
   error?: string | null;
   recognizeStatus?: "loading" | "success" | null;
   recognizeMessage?: string;
+  /** 撮影後サムネの比率。記録・ノート 96×120、セラー 100×150 */
+  ratio?: "log" | "bottle";
 };
 
 /**
@@ -34,6 +36,7 @@ export function CompactPhotoField({
   error,
   recognizeStatus,
   recognizeMessage,
+  ratio = "log",
 }: CompactPhotoFieldProps) {
   const previewUrl = attachment?.previewUrl ?? existingPreviewUrl ?? null;
 
@@ -45,7 +48,7 @@ export function CompactPhotoField({
       </div>
       {previewUrl ? (
         <div className="photo-thumb-row">
-          <div className="photo-thumb photo-thumb-log">
+          <div className={`photo-thumb photo-thumb-${ratio}`}>
             <img src={previewUrl} alt="" className="photo-thumb-img" />
             {attachment?.status === "uploading" ? (
               <span className="photo-tile-progress" role="status">
