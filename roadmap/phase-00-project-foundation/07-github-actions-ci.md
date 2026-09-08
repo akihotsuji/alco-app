@@ -28,7 +28,7 @@ PR ごとに lint / typecheck / test / 依存監査（OSV-Scanner）を走らせ
 **対象外**
 
 - デプロイジョブ（`ci.yml` には足さない。dev デプロイは `deploy-dev.yml`）
-- Playwright（Phase 6。ジョブ追加時は別ファイルか matrix）
+- Playwright（6-02 で同じ `ci.yml` にジョブ `e2e` を追加。正本は [spec/features/e2e.md](../../spec/features/e2e.md)）
 - ブランチ保護の GitHub 設定（0-08）
 
 ## 4. 成果物

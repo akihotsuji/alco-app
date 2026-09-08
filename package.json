@@ -18,7 +18,8 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.9.1",
@@ -45,6 +46,7 @@
     "@biomejs/biome": "^2.5.12",
     "@cloudflare/vite-plugin": "^1.52.1",
     "@libsql/client": "^0.18.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
@@ -59,7 +61,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@esbuild-kit/core-utils>esbuild": "^0.25.0"
+      "@esbuild-kit/core-utils>esbuild": "^0.25.0",
+      "sharp": "^0.35.4"
     },
     "onlyBuiltDependencies": [
       "esbuild",

@@ -80,6 +80,7 @@ pnpm typecheck
 pnpm lint
 pnpm format
 pnpm test
+pnpm test:e2e
 pnpm audit --audit-level=high
 ```
 
@@ -87,6 +88,7 @@ pnpm audit --audit-level=high
 - `lint` … Biome の lint / format チェック（書き込みなし）
 - `format` … Biome で整形してから再チェック
 - `test` … Vitest を非インタラクティブ実行（`vitest run`。CI もこれを呼ぶ）。監視は `pnpm test:watch`
+- `test:e2e` … Playwright の主要導線スモーク（仕様は [spec/features/e2e.md](spec/features/e2e.md)）。初回は `pnpm exec playwright install --with-deps chromium`。手順は skill `e2e-testing`
 - `audit`（ローカル） … `pnpm audit --audit-level=high`。npm の audit API がタイムアウトすることがある
 - `audit`（CI） … OSV-Scanner で `pnpm-lock.yaml` を検査。既知脆弱性があれば失敗
 
@@ -102,6 +104,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 # 依存監査は OSV-Scanner（npm audit API は使わない）
+# 別ジョブ e2e: 使い捨て BETTER_AUTH_SECRET を作り、Playwright Chromium を実行
 ```
 
 lockfile が `package.json` と食い違うと `--frozen-lockfile` で失敗する。Cloudflare トークン等のシークレットは参照しない。

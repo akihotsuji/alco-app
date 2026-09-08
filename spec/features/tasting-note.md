@@ -36,7 +36,7 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 | 種類別 Vision モデルや外部 Vision API | v1.x（`NoteRecognizer` の差し替え。送信先の明記と承認が必要） |
 | 並び替え DnD | 作らない。MVP は「先頭にする」メニュー |
 | Idempotency-Key | 見送り（ボタン disable。[api-design.md](../api-design.md) 7 章） |
-| E2E（ボトル登録→ノート作成） | Phase 6-02 |
+| E2E（ボトル登録→ノート作成） | 6-02 済み。[e2e.md](e2e.md) |
 
 ---
 
