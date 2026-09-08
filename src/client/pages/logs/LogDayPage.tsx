@@ -164,12 +164,7 @@ function LogDayRow({ item, ref, highlighted, fading, removing }: LogDayRowProps)
     .join(" ");
 
   return (
-    <Link
-      ref={ref}
-      className={classes}
-      to={`/logs/entries/${item.id}/edit`}
-      aria-label={`${name} ${item.volumeMl}ml、${displayAlcoholGrams(item.alcoholG).toFixed(1)}g`}
-    >
+    <Link ref={ref} className={classes} to={`/logs/entries/${item.id}/edit`}>
       {item.thumbPhotoId ? (
         <ContentPhoto
           className="log-row-thumb"

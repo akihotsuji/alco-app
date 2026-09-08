@@ -73,6 +73,10 @@ describe("a11y baseline（6-04）", () => {
     expect(biome).toContain('"recommended": true');
     expect(read("src/client/styles.css")).toContain("min-width: var(--tap-min)");
     expect(read("src/client/styles.css")).toContain(".note-star-button");
+    // 見える統計を短い aria-label で上書きしない（label-content-name-mismatch）
+    expect(read("src/client/components/home/TodaySummaryCard.tsx")).not.toContain("aria-label");
+    const dayRow = read("src/client/pages/logs/LogDayPage.tsx");
+    expect(dayRow.slice(dayRow.indexOf("function LogDayRow"))).not.toContain("aria-label");
   });
 
   it("自作モーダルにフォーカストラップ。photo-edit は設定の reduced motion を見る", () => {
