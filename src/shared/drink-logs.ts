@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ABV_PERCENT_MAX, ABV_PERCENT_MIN, VOLUME_ML_MAX, VOLUME_ML_MIN } from "./alcohol.ts";
 import { DRINK_TYPES } from "./constants.ts";
 import { IDENTITY_MESSAGES, optionalIdentityText, optionalVintage } from "./identity.ts";
+import { photoMetaSchema } from "./photos.ts";
 import {
   addPlacePairIssue,
   optionalPlaceLat,
@@ -9,7 +10,6 @@ import {
   optionalPlaceName,
   placeCoordsArePaired,
 } from "./place.ts";
-import { photoMetaSchema } from "./photos.ts";
 import { addCalendarDays, parseCalendarDate, TOKYO_TIME_ZONE } from "./tokyo-date.ts";
 
 /**
@@ -85,7 +85,10 @@ const drinkNameSchema = z
   .string({ error: DRINK_LOG_MESSAGES.drinkName })
   .max(DRINK_NAME_MAX_LENGTH, { error: DRINK_LOG_MESSAGES.drinkName });
 
-function refinePlacePair(body: { placeLat?: number | null; placeLng?: number | null }, context: z.RefinementCtx) {
+function refinePlacePair(
+  body: { placeLat?: number | null; placeLng?: number | null },
+  context: z.RefinementCtx,
+) {
   if (!placeCoordsArePaired(body)) {
     addPlacePairIssue(context);
   }

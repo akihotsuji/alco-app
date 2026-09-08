@@ -61,12 +61,12 @@ describe("createDrinkLogSchema", () => {
   it("緯度経度は両方揃える", () => {
     expect(messagesOf({ ...BASE, placeLat: 35.6 }).placeLat).toBeDefined();
     expect(messagesOf({ ...BASE, placeLng: 139.7 }).placeLng).toBeDefined();
-    expect(createDrinkLogSchema.safeParse({ ...BASE, placeLat: 35.6, placeLng: 139.7 }).success).toBe(
-      true,
-    );
-    expect(createDrinkLogSchema.safeParse({ ...BASE, placeLat: null, placeLng: null }).success).toBe(
-      true,
-    );
+    expect(
+      createDrinkLogSchema.safeParse({ ...BASE, placeLat: 35.6, placeLng: 139.7 }).success,
+    ).toBe(true);
+    expect(
+      createDrinkLogSchema.safeParse({ ...BASE, placeLat: null, placeLng: null }).success,
+    ).toBe(true);
   });
 
   it("量は整数 1〜5000（小数も同文）", () => {

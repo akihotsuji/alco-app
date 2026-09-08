@@ -1,5 +1,5 @@
-import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { IDENTITY_FIELD_LABELS, IDENTITY_TEXT_MAX_LENGTH } from "@/shared/identity.ts";
 

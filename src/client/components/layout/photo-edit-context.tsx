@@ -358,7 +358,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
           setCollectedCount((count) => count + 1);
           return;
         }
-          void beginUpload(kind, withCapture);
+        void beginUpload(kind, withCapture);
       };
       if (keepOpen) {
         commit();

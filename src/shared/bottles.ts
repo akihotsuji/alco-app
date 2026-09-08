@@ -5,18 +5,18 @@ import {
   IDENTITY_FIELD_LABELS,
   IDENTITY_TEXT_MAX_LENGTH,
   normalizeOptionalText,
-  vintageSchema,
   VINTAGE_MAX,
   VINTAGE_MIN,
+  vintageSchema,
 } from "./identity.ts";
 import { photoMetaSchema } from "./photos.ts";
 import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
 
 export {
   normalizeOptionalText,
-  vintageSchema,
   VINTAGE_MAX as BOTTLE_VINTAGE_MAX,
   VINTAGE_MIN as BOTTLE_VINTAGE_MIN,
+  vintageSchema,
 };
 
 /**

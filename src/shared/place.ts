@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { identityTextSchema, IDENTITY_TEXT_MAX_LENGTH } from "./identity.ts";
+import { IDENTITY_TEXT_MAX_LENGTH, identityTextSchema } from "./identity.ts";
 
 /**
  * 飲酒記録の場所。URL は保存せず表示時にだけ生成する。

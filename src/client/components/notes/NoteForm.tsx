@@ -5,8 +5,8 @@ import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
-import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
@@ -40,11 +40,11 @@ import {
   describeNoteSaveFailure,
   initialNoteFormState,
   isNoteFormDirty,
-  noteFormStateFromDrinkLog,
   type NoteFormErrors,
   type NoteFormField,
   type NoteFormState,
   noteDetailOpen,
+  noteFormStateFromDrinkLog,
   noteFormStateFromNote,
   noteSaveButtonLabel,
   noteSaveDisabledHint,
@@ -62,11 +62,11 @@ import {
   type NoteRecognizeTouched,
 } from "@/client/lib/note-recognize.ts";
 import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
+import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import { startNoteRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
-import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 import type { TastingNote } from "@/shared/tasting-notes.ts";
 import { NOTE_DRINK_NAME_MAX_LENGTH } from "@/shared/tasting-notes.ts";

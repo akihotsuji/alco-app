@@ -341,7 +341,9 @@ describe("POST /api/drink-logs", () => {
     expect((await fields(half)).placeLat).toBeDefined();
 
     const got = drinkLogSchema.parse(
-      await (await ctx.app.request(`/api/drink-logs/${created.id}`, { headers: { Cookie: a.cookie } })).json(),
+      await (
+        await ctx.app.request(`/api/drink-logs/${created.id}`, { headers: { Cookie: a.cookie } })
+      ).json(),
     );
     expect(got.placeName).toBe("居酒屋 山田");
 

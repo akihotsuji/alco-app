@@ -4,7 +4,6 @@ import type { AppBatchDb } from "@/db/index.ts";
 import { drinkLogs, myDrinks, photos } from "@/db/schema.ts";
 import { calculateAlcoholGrams, isDryDay, sumAlcoholGrams } from "@/shared/alcohol.ts";
 import type { DrinkType } from "@/shared/constants.ts";
-import { normalizeOptionalText, resolveIdentityFields } from "@/shared/identity.ts";
 import {
   type CreateDrinkLogInput,
   DRINK_LOG_MESSAGES,
@@ -18,6 +17,7 @@ import {
   normalizeMemo,
   type UpdateDrinkLogInput,
 } from "@/shared/drink-logs.ts";
+import { normalizeOptionalText, resolveIdentityFields } from "@/shared/identity.ts";
 import {
   addCalendarDays,
   isoWeekDates,
@@ -427,12 +427,15 @@ export async function updateDrinkLog(input: {
     drinkName = bottleSnap.name;
     drinkType = bottleSnap.drinkType;
   }
-  const identity = resolveIdentityFields(body, bottleSnap ?? {
-    producer: current.producer,
-    origin: current.origin,
-    variety: current.variety,
-    vintage: current.vintage,
-  });
+  const identity = resolveIdentityFields(
+    body,
+    bottleSnap ?? {
+      producer: current.producer,
+      origin: current.origin,
+      variety: current.variety,
+      vintage: current.vintage,
+    },
+  );
 
   const desiredPhotoRows =
     body.photoIds === undefined

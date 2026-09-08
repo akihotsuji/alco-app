@@ -23,9 +23,7 @@ describe("resolveIdentityFields", () => {
       vintage: 2019,
     };
     expect(resolveIdentityFields({}, bottle)).toEqual(bottle);
-    expect(
-      resolveIdentityFields({ producer: " 手入力 ", vintage: null }, bottle),
-    ).toEqual({
+    expect(resolveIdentityFields({ producer: " 手入力 ", vintage: null }, bottle)).toEqual({
       producer: "手入力",
       origin: "フランス",
       variety: "ピノ",

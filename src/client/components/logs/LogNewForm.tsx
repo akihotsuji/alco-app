@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
-import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
@@ -51,10 +51,7 @@ import {
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
-import {
-  capturedAtToDrunkAt,
-  shouldKeepQueryDrunkAt,
-} from "@/client/lib/photo/captured-at.ts";
+import { capturedAtToDrunkAt, shouldKeepQueryDrunkAt } from "@/client/lib/photo/captured-at.ts";
 import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { DRINK_LOG_MESSAGES, DRINK_NAME_MAX_LENGTH } from "@/shared/drink-logs.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";

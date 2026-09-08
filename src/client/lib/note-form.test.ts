@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { TASTING_NOTE_MESSAGES } from "@/shared/tasting-notes.ts";
 import type { DrinkLog } from "@/shared/drink-logs.ts";
+import { TASTING_NOTE_MESSAGES } from "@/shared/tasting-notes.ts";
 import {
   applySelectedBottle,
   bottleRowLabel,

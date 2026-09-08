@@ -1,5 +1,5 @@
 import { Camera, ChevronDown, Minus, Plus, Sparkles, X } from "lucide-react";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";

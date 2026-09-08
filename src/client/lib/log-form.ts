@@ -170,7 +170,12 @@ export function applySelectedBottle(
     bottle.drinkType === withIdentity.drinkType
       ? withIdentity
       : applyDrinkType(withIdentity, bottle.drinkType);
-  return { ...next, bottleId: bottle.id, bottleName: bottle.name, drinkName: fillEmpty(next.drinkName, bottle.name) };
+  return {
+    ...next,
+    bottleId: bottle.id,
+    bottleName: bottle.name,
+    drinkName: fillEmpty(next.drinkName, bottle.name),
+  };
 }
 
 /** 遅れて届いたボトル取得で、触った入力を上書きしない */

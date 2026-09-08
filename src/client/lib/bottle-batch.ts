@@ -39,7 +39,11 @@ export type BottleBatchRow = {
   error: string | null;
 };
 
-export function newBatchRow(key: string, photo: PhotoAttachment, now: Date = new Date()): BottleBatchRow {
+export function newBatchRow(
+  key: string,
+  photo: PhotoAttachment,
+  now: Date = new Date(),
+): BottleBatchRow {
   const form = createEmptyBottleForm(now);
   if (photo.capturedAt) {
     form.storedOn = capturedAtToCalendarDate(photo.capturedAt, now);

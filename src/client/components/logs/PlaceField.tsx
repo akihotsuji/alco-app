@@ -1,6 +1,10 @@
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
-import { googleMapsSearchUrl, isSafeGoogleMapsHref, PLACE_NAME_MAX_LENGTH } from "@/shared/place.ts";
+import {
+  googleMapsSearchUrl,
+  isSafeGoogleMapsHref,
+  PLACE_NAME_MAX_LENGTH,
+} from "@/shared/place.ts";
 
 type PlaceFieldProps = {
   placeName: string;

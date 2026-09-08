@@ -1,8 +1,12 @@
 import { isApiClientError } from "@/client/lib/api.ts";
 import { vintageSchema } from "@/shared/bottles.ts";
 import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
-import { IDENTITY_MESSAGES, IDENTITY_TEXT_MAX_LENGTH, normalizeOptionalText } from "@/shared/identity.ts";
 import type { DrinkLog } from "@/shared/drink-logs.ts";
+import {
+  IDENTITY_MESSAGES,
+  IDENTITY_TEXT_MAX_LENGTH,
+  normalizeOptionalText,
+} from "@/shared/identity.ts";
 import {
   type CreateTastingNoteInput,
   isTastedOnAllowed,

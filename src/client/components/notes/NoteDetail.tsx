@@ -38,9 +38,9 @@ function LoadedNoteDetail({ noteId }: { noteId: string }) {
 function NoteDetailBody({ note }: { note: TastingNote }) {
   useSetHeaderOverride({ title: note.drinkName });
   const identity = [
-    { label: IDENTITY_FIELD_LABELS.producer, value: note.producer },
-    { label: IDENTITY_FIELD_LABELS.origin, value: note.origin },
-    { label: IDENTITY_FIELD_LABELS.variety, value: note.variety },
+    { label: IDENTITY_FIELD_LABELS.producer as string, value: note.producer },
+    { label: IDENTITY_FIELD_LABELS.origin as string, value: note.origin },
+    { label: IDENTITY_FIELD_LABELS.variety as string, value: note.variety },
   ].filter((entry): entry is { label: string; value: string } => Boolean(entry.value));
   const fields = [
     { label: "外観", value: note.appearance },

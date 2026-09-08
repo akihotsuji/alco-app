@@ -40,9 +40,9 @@ import {
 } from "@/client/lib/label-recognize.ts";
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
-import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import {

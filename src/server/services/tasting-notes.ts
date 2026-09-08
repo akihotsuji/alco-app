@@ -4,7 +4,7 @@ import type { AppBatchDb } from "@/db/index.ts";
 import { bottles, photos, tastingNotes } from "@/db/schema.ts";
 import { escapeLike } from "@/shared/bottles.ts";
 import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
-import { normalizeOptionalText, resolveIdentityFields } from "@/shared/identity.ts";
+import { resolveIdentityFields } from "@/shared/identity.ts";
 import {
   type CreateTastingNoteInput,
   normalizeNoteText,
@@ -491,12 +491,15 @@ export async function updateTastingNote(input: {
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
-  const identity = resolveIdentityFields(body, bottleSnap ?? {
-    producer: current.producer,
-    origin: current.origin,
-    variety: current.variety,
-    vintage: current.vintage,
-  });
+  const identity = resolveIdentityFields(
+    body,
+    bottleSnap ?? {
+      producer: current.producer,
+      origin: current.origin,
+      variety: current.variety,
+      vintage: current.vintage,
+    },
+  );
 
   const patch = {
     ...(body.tastedOn === undefined ? {} : { tastedOn: body.tastedOn }),

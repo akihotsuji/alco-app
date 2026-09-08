@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  googleMapsSearchUrl,
-  isSafeGoogleMapsHref,
-  placeCoordsArePaired,
-} from "./place.ts";
+import { googleMapsSearchUrl, isSafeGoogleMapsHref, placeCoordsArePaired } from "./place.ts";
 
 describe("placeCoordsArePaired", () => {
   it("両方省略・両方 null・両方数値だけ通す", () => {

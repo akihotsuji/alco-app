@@ -43,7 +43,12 @@ function readAscii(bytes: Uint8Array, offset: number, count: number): string | n
 
 type IfdEntry = { tag: number; type: number; count: number; value: number };
 
-function readIfd(bytes: Uint8Array, tiffOffset: number, ifdOffset: number, little: boolean): IfdEntry[] {
+function readIfd(
+  bytes: Uint8Array,
+  tiffOffset: number,
+  ifdOffset: number,
+  little: boolean,
+): IfdEntry[] {
   const header = viewAt(bytes, tiffOffset + ifdOffset, 2);
   if (!header) {
     return [];
@@ -67,11 +72,7 @@ function readIfd(bytes: Uint8Array, tiffOffset: number, ifdOffset: number, littl
   return entries;
 }
 
-function asciiFromEntry(
-  bytes: Uint8Array,
-  tiffOffset: number,
-  entry: IfdEntry,
-): string | null {
+function asciiFromEntry(bytes: Uint8Array, tiffOffset: number, entry: IfdEntry): string | null {
   if (entry.type !== TYPE_ASCII || entry.count < 1) {
     return null;
   }
@@ -116,10 +117,7 @@ function findApp1Exif(bytes: Uint8Array): Uint8Array | null {
     }
     if (marker === 0xe1) {
       const payload = bytes.subarray(offset + 4, offset + 2 + length);
-      if (
-        payload.length > 6 &&
-        EXIF_HEADER.every((value, index) => payload[index] === value)
-      ) {
+      if (payload.length > 6 && EXIF_HEADER.every((value, index) => payload[index] === value)) {
         return payload.subarray(6);
       }
     }
@@ -208,9 +206,6 @@ export function capturedAtToCalendarDate(capturedAt: string, now: Date): string 
   return day > today ? today : day;
 }
 
-export function shouldKeepQueryDrunkAt(
-  dateParam: string | null | undefined,
-  now: Date,
-): boolean {
+export function shouldKeepQueryDrunkAt(dateParam: string | null | undefined, now: Date): boolean {
   return Boolean(dateParam && parseCalendarDate(dateParam) && dateParam < tokyoToday(now));
 }
