@@ -7,7 +7,7 @@ import {
   BOTTLE_VINTAGE_MIN,
 } from "./bottles.ts";
 import { DEFAULT_LABEL_RECOGNIZE_PROVIDER, LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
-import { drinkTypeSchema } from "./drink-logs.ts";
+import { recognizedDrinkTypeValueSchema } from "./drink-logs.ts";
 
 /**
  * `POST /api/bottles/recognize` の契約。
@@ -45,7 +45,7 @@ const vintageCandidateSchema = z.object({
 });
 
 const drinkTypeCandidateSchema = z.object({
-  value: drinkTypeSchema,
+  value: recognizedDrinkTypeValueSchema,
   confidence: confidenceSchema,
 });
 

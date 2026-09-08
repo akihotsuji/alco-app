@@ -43,7 +43,7 @@ describe("applyRecognizeToForm", () => {
       drinkTypeTouched: true,
       marks: new Set(),
     });
-    expect(result.next.drinkType).toBe("wine");
+    expect(result.next.drinkType).toBe("wine_red");
     expect(result.openDetails).toBe(false);
     expect(result.applied).toEqual([]);
   });

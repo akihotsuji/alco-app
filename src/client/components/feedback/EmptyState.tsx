@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { Link } from "react-router";
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { Mascot, type MascotPose } from "@/client/components/mascot/Mascot.tsx";
 import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
 import { cn } from "@/client/lib/utils.ts";
@@ -34,6 +35,18 @@ export function EmptyState({
   actionVariant = "primary",
   onAction,
 }: EmptyStateProps) {
+  const guide = useFirstRunGuide();
+  const intercept =
+    actionTo?.startsWith("/notes") && guide.interceptNotesCreate
+      ? guide.onNotesCreate
+      : actionTo?.startsWith("/cellar") && guide.interceptCellarAdd
+        ? guide.onCellarAdd
+        : undefined;
+  const guideTarget = intercept
+    ? actionTo?.startsWith("/notes")
+      ? "notes-create"
+      : "cellar-add"
+    : undefined;
   const variant = actionVariant === "secondary" ? "secondary" : "default";
   const enterRef = useRef<boolean | null>(null);
   if (enterRef.current === null) {
@@ -48,7 +61,17 @@ export function EmptyState({
       <p className="empty-state-message">{message}</p>
       {detail ? <p className="empty-state-detail">{detail}</p> : null}
       {actionLabel && actionTo ? (
-        <Link className={cn(buttonVariants({ variant }), "empty-action")} to={actionTo}>
+        <Link
+          className={cn(buttonVariants({ variant }), "empty-action")}
+          to={actionTo}
+          data-guide-target={guideTarget}
+          onClick={(event) => {
+            if (intercept) {
+              event.preventDefault();
+              intercept();
+            }
+          }}
+        >
           {actionLabel}
         </Link>
       ) : null}

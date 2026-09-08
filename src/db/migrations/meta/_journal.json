@@ -43,6 +43,13 @@
       "when": 1788844385251,
       "tag": "0005_add_register_identity_and_place",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788859430941,
+      "tag": "0006_expand_wine_types",
+      "breakpoints": true
     }
   ]
 }

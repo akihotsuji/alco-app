@@ -11,7 +11,7 @@ const source = readFileSync(
 );
 
 describe("BottleSilhouette", () => {
-  it("7 種それぞれにパスがあり、形が重ならない", () => {
+  it("12 種それぞれにパスがあり、形が重ならない", () => {
     expect(Object.keys(SILHOUETTE_PATHS)).toEqual([...DRINK_TYPES]);
     const signatures = DRINK_TYPES.map((type) => SILHOUETTE_PATHS[type].join("|"));
     expect(new Set(signatures).size).toBe(DRINK_TYPES.length);

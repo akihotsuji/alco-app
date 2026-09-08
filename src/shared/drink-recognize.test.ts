@@ -44,4 +44,17 @@ describe("pickDrinkRecognizeFields", () => {
       }),
     ).toEqual({});
   });
+
+  it("ワインの別名は具体的な種類へ寄せる", () => {
+    expect(
+      pickDrinkRecognizeFields({
+        drinkType: { value: "red_wine", confidence: 0.9 },
+      }).drinkType?.value,
+    ).toBe("wine_red");
+    expect(
+      pickDrinkRecognizeFields({
+        drinkType: { value: "champagne", confidence: 0.8 },
+      }).drinkType?.value,
+    ).toBe("wine_sparkling");
+  });
 });

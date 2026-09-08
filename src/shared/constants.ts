@@ -4,6 +4,11 @@
  */
 
 export const DRINK_TYPES = [
+  "wine_red",
+  "wine_white",
+  "wine_rose",
+  "wine_sparkling",
+  "wine_orange",
   "wine",
   "beer",
   "whisky",
@@ -17,6 +22,11 @@ export type DrinkType = (typeof DRINK_TYPES)[number];
 
 /** 画面表示名（spec/screen-designs/03-log.md N3 のチップ順 = DRINK_TYPES の順） */
 export const DRINK_TYPE_LABELS: Record<DrinkType, string> = {
+  wine_red: "赤ワイン",
+  wine_white: "白ワイン",
+  wine_rose: "ロゼ",
+  wine_sparkling: "スパークリング",
+  wine_orange: "オレンジ",
   wine: "ワイン",
   beer: "ビール",
   whisky: "ウイスキー",
@@ -25,6 +35,42 @@ export const DRINK_TYPE_LABELS: Record<DrinkType, string> = {
   cocktail: "カクテル",
   other: "その他",
 };
+
+export const DEFAULT_DRINK_TYPE: DrinkType = "wine_red";
+
+export function isWineFamily(type: string): boolean {
+  return type === "wine" || type.startsWith("wine_");
+}
+
+const DRINK_TYPE_ALIASES: Record<string, DrinkType> = {
+  red: "wine_red",
+  red_wine: "wine_red",
+  rouge: "wine_red",
+  white: "wine_white",
+  white_wine: "wine_white",
+  blanc: "wine_white",
+  rose: "wine_rose",
+  rosé: "wine_rose",
+  sparkling: "wine_sparkling",
+  champagne: "wine_sparkling",
+  prosecco: "wine_sparkling",
+  cava: "wine_sparkling",
+  orange: "wine_orange",
+  amber: "wine_orange",
+  skin_contact: "wine_orange",
+};
+
+/** 認識モデルが返す別名を 12 種へ寄せる。未知は null */
+export function normalizeRecognizedDrinkType(raw: string): DrinkType | null {
+  const value = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  if ((DRINK_TYPES as readonly string[]).includes(value)) {
+    return value as DrinkType;
+  }
+  return DRINK_TYPE_ALIASES[value] ?? null;
+}
 
 /** sealed = 未開栓（棚） / consumed = 開栓（貯蔵庫） */
 export const BOTTLE_STATUSES = ["sealed", "consumed"] as const;

@@ -6,7 +6,7 @@ import {
   displayAlcoholGrams,
   volumeChipsFor,
 } from "@/shared/alcohol.ts";
-import type { DrinkType } from "@/shared/constants.ts";
+import { DEFAULT_DRINK_TYPE, type DrinkType } from "@/shared/constants.ts";
 import {
   abvPercentSchema,
   type CreateDrinkLogInput,
@@ -75,7 +75,7 @@ export type LogFormErrors = Partial<Record<LogFormField, string>>;
 
 export const ABV_STEP = 0.1;
 
-export const DEFAULT_DRINK_TYPE: DrinkType = "wine";
+export { DEFAULT_DRINK_TYPE };
 
 export const SAVE_LABELS = {
   idle: "記録を保存",

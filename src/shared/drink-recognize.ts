@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ABV_PERCENT_MAX, ABV_PERCENT_MIN, VOLUME_ML_MAX, VOLUME_ML_MIN } from "./alcohol.ts";
 import { DEFAULT_LABEL_RECOGNIZE_PROVIDER, LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
-import { drinkTypeSchema } from "./drink-logs.ts";
+import { recognizedDrinkTypeValueSchema } from "./drink-logs.ts";
 import { pickIdentityRecognizeFields } from "./identity-recognize.ts";
 import { extractModelPayload } from "./label-recognize.ts";
 
@@ -17,7 +17,7 @@ function roundAbv(value: number): number {
 }
 
 const drinkTypeCandidateSchema = z.object({
-  value: drinkTypeSchema,
+  value: recognizedDrinkTypeValueSchema,
   confidence: confidenceSchema,
 });
 

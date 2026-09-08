@@ -50,7 +50,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | 貯蔵庫 | `status = consumed` の開栓済み。`/cellar/archive`。月見出しは `consumedOn` の JST 月 |
 | 開栓 | `POST /api/bottles/:id/consume`。`sealed → consumed`。`consumedAt` = サーバー現在、`consumedOn` = その JST 日。**記録は作らない** |
 | 復元 | `POST /api/bottles/:id/restore`。`consumed → sealed`。`consumedAt` / `consumedOn` を null。紐付く記録は消さない。トースト undo もこれ |
-| 種類 | 飲酒記録と同じ 7 種（ワイン / ビール / ウイスキー / 日本酒 / 焼酎 / カクテル / その他）。DB 値は [data-model.md](../data-model.md) 5.3 |
+| 種類 | 飲酒記録と同じ 12 種（赤ワイン / 白ワイン / ロゼ / スパークリング / オレンジ / ワイン / ビール / ウイスキー / 日本酒 / 焼酎 / カクテル / その他）。DB 値は [data-model.md](../data-model.md) 5.3 |
 | NV | ヴィンテージなし。DB は `vintage = null`。表示は「NV」 |
 | 切り抜き | `photos.kind = cutout`。透過 WebP。棚では `object-fit: contain` で下端を棚板に |
 | 長方形 | `photos.kind = photo`。JPEG 2:3。棚では角 8px。切り抜き失敗時のフォールバック |
@@ -76,9 +76,9 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | C3b | まとめて追加 | ヘッダー右 `images` → `/cellar/batch` | — |
 | C4 | 表示切替 | 「種類ごと」「1 本ずつ」。URL `?view=` と `localStorage` `cellar.listView`（既定 `one`） | クライアント |
 | C5 | 検索 | Chip → Input。品名・生産者・品種の部分一致。300ms デバウンス。最大 100 文字 | `q` |
-| C6 | 種類フィルタ | Chip「種類 ▼」→ 7 種ダイアログ。単一選択。選択中は「ワイン ×」。**種類ごと表示では非表示** | `drinkType` |
+| C6 | 種類フィルタ | Chip「種類 ▼」→ 12 種ダイアログ。単一選択。選択中は「赤ワイン ×」。**種類ごと表示では非表示** | `drinkType` |
 | C8 | 棚（1 本ずつ） | 3 列 / 段（480px 以上は 4 列）。`createdAt` 降順（新しい本が左上）。段ごとにガラス棚板。最後の段が 1〜2 本でも棚板は横一杯 | `items[]` |
-| C9 | 棚（種類ごと） | 種類は 7 種の定義順。在庫 0 の種類は出さない。段は横スクロール（`scroll-snap`）。ゴースト見出し「種類名 N 本」（N は `countsByType`）。棚板は本数分の幅 | 種類ごとに `GET /api/bottles?view=cellar&drinkType=&limit=12` |
+| C9 | 棚（種類ごと） | 種類は 12 種の定義順。在庫 0 の種類は出さない。段は横スクロール（`scroll-snap`）。ゴースト見出し「種類名 N 本」（N は `countsByType`）。棚板は本数分の幅 | 種類ごとに `GET /api/bottles?view=cellar&drinkType=&limit=12` |
 | C10 | ボトル | 切り抜き 100×150（種類ごとは 72×120）+ 名前 13px 1 行省略。`cutout` は contain・下端揃え。`photo` は cover・角 8px。無ければ種類別シルエット | `GET /api/photos/:id/content`、`thumbPhotoKind` |
 | C11 | サブ行 | 1 本ずつだけ。年、無ければ「NV」。種類ごとでは出さない | `vintage` |
 | C12 | タップ | `/cellar/:bottleId` | — |
@@ -122,7 +122,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | B1 | 写真 | 「写真を撮る」「写真を選ぶ」（記録・ノートと同じ並列） | なし | 1 枚。任意。同じ大きさで横並び。明示タップ以外では起動しない。「使う」直後に未紐付け `POST /api/photos`。アプリ内導線は `?camera=1` を付けない。ディープリンクの `?camera=1` だけマウント直後に撮影から開く（× で閉じてもフォームは残る） |
 | B2 | ラベル読み取り帯 | 自動 | — | 「使う」で切り抜く前の 2:3 JPEG ができた時点で `POST /api/bottles/recognize`（背景除去・アップロードを待たない。同じ JPEG への要求は 1 リクエストにまとめる）。設定 `cellar.recognize` が OFF なら帯もリクエストも出さない |
 | B3 | 品名 | Input | 空 | 必須 1〜100。AI は **空のときだけ**入れ、右端に `pill.ai`。ユーザー編集で印が消える |
-| B4 | 種類 | Chip ×7 | **ワイン** | 必須。AI はユーザーが先に触っていなければ選択を変える |
+| B4 | 種類 | Chip ×12 | **赤ワイン** | 必須。AI は色・泡・箔から具体種を優先。ユーザーが先に触っていなければ選択を変える |
 | B5 | 本数 | ステッパー | 1 | 1〜12。同じ写真・属性で N 行 |
 | B6 | ボトル情報 | 常時 | 品名・種類の下 | **ヴィンテージ / 品種 / 生産者 / 生産国**を折りたたまず出す。AI が空欄、または直前の AI 値へ入れる（確度 0.5 未満は捨てる。触った欄は上書きしない。生産国・品種はラベル情報から推測） |
 | B6b | 詳細 | 折りたたみ | 閉じる | **保管情報**（保管日・保管場所）→ **購入情報**（購入日・購入価格・購入場所）→ **メモ**。保管日の初期値は撮影日（無ければ登録日 JST。詳細を閉じたままでも保存。未変更なら撮影日または保存日の当日）。保管場所の初期値は「自宅セラー」。購入日は自動設定しない。編集では保存済みの保管日・保管場所を出し、空欄を補完しない |
@@ -262,7 +262,7 @@ Zod は `src/shared` に置き、クライアントとサーバー（`@hono/zod-
 | フィールド | 規則 | エラー文 |
 |---|---|---|
 | `name` | 1〜100 文字（trim 後）。必須 | 「1文字以上100文字以内で入力してください」 |
-| `drinkType` | 7 種 enum。必須 | 「種類を選んでください」 |
+| `drinkType` | 12 種 enum。必須 | 「種類を選んでください」 |
 | `producer` / `origin` / `variety` / `shop` / `storage` | 0〜100。trim 後に空なら `null`。作成時 `storage` 省略は「自宅セラー」。`null` 明示は空のまま | 「100文字以内で入力してください」 |
 | `vintage` | 整数 1800〜2100、または省略 / null（NV） | 「1800以上2100以下のヴィンテージを入力してください」 |
 | `purchasedOn` | `YYYY-MM-DD` かつ暦上存在する日。サーバー現在の JST 日より後は 400。省略 / null は未入力 | 「日付の形式が正しくありません」/「未来の日付は指定できません」 |
@@ -296,7 +296,7 @@ Zod は `src/shared` に置き、クライアントとサーバー（`@hono/zod-
 |---|---|---|
 | `view` | `cellar` \| `archive` \| `all`。省略時 `cellar` | 「一覧の種類が正しくありません」 |
 | `q` | 最大 100 文字。空は未指定。品名・生産者・品種の部分一致（OR） | 「100文字以内で入力してください」 |
-| `drinkType` | 7 種 | 「種類を選んでください」 |
+| `drinkType` | 12 種 | 「種類を選んでください」 |
 | `limit` | 整数 1〜100（既定 50） | 「件数は1以上100以下で指定してください」 |
 | `cursor` | サーバー発行値のみ。改ざんは 400 | 「ページ情報が正しくありません」 |
 
@@ -306,7 +306,7 @@ Zod は `src/shared` に置き、クライアントとサーバー（`@hono/zod-
 - `%` と `_` はエスケープ（リテラルとして探す）
 - 大文字小文字は SQLite 既定（ASCII のみ不区別）。日本語の正規化はしない
 
-`totalCount` / `countsByType` は **`view` 内の総数**（`q` / `drinkType` を掛けない）。`countsByType` は 7 種すべてのキーを返し、0 を含む。クライアントが 0 の種類を隠す。
+`totalCount` / `countsByType` は **`view` 内の総数**（`q` / `drinkType` を掛けない）。`countsByType` は 12 種すべてのキーを返し、0 を含む。クライアントが 0 の種類を隠す。
 
 並び:
 
@@ -336,7 +336,7 @@ Zod は `src/shared` に置き、クライアントとサーバー（`@hono/zod-
 |---|---|---|
 | `name` / `producer` / `origin` / `variety` | 文字列 | ≦100。制御文字除去 |
 | `vintage` | 整数 | 1800〜2100 |
-| `drinkType` | enum | 7 種 |
+| `drinkType` | enum | 12 種 |
 | `abvPercent` | 数 | 0〜100、小数第 1 位。**クライアントは捨てる** |
 | `confidence` | 数 | 0〜1 |
 
@@ -505,7 +505,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 
 | 出典 | 項目 | 決定 | 根拠 |
 |---|---|---|---|
-| 4-01 | 種類 enum | 飲酒記録と同じ 7 種 | [data-model.md](../data-model.md) 5.3 |
+| 4-01 | 種類 enum | 飲酒記録と同じ 12 種 | [data-model.md](../data-model.md) 5.3 |
 | 4-01 | 検索 | 品名・生産者・品種の部分一致。`LIKE` + `%` `_` エスケープ。ASCII のみ大小無視 | 4.4 / data-model 7 章 |
 | 4-01 | 開栓の undo | `restore` のみ。記録の作成・削除はしない | [04-cellar.md](../screen-designs/04-cellar.md) T3、api-design 4.5.1 / 4.5.2 |
 | 4-01 | 写真の解像度 | 本ファイルは変えない。正本は photos / 07-photo-capture（長辺 1280、サーバ 1MB / 1600） | 4-04 と重複させない |

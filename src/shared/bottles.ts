@@ -270,15 +270,7 @@ export const createBottlesResponseSchema = z
 export type CreateBottlesResponse = z.infer<typeof createBottlesResponseSchema>;
 
 export function emptyCountsByType(): CountsByType {
-  return {
-    wine: 0,
-    beer: 0,
-    whisky: 0,
-    sake: 0,
-    shochu: 0,
-    cocktail: 0,
-    other: 0,
-  };
+  return Object.fromEntries(DRINK_TYPES.map((type) => [type, 0])) as CountsByType;
 }
 
 export function formatBottleCount(count: number): string {

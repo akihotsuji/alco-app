@@ -36,12 +36,12 @@ import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import { calculateAlcoholGrams, displayAlcoholGrams } from "@/shared/alcohol.ts";
-import { DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
+import { DRINK_TYPE_LABELS, type DrinkType, isWineFamily } from "@/shared/constants.ts";
 
 const MY_DRINK_MAX = 30;
 
 function DrinkIcon({ type }: { type: DrinkType }) {
-  if (type === "wine") {
+  if (isWineFamily(type)) {
     return <Wine size={24} aria-hidden />;
   }
   if (type === "beer") {

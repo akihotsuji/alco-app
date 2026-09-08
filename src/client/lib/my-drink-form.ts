@@ -18,9 +18,9 @@ export type MyDrinkFormErrors = Partial<
 
 export const INITIAL_MY_DRINK_FORM: MyDrinkFormState = {
   name: "",
-  drinkType: "wine",
-  volumeMl: DRINK_TYPE_PRESETS.wine.volumeMl,
-  abvPercent: DRINK_TYPE_PRESETS.wine.abvPercent,
+  drinkType: "wine_red",
+  volumeMl: DRINK_TYPE_PRESETS.wine_red.volumeMl,
+  abvPercent: DRINK_TYPE_PRESETS.wine_red.abvPercent,
 };
 
 export function applyMyDrinkType(state: MyDrinkFormState, drinkType: DrinkType): MyDrinkFormState {

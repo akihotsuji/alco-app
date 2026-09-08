@@ -28,7 +28,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 評価 | 整数 `rating_x10`（10〜50、5 刻み）。1.0〜5.0 の 0.5 刻み | float 比較を避ける |
 | 写真の持ち方 | 単一 `photos` テーブル。所有者列（`bottle_id` / `tasting_note_id` / 1-07 で `drink_log_id` 追加）は最大 1 つ。すべて NULL は未紐付け（先アップロード） | 4-04 / 5-03 の推奨フロー |
 | ボトル写真 | スキーマは 1:N。MVP UI は 1 枚（`sort_order` 最小をサムネ） | 要件 1.3 は「写真」、ノート側が複数枚 |
-| ボトル種類 | 飲酒記録と同じ 7 種 enum | フィルタ共通化（4-01 で確定） |
+| ボトル種類 | 飲酒記録と同じ 12 種 enum（ワイン系 6 + その他 6） | フィルタ共通化。2026-09-08 に赤／白／ロゼ／スパークリング／オレンジを追加。既存の `wine` は「色不明のワイン」として残す |
 | ノートの銘柄 | **スナップショット必須**（`drink_name` / `drink_type`）+ 任意の `bottle_id` | ボトル改名後も当時の記録を残す |
 | ボトル削除時のノート | **`bottle_id` を SET NULL**。ノートは残す | テイスティング履歴を消さない |
 | 削除方針 | アプリエンティティは **物理削除** | 個人アプリ。監査用論理削除は不要 |
@@ -260,13 +260,18 @@ erDiagram
 - `drunk_on` は入力項目ではない。`drunk_at` の変更時にサーバーが再計算する
 - 日本は DST なし。集計実装で `+9 hours` を使ってもよいが、正はアプリの TZ 変換（`src/shared`）
 
-### 5.3 drink_type（7 種）
+### 5.3 drink_type（12 種）
 
-要件 1.2 / 1.3 / 1.4 で共通。DB 値は英語コード、UI は日本語。
+要件 1.2 / 1.3 / 1.4 で共通。DB 値は英語コード、UI は日本語。チップ順 = 下表の順。新規の既定は `wine_red`。既存行の `wine` は書き換えない。
 
 | DB 値 | 表示 |
 |---|---|
-| `wine` | ワイン |
+| `wine_red` | 赤ワイン |
+| `wine_white` | 白ワイン |
+| `wine_rose` | ロゼ |
+| `wine_sparkling` | スパークリング |
+| `wine_orange` | オレンジ |
+| `wine` | ワイン（色・スタイルが不明なとき） |
 | `beer` | ビール |
 | `whisky` | ウイスキー |
 | `sake` | 日本酒 |
@@ -274,7 +279,7 @@ erDiagram
 | `cocktail` | カクテル |
 | `other` | その他 |
 
-`src/shared` の Zod enum と DB CHECK を一致させる。
+`src/shared` の Zod enum と DB CHECK を一致させる。認識モデルは色・泡・瓶から具体種を優先し、不明なときだけ `wine` を返す。
 
 ### 5.4 bottle_status
 
@@ -333,7 +338,7 @@ erDiagram
 | userId | user_id | text | NO | FK → user.id CASCADE | セッション付与 |
 | drunkAt | drunk_at | integer | NO | | 飲酒日時（UTC ms）。デフォルトは現在時刻 |
 | drunkOn | drunk_on | text | NO | | JST 日付。サーバー算出 |
-| drinkType | drink_type | text | NO | CHECK enum | 7 種 |
+| drinkType | drink_type | text | NO | CHECK enum | 12 種 |
 | drinkName | drink_name | text | YES | ≦100 | マイドリンク名（≦40）またはボトル名（≦100）のスナップショット。上限は 3-01 で 100 に統一 |
 | producer | producer | text | YES | ≦100 | 生産者 |
 | origin | origin | text | YES | ≦100 | 生産国 |
@@ -364,7 +369,7 @@ erDiagram
 | id | id | text | NO | PK | UUID v4 |
 | userId | user_id | text | NO | FK → user.id CASCADE | |
 | name | name | text | NO | 1〜40 | 表示名 |
-| drinkType | drink_type | text | NO | CHECK enum | 7 種 |
+| drinkType | drink_type | text | NO | CHECK enum | 12 種 |
 | volumeMl | volume_ml | integer | NO | 1〜5000 | プリセット量 |
 | abvPercent | abv_percent | real | NO | 0〜100 | プリセット度数。0 は可 |
 | sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。DnD は後回し |
@@ -382,7 +387,7 @@ erDiagram
 | id | id | text | NO | PK | UUID v4 |
 | userId | user_id | text | NO | FK → user.id CASCADE | |
 | name | name | text | NO | 1〜100 | 品名 |
-| drinkType | drink_type | text | NO | CHECK enum | 飲酒記録と同じ 7 種 |
+| drinkType | drink_type | text | NO | CHECK enum | 飲酒記録と同じ 12 種 |
 | producer | producer | text | YES | ≦100 | 生産者 |
 | origin | origin | text | YES | ≦100 | 生産国 |
 | variety | variety | text | YES | ≦100 | 品種（ブドウ・米・ホップ等） |
@@ -572,6 +577,11 @@ import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from
 import { user } from "./auth-schema";
 
 const drinkTypeEnum = [
+  "wine_red",
+  "wine_white",
+  "wine_rose",
+  "wine_sparkling",
+  "wine_orange",
   "wine",
   "beer",
   "whisky",
@@ -746,7 +756,7 @@ export const aiUsage = sqliteTable(
 CHECK の書き方（マイグレーション SQL）:
 
 ```sql
-CHECK (drink_type IN ('wine','beer','whisky','sake','shochu','cocktail','other'))
+CHECK (drink_type IN ('wine_red','wine_white','wine_rose','wine_sparkling','wine_orange','wine','beer','whisky','sake','shochu','cocktail','other'))
 CHECK (status IN ('sealed','consumed'))
 CHECK ((bottle_id IS NOT NULL) + (tasting_note_id IS NOT NULL) + (drink_log_id IS NOT NULL) <= 1)
 CHECK (kind IN ('photo','cutout'))
@@ -801,7 +811,7 @@ Drizzle の `enum` オプションは TS 上の制約のみ。CHECK は `drizzle
 
 - [x] `spec/data-model.md` を作成（1-04 承認済み）
 - [x] 全アプリテーブルに `user_id`。Auth テーブルはライブラリ管理と明記
-- [x] enum が要件の 7 種類・ボトルステータス 2 種（`sealed` / `consumed`）と一致
+- [x] enum が要件の 12 種類・ボトルステータス 2 種（`sealed` / `consumed`）と一致
 - [x] 写真の所有者が `user_id` で辿れる
 - [x] `database` ルール（`.cursor/rules/database.mdc`）を同梱
 - [x] 1-07 改訂（`consumed` / `consumed_at` / `quantity` 廃止 / `drink_logs.bottle_id` / `photos.drink_log_id` / `photos.kind` / `ai_usage`）のオーナー承認（2026-09-06）

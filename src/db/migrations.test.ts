@@ -232,7 +232,7 @@ describe("制約の挙動", () => {
     db.close();
   });
 
-  it("drink_type は shared の 7 種を受け付け、それ以外は CHECK で拒否する", () => {
+  it("drink_type は shared の 12 種を受け付け、それ以外は CHECK で拒否する", () => {
     for (const [i, type] of DRINK_TYPES.entries()) {
       expect(() => insertBottle(db, `b${i}`, "u1", type)).not.toThrow();
     }

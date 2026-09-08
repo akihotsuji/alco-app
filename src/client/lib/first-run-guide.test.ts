@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { GUIDE_PREF_KEY } from "../../shared/constants";
 import {
+  guideDoneCopy,
+  guideSpotlight,
   guideStepProgress,
   hasExistingUserData,
+  nextGuideStep,
   readGuidePref,
   resolveInitialGuide,
   writeGuidePref,
@@ -87,10 +90,18 @@ describe("resolveInitialGuide", () => {
     ).toEqual({ status: "unset", step: "invite" });
   });
 
-  it("ホーム案内は 1/2、練習は 2/2", () => {
-    expect(guideStepProgress("home-record")).toEqual({ current: 1, total: 2 });
-    expect(guideStepProgress("practice")).toEqual({ current: 2, total: 2 });
+  it("記録案内は 1/3、量は 2/3、保存は 3/3", () => {
+    expect(guideStepProgress("home-record")).toEqual({ current: 1, total: 3 });
+    expect(guideStepProgress("practice-volume")).toEqual({ current: 2, total: 3 });
+    expect(guideStepProgress("practice-save")).toEqual({ current: 3, total: 3 });
     expect(guideStepProgress("invite")).toBeNull();
+  });
+
+  it("セラーとノートも 3 歩", () => {
+    expect(guideStepProgress("cellar-add")).toEqual({ current: 1, total: 3 });
+    expect(guideStepProgress("cellar-save")).toEqual({ current: 3, total: 3 });
+    expect(guideStepProgress("notes-create")).toEqual({ current: 1, total: 3 });
+    expect(guideStepProgress("notes-save")).toEqual({ current: 3, total: 3 });
   });
 
   it("再実行は招待を省略してホーム案内から始める", () => {
@@ -101,5 +112,30 @@ describe("resolveInitialGuide", () => {
         replayRequested: true,
       }),
     ).toEqual({ status: "completed", step: "home-record" });
+  });
+});
+
+describe("nextGuideStep / spotlight", () => {
+  it("記録は量の次が保存、保存の次が完了", () => {
+    expect(nextGuideStep("invite", "continue")).toBe("home-record");
+    expect(nextGuideStep("home-record", "continue")).toBe("practice-volume");
+    expect(nextGuideStep("practice-volume", "continue")).toBe("practice-save");
+    expect(nextGuideStep("practice-save", "continue")).toBe("done");
+    expect(nextGuideStep("home-record", "skip")).toBeNull();
+  });
+
+  it("保存までスポットライト対象がある", () => {
+    expect(guideSpotlight("home-record")?.target).toContain("record");
+    expect(guideSpotlight("practice-volume")?.target).toContain("volume");
+    expect(guideSpotlight("practice-save")?.target).toContain("save");
+    expect(guideSpotlight("cellar-save")?.target).toContain("save");
+    expect(guideSpotlight("notes-save")?.target).toContain("save");
+    expect(guideSpotlight("done")).toBeNull();
+  });
+
+  it("記録完了は設定の使い方へつなぐ", () => {
+    expect(guideDoneCopy("done").detail).toContain("使い方を見る");
+    expect(guideDoneCopy("cellar-done").title).toContain("セラー");
+    expect(guideDoneCopy("notes-done").title).toContain("ノート");
   });
 });

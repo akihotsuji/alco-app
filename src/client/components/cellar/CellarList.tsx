@@ -336,7 +336,17 @@ export function CellarList() {
           {showCellarHint ? (
             <p className="empty-state-detail">持っているボトルを、ここに並べて管理します</p>
           ) : null}
-          <Link className={cn(buttonVariants(), "empty-action")} to="/cellar/new">
+          <Link
+            className={cn(buttonVariants(), "empty-action")}
+            to="/cellar/new"
+            data-guide-target={guide.interceptCellarAdd ? "cellar-add" : undefined}
+            onClick={(event) => {
+              if (guide.interceptCellarAdd) {
+                event.preventDefault();
+                guide.onCellarAdd();
+              }
+            }}
+          >
             ボトルを追加
           </Link>
         </div>

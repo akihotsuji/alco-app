@@ -8,6 +8,7 @@ type SaveBarProps = {
   hint?: string | null;
   /** `loading` で水位線（M-04）、失敗直後は `error` で静かに戻す（M-06） */
   state?: MotionState;
+  guideTarget?: string;
   onSave: () => void;
 };
 
@@ -17,10 +18,11 @@ export function SaveBar({
   disabled = false,
   hint = null,
   state,
+  guideTarget,
   onSave,
 }: SaveBarProps) {
   return (
-    <div className="save-bar">
+    <div className="save-bar" data-guide-target={guideTarget}>
       {hint ? <p className="save-bar-hint">{hint}</p> : null}
       <Button
         type="button"

@@ -2,6 +2,21 @@ import type { DrinkType } from "@/shared/constants.ts";
 
 /** 種類別ボトル型（04-cellar「陳列の写真」。線は --muted） */
 export const SILHOUETTE_PATHS: Record<DrinkType, readonly string[]> = {
+  wine_red: [
+    "M31 8h18v12c15 8 19 22 19 40v48a10 10 0 0 1-10 10H24a10 10 0 0 1-10-10V60c0-18 5-32 19-40V8z",
+  ],
+  wine_white: [
+    "M34 8h12v14c12 8 16 22 16 40v46a8 8 0 0 1-8 8H28a8 8 0 0 1-8-8V62c0-18 4-32 16-40V8z",
+  ],
+  wine_rose: [
+    "M33 8h14v13c13 8 17 22 17 40v47a9 9 0 0 1-9 9H27a9 9 0 0 1-9-9V61c0-18 4-32 17-40V8z",
+  ],
+  wine_sparkling: [
+    "M36 4h8v18c16 10 20 24 20 44v42a8 8 0 0 1-8 8H24a8 8 0 0 1-8-8V66c0-20 4-34 20-44V4z",
+  ],
+  wine_orange: [
+    "M30 8h20v11c16 9 20 23 20 41v48a10 10 0 0 1-10 10H22a10 10 0 0 1-10-10V60c0-18 4-32 20-41V8z",
+  ],
   wine: [
     "M32 8h16v12c14 8 18 22 18 40v48a10 10 0 0 1-10 10H26a10 10 0 0 1-10-10V60c0-18 4-32 18-40V8z",
   ],

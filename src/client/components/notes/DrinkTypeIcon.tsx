@@ -1,8 +1,8 @@
 import { Beer, GlassWater, Wine } from "lucide-react";
-import type { DrinkType } from "@/shared/constants.ts";
+import { type DrinkType, isWineFamily } from "@/shared/constants.ts";
 
 export function DrinkTypeIcon({ type, size = 32 }: { type: DrinkType; size?: number }) {
-  if (type === "wine") {
+  if (isWineFamily(type)) {
     return <Wine size={size} aria-hidden />;
   }
   if (type === "beer") {

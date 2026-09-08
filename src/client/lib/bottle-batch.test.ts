@@ -53,7 +53,7 @@ describe("行の追加・置き換え", () => {
     const next = upsertBatchPhoto(rows, "b", photo());
     expect(next.map((row) => row.key)).toEqual(["a", "b"]);
     expect(next[0]?.form.name).toBe("");
-    expect(next[0]?.form.drinkType).toBe("wine");
+    expect(next[0]?.form.drinkType).toBe("wine_red");
     expect(next[0]?.form.count).toBe(1);
   });
 
@@ -166,7 +166,7 @@ describe("保存可否と本数", () => {
     const row = readyRow("a", "サンプル赤", 2);
     expect(batchRowBody(row)).toEqual({
       name: "サンプル赤",
-      drinkType: "wine",
+      drinkType: "wine_red",
       count: 2,
       producer: null,
       origin: null,

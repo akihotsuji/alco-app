@@ -68,7 +68,7 @@ describe("toCreate / toUpdate", () => {
     );
     expect(body).toEqual({
       name: "サンプル赤",
-      drinkType: "wine",
+      drinkType: "wine_red",
       count: 3,
       producer: "生産者",
       origin: null,
