@@ -98,7 +98,13 @@ function AppShellFrame() {
       <div ref={contentRef} className={addFab ? "app-content has-add-fab" : "app-content"}>
         <Outlet />
       </div>
-      {hideTabs ? null : <BottomTabBar activeTab={route.parentTab} onSelect={onSelectTab} />}
+      {hideTabs ? null : (
+        <BottomTabBar
+          activeTab={route.parentTab}
+          onSelect={onSelectTab}
+          guideTarget={guide.step === "home-record" ? "record" : undefined}
+        />
+      )}
       {addFab ? <AddFab fab={addFab} /> : null}
       <FirstRunGuideHost />
       <PhotoEdit />

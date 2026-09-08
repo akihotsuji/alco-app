@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "GuideSpotlight.tsx"), "utf8");
 const host = readFileSync(join(here, "FirstRunGuideHost.tsx"), "utf8");
-const home = readFileSync(join(here, "../../pages/HomePage.tsx"), "utf8");
+const tabs = readFileSync(join(here, "../layout/BottomTabBar.tsx"), "utf8");
+const shell = readFileSync(join(here, "../layout/AppShell.tsx"), "utf8");
 const css = readFileSync(join(here, "../../styles.css"), "utf8");
 const headers = readFileSync(join(here, "../../../../public/_headers"), "utf8");
 
@@ -26,9 +27,8 @@ describe("GuideSpotlight", () => {
     expect(source).not.toContain("setTimeout");
     expect(host).toContain("GuideSpotlight");
     expect(host).not.toContain("GuideHomeSpotlight");
-    expect(home).not.toContain("GuideHomeBanner");
-    expect(home).not.toContain("GuideHomeSpotlight");
-    expect(home).toContain('guide.step === "home-record"');
+    expect(tabs).toContain("data-guide-target={guideTarget}");
+    expect(shell).toContain('guide.step === "home-record"');
     expect(css).toContain("rgb(0 0 0 / 55%)");
     expect(css).toContain("z-index: 50");
     expect(css).toContain("--guide-tip-arrow-x");
