@@ -21,8 +21,8 @@ export function DrinkTypeChips({ value, guideTarget, onChange }: DrinkTypeChipsP
             onSelect={() => {
               if (type !== value) {
                 haptic("light");
-                onChange(type);
               }
+              onChange(type);
             }}
           >
             {DRINK_TYPE_LABELS[type]}

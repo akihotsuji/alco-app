@@ -4316,11 +4316,16 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
 
 .home-log-btn[data-guide-target="record"] {
   position: relative;
-  z-index: 41;
+  z-index: 51;
   box-shadow:
     var(--shadow-primary),
     0 0 0 3px var(--background),
     0 0 0 5px var(--primary);
+}
+
+[data-guide-target] {
+  position: relative;
+  z-index: 51;
 }
 
 .guide-spotlight {

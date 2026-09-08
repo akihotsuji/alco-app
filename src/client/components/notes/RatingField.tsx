@@ -25,7 +25,15 @@ function parseRatingInput(raw: string): number | null | undefined {
 /** N5: 星タップが主。同じ星の再タップで +0.5。数値欄でキーボード操作 */
 export function RatingField({ value, error, guideTarget, onChange }: RatingFieldProps) {
   return (
-    <fieldset className="log-form-section" data-guide-target={guideTarget}>
+    <fieldset
+      className="log-form-section"
+      data-guide-target={guideTarget}
+      onPointerDown={() => {
+        if (guideTarget && value !== null) {
+          onChange(value);
+        }
+      }}
+    >
       <legend>
         <FieldLabel required>評価</FieldLabel>
       </legend>
