@@ -83,6 +83,7 @@ UI ラベルは全画面で次で統一する（セラーの「銘柄名」は *
 | `place_lat` / `place_lng` | real nullable | **両方揃える**。片方だけは 400。範囲 lat −90〜90、lng −180〜180 |
 
 - 新規記録フォームだけ、マウント時に `navigator.geolocation.getCurrentPosition` を **1 回**試す。拒否・失敗でも保存できる
+- SPA の `Permissions-Policy` は `geolocation=(self)`（`public/_headers`）。空の許可リストだと取得できない
 - 編集では自動取得しない。店名の手入力と、既存座標の維持は可
 - URL は保存しない。表示時にだけ生成する
 - 生成形: `https://www.google.com/maps/search/?api=1&query=`。座標があれば `lat,lng`、店名だけなら店名

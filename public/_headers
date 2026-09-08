@@ -8,7 +8,7 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer
-  Permissions-Policy: geolocation=(), microphone=()
+  Permissions-Policy: geolocation=(self), microphone=()
 
 # 4-06: SPA fallback で HTML と誤認されないよう、モデルと ORT の MIME を固定する
 /models/u2netp.onnx

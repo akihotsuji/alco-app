@@ -213,11 +213,12 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | 経路 | 対象 | 付与場所 | CSP |
 |---|---|---|---|
 | Worker | `/api/*` の JSON・写真バイナリ | `src/server/index.ts` の `hono/secure-headers` | `default-src 'none'; frame-ancestors 'none'`（API 応答にスクリプトは要らない）。加えて `X-Frame-Options: DENY`、nosniff、`Referrer-Policy: no-referrer`、CORP `same-origin` |
-| 静的アセット | SPA の HTML / JS / CSS | `public/_headers`（Workers Static Assets が読む。`run_worker_first` は `/api/*` のみなので Worker のヘッダーは届かない） | `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob: 'wasm-unsafe-eval'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
+| 静的アセット | SPA の HTML / JS / CSS | `public/_headers`（Workers Static Assets が読む。`run_worker_first` は `/api/*` のみなので Worker のヘッダーは届かない） | `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob: 'wasm-unsafe-eval'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`。加えて nosniff、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`、`Permissions-Policy: geolocation=(self), microphone=()` |
 
 - `script-src` / `style-src` に `'unsafe-inline'` を入れない。Vite のビルド出力は外部ファイル参照のみで、React の `style` prop は CSSOM 経由なので CSP に当たらない
 - Zod v4 は既定で `new Function("")` を試して JIT 可否を判定し、これが CSP 違反として記録される。`z.config({ jitless: true })`（`src/shared/zod-config.ts`）で抑止する。`'unsafe-eval'` は足さない
 - 4-06: 端末内 WASM 背景除去のため `script-src` / `worker-src` に `'wasm-unsafe-eval'` を追加。モデルと ORT（`.mjs` / `.wasm`）は同一オリジン `/models/`（`connect-src 'self'` のまま。CDN は使わない）。`/models/*` の Content-Type は `_headers` で固定し、欠落時の SPA fallback HTML をモデルや WASM 用 JS と誤認しないようにする
+- `Permissions-Policy` の `geolocation=(self)` は飲酒記録の新規フォームが現在地を 1 回取るため（[register-identity.md](features/register-identity.md) 4）。`geolocation=()` だとブラウザが Geolocation API を拒否する。マイクは使わないので `microphone=()` のまま
 - Vite 開発サーバー（`pnpm dev`）では `_headers` は適用されない（React Fast Refresh がインラインスクリプトを使うため、適用すると開発が止まる）。CSP の確認は `pnpm build` → `wrangler dev --env dev` で行う
 
 ### 2.11 入力検証
