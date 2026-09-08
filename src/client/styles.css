@@ -507,11 +507,6 @@ html[data-theme="dark"] {
   flex-shrink: 0;
 }
 
-.app-header-has-create,
-.app-header:has(.header-create) {
-  grid-template-columns: 40px minmax(0, 1fr) max-content;
-}
-
 .app-header-slot {
   display: flex;
   align-items: center;
@@ -520,11 +515,6 @@ html[data-theme="dark"] {
 
 .app-header-slot-end {
   justify-content: flex-end;
-}
-
-.app-header-has-create .app-header-slot-end,
-.app-header:has(.header-create) .app-header-slot-end {
-  min-width: max-content;
 }
 
 .app-header-spacer {
@@ -558,31 +548,6 @@ html[data-theme="dark"] {
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
-}
-
-.header-create {
-  display: inline-flex;
-  flex-flow: row nowrap;
-  align-items: center;
-  justify-content: center;
-  width: max-content;
-  min-width: max-content;
-  max-width: none;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: var(--radius-pill);
-  background: var(--primary);
-  color: var(--primary-fg);
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  box-shadow: var(--shadow-outset-sm);
-}
-
-.header-create:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
 }
 
 .app-content {

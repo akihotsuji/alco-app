@@ -27,9 +27,7 @@ export function AppHeader({ header }: AppHeaderProps) {
   const navigate = useNavigate();
 
   return (
-    <header
-      className={header.right.kind === "create" ? "app-header app-header-has-create" : "app-header"}
-    >
+    <header className="app-header">
       <div className="app-header-slot">
         <HeaderLeftSlot left={header.left} navigate={navigate} />
       </div>
@@ -108,12 +106,6 @@ function HeaderRightSlot({
     case "text":
       return (
         <Link className="header-text-link" to={right.to}>
-          {right.label}
-        </Link>
-      );
-    case "create":
-      return (
-        <Link className="header-create" to={right.to}>
           {right.label}
         </Link>
       );
