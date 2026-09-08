@@ -1061,6 +1061,7 @@ html[data-theme="dark"] {
   padding: 0;
   border: 0;
   min-width: 0;
+  min-inline-size: 0;
   scroll-margin-bottom: calc(96px + var(--keyboard-inset, 0px));
 }
 
@@ -4414,6 +4415,7 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   z-index: 45;
   overflow: auto;
   background: var(--background);
+  padding-inline: 20px;
 }
 
 .guide-practice-header {
@@ -4421,7 +4423,8 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  margin-inline: -20px;
+  padding: var(--space-3) 20px;
 }
 
 .guide-practice-header h1 {
@@ -4445,6 +4448,8 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
 
 .guide-fan-anchor {
   position: relative;
+  scroll-margin-top: 168px;
+  scroll-margin-bottom: calc(var(--tab-h) + 24px);
 }
 
 .guide-fan-backdrop {

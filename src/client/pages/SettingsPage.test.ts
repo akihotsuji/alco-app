@@ -14,6 +14,8 @@ describe("SettingsPage S11", () => {
     expect(source).toContain("GuideFanMenu");
     expect(source).toContain("guide.openPicker");
     expect(source).toContain("guide.startTour");
+    expect(source).toContain("needsGuideFanReveal");
+    expect(source).toContain("scrollIntoView");
     expect(source).not.toContain("guide.replay()");
     expect(source).not.toContain("健康");
   });
