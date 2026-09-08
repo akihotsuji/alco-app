@@ -36,18 +36,6 @@ export function FirstRunGuideHost() {
         </DialogContent>
       </DialogRoot>
 
-      {guide.step === "home-record" ? (
-        <div className="guide-home-banner">
-          <Mascot pose="default" size={48} life lifeId="guide-home" aria-hidden />
-          <div className="guide-home-copy">
-            <p>飲んだ量は、ここから残せます</p>
-            <button type="button" className="guide-exit" onClick={guide.skip}>
-              ガイドを終了
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {guide.step === "practice" ? (
         <div className="guide-practice-overlay">
           <header className="guide-practice-header">

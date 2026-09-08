@@ -11,7 +11,6 @@ describe("FirstRunGuideHost", () => {
     expect(host).toContain("使い方を少し試してみますか？");
     expect(host).toContain("操作を試す");
     expect(host).toContain("今はしない");
-    expect(host).toContain("飲んだ量は、ここから残せます");
     expect(host).toContain("PracticeLogForm");
     expect(host).toContain("基本の操作はこれだけです");
     expect(host).toContain("ガイドを終了");

@@ -30,7 +30,8 @@ export function TodaySummaryCard({
   const statusClass =
     status === "logged" ? "home-status-pill home-status-logged" : "home-status-pill";
   const guide = useFirstRunGuide();
-  const pose = homeMascotPose(status, cheering);
+  const pose =
+    presence === "heavy" ? (cheering ? "cheer" : "default") : homeMascotPose(status, cheering);
 
   return (
     <Card className="home-today-card shadow-outset-sm">

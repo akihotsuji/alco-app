@@ -2181,10 +2181,11 @@ html[data-theme="dark"] {
 
 .home-today-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px;
+  grid-template-columns: minmax(0, 1fr) 88px;
   column-gap: var(--space-3);
   padding: var(--space-4);
   align-items: center;
+  overflow: visible;
 }
 
 .home-today-link {
@@ -2316,6 +2317,7 @@ html[data-theme="dark"] {
   grid-column: 2;
   align-self: center;
   justify-self: center;
+  overflow: visible;
 }
 
 .today-mascot[data-cheer="1"] {
@@ -4340,14 +4342,10 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
 }
 
 .guide-home-banner {
-  position: fixed;
-  left: var(--space-4);
-  right: var(--space-4);
-  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + var(--space-3));
-  z-index: 30;
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  margin-top: var(--space-3);
   padding: var(--space-3);
   border-radius: var(--radius-card);
   background: var(--background);
