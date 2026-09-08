@@ -12,7 +12,7 @@ import {
   type GuideHole,
   type GuideTipLayout,
   guideTipLayout,
-  measureGuideTarget,
+  queryPreferredGuideTarget,
 } from "@/client/lib/guide-spotlight-layout.ts";
 
 const TIP_FALLBACK = { width: 320, height: 128 };
@@ -38,14 +38,29 @@ export function GuideSpotlight() {
     }
     void remasureKey;
     let cancelled = false;
+    let frames = 0;
+    let frame = 0;
     const update = () => {
       if (cancelled) {
         return;
       }
-      setHole(measureGuideTarget(target));
+      const picked = queryPreferredGuideTarget(target);
+      setHole(picked?.hole ?? null);
+      if (
+        picked &&
+        (picked.hole.top + picked.hole.height < 8 || picked.hole.top > window.innerHeight - 8)
+      ) {
+        picked.el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" });
+      }
     };
-    update();
-    const frame = window.requestAnimationFrame(update);
+    const tick = () => {
+      update();
+      frames += 1;
+      if (frames < 8 && !cancelled) {
+        frame = window.requestAnimationFrame(tick);
+      }
+    };
+    tick();
     const observer = new MutationObserver(update);
     observer.observe(document.body, {
       childList: true,
@@ -55,8 +70,14 @@ export function GuideSpotlight() {
     });
     const resize = new ResizeObserver(update);
     resize.observe(document.documentElement);
+    for (const node of document.querySelectorAll(target)) {
+      resize.observe(node);
+    }
+    const viewport = window.visualViewport;
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(frame);
@@ -64,6 +85,8 @@ export function GuideSpotlight() {
       resize.disconnect();
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
     };
   }, [target, remasureKey]);
 

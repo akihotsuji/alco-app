@@ -17,3 +17,16 @@ describe("GuideFanMenu", () => {
     expect(source).toContain('role="menu"');
   });
 });
+
+describe("Settings fan reveal", () => {
+  const settings = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "../../pages/SettingsPage.tsx"),
+    "utf8",
+  );
+
+  it("扇を開いたら使い方を見るが見える位置へ寄せる", () => {
+    expect(settings).toContain("needsGuideFanReveal");
+    expect(settings).toContain("scrollIntoView");
+    expect(settings).toContain("guide-fan-anchor");
+  });
+});

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { endSession } from "@/client/auth/end-session.ts";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
@@ -12,6 +12,8 @@ import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPr
 import { ThemePrefRow } from "@/client/components/settings/ThemePrefRow.tsx";
 import { Switch } from "@/client/components/ui/switch.tsx";
 import { useMe } from "@/client/hooks/use-me.ts";
+import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { needsGuideFanReveal } from "@/client/lib/guide-spotlight-layout.ts";
 import {
   getCellarRecognizePref,
   getColorCorrectionPref,
@@ -25,10 +27,32 @@ import { APP_VERSION } from "@/shared/constants.ts";
 export function SettingsPage() {
   const me = useMe();
   const guide = useFirstRunGuide();
+  const reduceMotion = useReducedMotion();
+  const fanAnchorRef = useRef<HTMLDivElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [composeMascot, setComposeMascot] = useState(getComposeMascotPref);
   const [colorCorrection, setColorCorrection] = useState(getColorCorrectionPref);
   const [recognize, setRecognize] = useState(getCellarRecognizePref);
+
+  useLayoutEffect(() => {
+    if (!guide.pickerOpen) {
+      return;
+    }
+    const anchor = fanAnchorRef.current;
+    if (!anchor) {
+      return;
+    }
+    const content = document.querySelector(".app-content");
+    const visible = (content ?? document.documentElement).getBoundingClientRect();
+    const box = anchor.getBoundingClientRect();
+    if (!needsGuideFanReveal({ top: box.top, bottom: box.bottom }, visible)) {
+      return;
+    }
+    anchor.scrollIntoView({
+      block: "center",
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  }, [guide.pickerOpen, reduceMotion]);
 
   return (
     <div className="settings-page">
@@ -105,7 +129,7 @@ export function SettingsPage() {
         <h2 className="settings-heading">操作</h2>
         <HapticPrefRow />
         <ReduceMotionPrefRow />
-        <div className="guide-fan-anchor">
+        <div ref={fanAnchorRef} className="guide-fan-anchor">
           <button type="button" className="settings-row" onClick={guide.openPicker}>
             使い方を見る
           </button>
