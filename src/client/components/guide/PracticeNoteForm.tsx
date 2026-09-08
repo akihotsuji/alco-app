@@ -30,7 +30,6 @@ export function PracticeNoteForm({ onFieldUsed, onSaved }: PracticeNoteFormProps
           </span>
         ) : null}
       </p>
-      <p className="form-lead">評価して残す。写真はなくても大丈夫です</p>
       <section className="log-form-section">
         <FieldLabel>品名</FieldLabel>
         <Input value={drinkName} readOnly aria-label="品名" />
@@ -38,7 +37,7 @@ export function PracticeNoteForm({ onFieldUsed, onSaved }: PracticeNoteFormProps
       <DrinkTypeSelect value={drinkType} onChange={setDrinkType} />
       <RatingField
         value={ratingX10}
-        guideTarget="rating"
+        guideTarget={guide.step === "notes-rating" ? "rating" : undefined}
         onChange={(next) => {
           setRatingX10(next);
           onFieldUsed();
@@ -50,7 +49,7 @@ export function PracticeNoteForm({ onFieldUsed, onSaved }: PracticeNoteFormProps
         disabled={ratingX10 === null}
         hint={ratingX10 === null ? "評価を入力してください" : null}
         state="idle"
-        guideTarget="save"
+        guideTarget={guide.step === "notes-save" ? "save" : undefined}
         onSave={onSaved}
       />
     </div>

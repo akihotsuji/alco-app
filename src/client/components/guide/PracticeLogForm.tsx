@@ -48,7 +48,6 @@ export function PracticeLogForm({ onFieldUsed, onSaved }: PracticeLogFormProps) 
           </span>
         ) : null}
       </p>
-      <p className="form-lead">量を選んで保存。写真はなくても大丈夫です</p>
       <DrinkTypeSelect
         value={state.drinkType}
         onChange={(drinkType) => setState((current) => applyDrinkType(current, drinkType))}
@@ -58,7 +57,7 @@ export function PracticeLogForm({ onFieldUsed, onSaved }: PracticeLogFormProps) 
         drinkType={state.drinkType}
         value={state.volumeMl}
         error={visibleErrors.volumeMl}
-        guideTarget="volume"
+        guideTarget={guide.step === "practice-volume" ? "volume" : undefined}
         onChange={(volumeMl) => {
           update({ volumeMl }, "volumeMl");
           onFieldUsed();
@@ -83,7 +82,7 @@ export function PracticeLogForm({ onFieldUsed, onSaved }: PracticeLogFormProps) 
         disabled={!canSubmit}
         hint={!canSubmit ? "量と度数を入力してください" : null}
         state="idle"
-        guideTarget="save"
+        guideTarget={guide.step === "practice-save" ? "save" : undefined}
         onSave={() => {
           setSubmitted(true);
           if (canSubmit) {

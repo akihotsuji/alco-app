@@ -151,6 +151,7 @@ export function HomePage() {
           primaryEnter={playPrimaryEnter.current}
           onPrimary={() => haptic("light")}
           onPrimaryIntercept={guide.interceptRecord ? guide.onHomeRecordAction : undefined}
+          guideTarget={guide.step === "home-record" ? "record" : undefined}
         />
       </div>
       {summaryPending ? (

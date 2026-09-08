@@ -78,6 +78,20 @@ export function guideTourPath(tour: GuideTour): string {
   return "/";
 }
 
+/** 一覧ステップだけ経路を固定する。練習 overlay はどの経路でもよい */
+export function guideSpotlightPath(step: GuideStep): string | null {
+  if (step === "home-record") {
+    return "/";
+  }
+  if (step === "cellar-add") {
+    return "/cellar";
+  }
+  if (step === "notes-create") {
+    return "/notes";
+  }
+  return null;
+}
+
 export type GuideRecord = {
   userId: string;
   status: GuideStatus;

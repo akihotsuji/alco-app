@@ -29,14 +29,13 @@ export function PracticeBottleForm({ onFieldUsed, onSaved }: PracticeBottleFormP
           </span>
         ) : null}
       </p>
-      <p className="form-lead">種類を選んで並べる。写真はなくても大丈夫です</p>
       <section className="log-form-section">
         <FieldLabel>品名</FieldLabel>
         <Input value={name} readOnly aria-label="品名" />
       </section>
       <DrinkTypeChips
         value={drinkType}
-        guideTarget="drink-type"
+        guideTarget={guide.step === "cellar-type" ? "drink-type" : undefined}
         onChange={(next) => {
           setDrinkType(next);
           onFieldUsed();
@@ -47,7 +46,7 @@ export function PracticeBottleForm({ onFieldUsed, onSaved }: PracticeBottleFormP
         pending={false}
         disabled={false}
         state="idle"
-        guideTarget="save"
+        guideTarget={guide.step === "cellar-save" ? "save" : undefined}
         onSave={onSaved}
       />
     </div>

@@ -11,10 +11,11 @@ const source = readFileSync(
 describe("PracticeNoteForm", () => {
   it("練習専用で保存 API を呼ばず、評価と保存にガイド対象がある", () => {
     expect(source).toContain("練習中・保存されません");
-    expect(source).toContain('guideTarget="rating"');
-    expect(source).toContain('guideTarget="save"');
+    expect(source).toContain('? "rating"');
+    expect(source).toContain('? "save"');
     expect(source).toContain("練習として保存（記録されません）");
     expect(source).not.toContain("useCreateTastingNote");
     expect(source).not.toContain("startCapture");
+    expect(source).not.toContain("form-lead");
   });
 });

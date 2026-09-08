@@ -1,49 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import {
   guideSpotlight,
+  guideSpotlightPath,
   guideStepProgress,
   isGuidePracticeStep,
 } from "@/client/lib/first-run-guide.ts";
+import {
+  type GuideHole,
+  type GuideTipLayout,
+  guideTipLayout,
+  measureGuideTarget,
+} from "@/client/lib/guide-spotlight-layout.ts";
 
-const HOLE_PAD = 8;
-const TIP_HEIGHT = 128;
-
-type Hole = {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-};
-
-function measureTarget(selector: string): Hole | null {
-  const el = document.querySelector<HTMLElement>(selector);
-  if (!el) {
-    return null;
-  }
-  const rect = el.getBoundingClientRect();
-  return {
-    top: rect.top - HOLE_PAD,
-    left: rect.left - HOLE_PAD,
-    width: rect.width + HOLE_PAD * 2,
-    height: rect.height + HOLE_PAD * 2,
-  };
-}
-
-function tipLayout(hole: Hole): { top: number; left: number; placement: "above" | "below" } {
-  const width = Math.min(320, window.innerWidth - 32);
-  const spaceBelow = window.innerHeight - (hole.top + hole.height);
-  const placement = spaceBelow < TIP_HEIGHT + 16 ? "above" : "below";
-  const top =
-    placement === "above" ? Math.max(16, hole.top - TIP_HEIGHT - 12) : hole.top + hole.height + 12;
-  const preferRight = hole.left > window.innerWidth / 2;
-  const left = preferRight
-    ? Math.max(16, Math.min(hole.left + hole.width - width, window.innerWidth - 16 - width))
-    : Math.max(16, Math.min(hole.left, window.innerWidth - 16 - width));
-  return { top, left, placement };
-}
+const TIP_FALLBACK = { width: 320, height: 128 };
 
 /** 対象だけを切り抜き、吹き出しで次の操作を示す */
 export function GuideSpotlight() {
@@ -51,9 +23,13 @@ export function GuideSpotlight() {
   const location = useLocation();
   const config = guide.step === "off" ? null : guideSpotlight(guide.step);
   const progress = guide.step === "off" ? null : guideStepProgress(guide.step);
-  const target = config?.target ?? null;
+  const listPath = guide.step === "off" ? null : guideSpotlightPath(guide.step);
+  const onExpectedPath = listPath === null || location.pathname === listPath;
+  const target = config && onExpectedPath ? config.target : null;
   const remasureKey = `${guide.step}:${location.pathname}:${location.search}`;
-  const [hole, setHole] = useState<Hole | null>(null);
+  const [hole, setHole] = useState<GuideHole | null>(null);
+  const [tipBox, setTipBox] = useState(TIP_FALLBACK);
+  const tipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!target) {
@@ -62,82 +38,103 @@ export function GuideSpotlight() {
     }
     void remasureKey;
     let cancelled = false;
-    let attempts = 0;
-    let frame = 0;
     const update = () => {
       if (cancelled) {
         return;
       }
-      const next = measureTarget(target);
-      setHole(next);
-      if (!next && attempts < 12) {
-        attempts += 1;
-        frame = window.requestAnimationFrame(update);
-      }
+      setHole(measureGuideTarget(target));
     };
     update();
+    const frame = window.requestAnimationFrame(update);
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-guide-target", "class", "style"],
+    });
+    const resize = new ResizeObserver(update);
+    resize.observe(document.documentElement);
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      resize.disconnect();
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
   }, [target, remasureKey]);
 
-  if (!config) {
+  const tip: GuideTipLayout | null = hole
+    ? guideTipLayout(hole, { width: window.innerWidth, height: window.innerHeight }, tipBox)
+    : null;
+
+  useLayoutEffect(() => {
+    void remasureKey;
+    const node = tipRef.current;
+    if (!node || !hole) {
+      return;
+    }
+    const next = { width: node.offsetWidth, height: node.offsetHeight };
+    setTipBox((current) =>
+      current.width === next.width && current.height === next.height ? current : next,
+    );
+    const layout = guideTipLayout(
+      hole,
+      { width: window.innerWidth, height: window.innerHeight },
+      next,
+    );
+    node.style.setProperty("--guide-tip-arrow-x", `${layout.arrowLeft}px`);
+  }, [hole, remasureKey]);
+
+  if (!config || !onExpectedPath || !hole || !tip) {
     return null;
   }
-
-  const tip = hole ? tipLayout(hole) : { top: 120, left: 16, placement: "below" as const };
 
   return (
     <div
       className="guide-spotlight"
       data-practice={isGuidePracticeStep(guide.step) ? "1" : undefined}
     >
-      {hole ? (
-        <>
-          <div
-            className="guide-spotlight-panel"
-            style={{ top: 0, left: 0, right: 0, height: hole.top }}
-          />
-          <div
-            className="guide-spotlight-panel"
-            style={{ top: hole.top + hole.height, left: 0, right: 0, bottom: 0 }}
-          />
-          <div
-            className="guide-spotlight-panel"
-            style={{ top: hole.top, left: 0, width: hole.left, height: hole.height }}
-          />
-          <div
-            className="guide-spotlight-panel"
-            style={{
-              top: hole.top,
-              left: hole.left + hole.width,
-              right: 0,
-              height: hole.height,
-            }}
-          />
-          <div
-            className="guide-spotlight-ring"
-            style={{
-              top: hole.top,
-              left: hole.left,
-              width: hole.width,
-              height: hole.height,
-            }}
-          />
-        </>
-      ) : (
-        <div className="guide-spotlight-panel" style={{ inset: 0 }} />
-      )}
       <div
+        className="guide-spotlight-panel"
+        style={{ top: 0, left: 0, right: 0, height: hole.top }}
+      />
+      <div
+        className="guide-spotlight-panel"
+        style={{ top: hole.top + hole.height, left: 0, right: 0, bottom: 0 }}
+      />
+      <div
+        className="guide-spotlight-panel"
+        style={{ top: hole.top, left: 0, width: hole.left, height: hole.height }}
+      />
+      <div
+        className="guide-spotlight-panel"
+        style={{
+          top: hole.top,
+          left: hole.left + hole.width,
+          right: 0,
+          height: hole.height,
+        }}
+      />
+      <div
+        className="guide-spotlight-ring"
+        style={{
+          top: hole.top,
+          left: hole.left,
+          width: hole.width,
+          height: hole.height,
+          borderRadius: hole.radius,
+        }}
+      />
+      <div
+        ref={tipRef}
         className="guide-spotlight-tip"
         data-placement={tip.placement}
         role="status"
-        style={{ top: tip.top, left: tip.left }}
+        style={{ top: tip.top, left: tip.left, width: tip.width }}
       >
         <Mascot pose="default" size={48} life lifeId="guide-spot" aria-hidden />
         <div className="guide-spotlight-copy">

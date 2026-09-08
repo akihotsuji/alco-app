@@ -333,7 +333,7 @@ export function CellarList() {
             <div className="shelf-board" />
           </div>
           <p className="empty-state-message">ボトルはまだありません。撮って 1 本目を並べましょう</p>
-          {showCellarHint ? (
+          {showCellarHint && !guide.interceptCellarAdd ? (
             <p className="empty-state-detail">持っているボトルを、ここに並べて管理します</p>
           ) : null}
           <Link

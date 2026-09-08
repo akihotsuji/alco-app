@@ -88,9 +88,11 @@ function LoadedNoteList() {
           pose="default"
           message="テイスティングノートはまだありません"
           detail={
-            showNotesHint
-              ? "味や感想は、ノートに残します"
-              : "気になるお酒の味わいを記録してみましょう"
+            guide.interceptNotesCreate
+              ? undefined
+              : showNotesHint
+                ? "味や感想は、ノートに残します"
+                : "気になるお酒の味わいを記録してみましょう"
           }
           actionLabel="ノートを作成"
           actionTo={createTo}
