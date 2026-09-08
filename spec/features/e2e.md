@@ -26,7 +26,7 @@
 | 項目 | 決定 |
 |---|---|
 | ランナー | Playwright。CI は **Chromium のみ**。ローカルで WebKit は任意 |
-| 起動 | `pnpm dev`（Vite + Cloudflare Vite プラグイン）。`wrangler dev` との二重起動はしない |
+| 起動 | Vite + Cloudflare プラグイン。`CLOUDFLARE_VITE_FORCE_LOCAL=true` で Workers AI のリモートプロキシを切る（CI に `CLOUDFLARE_API_TOKEN` を置かない）。`wrangler dev` との二重起動はしない |
 | 死活 | `GET /api/health` が 200 になるまで待つ |
 | D1 | ローカル D1。CI は webServer 前に `pnpm db:migrate:local` |
 | 並列 | **1**（ローカル D1 ファイル競合を避ける） |
@@ -52,7 +52,7 @@
 ### 3.2 シナリオ A（記録 → サマリー）
 
 1. 中央タブ「お酒を記録」→ `/logs/new`（撮影は開始しない）
-2. 品名を入れ、種類「ビール」（既定 350ml / 5%）を選ぶ
+2. 品名を入れ、種類セレクト（初期は赤ワイン）から「ビール」（350ml / 5%）を選ぶ
 3. 「記録を保存」
 4. 「テイスティングノートをつける？」は「あとで」
 5. 日別に 1 杯と 14.0g が出る

@@ -62,7 +62,10 @@ export function useCreateDrinkLog() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateDrinkLogInput) => createDrinkLog(body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogSummaries });
+    },
   });
 }
 
