@@ -35,8 +35,10 @@ export async function signUpAsNewUser(
   await page.getByLabel("メール").fill(user.email);
   await page.getByRole("textbox", { name: /パスワード/ }).fill(user.password);
   await page.getByRole("button", { name: "登録する" }).click();
-  await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
+  await page.waitForURL("/");
+  // 招待ダイアログが開くと背面の「ホーム」見出しは a11y ツリーから外れる
   await dismissFirstRunGuide(page);
+  await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
   return user;
 }
 
