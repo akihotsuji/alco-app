@@ -7,6 +7,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "GuideHomeSpotlight.tsx"), "utf8");
 const host = readFileSync(join(here, "FirstRunGuideHost.tsx"), "utf8");
 const home = readFileSync(join(here, "../../pages/HomePage.tsx"), "utf8");
+const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
 describe("GuideHomeSpotlight", () => {
   it("H8 を切り抜くスポットライトと終了だけを持つ", () => {
@@ -19,5 +20,7 @@ describe("GuideHomeSpotlight", () => {
     expect(host).toContain("GuideHomeSpotlight");
     expect(home).not.toContain("GuideHomeBanner");
     expect(home).not.toContain("GuideHomeSpotlight");
+    expect(css).toContain("rgb(0 0 0 / 55%)");
+    expect(css).not.toMatch(/\.guide-spotlight-panel[^{]*\{[^}]*var\(--foreground\)/);
   });
 });

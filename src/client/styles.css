@@ -4366,7 +4366,8 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
 
 .guide-spotlight-panel {
   position: absolute;
-  background: color-mix(in srgb, var(--foreground) 55%, transparent);
+  /* テーマに依らず暗くする。ダークで --foreground を使うと逆に明るくなる */
+  background: rgb(0 0 0 / 55%);
   pointer-events: auto;
 }
 
