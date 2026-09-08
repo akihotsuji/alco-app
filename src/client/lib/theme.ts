@@ -1,5 +1,6 @@
 import { getThemePref, PREF_CHANGE_EVENT, parseThemePref } from "@/client/lib/preferences.ts";
 import { type ResolvedTheme, type ThemePref, UI_PREF_KEYS } from "@/shared/constants.ts";
+import { PWA_THEME_COLOR_DARK, PWA_THEME_COLOR_LIGHT } from "@/shared/pwa.ts";
 
 export const THEME_ATTR = "data-theme";
 export const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
@@ -16,9 +17,35 @@ function osPrefersDark(): boolean {
   return typeof matchMedia === "function" && matchMedia(DARK_SCHEME_QUERY).matches;
 }
 
+export function themeColorFor(theme: ResolvedTheme): string {
+  return theme === "dark" ? PWA_THEME_COLOR_DARK : PWA_THEME_COLOR_LIGHT;
+}
+
+/** 設定「外観」で解決した色を、OS の prefers-color-scheme より優先して theme-color に書く */
+export function applyThemeColor(
+  doc: Pick<Document, "head" | "createElement"> & { querySelector: Document["querySelector"] },
+  theme: ResolvedTheme,
+): void {
+  if (!doc.head) {
+    return;
+  }
+  let meta = doc.querySelector("meta[name='theme-color'][data-resolved='1']");
+  if (!meta) {
+    meta = doc.createElement("meta");
+    meta.setAttribute("name", "theme-color");
+    meta.setAttribute("data-resolved", "1");
+    doc.head.appendChild(meta);
+  }
+  meta.setAttribute("content", themeColorFor(theme));
+}
+
 export function applyTheme(html: HTMLElement, pref: ThemePref, osDark: boolean): ResolvedTheme {
   const theme = resolveTheme(pref, osDark);
   html.setAttribute(THEME_ATTR, theme);
+  const doc = html.ownerDocument;
+  if (doc) {
+    applyThemeColor(doc, theme);
+  }
   return theme;
 }
 

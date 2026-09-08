@@ -22,3 +22,13 @@
 /models/ort/*.wasm
   Content-Type: application/wasm
   X-Content-Type-Options: nosniff
+
+# 6-01: SW は HTTP キャッシュさせない（古い SW が残るとデプロイ後に壊れる）
+/sw.js
+  Cache-Control: no-cache
+  Content-Type: application/javascript
+  X-Content-Type-Options: nosniff
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  X-Content-Type-Options: nosniff

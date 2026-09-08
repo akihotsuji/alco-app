@@ -27,6 +27,8 @@
     "drizzle.config.ts",
     "vite.config.ts",
     "vite.cutout-assets.ts",
+    "vite.pwa.ts",
+    "vite.pwa-icons.ts",
     "vite.alias.ts",
     "vitest.config.ts"
   ]

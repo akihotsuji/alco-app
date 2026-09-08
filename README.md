@@ -106,6 +106,27 @@ pnpm test
 
 lockfile が `package.json` と食い違うと `--frozen-lockfile` で失敗する。Cloudflare トークン等のシークレットは参照しない。
 
+## PWA（6-01）
+
+ホーム画面追加とスタンドアロン表示。オフライン記録は対象外。仕様は [spec/features/pwa.md](spec/features/pwa.md)。
+
+確認は **ビルド後**（`pnpm dev` では Service Worker を登録しない）:
+
+```powershell
+pnpm build
+pnpm exec wrangler dev --env dev
+```
+
+Chrome（デスクトップ）:
+
+1. 開いたオリジンで Application → Manifest。`display: standalone`、192 / 512 / maskable がある
+2. Application → Service Workers。`sw.js` が登録され、Network で `/api/*` が `(ServiceWorker)` 経由でも **from ServiceWorker cache に API JSON が残らない**（NetworkOnly）
+3. Install できること。インストール後はブラウザのタブバーが消え、アプリの下部タブだけになる（二重にならない）
+
+更新: `registerType: autoUpdate` + `skipWaiting`。デプロイ後は次の起動で新 SW が有効。壊れた古い SW が残るときは、そのオリジンの Application → Service Workers で Unregister し、ハード再読み込みする。
+
+実機のホーム追加は Phase 6-05。
+
 ## ブランチ運用
 
 `main` へは直接 push しない。作業ブランチは切る直前に `git fetch origin main` し、`git checkout -b feature/<内容> origin/main`（または `fix/`）で **リモートの最新 `main` 先端から切る**。PR 経由でのみマージする。マージ方式は merge / squash / rebase いずれも可。CI は回すが、ruleset の必須チェックにはしない。
