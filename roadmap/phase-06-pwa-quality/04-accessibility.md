@@ -65,11 +65,11 @@ Chrome DevTools Lighthouse → Accessibility。手動:
 
 ## 8. 受け入れ条件
 
-- [ ] a11y 目安 80+（Phase 6 DoD）
-- [ ] 主要フォームにラベル
-- [ ] コントラスト不足を意図的に残していない
-- [ ] テスト・lint パス
-- [ ] 監査（a11y と XSS は別。innerHTML を a11y 目的で使わない）
+- [x] a11y 目安 80+（Phase 6 DoD。2026-09-09 JST。`spec/features/a11y.md` 8.1）
+- [x] 主要フォームにラベル
+- [x] コントラスト不足を意図的に残していない
+- [x] テスト・lint パス
+- [x] 監査（a11y と XSS は別。innerHTML を a11y 目的で使わない）
 
 ## 9. セキュリティ観点
 
