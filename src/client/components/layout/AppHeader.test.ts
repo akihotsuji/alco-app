@@ -13,5 +13,7 @@ describe("AppHeader ノート一覧の作成ボタン", () => {
     expect(header).toContain('className="header-create"');
     expect(css).toContain(".app-header-has-create");
     expect(css).toMatch(/\.header-create\s*\{[^}]*white-space:\s*nowrap/s);
+    expect(css).toContain("flex-flow: row nowrap");
+    expect(css).toContain(".app-header:has(.header-create)");
   });
 });

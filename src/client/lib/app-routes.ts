@@ -268,7 +268,7 @@ export function resolveAppRoute(
           bottleId && isUuidParam(bottleId)
             ? { kind: "back", fallback: `/cellar/${bottleId}` }
             : SPACER,
-        right: { kind: "create", to: noteCreateHref(bottleId), label: "+ 作成" },
+        right: { kind: "create", to: noteCreateHref(bottleId), label: "＋\u00a0作成" },
       });
     }
     if (segments[1] === "new" && segments.length === 2) {

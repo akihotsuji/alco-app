@@ -230,13 +230,13 @@ describe("note hrefs", () => {
     expect(header.right).toEqual({
       kind: "create",
       to: `/notes/new?bottleId=${id}`,
-      label: "+ 作成",
+      label: "＋\u00a0作成",
     });
     expect(addFabForRoute("/notes", `?bottleId=${id}`)).toBeNull();
     expect(resolveAppRoute("/notes", NOW).header.right).toEqual({
       kind: "create",
       to: "/notes/new",
-      label: "+ 作成",
+      label: "＋\u00a0作成",
     });
     expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}`).header.left).toEqual({
       kind: "back",

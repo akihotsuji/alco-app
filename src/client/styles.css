@@ -503,8 +503,9 @@ html[data-theme="dark"] {
   flex-shrink: 0;
 }
 
-.app-header-has-create {
-  grid-template-columns: 40px 1fr auto;
+.app-header-has-create,
+.app-header:has(.header-create) {
+  grid-template-columns: 40px minmax(0, 1fr) max-content;
 }
 
 .app-header-slot {
@@ -515,6 +516,11 @@ html[data-theme="dark"] {
 
 .app-header-slot-end {
   justify-content: flex-end;
+}
+
+.app-header-has-create .app-header-slot-end,
+.app-header:has(.header-create) .app-header-slot-end {
+  min-width: max-content;
 }
 
 .app-header-spacer {
@@ -552,11 +558,13 @@ html[data-theme="dark"] {
 
 .header-create {
   display: inline-flex;
-  flex-direction: row;
+  flex-flow: row nowrap;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
+  width: max-content;
   min-width: max-content;
+  max-width: none;
+  min-height: 32px;
   padding: 0 12px;
   border-radius: var(--radius-pill);
   background: var(--primary);
