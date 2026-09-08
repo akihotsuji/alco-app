@@ -62,7 +62,7 @@
 
 | # | 要素 | 種別 | 内容・挙動 |
 |---|---|---|---|
-| F1 | 追加 | Button 副（円 52px、`plus`） | `bottle-list`: `/cellar/new?camera=1`（aria「追加」）。ノート一覧には出さない |
+| F1 | 追加 | Button 副（円 52px、`plus`） | `bottle-list`: `/cellar/new`（aria「追加」。撮影は自動起動しない）。ノート一覧には出さない |
 | F2 | 位置 | 固定 | 右 20px、下はタブバー上端から 16px + safe-area。`z-index` はタブより上・トーストより下。コンテンツ最下部に FAB 分の余白を足す |
 | F3 | 見た目 | 地色 + `--shadow-outset-sm` | ヘッダーの円ボタンと同じ語彙。primary 塗りにしない（中央タブと競合させない） |
 
