@@ -59,6 +59,8 @@
 6. ホームの今日カードに「今日は 1 杯記録しています」と 14.0g
 7. 「詳しく見る」で週サマリーにも 1 杯と 14.0g
 
+記録保存後のホーム／週サマリーは再読み込みなしで数字が反映される（`useCreateDrinkLog` は `drinkLogs` と `drinkLogSummaries` を無効化する）。
+
 14.0g は `DRINK_TYPE_PRESETS.beer` の計算結果（[alcohol-calculation.md](alcohol-calculation.md)）。種類を変えるときは期待値も同じ PR で直す。
 
 ### 3.3 シナリオ B（ボトル → ノート）
