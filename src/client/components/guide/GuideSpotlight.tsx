@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
-import { guideSpotlight, guideStepProgress } from "@/client/lib/first-run-guide.ts";
+import {
+  guideSpotlight,
+  guideStepProgress,
+  isGuidePracticeStep,
+} from "@/client/lib/first-run-guide.ts";
 
 const HOLE_PAD = 8;
 const TIP_HEIGHT = 128;
@@ -89,7 +93,10 @@ export function GuideSpotlight() {
   const tip = hole ? tipLayout(hole) : { top: 120, left: 16, placement: "below" as const };
 
   return (
-    <div className="guide-spotlight">
+    <div
+      className="guide-spotlight"
+      data-practice={isGuidePracticeStep(guide.step) ? "1" : undefined}
+    >
       {hole ? (
         <>
           <div

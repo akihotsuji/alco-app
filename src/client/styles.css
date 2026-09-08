@@ -4343,6 +4343,11 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   pointer-events: auto;
 }
 
+.guide-spotlight[data-practice="1"] .guide-spotlight-panel {
+  /* 練習フォーム上では暗幕を見せつつ、量・評価・保存を塞がない */
+  pointer-events: none;
+}
+
 .guide-spotlight-tip {
   position: absolute;
   display: flex;

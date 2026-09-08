@@ -14,6 +14,8 @@ describe("GuideSpotlight", () => {
     expect(source).toContain("guideSpotlight");
     expect(source).toContain("guide-spotlight");
     expect(source).toContain("guide-spotlight-ring");
+    expect(source).toContain("data-practice");
+    expect(css).toContain('[data-practice="1"]');
     expect(source).toContain("ガイドを終了");
     expect(source).toContain("guideStepProgress");
     expect(source).not.toContain("setTimeout");
