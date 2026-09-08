@@ -154,7 +154,11 @@ function logNewFallback(search: string, today: string): string {
 }
 
 function noteNewFallback(bottleId: string | null, search: string): string {
-  if (bottleId && isUuidParam(bottleId) && parseFormOrigin(new URLSearchParams(search).get("from"))) {
+  if (
+    bottleId &&
+    isUuidParam(bottleId) &&
+    parseFormOrigin(new URLSearchParams(search).get("from"))
+  ) {
     return `/cellar/${bottleId}`;
   }
   return notesListHref(bottleId);

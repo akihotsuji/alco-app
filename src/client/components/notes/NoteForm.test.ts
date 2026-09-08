@@ -22,7 +22,9 @@ describe("NoteForm 写真先頭と AI / ビンテージ", () => {
   });
 
   it("関連付けは保存直前の任意行で、後選択は手入力を残す", () => {
-    expect(source.indexOf("placement=\"optional\"")).toBeGreaterThan(source.indexOf("<NoteTextFields"));
+    expect(source.indexOf('placement="optional"')).toBeGreaterThan(
+      source.indexOf("<NoteTextFields"),
+    );
     expect(source).toContain("TargetBottleChip");
     expect(source).toContain("preserveEdits: true");
   });

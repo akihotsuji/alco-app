@@ -8,8 +8,8 @@ import { useAnimatedNumber } from "@/client/components/feedback/AnimatedNumber.t
 import { shouldPlayEmptyEnter } from "@/client/components/feedback/EmptyState.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
-import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
+import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";

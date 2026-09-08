@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { endSession } from "@/client/auth/end-session.ts";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { DisplayNameRow } from "@/client/components/settings/DisplayNameRow.tsx";
 import { HapticPrefRow } from "@/client/components/settings/HapticPrefRow.tsx";
 import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPrefRow.tsx";

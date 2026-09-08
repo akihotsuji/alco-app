@@ -18,11 +18,31 @@ type MascotProps = {
   "aria-hidden"?: boolean;
 };
 
-function EyeLids({ left, right }: { left: { x: number; y: number; s: number }; right: { x: number; y: number; s: number } }) {
+function EyeLids({
+  left,
+  right,
+}: {
+  left: { x: number; y: number; s: number };
+  right: { x: number; y: number; s: number };
+}) {
   return (
     <g className="mascot-lids" aria-hidden>
-      <rect className="mascot-lid mascot-lid-l" x={left.x} y={left.y} width={left.s} height={left.s} rx={left.s / 2} />
-      <rect className="mascot-lid mascot-lid-r" x={right.x} y={right.y} width={right.s} height={right.s} rx={right.s / 2} />
+      <rect
+        className="mascot-lid mascot-lid-l"
+        x={left.x}
+        y={left.y}
+        width={left.s}
+        height={left.s}
+        rx={left.s / 2}
+      />
+      <rect
+        className="mascot-lid mascot-lid-r"
+        x={right.x}
+        y={right.y}
+        width={right.s}
+        height={right.s}
+        rx={right.s / 2}
+      />
     </g>
   );
 }
@@ -250,40 +270,64 @@ export function Mascot({
     reactToken,
   });
 
+  const svg = (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 120 160"
+      width={width}
+      height={size}
+      className="text-foreground mascot-svg"
+      aria-hidden={ariaHidden ?? true}
+      role="presentation"
+      focusable="false"
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <path d={BOWL} />
+        </clipPath>
+      </defs>
+      <PoseContent pose={pose} clipId={clipId} pour={pourApplies(pose, pour)} />
+      {presence === "heavy" ? (
+        <g className="mascot-droplets" aria-hidden>
+          <circle cx="98" cy="78" r="2.2" fill="var(--mascot-wine)" />
+          <circle cx="104" cy="90" r="1.6" fill="var(--mascot-wine)" />
+        </g>
+      ) : null}
+    </svg>
+  );
+  const lifeAttrs = {
+    className: "mascot-root",
+    "data-action": motion.life.action ?? undefined,
+    "data-gaze": motion.life.gaze,
+    "data-presence": presence,
+    "data-heavy-enter": motion.heavyEnter ? "1" : undefined,
+    "data-life": life ? "1" : undefined,
+  } as const;
+
+  if (life) {
+    return (
+      <button
+        {...lifeAttrs}
+        ref={(node) => {
+          motion.rootRef.current = node;
+        }}
+        type="button"
+        aria-label="キャラクター"
+        onClick={motion.onTap}
+      >
+        {svg}
+      </button>
+    );
+  }
+
   return (
     <span
-      ref={motion.rootRef}
-      className="mascot-root"
-      data-action={motion.life.action ?? undefined}
-      data-gaze={motion.life.gaze}
-      data-presence={presence}
-      data-heavy-enter={motion.heavyEnter ? "1" : undefined}
-      data-life={life ? "1" : undefined}
-      onClick={life ? motion.onTap : undefined}
+      {...lifeAttrs}
+      ref={(node) => {
+        motion.rootRef.current = node;
+      }}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 120 160"
-        width={width}
-        height={size}
-        className="text-foreground mascot-svg"
-        aria-hidden={ariaHidden ?? true}
-        role="presentation"
-        focusable="false"
-      >
-        <defs>
-          <clipPath id={clipId}>
-            <path d={BOWL} />
-          </clipPath>
-        </defs>
-        <PoseContent pose={pose} clipId={clipId} pour={pourApplies(pose, pour)} />
-        {presence === "heavy" ? (
-          <g className="mascot-droplets" aria-hidden>
-            <circle cx="98" cy="78" r="2.2" fill="var(--mascot-wine)" />
-            <circle cx="104" cy="90" r="1.6" fill="var(--mascot-wine)" />
-          </g>
-        ) : null}
-      </svg>
+      {svg}
     </span>
   );
 }

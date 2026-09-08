@@ -1,3 +1,5 @@
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
+import { PracticeLogForm } from "@/client/components/guide/PracticeLogForm.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import {
@@ -6,8 +8,6 @@ import {
   Dialog as DialogRoot,
   DialogTitle,
 } from "@/client/components/ui/dialog.tsx";
-import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
-import { PracticeLogForm } from "@/client/components/guide/PracticeLogForm.tsx";
 
 export function FirstRunGuideHost() {
   const guide = useFirstRunGuide();

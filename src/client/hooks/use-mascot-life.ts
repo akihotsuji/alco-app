@@ -4,8 +4,8 @@ import {
   claimMascotLife,
   idleBlinkDelayMs,
   initialMascotLifeState,
-  mascotActionDuration,
   type MascotLifeState,
+  mascotActionDuration,
   releaseMascotLife,
   startMascotTap,
 } from "@/client/lib/mascot-life.ts";
@@ -29,7 +29,7 @@ export function useMascotLife({
   reactToken = 0,
 }: UseMascotLifeInput) {
   const reduceMotion = useReducedMotion();
-  const rootRef = useRef<HTMLSpanElement>(null);
+  const rootRef = useRef<HTMLElement>(null);
   const [claimed, setClaimed] = useState(false);
   const [inView, setInView] = useState(true);
   const [pageVisible, setPageVisible] = useState(

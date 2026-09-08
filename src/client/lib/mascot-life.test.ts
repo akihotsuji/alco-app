@@ -33,9 +33,9 @@ describe("mascot tap / idle", () => {
     const first = startMascotTap(initialMascotLifeState(), 1_000);
     expect(first?.action).toBe("wink");
     expect(startMascotTap(first ?? initialMascotLifeState(), 1_100)).toBeNull();
-    expect(canStartMascotTap(first ?? initialMascotLifeState(), 1_000 + MASCOT_LIFE_MS.tapCooldown)).toBe(
-      true,
-    );
+    expect(
+      canStartMascotTap(first ?? initialMascotLifeState(), 1_000 + MASCOT_LIFE_MS.tapCooldown),
+    ).toBe(true);
   });
 
   it("待機まばたきは 15〜30 秒のあいだ", () => {

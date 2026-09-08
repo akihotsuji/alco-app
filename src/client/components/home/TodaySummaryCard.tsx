@@ -1,8 +1,8 @@
 import { Link } from "react-router";
 import { AnimatedNumber } from "@/client/components/feedback/AnimatedNumber.tsx";
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Card } from "@/client/components/ui/card.tsx";
-import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import {
   homeMascotPose,
   homeTodayFootnote,

@@ -100,7 +100,10 @@ export function writeGuideRecord(record: GuideRecord): void {
   }
 }
 
-export function markGuideStatus(userId: string, status: Exclude<GuideStatus, "unset">): GuideRecord {
+export function markGuideStatus(
+  userId: string,
+  status: Exclude<GuideStatus, "unset">,
+): GuideRecord {
   const next = { ...readGuideRecord(userId), userId, status };
   writeGuideRecord(next);
   return next;

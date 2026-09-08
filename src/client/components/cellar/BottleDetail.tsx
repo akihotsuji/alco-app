@@ -165,7 +165,10 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
       </div>
       {archived ? (
         <div className="bottle-followup-actions">
-          <Link className="bottle-followup-row" to={logCreateHref({ bottleId: bottle.id, from: "detail" })}>
+          <Link
+            className="bottle-followup-row"
+            to={logCreateHref({ bottleId: bottle.id, from: "detail" })}
+          >
             飲んだ量を記録
           </Link>
           <Link className="bottle-followup-row" to={noteCreateHref(bottle.id, "detail")}>

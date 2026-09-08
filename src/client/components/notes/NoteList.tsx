@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
 import { EmptyState } from "@/client/components/feedback/EmptyState.tsx";
-import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { NoteCard } from "@/client/components/notes/NoteCard.tsx";
 import { NoteToolbar } from "@/client/components/notes/NoteToolbar.tsx";
@@ -39,6 +39,15 @@ function LoadedNoteList() {
     !bottleId || bottle.isSuccess,
   );
 
+  const guide = useFirstRunGuide();
+  const [showNotesHint] = useState(() => !guide.notesHintSeen);
+  const emptyAll = query.data?.pages[0]?.totalCount === 0;
+  useEffect(() => {
+    if (emptyAll && !guide.notesHintSeen) {
+      guide.markHintSeen("notesHintSeen");
+    }
+  }, [emptyAll, guide]);
+
   useSetHeaderOverride({
     title: bottle.data?.name,
   });
@@ -56,15 +65,6 @@ function LoadedNoteList() {
   }
 
   const items: TastingNoteListItem[] = query.data?.pages.flatMap((page) => page.items) ?? [];
-  const totalCount = query.data?.pages[0]?.totalCount;
-  const emptyAll = totalCount === 0;
-  const guide = useFirstRunGuide();
-  const [showNotesHint] = useState(() => !guide.notesHintSeen);
-  useEffect(() => {
-    if (emptyAll && !guide.notesHintSeen) {
-      guide.markHintSeen("notesHintSeen");
-    }
-  }, [emptyAll, guide]);
   const emptyFilter = Boolean(query.data && items.length === 0 && filters.filtered);
   const createTo = noteCreateHref(bottleId);
   const filterEmptyMessage = filters.q

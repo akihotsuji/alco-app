@@ -7,20 +7,37 @@ import {
   writeGuidePref,
 } from "./first-run-guide";
 
+const memory = new Map<string, string>();
+const localStorageStub = {
+  getItem(key: string) {
+    return memory.get(key) ?? null;
+  },
+  setItem(key: string, value: string) {
+    memory.set(key, value);
+  },
+};
+
 afterEach(() => {
-  sessionStorage.clear();
-  localStorage.clear();
+  memory.clear();
 });
 
 describe("readGuidePref / writeGuidePref", () => {
   it("ユーザー単位で完了を記憶する", () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: localStorageStub,
+    });
     writeGuidePref("u1", "completed");
     expect(readGuidePref("u1")).toBe("completed");
     expect(readGuidePref("u2")).toBe("unset");
   });
 
   it("壊れた値は unset にする", () => {
-    localStorage.setItem(GUIDE_PREF_KEY, JSON.stringify({ userId: "u1", status: "broken" }));
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: localStorageStub,
+    });
+    localStorageStub.setItem(GUIDE_PREF_KEY, JSON.stringify({ userId: "u1", status: "broken" }));
     expect(readGuidePref("u1")).toBe("unset");
   });
 });

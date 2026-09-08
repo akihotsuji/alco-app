@@ -26,7 +26,6 @@ import {
 } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { notesListHref } from "@/client/lib/app-routes.ts";
-import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import { isUuid } from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
@@ -58,6 +57,7 @@ import {
   NOTE_RECOGNIZE_BANNER,
   type NoteRecognizeTouched,
 } from "@/client/lib/note-recognize.ts";
+import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import { startNoteRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";

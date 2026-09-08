@@ -1,11 +1,11 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from "react";
 import { useMe } from "@/client/hooks/use-me.ts";
 import {
@@ -59,13 +59,10 @@ export function FirstRunGuideProvider({ children }: { children: ReactNode }) {
     }
   }, [userId]);
 
-  const persist = useCallback(
-    (next: GuideRecord) => {
-      writeGuideRecord(next);
-      setRecord(next);
-    },
-    [],
-  );
+  const persist = useCallback((next: GuideRecord) => {
+    writeGuideRecord(next);
+    setRecord(next);
+  }, []);
 
   const applyActivity = useCallback(
     (hasExistingData: boolean) => {

@@ -46,8 +46,7 @@ function AppShellFrame() {
   const { override } = useHeaderOverride();
   const contentRef = useRef<HTMLDivElement>(null);
   const route = resolveAppRoute(location.pathname, new Date(), location.search);
-  const hideTabs =
-    hidesTabBar(location.pathname, photoEdit.open) || guide.step === "practice";
+  const hideTabs = hidesTabBar(location.pathname, photoEdit.open) || guide.step === "practice";
   const addFab = hideTabs ? null : addFabForRoute(location.pathname, location.search);
   const header = {
     ...route.header,

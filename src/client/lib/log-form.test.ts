@@ -16,13 +16,13 @@ import {
   isLogFormDirty,
   isManualVolume,
   liveAlcoholGrams,
-  shouldPreserveBottlePrefill,
   logFormStateFromDrinkLog,
   logSaveDisabledHint,
   primaryVolumeChips,
   SAVE_DISABLED_HINTS,
   SAVE_LABELS,
   saveButtonLabel,
+  shouldPreserveBottlePrefill,
   stepAbv,
   toCreateDrinkLogBody,
   toUpdateDrinkLogBody,
@@ -84,10 +84,18 @@ describe("drink type", () => {
     });
     expect(beer.volumeMl).toBe(350);
     expect(beer.drinkType).toBe("beer");
-    const later = applySelectedBottle(state, beer, { preserveEdits: true });
+    const later = applySelectedBottle(
+      state,
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "ラガー",
+        drinkType: "beer",
+      },
+      { preserveEdits: true },
+    );
     expect(later.volumeMl).toBe(150);
     expect(later.drinkType).toBe("wine");
-    expect(later.bottleId).toBe(beer.bottleId);
+    expect(later.bottleId).toBe("11111111-1111-4111-8111-111111111111");
     expect(later.bottleName).toBe("ラガー");
   });
 

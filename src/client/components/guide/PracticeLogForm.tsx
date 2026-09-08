@@ -9,8 +9,8 @@ import {
   canSubmitLogForm,
   initialLogFormState,
   type LogFormField,
-  visibleLogFormErrors,
   validateLogForm,
+  visibleLogFormErrors,
 } from "@/client/lib/log-form.ts";
 
 type PracticeLogFormProps = {

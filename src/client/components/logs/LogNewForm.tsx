@@ -17,7 +17,6 @@ import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
-import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import {
   applyRecognizeToLogForm,
   countDrinkRecognizeFields,
@@ -31,7 +30,6 @@ import {
   applySelectedBottle,
   canSubmitLogForm,
   clearSelectedBottle,
-  shouldPreserveBottlePrefill,
   describeSaveFailure,
   initialLogFormState,
   isLogFormDirty,
@@ -40,11 +38,13 @@ import {
   logSaveDisabledHint,
   type PhotoSaveStatus,
   saveButtonLabel,
+  shouldPreserveBottlePrefill,
   toCreateDrinkLogBody,
   validateLogForm,
   visibleLogFormErrors,
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { DRINK_LOG_MESSAGES } from "@/shared/drink-logs.ts";
 

@@ -99,9 +99,7 @@ export function BottlePickerRow({
       {optional ? null : (
         <div className="form-row">
           <button type="button" className="form-row-hit" onClick={() => setOpen(true)}>
-            <span className="form-row-value form-row-value-start">
-              {displayName ?? emptyValue}
-            </span>
+            <span className="form-row-value form-row-value-start">{displayName ?? emptyValue}</span>
             <ChevronRight size={20} className="form-row-chevron" aria-hidden />
           </button>
           {clearable && bottleId ? (

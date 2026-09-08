@@ -4158,19 +4158,16 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   animation-iteration-count: infinite !important;
 }
 
-html[data-reduce-motion="1"] .mascot-root,
-html[data-reduce-motion="1"] .mascot-lid,
-html[data-reduce-motion="1"] .mascot-pupils,
-html[data-reduce-motion="1"] .mascot-droplets,
-html[data-reduce-motion="1"] .mascot-svg {
-  animation: none !important;
-  transition: none !important;
-}
 /* biome-ignore-end lint/complexity/noImportantStyles: reduced motion ブロックの終わり */
 
 .mascot-root {
   display: inline-flex;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   line-height: 0;
+  color: inherit;
 }
 
 .mascot-lid {
