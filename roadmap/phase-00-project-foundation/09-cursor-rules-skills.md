@@ -34,7 +34,7 @@
 - `database`（Phase 1-04 で作成済み: `.cursor/rules/database.mdc`）
 - `ui-design`（Phase 1-03 で追加済み: `.cursor/rules/ui-design.mdc`）
 - `db-migration` / `api-conventions`（Phase 2）
-- `e2e-testing`（Phase 6）
+- `e2e-testing`（6-02 で追加: `.cursor/skills/e2e-testing/SKILL.md`）
 - `release`（Phase 7）
 
 ## 4. 成果物

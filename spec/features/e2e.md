@@ -1,0 +1,97 @@
+# E2E スモーク（Playwright）
+
+実装: Phase 6-02。手順は [roadmap/phase-06-pwa-quality/02-playwright-e2e.md](../../roadmap/phase-06-pwa-quality/02-playwright-e2e.md)。技能は [.cursor/skills/e2e-testing/SKILL.md](../../.cursor/skills/e2e-testing/SKILL.md)。
+
+- 状態: **本 PR で追加**（6-02）
+- 画面の正本は [screen-designs/](../screen-designs/)。E2E は画面を増やさない
+- 認証は [auth.md](auth.md)。日付境界は Asia/Tokyo（[00-overview.md](../00-overview.md)）
+
+---
+
+## 1. 目的
+
+壊れやすい横断導線を 2 本だけ固定する。全画面網羅・ビジュアルリグレッション・実 iOS クラウドは対象外。
+
+| シナリオ | 導線 | 合格条件 |
+|---|---|---|
+| A | サインアップ → 記録 → サマリー数字 | 今日のカードと週サマリーに杯数・純アルコールが出る |
+| B | サインアップ → ボトル登録 → ノート作成 | ノート詳細が登録したボトルを指す |
+
+写真アップロードはファイルchooser。初期は写真なしでも両シナリオを満たす（ボトルは必須。ロードマップどおり）。
+
+---
+
+## 2. 実行環境
+
+| 項目 | 決定 |
+|---|---|
+| ランナー | Playwright。CI は **Chromium のみ**。ローカルで WebKit は任意 |
+| 起動 | `pnpm dev`（Vite + Cloudflare Vite プラグイン）。`wrangler dev` との二重起動はしない |
+| 死活 | `GET /api/health` が 200 になるまで待つ |
+| D1 | ローカル D1。CI は webServer 前に `pnpm db:migrate:local` |
+| 並列 | **1**（ローカル D1 ファイル競合を避ける） |
+| リトライ | CI は最大 2。ローカルは 0 |
+| タイムゾーン | `Asia/Tokyo`（日付境界ずれを防ぐ。相対「今日」だけ見る） |
+| ビューポート | スマートフォン幅（Pixel 相当） |
+| ユーザー | 毎回サインアップ。固定シード・本番ユーザーは使わない |
+| パスワード | 実行ごとに生成。コード・ログ・spec に本番秘密を書かない |
+| `BETTER_AUTH_SECRET` | CI はジョブ内で使い捨て生成して `.dev.vars` に書く。GitHub Secrets / 本番 wrangler secret は参照しない |
+
+`storageState` とトレースは git にコミットしない（`.gitignore` の `playwright/.auth/` / `test-results/` / `playwright-report/`）。
+
+---
+
+## 3. シナリオ詳細
+
+### 3.1 共通前処理
+
+1. `/signup` で表示名・メール・パスワードを入れて登録する
+2. ホームが表示されたら、初回ガイド招待「今はしない」を押す（空ユーザーは [first-run-guide](../screen-designs/) の招待が出る）
+3. 位置情報はテストが許可し、東京付近の座標を渡す（記録フォームの geolocation 待ちで止まらないようにする）
+
+### 3.2 シナリオ A（記録 → サマリー）
+
+1. 中央タブ「お酒を記録」→ `/logs/new`（撮影は開始しない）
+2. 品名を入れ、種類「ビール」（既定 350ml / 5%）を選ぶ
+3. 「記録を保存」
+4. 「テイスティングノートをつける？」は「あとで」
+5. 日別に 1 杯と 14.0g が出る
+6. ホームの今日カードに「今日は 1 杯記録しています」と 14.0g
+7. 「詳しく見る」で週サマリーにも 1 杯と 14.0g
+
+14.0g は `DRINK_TYPE_PRESETS.beer` の計算結果（[alcohol-calculation.md](alcohol-calculation.md)）。種類を変えるときは期待値も同じ PR で直す。
+
+### 3.3 シナリオ B（ボトル → ノート）
+
+1. セラータブ → 空状態の「ボトルを追加」（`/cellar/new`。`?camera=1` は付けない）
+2. 品名を入れて「棚に並べる（1 本）」
+3. ボトル詳細に品名が出る
+4. ノートタブ → 「ノートを作成」
+5. 「セラーのボトルと関連付ける」で今のボトルを選ぶ（品名・種類が埋まる）
+6. 評価 4 を付けて「ノートを保存」
+7. ノート詳細にボトル名が出る
+
+---
+
+## 4. CI
+
+`.github/workflows/ci.yml` にジョブ `e2e` を足す。既存の lint / typecheck / test / audit ジョブは変えない。デプロイや `CLOUDFLARE_API_TOKEN` は参照しない。
+
+失敗時だけ Playwright のトレース / レポートを artifact にする。保持は **3 日**（公開リポジトリでも、セッションはジョブ内の使い捨て secret とローカル D1 にしか効かない）。
+
+---
+
+## 5. 対象外
+
+- 写真付き記録 / 切り抜き / ラベル読み取り
+- 開栓・貯蔵庫・マイドリンク 1 タップ
+- WebKit / Firefox を CI で必須にすること
+- `pnpm test`（Vitest）への混入。E2E は `pnpm test:e2e` だけ
+
+---
+
+## 6. セキュリティ
+
+- 本番 URL・本番ユーザー・`BETTER_AUTH_SECRET` の実値をテストやワークフローに書かない
+- トレースに Cookie が乗る。public でも保持期間を短くし、`storageState` をコミットしない
+- ログにパスワードを出さない

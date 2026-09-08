@@ -218,7 +218,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 ### タスク
 
 - [x] vite-plugin-pwa導入: manifest、アイコン一式（キャラクター `default` を primary に載せてビルド時生成）、スタンドアロン表示、テーマカラー → [features/pwa.md](features/pwa.md)（6-01。2026-09-08）
-- [ ] Playwright E2E: 主要導線のスモークテスト（ログイン→記録→サマリー確認、ボトル登録→ノート作成）をCIに組み込み
+- [x] Playwright E2E: 主要導線のスモークテスト（ログイン→記録→サマリー確認、ボトル登録→ノート作成）をCIに組み込み → [features/e2e.md](features/e2e.md)（6-02）
 - [ ] パフォーマンス改善: バンドルサイズ確認、コード分割、画像遅延読み込み（Lighthouseモバイルで計測）
 - [ ] アクセシビリティ最低限対応: タップ領域サイズ、コントラスト、フォームラベル、**reduced motion の検証**（OS 設定と「動きを減らす」の両方で移動・水位線が止まり、情報が欠けない。[motion-design.md](motion-design.md) 6.8 / 10.6）
 - [ ] iOS Safari / Android Chrome での実機動作確認と表示崩れ修正

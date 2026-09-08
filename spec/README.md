@@ -27,5 +27,6 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [features/cellar.md](features/cellar.md) | セラー（棚・貯蔵庫・追加・詳細・開栓・復元・切り抜き・ラベル読み取り）の画面項目・バリデーション・API・エッジケース | 承認済み（4-01） |
 | [features/tasting-note.md](features/tasting-note.md) | テイスティングノート（撮って評価と一言・写真グリッド・セラー連携）の画面項目・バリデーション・API・エッジケース | 承認済み（5-01 #46）。5-02 CRUD 実装済み |
 | [features/pwa.md](features/pwa.md) | PWA（manifest・スタンドアロン・アイコン生成・SW は API を NetworkOnly） | 6-01（2026-09-08） |
+| [features/e2e.md](features/e2e.md) | Playwright E2E（記録→サマリー、ボトル→ノート。CI Chromium） | 6-02 |
 | release-checklist.md | リリース前チェックリスト | Phase 7で作成 |
 | operations.md | 運用手順（バックアップ復元・障害対応） | Phase 7で作成 |

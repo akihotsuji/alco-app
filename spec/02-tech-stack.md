@@ -87,7 +87,7 @@ alco-app/
 | Workers 型 | `wrangler types --env dev` が生成する `worker-configuration.d.ts` を `compilerOptions.types` に入れる。`@cloudflare/workers-types` は使わない |
 | 型の再生成 | `wrangler.jsonc` 変更後は `pnpm cf-typegen`。生成ファイルはコミットする（中身は binding 名と runtime 型のみ。秘密は含めない） |
 | Lint / Format | **Biome のみ**（ESLint / Prettier は入れない） |
-| 対象 / 除外 | 対象は `src/` とルートの設定ファイル。`spec/`・`roadmap/`・`dist`・`.wrangler`・生成型ファイルは対象外 |
+| 対象 / 除外 | 対象は `src/` とルートの設定ファイル、`e2e/`、`playwright.config.ts`。`spec/`・`roadmap/`・`dist`・`.wrangler`・生成型ファイルは対象外 |
 | フォーマット | インデント 2 スペース、二重引用符、セミコロンあり、行長 100、`organizeImports` 有効 |
 | scripts | `pnpm typecheck`（`tsc --noEmit`）/ `pnpm lint`（`biome check .`）/ `pnpm format`（`biome check --write .`） |
 
@@ -101,7 +101,7 @@ alco-app/
 | 実行環境 | **Node**（`environment: "node"`）。Workers ハーネスは使わない |
 | 配置 | `src/**/*.test.ts`（ソース隣。coding-standards どおり） |
 | API テスト方針 | Hono の **`app.request()` を Node / Vitest で使う**。`cloudflare:test` / Miniflare / `@cloudflare/vitest-pool-workers` は使わない。D1 が必要になったらモックまたは local D1（Phase 2-07 で踏襲） |
-| scripts | `pnpm test` = `vitest run`（CI 向け・非インタラクティブ）。`pnpm test:watch` = `vitest`（監視。CI には書かない） |
+| scripts | `pnpm test` = `vitest run`（CI 向け・非インタラクティブ）。`pnpm test:watch` = `vitest`（監視。CI には書かない）。E2E は `pnpm test:e2e`（Playwright。6-02。[features/e2e.md](features/e2e.md)） |
 | globals | 使わない。`import { describe, expect, it } from "vitest"` |
 
 ## クライアントのデータ取得（2-04 FIX）
@@ -139,9 +139,10 @@ alco-app/
 | install | `pnpm install --frozen-lockfile`（lockfile 不一致は失敗） |
 | コマンド | `pnpm lint` / `pnpm typecheck` / `pnpm test` / OSV-Scanner（`pnpm-lock.yaml`） |
 | audit | lockfile の既知脆弱性があれば失敗。npm の `/-/npm/v1/security/audits` は使わない（ソケットタイムアウトが多発するため）。例外を黙って無視しない |
+| E2E | 別ジョブ `e2e`。`pnpm test:e2e`（Playwright Chromium）。ローカル D1 を migrate し、`BETTER_AUTH_SECRET` はジョブ内で使い捨て生成。正本は [features/e2e.md](features/e2e.md) |
 | 権限 | `permissions.contents: read` のみ。`pull_request_target` は使わない |
-| 禁止 | デプロイ、`CLOUDFLARE_API_TOKEN`、Better Auth secret の参照 |
-| ジョブ名 | `lint / typecheck / test / audit`（ruleset の必須チェックには使わない。2026-09-04） |
+| 禁止 | デプロイ、`CLOUDFLARE_API_TOKEN`、Better Auth secret の参照（E2E の secret も GitHub Secrets に置かない） |
+| ジョブ名 | `lint / typecheck / test / audit` と `e2e`（ruleset の必須チェックには使わない。2026-09-04） |
 
 ## CD（dev 自動デプロイ）
 
