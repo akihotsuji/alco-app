@@ -4,9 +4,7 @@ import { redactWranglerLog } from "@/ci/redact-wrangler-log.ts";
 describe("redactWranglerLog", () => {
   it("replaces workers.dev URLs", () => {
     const input = "Deployed\nhttps://alco-app-dev.example.workers.dev\nCurrent Version ID: abc";
-    expect(redactWranglerLog(input)).toBe(
-      "Deployed\n[redacted-url]\nCurrent Version ID: abc",
-    );
+    expect(redactWranglerLog(input)).toBe("Deployed\n[redacted-url]\nCurrent Version ID: abc");
   });
 
   it("replaces http workers.dev URLs", () => {

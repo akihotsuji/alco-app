@@ -64,7 +64,7 @@ jobs:
         run: |
           set -o pipefail
           pnpm exec wrangler d1 migrations apply alco-app-dev --remote --env dev 2>&1 \
-            | node --experimental-strip-types src/ci/redact-wrangler-log.ts
+            | node --experimental-strip-types --disable-warning=ExperimentalWarning src/ci/redact-wrangler-log.ts
 
       - name: Deploy Workers (dev)
         env:
@@ -73,5 +73,5 @@ jobs:
         run: |
           set -o pipefail
           pnpm exec wrangler deploy --env dev 2>&1 \
-            | node --experimental-strip-types src/ci/redact-wrangler-log.ts
+            | node --experimental-strip-types --disable-warning=ExperimentalWarning src/ci/redact-wrangler-log.ts
           echo "Deployed Worker alco-app-dev (env.dev)"
