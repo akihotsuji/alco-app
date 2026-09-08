@@ -67,4 +67,13 @@ describe("ci.yml", () => {
     expect(ci).not.toContain("CLOUDFLARE_ACCOUNT_ID");
     expect(ci).not.toMatch(/pull_request_target/);
   });
+
+  it("runs Playwright Chromium without production secrets", () => {
+    expect(ci).toMatch(/^\s+e2e:/m);
+    expect(ci).toContain("playwright install --with-deps chromium");
+    expect(ci).toContain("pnpm test:e2e");
+    expect(ci).toContain("openssl rand -hex 32");
+    expect(ci).toContain("retention-days: 3");
+    expect(ci).not.toContain("secrets.BETTER_AUTH_SECRET");
+  });
 });
