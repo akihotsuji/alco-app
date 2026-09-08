@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import type { PhotoMeta } from "@/shared/photos.ts";
@@ -72,9 +73,9 @@ export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) 
                 setViewerOpen(true);
               }}
             >
-              <img
+              <ContentPhoto
                 src={photoContentUrl(photo.id)}
-                alt=""
+                size={PHOTO_DISPLAY_SIZE.noteCard}
                 loading={photoIndex === 0 ? "eager" : "lazy"}
               />
             </button>
@@ -109,9 +110,9 @@ export function NotePhotoCarousel({ photos }: { photos: readonly PhotoMeta[] }) 
           >
             {photos.map((photo, photoIndex) => (
               <div key={photo.id} className="note-photo-viewer-slide">
-                <img
+                <ContentPhoto
                   src={photoContentUrl(photo.id)}
-                  alt=""
+                  size={PHOTO_DISPLAY_SIZE.noteCard}
                   loading={photoIndex === safeIndex ? "eager" : "lazy"}
                 />
               </div>

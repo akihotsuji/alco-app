@@ -1,6 +1,7 @@
 import { ChevronRight, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import {
   DialogContent,
   DialogDescription,
@@ -188,10 +189,10 @@ export function BottlePickerRow({
                   }}
                 >
                   {item.thumbPhotoId ? (
-                    <img
+                    <ContentPhoto
                       className="bottle-picker-thumb"
                       src={photoContentUrl(item.thumbPhotoId)}
-                      alt=""
+                      size={PHOTO_DISPLAY_SIZE.bottlePicker}
                     />
                   ) : (
                     <span className="bottle-picker-thumb is-empty" aria-hidden />

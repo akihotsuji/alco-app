@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { AuthBoot } from "./AuthBoot.tsx";
@@ -24,5 +24,9 @@ export function RequireAuth() {
   if (!data) {
     return <Navigate to={loginPathFor(location.pathname, location.search)} replace />;
   }
-  return <Outlet />;
+  return (
+    <Suspense fallback={<AuthBoot />}>
+      <Outlet />
+    </Suspense>
+  );
 }

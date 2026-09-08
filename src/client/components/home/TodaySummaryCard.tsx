@@ -10,6 +10,7 @@ import {
   homeTodayStatusLabel,
 } from "@/client/lib/home-today.ts";
 import type { MascotPresence } from "@/client/lib/mascot-presence.ts";
+import { prefetchPointerProps } from "@/client/lib/route-chunks.ts";
 import { displayAlcoholGrams } from "@/shared/alcohol.ts";
 
 type TodaySummaryCardProps = {
@@ -36,7 +37,12 @@ export function TodaySummaryCard({
   return (
     <Card className="home-today-card shadow-outset-sm">
       <div className="home-today-layout">
-        <Link className="home-today-link" to="/logs" aria-label="今日の記録を見る">
+        <Link
+          className="home-today-link"
+          to="/logs"
+          aria-label="今日の記録を見る"
+          {...prefetchPointerProps("/logs")}
+        >
           <div className="home-today-head">
             <span className="home-today-title">今日の記録</span>
             <span className={statusClass}>{homeTodayStatusLabel(status)}</span>

@@ -1,6 +1,7 @@
 import { Camera, Images } from "lucide-react";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import type { PhotoAttachment } from "@/client/components/layout/photo-edit-context.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 
 type CompactPhotoFieldProps = {
@@ -49,7 +50,12 @@ export function CompactPhotoField({
       {previewUrl ? (
         <div className="photo-thumb-row">
           <div className={`photo-thumb photo-thumb-${ratio}`}>
-            <img src={previewUrl} alt="" className="photo-thumb-img" />
+            <ContentPhoto
+              src={previewUrl}
+              className="photo-thumb-img"
+              size={ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile}
+              loading="eager"
+            />
             {attachment?.status === "uploading" ? (
               <span className="photo-tile-progress" role="status">
                 アップロード中

@@ -1,6 +1,7 @@
 import { Camera, Images } from "lucide-react";
 import { useState } from "react";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import {
   DialogContent,
@@ -148,7 +149,11 @@ function NotePhotoThumb({
   return (
     <div className="note-photo-thumb">
       <button type="button" className="note-photo-thumb-button" onClick={onOpen}>
-        <img src={item.previewUrl} alt="" className="photo-thumb-img" loading="lazy" />
+        <ContentPhoto
+          src={item.previewUrl}
+          className="photo-thumb-img"
+          size={PHOTO_DISPLAY_SIZE.logTile}
+        />
         <span className="visually-hidden">写真 {index + 1}</span>
       </button>
       {item.status === "uploading" ? (

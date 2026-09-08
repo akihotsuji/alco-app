@@ -5,6 +5,7 @@ import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.ts
 import { OpenedFollowupSheet } from "@/client/components/cellar/OpenedFollowupSheet.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
@@ -143,12 +144,17 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         disabled={!photo}
       >
         {photo ? (
-          <img
+          <ContentPhoto
             className={
               photo.kind === "cutout" ? "bottle-hero-img is-cutout" : "bottle-hero-img is-photo"
             }
             src={photoContentUrl(photo.id)}
-            alt=""
+            size={
+              photo.kind === "cutout"
+                ? PHOTO_DISPLAY_SIZE.bottleHero
+                : PHOTO_DISPLAY_SIZE.bottleHeroPhoto
+            }
+            loading="eager"
           />
         ) : (
           <BottleSilhouette drinkType={bottle.drinkType} />
@@ -229,7 +235,11 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           onClick={() => setLightbox(false)}
           aria-label="閉じる"
         >
-          <img src={photoContentUrl(photo.id)} alt="" />
+          <ContentPhoto
+            src={photoContentUrl(photo.id)}
+            size={PHOTO_DISPLAY_SIZE.bottleHeroPhoto}
+            loading="eager"
+          />
         </button>
       ) : null}
       <OpenedFollowupSheet

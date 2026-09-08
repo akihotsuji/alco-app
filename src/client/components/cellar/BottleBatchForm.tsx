@@ -9,6 +9,7 @@ import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.ts
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottleBatch } from "@/client/hooks/use-bottle-batch.ts";
@@ -234,7 +235,12 @@ function BatchRowCard({
             disabled={disabled}
             onClick={onEditPhoto}
           >
-            <img src={row.photo.previewUrl} alt="" className="photo-thumb-img" />
+            <ContentPhoto
+              src={row.photo.previewUrl}
+              className="photo-thumb-img"
+              size={PHOTO_DISPLAY_SIZE.bottleTile}
+              loading="eager"
+            />
           </button>
           {row.photo.status === "uploading" ? (
             <span className="photo-tile-progress" role="status">

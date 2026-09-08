@@ -1,6 +1,7 @@
 import { Camera } from "lucide-react";
 import type { PhotoAttachment } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 
 type PhotoTileProps = {
@@ -37,7 +38,12 @@ export function PhotoTile({
     return (
       <div className="photo-thumb-row">
         <div className={`photo-thumb photo-thumb-${ratio}`}>
-          <img src={attachment.previewUrl} alt="" className="photo-thumb-img" />
+          <ContentPhoto
+            src={attachment.previewUrl}
+            className="photo-thumb-img"
+            size={ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile}
+            loading="eager"
+          />
           {attachment.status === "uploading" ? (
             <span className="photo-tile-progress" role="status">
               アップロード中

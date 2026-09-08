@@ -6,6 +6,7 @@ import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { DayPlaces } from "@/client/components/logs/DayPlaces.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { useDeleteDrinkLog, useDrinkLogsDay } from "@/client/hooks/use-drink-logs.ts";
 import { useHighlightRow } from "@/client/hooks/use-highlight-row.ts";
 import { isValidLogDateParam, tokyoToday } from "@/client/lib/app-routes.ts";
@@ -170,11 +171,10 @@ function LogDayRow({ item, ref, highlighted, fading, removing }: LogDayRowProps)
       aria-label={`${name} ${item.volumeMl}ml、${displayAlcoholGrams(item.alcoholG).toFixed(1)}g`}
     >
       {item.thumbPhotoId ? (
-        <img
+        <ContentPhoto
           className="log-row-thumb"
           src={`/api/photos/${item.thumbPhotoId}/content`}
-          alt=""
-          loading="lazy"
+          size={PHOTO_DISPLAY_SIZE.logRow}
         />
       ) : (
         <span className="log-row-icon" aria-hidden>

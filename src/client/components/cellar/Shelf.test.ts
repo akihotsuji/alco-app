@@ -14,7 +14,8 @@ describe("Shelf / BottleTile / CellarList", () => {
     expect(shelf).toContain('layout === "type"');
     expect(shelf).toContain("shelf-ghost");
     expect(tile).toContain("data-enter");
-    expect(tile).toContain('loading="lazy"');
+    expect(tile).toContain("ContentPhoto");
+    expect(tile).toContain("PHOTO_DISPLAY_SIZE.bottleTile");
   });
 
   it("空状態と種類ごと / 1 本ずつの切替がある", () => {

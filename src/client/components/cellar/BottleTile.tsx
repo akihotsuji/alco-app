@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { vintageLabel } from "@/client/lib/bottle-form.ts";
 import { bottleTileVisual } from "@/client/lib/cellar-shelf.ts";
@@ -31,13 +32,12 @@ export function BottleTile({ item, mode, size = "one", enter }: BottleTileProps)
         {visual === "silhouette" || !item.thumbPhotoId ? (
           <BottleSilhouette className="bottle-tile-silhouette" drinkType={item.drinkType} />
         ) : (
-          <img
+          <ContentPhoto
             className={
               visual === "cutout" ? "bottle-tile-img is-cutout" : "bottle-tile-img is-photo"
             }
             src={photoContentUrl(item.thumbPhotoId)}
-            alt=""
-            loading="lazy"
+            size={PHOTO_DISPLAY_SIZE.bottleTile}
           />
         )}
         {mode === "archived" && item.consumedOn ? (

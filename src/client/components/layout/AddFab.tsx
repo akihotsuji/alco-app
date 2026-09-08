@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import type { AddFab as AddFabDef } from "@/client/lib/app-routes.ts";
+import { prefetchPath, prefetchRouteChunk } from "@/client/lib/route-chunks.ts";
 
 type AddFabProps = {
   fab: AddFabDef;
@@ -26,6 +27,14 @@ export function AddFab({ fab }: AddFabProps) {
       <Link
         to={fab.to}
         data-guide-target={intercept ? target : undefined}
+        onPointerEnter={() => {
+          prefetchPath(fab.to);
+          prefetchRouteChunk("photoEdit");
+        }}
+        onFocus={() => {
+          prefetchPath(fab.to);
+          prefetchRouteChunk("photoEdit");
+        }}
         onClick={(event) => {
           if (intercept) {
             event.preventDefault();

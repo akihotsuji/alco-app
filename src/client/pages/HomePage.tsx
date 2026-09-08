@@ -16,6 +16,7 @@ import { getTastingNotes } from "@/client/hooks/use-tasting-notes.ts";
 import { parseMascotPreview, resolveMascotPresence } from "@/client/lib/mascot-presence.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
+import { prefetchPointerProps } from "@/client/lib/route-chunks.ts";
 import { formatHomeDateLabel, tokyoToday } from "@/shared/tokyo-date.ts";
 
 export function HomePage() {
@@ -146,7 +147,11 @@ export function HomePage() {
       <div className="home-mydrinks">
         <div className="home-mydrinks-head">
           <h2 className="section-title">マイドリンク</h2>
-          <Link className="header-text-link" to="/logs/my-drinks">
+          <Link
+            className="header-text-link"
+            to="/logs/my-drinks"
+            {...prefetchPointerProps("/logs/my-drinks")}
+          >
             管理
           </Link>
         </div>
@@ -168,7 +173,11 @@ export function HomePage() {
             <p className="home-mydrinks-empty">
               よく飲む一杯を登録すると、ここを 1 回タップで記録できます
             </p>
-            <Link className={buttonVariants({ variant: "secondary" })} to="/logs/my-drinks/new">
+            <Link
+              className={buttonVariants({ variant: "secondary" })}
+              to="/logs/my-drinks/new"
+              {...prefetchPointerProps("/logs/my-drinks/new")}
+            >
               登録
             </Link>
           </>

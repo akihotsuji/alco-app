@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 6 PWA・品質 |
-| ステータス | **未着手** |
+| ステータス | **実装済み**（2026-09-08。Lighthouse 点数は `spec/features/performance.md` 6.3） |
 | 要件 | 初回表示 3 秒以内（4G）、記録操作 1 秒以内。Lighthouse モバイル Performance 目安 80 |
 | ソース | Phase 6「バンドルサイズ、コード分割、画像遅延読み込み」 |
 
@@ -67,11 +67,11 @@ Lighthouse: 認証壁があるため、ログイン後 URL を計測する方法
 
 ## 8. 受け入れ条件
 
-- [ ] Lighthouse モバイル Performance / Best Practices が目安 80+（Phase 6 DoD）
-- [ ] 画像遅延読み込みがある
-- [ ] 主要ルートが分割されている
-- [ ] 点数の根拠が PR か spec に残る
-- [ ] lint / typecheck / test
+- [ ] Lighthouse モバイル Performance / Best Practices が目安 80+（Phase 6 DoD。点数は spec 6.3）
+- [x] 画像遅延読み込みがある
+- [x] 主要ルートが分割されている
+- [x] 点数の根拠が PR か spec に残る（バンドルは 6.2。Lighthouse は計測後）
+- [x] lint / typecheck / test
 
 ## 9. セキュリティ観点
 

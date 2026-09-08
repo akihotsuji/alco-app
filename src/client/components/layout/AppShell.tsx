@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
+import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { FirstRunGuideHost } from "@/client/components/guide/FirstRunGuideHost.tsx";
 import {
   FirstRunGuideProvider,
@@ -14,7 +15,7 @@ import {
 } from "@/client/components/layout/header-override-context.tsx";
 import { LeaveGuardProvider } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
-import { PhotoEdit } from "@/client/components/photo/PhotoEdit.tsx";
+import { PhotoEditHost } from "@/client/components/photo/PhotoEditHost.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import {
   addFabForRoute,
@@ -96,7 +97,9 @@ function AppShellFrame() {
     <div className={hideTabs ? "app-shell app-shell-no-tabs" : "app-shell"}>
       {route.hideHeader ? null : <AppHeader header={header} />}
       <div ref={contentRef} className={addFab ? "app-content has-add-fab" : "app-content"}>
-        <Outlet />
+        <Suspense fallback={<CardSkeleton />}>
+          <Outlet />
+        </Suspense>
       </div>
       {hideTabs ? null : (
         <BottomTabBar
@@ -107,7 +110,7 @@ function AppShellFrame() {
       )}
       {addFab ? <AddFab fab={addFab} /> : null}
       <FirstRunGuideHost />
-      <PhotoEdit />
+      <PhotoEditHost />
     </div>
   );
 }

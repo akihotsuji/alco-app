@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Card } from "@/client/components/ui/card.tsx";
 import { summaryWeekHref } from "@/client/lib/app-routes.ts";
 import { homeWeekDayView } from "@/client/lib/home-today.ts";
+import { prefetchPointerProps } from "@/client/lib/route-chunks.ts";
 import type { DrinkLogSummaryDay } from "@/shared/drink-logs.ts";
 
 type HomeWeekStripProps = {
@@ -17,7 +18,11 @@ export function HomeWeekStrip({ today, days, todayFilling }: HomeWeekStripProps)
       <div className="home-week">
         <div className="home-week-head">
           <h2 className="home-week-title">今週</h2>
-          <Link className="home-week-link" to={summaryWeekHref(today)}>
+          <Link
+            className="home-week-link"
+            to={summaryWeekHref(today)}
+            {...prefetchPointerProps(summaryWeekHref(today))}
+          >
             詳しく見る
             <ChevronRight size={16} aria-hidden />
           </Link>
@@ -64,7 +69,13 @@ export function HomeWeekStrip({ today, days, todayFilling }: HomeWeekStripProps)
               );
             }
             return (
-              <Link key={view.date} className={dayClass} to={view.href} aria-label={view.label}>
+              <Link
+                key={view.date}
+                className={dayClass}
+                to={view.href}
+                aria-label={view.label}
+                {...prefetchPointerProps(view.href)}
+              >
                 {inner}
               </Link>
             );

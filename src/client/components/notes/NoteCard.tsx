@@ -2,6 +2,7 @@ import { ChevronRight, Images } from "lucide-react";
 import { Link } from "react-router";
 import { DrinkTypeIcon } from "@/client/components/notes/DrinkTypeIcon.tsx";
 import { RatingStars } from "@/client/components/notes/RatingStars.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import type { TastingNoteListItem } from "@/shared/tasting-notes.ts";
 import { formatRatingX10 } from "@/shared/tasting-notes.ts";
@@ -15,7 +16,10 @@ export function NoteCard({ item }: { item: TastingNoteListItem }) {
     <Link className="note-card" to={`/notes/${item.id}`}>
       {item.thumbPhotoId ? (
         <div className="note-card-photo">
-          <img src={photoContentUrl(item.thumbPhotoId)} alt="" loading="lazy" />
+          <ContentPhoto
+            src={photoContentUrl(item.thumbPhotoId)}
+            size={PHOTO_DISPLAY_SIZE.noteCard}
+          />
         </div>
       ) : (
         <div className="note-card-empty">
