@@ -23,7 +23,7 @@ pnpm test:e2e
 - 初回だけブラウザ: `pnpm exec playwright install --with-deps chromium`
 - `.dev.vars` が無いと Better Auth が起動しない。`.dev.vars.example` をコピーして `BETTER_AUTH_SECRET` を入れる（値は git に出さない）
 - `pnpm test`（Vitest）とは別。混ぜない
-- アプリは Playwright の `webServer` が `pnpm exec vite` で上げる。既に `pnpm dev` があるときはそれを再利用する（CI では再利用しない）
+- アプリは Playwright の `webServer` が `CLOUDFLARE_VITE_FORCE_LOCAL=true` 付きで `pnpm exec vite` を上げる（Workers AI のリモートプロキシを切る）。既に `pnpm dev` があるときはそれを再利用する（CI では再利用しない）
 
 デバッグ:
 
@@ -60,4 +60,4 @@ pnpm exec playwright show-trace test-results/**/trace.zip
 - `storageState` やトレースを git に入れる
 - 本番 secret / 本番ユーザーを使う
 - パスワードを `console.log` や expect メッセージに出す
-- CI に `CLOUDFLARE_API_TOKEN` を足す
+- CI に `CLOUDFLARE_API_TOKEN` を足す。E2E は `CLOUDFLARE_VITE_FORCE_LOCAL=true` で足りる

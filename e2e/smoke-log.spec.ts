@@ -11,8 +11,8 @@ test("サインアップから記録し、今日と週のサマリー数字が�
   await mainNav(page).getByRole("button", { name: "お酒を記録" }).click();
   await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
 
-  await page.getByLabel("品名").fill(DRINK_NAME);
-  await page.getByRole("button", { name: "種類を選択" }).click();
+  await page.getByRole("textbox", { name: /品名/ }).fill(DRINK_NAME);
+  await page.getByRole("button", { name: "赤ワイン" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "ビール" }).click();
 
   const save = page.getByRole("button", { name: "記録を保存" });

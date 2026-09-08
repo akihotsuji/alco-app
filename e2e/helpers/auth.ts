@@ -33,7 +33,7 @@ export async function signUpAsNewUser(
   await page.goto("/signup");
   await page.getByLabel("表示名").fill(user.name);
   await page.getByLabel("メール").fill(user.email);
-  await page.getByLabel(/パスワード/).fill(user.password);
+  await page.getByRole("textbox", { name: /パスワード/ }).fill(user.password);
   await page.getByRole("button", { name: "登録する" }).click();
   await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
   await dismissFirstRunGuide(page);

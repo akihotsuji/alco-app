@@ -37,5 +37,9 @@ export default defineConfig({
     url: `${baseURL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    env: {
+      ...process.env,
+      CLOUDFLARE_VITE_FORCE_LOCAL: "true",
+    },
   },
 });
