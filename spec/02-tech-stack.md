@@ -37,7 +37,7 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 | キャラクター | インライン SVG の React コンポーネント（`<Mascot />`） | テーマ追従・拡縮自由・追加依存なし。ラスタ画像は持たない（[character.md](character.md)） |
 | 定期処理 | Workers **Cron Triggers**（`scheduled`） | 未紐付け写真の日次 GC、`ai_usage` の掃除。無料枠に含まれる |
 | 背景除去（切り抜き） | ブラウザ WASM（`onnxruntime-web` MIT + U2-Net-P。同一オリジン `/models/`） | セラーの棚に切り抜きボトルを立てる（2026-09-05 に MVP へ）。`@imgly/background-removal` は AGPL-3.0 のため不採用。端末内処理でサーバー費用ゼロ。初回にモデルを DL（Cache API）。失敗時は長方形にフォールバック |
-| ラベル読み取り | **Cloudflare Workers AI**（Vision 対応の指示追従モデル。binding `AI`） | ボトルのラベル写真から銘柄名・生産者・年・種類などの候補を返す（2026-09-05 決定。セラーのみ）。無料枠（日次 Neurons）内。新ベンダー・鍵が不要で、写真が Cloudflare 外へ出ない。`LabelRecognizer` インターフェースで実装し、将来 **Gemini 等の外部 API** に差し替え可能にする（その場合は `wrangler secret` で鍵、外部送信の明記が必要） |
+| ラベル読み取り | **Cloudflare Workers AI**（Vision 対応の指示追従モデル。binding `AI`） | ボトル・記録・ノートの写真から品名・生産者・生産国・品種・ヴィンテージ・種類などの候補を返す（2026-09-05 決定。記録・ノートは 2026-09-08）。無料枠（日次 Neurons）内。新ベンダー・鍵が不要で、写真が Cloudflare 外へ出ない。`LabelRecognizer` / `DrinkRecognizer` / `NoteRecognizer` で実装し、将来 **Gemini 等の外部 API** に差し替え可能にする（その場合は `wrangler secret` で鍵、外部送信の明記が必要） |
 | PWA | vite-plugin-pwa | manifest / アイコン（キャラクター由来）/ スタンドアロン表示を宣言的に設定 |
 | Lint / Format | Biome | ESLint+Prettierの2本立てを避け、1ツールで完結。高速で設定が少ない |
 | テスト | Vitest (+ Testing Library) / Playwright | 単体・コンポーネントテストはVitest。主要導線のE2EスモークはPlaywright |

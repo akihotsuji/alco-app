@@ -2,6 +2,7 @@ import { z } from "zod";
 import { vintageSchema } from "./bottles.ts";
 import { BOTTLE_STATUSES, PHOTO_OWNER_LIMITS } from "./constants.ts";
 import { drinkTypeSchema } from "./drink-logs.ts";
+import { IDENTITY_MESSAGES, optionalIdentityText } from "./identity.ts";
 import { photoMetaSchema } from "./photos.ts";
 import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
 
@@ -27,7 +28,7 @@ export const TASTING_NOTE_MESSAGES = {
   drinkName: `1文字以上${NOTE_DRINK_NAME_MAX_LENGTH}文字以内で入力してください`,
   drinkType: "種類を選んでください",
   noteText: `${NOTE_TEXT_MAX_LENGTH}文字以内で入力してください`,
-  vintage: "1800以上2100以下のビンテージを入力してください",
+  vintage: IDENTITY_MESSAGES.vintage,
   photoIdsMax: `写真は${TASTING_NOTE_PHOTO_MAX}枚まで添付できます`,
   photoIdsDuplicate: "写真の指定が正しくありません",
   photoNotFound: "写真をもう一度撮ってください",
@@ -155,6 +156,9 @@ export const createTastingNoteSchema = z
     drinkName: noteDrinkNameSchema.optional(),
     drinkType: drinkTypeSchema.optional(),
     vintage: vintageSchema.nullable().optional(),
+    producer: optionalIdentityText,
+    origin: optionalIdentityText,
+    variety: optionalIdentityText,
     tastedOn: tastedOnSchema,
     appearance: noteTextSchema.nullable().optional(),
     aroma: noteTextSchema.nullable().optional(),
@@ -174,6 +178,9 @@ export const updateTastingNoteSchema = z
     drinkName: noteDrinkNameSchema.optional(),
     drinkType: drinkTypeSchema.optional(),
     vintage: vintageSchema.nullable().optional(),
+    producer: optionalIdentityText,
+    origin: optionalIdentityText,
+    variety: optionalIdentityText,
     tastedOn: tastedOnSchema.optional(),
     appearance: noteTextSchema.nullable().optional(),
     aroma: noteTextSchema.nullable().optional(),
@@ -274,6 +281,9 @@ export const tastingNoteListItemSchema = z.object({
 export type TastingNoteListItem = z.infer<typeof tastingNoteListItemSchema>;
 
 export const tastingNoteSchema = tastingNoteListItemSchema.extend({
+  producer: z.string().nullable(),
+  origin: z.string().nullable(),
+  variety: z.string().nullable(),
   appearance: z.string().nullable(),
   aroma: z.string().nullable(),
   taste: z.string().nullable(),

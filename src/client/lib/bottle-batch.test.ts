@@ -143,6 +143,12 @@ describe("保存可否と本数", () => {
     expect(batchTotalCount(rows)).toBe(5);
   });
 
+  it("撮影日があれば未操作の保管日に入れる", () => {
+    const row = newBatchRow("a", photo({ capturedAt: "2026-08-15T12:00:00.000Z" }));
+    expect(row.form.storedOn).toBe("2026-08-15");
+    expect(batchRowBody({ ...row, form: { ...row.form, name: "赤" } })?.storedOn).toBe("2026-08-15");
+  });
+
   it("行のボディは bottle-new と同じ形（photoIds は 1 枚）", () => {
     const row = readyRow("a", "サンプル赤", 2);
     expect(batchRowBody(row)).toEqual({

@@ -8,7 +8,7 @@ const source = readFileSync(join(here, "BottleBatchForm.tsx"), "utf8");
 const header = readFileSync(join(here, "../layout/AppHeader.tsx"), "utf8");
 
 describe("BottleBatchForm（04-cellar bottle-batch）", () => {
-  it("保存ラベルは本数合計、行ごとに銘柄名・種類・本数・詳細・読み取り帯・×", () => {
+  it("保存ラベルは本数合計、行ごとに品名・種類・本数・詳細・読み取り帯・×", () => {
     expect(source).toContain("BOTTLE_SAVE_LABELS.arrange(total)");
     expect(source).toContain("batchTotalCount(batch.rows)");
     expect(source).toContain("<DrinkTypeChips");
@@ -16,7 +16,8 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain('label="この行を外す"');
     expect(source).toContain("RECOGNIZE_BANNER[row.recognize]");
     expect(source).toContain('label="生産者"');
-    expect(source).toContain('label="産地"');
+    expect(source).toContain("BOTTLE_FIELD_LABELS.origin");
+    expect(source).toContain("BOTTLE_FIELD_LABELS.name");
     expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
     expect(source).toContain("BOTTLE_FIELD_LABELS.variety");
     expect(source).toContain('layout="inline"');

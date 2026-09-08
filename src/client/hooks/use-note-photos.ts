@@ -30,6 +30,7 @@ function toItem(key: string, attachment: PhotoAttachment, persisted: boolean): N
     status: attachment.status,
     persisted,
     recognizeJpeg: attachment.recognizeJpeg,
+    capturedAt: attachment.capturedAt,
   };
 }
 
@@ -42,9 +43,15 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
   itemsRef.current = items;
 
   const bindKey = useCallback(
-    (key: string, persisted: boolean, previousPhotoId?: string | null) => {
+    (
+      key: string,
+      persisted: boolean,
+      previousPhotoId?: string | null,
+      previousCapturedAt?: string,
+    ) => {
       const session: PhotoCollectSession = {
         previousPhotoId,
+        previousCapturedAt,
         onUpdate: (attachment) => {
           setItems((current) => upsertNotePhoto(current, key, toItem(key, attachment, persisted)));
         },
@@ -87,7 +94,7 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
         await editFromBlob(
           "note",
           current.blob,
-          bindKey(key, false, current.persisted ? null : current.photoId),
+          bindKey(key, false, current.persisted ? null : current.photoId, current.capturedAt),
         );
         return;
       }
@@ -109,7 +116,7 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
           photoId: current.photoId,
           status: current.status,
         },
-        bindKey(key, false),
+        bindKey(key, false, undefined, current.capturedAt),
       );
     },
     [bindKey, retryCollectedUpload],

@@ -14,6 +14,7 @@ export type NotePhotoItem = {
   /** すでにこのノートへ紐付いている。未保存の新規は false */
   persisted: boolean;
   recognizeJpeg?: Blob;
+  capturedAt?: string;
 };
 
 export function itemsFromNotePhotos(photos: readonly PhotoMeta[]): NotePhotoItem[] {

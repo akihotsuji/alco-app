@@ -447,6 +447,9 @@ export type OwnBottleSnap = {
   name: string;
   drinkType: DrinkType;
   status: BottleStatus;
+  producer: string | null;
+  origin: string | null;
+  variety: string | null;
   vintage: number | null;
 };
 
@@ -462,6 +465,9 @@ export async function requireOwnBottle(
       name: bottles.name,
       drinkType: bottles.drinkType,
       status: bottles.status,
+      producer: bottles.producer,
+      origin: bottles.origin,
+      variety: bottles.variety,
       vintage: bottles.vintage,
     })
     .from(bottles)

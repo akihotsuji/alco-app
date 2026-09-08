@@ -43,9 +43,30 @@ describe("createDrinkLogSchema", () => {
       myDrinkId: null,
       bottleId: UUID,
       photoIds: [UUID],
+      drinkName: "サンプル赤",
+      producer: "ワイナリー",
+      origin: "フランス",
+      variety: "ピノ",
+      vintage: 2019,
+      placeName: "居酒屋",
+      placeLat: 35.6,
+      placeLng: 139.7,
     });
     expect(parsed.bottleId).toBe(UUID);
     expect(parsed.photoIds).toEqual([UUID]);
+    expect(parsed.drinkName).toBe("サンプル赤");
+    expect(parsed.placeLat).toBe(35.6);
+  });
+
+  it("緯度経度は両方揃える", () => {
+    expect(messagesOf({ ...BASE, placeLat: 35.6 }).placeLat).toBeDefined();
+    expect(messagesOf({ ...BASE, placeLng: 139.7 }).placeLng).toBeDefined();
+    expect(createDrinkLogSchema.safeParse({ ...BASE, placeLat: 35.6, placeLng: 139.7 }).success).toBe(
+      true,
+    );
+    expect(createDrinkLogSchema.safeParse({ ...BASE, placeLat: null, placeLng: null }).success).toBe(
+      true,
+    );
   });
 
   it("量は整数 1〜5000（小数も同文）", () => {

@@ -39,9 +39,17 @@ describe("initial state", () => {
     const state = initialLogFormState(null, NOW);
     expect(state).toEqual({
       drinkType: "wine",
+      drinkName: "",
       volumeMl: 125,
       abvPercent: 12,
       drunkAt: NOW.toISOString(),
+      producer: "",
+      origin: "",
+      variety: "",
+      vintage: "",
+      placeName: "",
+      placeLat: null,
+      placeLng: null,
       memo: "",
       bottleId: null,
       bottleName: null,
@@ -248,6 +256,7 @@ describe("body", () => {
       volumeMl: 125,
       abvPercent: 12,
       drunkAt: NOW.toISOString(),
+      vintage: null,
       memo: "旨い",
       photoIds: ["11111111-1111-4111-8111-111111111111"],
     });
@@ -262,6 +271,7 @@ describe("body", () => {
       volumeMl: 125,
       abvPercent: 12,
       drunkAt: NOW.toISOString(),
+      vintage: null,
     });
     expect(toCreateDrinkLogBody({ ...state, volumeMl: null }, null)).toBeNull();
   });
@@ -273,10 +283,17 @@ describe("body", () => {
       drunkOn: "2026-09-05",
       drinkType: "wine",
       drinkName: null,
+      producer: null,
+      origin: null,
+      variety: null,
+      vintage: null,
       volumeMl: 125,
       abvPercent: 12,
       alcoholG: 12,
       memo: "元",
+      placeName: null,
+      placeLat: null,
+      placeLng: null,
       myDrinkId: null,
       bottleId: null,
       thumbPhotoId: null,
@@ -311,6 +328,8 @@ describe("dirty", () => {
     expect(isLogFormDirty({ ...initial, volumeMl: 150 }, initial)).toBe(true);
     expect(isLogFormDirty(applyDrinkType(initial, "beer"), initial)).toBe(true);
     expect(isLogFormDirty({ ...initial, memo: "a" }, initial)).toBe(true);
+    expect(isLogFormDirty({ ...initial, placeName: "居酒屋" }, initial)).toBe(true);
+    expect(isLogFormDirty({ ...initial, producer: "生産者" }, initial)).toBe(true);
   });
 });
 

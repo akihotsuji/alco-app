@@ -284,6 +284,11 @@ describe("POST /api/my-drinks/:id/log", () => {
       myDrinkId: preset.id,
     });
     expect(log.bottleId).toBeNull();
+    expect(log.producer).toBeNull();
+    expect(log.origin).toBeNull();
+    expect(log.variety).toBeNull();
+    expect(log.vintage).toBeNull();
+    expect(log.placeName).toBeNull();
     expect(log.photos).toEqual([]);
   });
 

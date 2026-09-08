@@ -21,6 +21,7 @@ import {
   vintageSchema,
 } from "@/shared/bottles.ts";
 import type { DrinkType } from "@/shared/constants.ts";
+import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import { formatShortMonthDay, parseCalendarDate, tokyoToday } from "@/shared/tokyo-date.ts";
 
 export const DEFAULT_BOTTLE_DRINK_TYPE: DrinkType = "wine";
@@ -217,9 +218,10 @@ export function resolveCreateStoredOn(
   state: BottleFormState,
   storedOnTouched: boolean,
   now: Date = new Date(),
+  capturedAt?: string | null,
 ): string | null {
   if (!storedOnTouched) {
-    return tokyoToday(now);
+    return capturedAt ? capturedAtToCalendarDate(capturedAt, now) : tokyoToday(now);
   }
   return state.storedOn.trim() || null;
 }
@@ -255,13 +257,13 @@ function optionalFields(state: BottleFormState): {
 export function toCreateBottleBody(
   state: BottleFormState,
   photoId: string | null,
-  options: { now?: Date; storedOnTouched?: boolean } = {},
+  options: { now?: Date; storedOnTouched?: boolean; capturedAt?: string | null } = {},
 ): CreateBottleInput | null {
   const now = options.now ?? new Date();
   const storedOnTouched = options.storedOnTouched ?? false;
   const resolved = {
     ...state,
-    storedOn: resolveCreateStoredOn(state, storedOnTouched, now) ?? "",
+    storedOn: resolveCreateStoredOn(state, storedOnTouched, now, options.capturedAt) ?? "",
   };
   if (
     !canSubmitBottleForm(resolved, validateBottleForm(resolved, now), photoId ? "ready" : "none")

@@ -9,6 +9,7 @@ import { useTastingNote } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { isUuid } from "@/client/lib/bottle-form.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
+import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 import { formatRatingX10, type TastingNote } from "@/shared/tasting-notes.ts";
 import { formatLongJapaneseDate } from "@/shared/tokyo-date.ts";
 
@@ -36,6 +37,11 @@ function LoadedNoteDetail({ noteId }: { noteId: string }) {
 
 function NoteDetailBody({ note }: { note: TastingNote }) {
   useSetHeaderOverride({ title: note.drinkName });
+  const identity = [
+    { label: IDENTITY_FIELD_LABELS.producer, value: note.producer },
+    { label: IDENTITY_FIELD_LABELS.origin, value: note.origin },
+    { label: IDENTITY_FIELD_LABELS.variety, value: note.variety },
+  ].filter((entry): entry is { label: string; value: string } => Boolean(entry.value));
   const fields = [
     { label: "外観", value: note.appearance },
     { label: "香り", value: note.aroma },
@@ -59,6 +65,16 @@ function NoteDetailBody({ note }: { note: TastingNote }) {
           <span className="form-row-value">{note.bottle.name}</span>
           <ChevronRight size={20} className="form-row-chevron" aria-hidden />
         </Link>
+      ) : null}
+      {identity.length > 0 ? (
+        <dl className="note-detail-fields">
+          {identity.map((field) => (
+            <div key={field.label}>
+              <dt>{field.label}</dt>
+              <dd>{field.value}</dd>
+            </div>
+          ))}
+        </dl>
       ) : null}
       {fields.length === 0 ? (
         <p className="note-detail-empty">まだ書いていません</p>

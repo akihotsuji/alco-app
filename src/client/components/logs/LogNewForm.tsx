@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
+import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
@@ -13,16 +16,19 @@ import {
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
+import { PlaceField } from "@/client/components/logs/PlaceField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
+import { Input } from "@/client/components/ui/input.tsx";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
-import { logDayHref } from "@/client/lib/app-routes.ts";
+import { logDayHref, noteFromLogHref } from "@/client/lib/app-routes.ts";
 import {
   applyRecognizeToLogForm,
   countDrinkRecognizeFields,
   DRINK_RECOGNIZE_BANNER,
   type DrinkRecognizeTouched,
 } from "@/client/lib/drink-recognize.ts";
+import { requestCurrentPosition } from "@/client/lib/geolocation.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { drinkLogUndoState, isPhotoHandoff } from "@/client/lib/history-state.ts";
 import {
@@ -45,8 +51,13 @@ import {
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
+import {
+  capturedAtToDrunkAt,
+  shouldKeepQueryDrunkAt,
+} from "@/client/lib/photo/captured-at.ts";
 import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
-import { DRINK_LOG_MESSAGES } from "@/shared/drink-logs.ts";
+import { DRINK_LOG_MESSAGES, DRINK_NAME_MAX_LENGTH } from "@/shared/drink-logs.ts";
+import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 
 const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";
@@ -74,7 +85,8 @@ export function LogNewForm() {
 
   // 「いま」は開いた時点で固定する（N7 の既定値。ユーザーが変えられる）
   const [now] = useState(() => new Date());
-  const [initial] = useState(() => initialLogFormState(searchParams.get("date"), now));
+  const dateParam = searchParams.get("date");
+  const [initial] = useState(() => initialLogFormState(dateParam, now));
   const [state, setState] = useState(initial);
   const queryBottleId = searchParams.get("bottleId");
   const formOrigin = parseFormOrigin(searchParams.get("from"));
@@ -85,17 +97,26 @@ export function LogNewForm() {
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<Partial<Record<LogFormField, boolean>>>({});
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [notePrompt, setNotePrompt] = useState<{ id: string; drunkOn: string } | null>(null);
   const [discarding, setDiscarding] = useState(false);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | null>(null);
+  const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
   const touchedRef = useRef<DrinkRecognizeTouched>({
+    drinkName: false,
     drinkType: false,
     volumeMl: false,
     abvPercent: false,
+    producer: false,
+    origin: false,
+    variety: false,
+    vintage: false,
   });
   const recognizedJpegRef = useRef<Blob | null>(null);
   const recognizeRequestRef = useRef(0);
+  const appliedCapturedAtRef = useRef<string | null>(null);
+  const geoRequested = useRef(false);
 
   const attachment = attachments.log;
   const photoStatus: PhotoSaveStatus = attachment ? attachment.status : "none";
@@ -104,8 +125,6 @@ export function LogNewForm() {
   const canSubmit = canSubmitLogForm(state, errors, photoStatus);
   const dirty = isLogFormDirty(state, initial) || attachment !== undefined;
 
-  // 前回開いたときの未紐付け写真が残っていたら破棄する（ブラウザ戻りで確認を通らなかった分）。
-  // 中央タブ / ホームのカメラで撮って「使う」した直後（handoff）はその写真が本命なので消さない
   const clearRef = useRef(clearAttachment);
   clearRef.current = clearAttachment;
   const hadStaleAttachment = useRef(attachment !== undefined && !isPhotoHandoff(location.state));
@@ -116,7 +135,6 @@ export function LogNewForm() {
     }
   }, []);
 
-  // 未保存で戻るときだけ確認を挟む（状態表「戻る（未保存）」）
   useEffect(() => {
     if (!dirty || savedRef.current) {
       setGuard(null);
@@ -128,6 +146,36 @@ export function LogNewForm() {
     });
     return () => setGuard(null);
   }, [dirty, setGuard]);
+
+  useEffect(() => {
+    if (geoRequested.current) {
+      return;
+    }
+    geoRequested.current = true;
+    void requestCurrentPosition().then((position) => {
+      if (!position) {
+        return;
+      }
+      setState((current) =>
+        current.placeLat === null && current.placeLng === null
+          ? { ...current, placeLat: position.lat, placeLng: position.lng }
+          : current,
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    const capturedAt = attachment?.capturedAt;
+    if (!capturedAt || appliedCapturedAtRef.current === capturedAt) {
+      return;
+    }
+    if (touched.drunkAt || shouldKeepQueryDrunkAt(dateParam, now)) {
+      appliedCapturedAtRef.current = capturedAt;
+      return;
+    }
+    appliedCapturedAtRef.current = capturedAt;
+    setState((current) => ({ ...current, drunkAt: capturedAtToDrunkAt(capturedAt, now) }));
+  }, [attachment?.capturedAt, dateParam, now, touched.drunkAt]);
 
   usePrefillBottle(
     queryBottleId,
@@ -177,6 +225,7 @@ export function LogNewForm() {
             fields: result.fields,
             touched: touchedRef.current,
           });
+          setAiMarks(new Set(applied.applied));
           return applied.next;
         });
         setRecognizeStatus("success");
@@ -192,10 +241,25 @@ export function LogNewForm() {
   function update(patch: Partial<typeof state>, field?: LogFormField) {
     if (field) {
       setTouched((current) => ({ ...current, [field]: true }));
+      if (field in touchedRef.current) {
+        touchedRef.current[field as keyof DrinkRecognizeTouched] = true;
+        setAiMarks((current) => {
+          const next = new Set(current);
+          next.delete(field);
+          return next;
+        });
+      }
     }
     setState((current) => ({ ...current, ...patch }));
     setServerErrors({});
     setFormError(null);
+  }
+
+  function goToDay(log: { id: string; drunkOn: string }) {
+    navigate(`${logDayHref(log.drunkOn)}?highlight=${log.id}`, {
+      replace: true,
+      state: drinkLogUndoState(log.id),
+    });
   }
 
   function submit() {
@@ -213,11 +277,7 @@ export function LogNewForm() {
         setGuard(null);
         haptic("success");
         releaseAttachment("log");
-        // M-05: 成功表示は置かず即遷移。到着先で行の挿入とトーストが成功を示す
-        navigate(`${logDayHref(log.drunkOn)}?highlight=${log.id}`, {
-          replace: true,
-          state: drinkLogUndoState(log.id),
-        });
+        setNotePrompt({ id: log.id, drunkOn: log.drunkOn });
       },
       onError: (error) => {
         const failure = describeSaveFailure(error, navigator.onLine, {
@@ -275,6 +335,25 @@ export function LogNewForm() {
         recognizeStatus={recognizeStatus}
         recognizeMessage={recognizeStatus ? DRINK_RECOGNIZE_BANNER[recognizeStatus] : undefined}
       />
+      <section className="log-form-section">
+        <FieldLabel htmlFor="log-drink-name" optional>
+          {IDENTITY_FIELD_LABELS.drinkName}
+        </FieldLabel>
+        <FieldWithAiMark marked={aiMarks.has("drinkName")}>
+          <Input
+            id="log-drink-name"
+            value={state.drinkName}
+            maxLength={DRINK_NAME_MAX_LENGTH}
+            aria-invalid={visibleErrors.drinkName ? true : undefined}
+            onChange={(event) => update({ drinkName: event.target.value }, "drinkName")}
+          />
+        </FieldWithAiMark>
+        {visibleErrors.drinkName ? (
+          <p className="field-error" role="alert">
+            {visibleErrors.drinkName}
+          </p>
+        ) : null}
+      </section>
       <DrinkTypeSelect
         value={state.drinkType}
         onChange={(drinkType) => {
@@ -285,6 +364,38 @@ export function LogNewForm() {
           setServerErrors({});
           setFormError(null);
         }}
+      />
+      <BottlePickerRow
+        placement="optional"
+        bottleId={state.bottleId}
+        bottleName={state.bottleName}
+        error={visibleErrors.bottleId}
+        onSelect={(bottle) => {
+          setState((current) =>
+            bottle
+              ? applySelectedBottle(current, bottle, { preserveEdits: true })
+              : clearSelectedBottle(current),
+          );
+          setServerErrors({});
+          setFormError(null);
+        }}
+      />
+      <IdentityFields
+        idPrefix="log"
+        values={{
+          vintage: state.vintage,
+          variety: state.variety,
+          producer: state.producer,
+          origin: state.origin,
+        }}
+        errors={{
+          vintage: visibleErrors.vintage,
+          variety: visibleErrors.variety,
+          producer: visibleErrors.producer,
+          origin: visibleErrors.origin,
+        }}
+        aiMarks={aiMarks}
+        onChange={(field, value) => update({ [field]: value }, field)}
       />
       <VolumeField
         key={`volume-${state.drinkType}`}
@@ -312,25 +423,17 @@ export function LogNewForm() {
         error={visibleErrors.drunkAt}
         onChange={(drunkAt) => update({ drunkAt }, "drunkAt")}
       />
+      <PlaceField
+        placeName={state.placeName}
+        placeLat={state.placeLat}
+        placeLng={state.placeLng}
+        error={visibleErrors.placeName}
+        onChangeName={(placeName) => update({ placeName }, "placeName")}
+      />
       <MemoField
         value={state.memo}
         error={visibleErrors.memo}
         onChange={(memo) => update({ memo }, "memo")}
-      />
-      <BottlePickerRow
-        placement="optional"
-        bottleId={state.bottleId}
-        bottleName={state.bottleName}
-        error={visibleErrors.bottleId}
-        onSelect={(bottle) => {
-          setState((current) =>
-            bottle
-              ? applySelectedBottle(current, bottle, { preserveEdits: true })
-              : clearSelectedBottle(current),
-          );
-          setServerErrors({});
-          setFormError(null);
-        }}
       />
       <SaveBar
         label={saveButtonLabel(false, photoStatus)}
@@ -351,6 +454,25 @@ export function LogNewForm() {
         onClose={() => {
           setDiscardOpen(false);
           pendingLeave.current = null;
+        }}
+      />
+      <Dialog
+        open={notePrompt !== null}
+        title="テイスティングノートをつける？"
+        body="記録した品名や識別を引き継ぎます。写真はコピーしません。"
+        primaryLabel="つける"
+        secondaryLabel="あとで"
+        onPrimary={() => {
+          if (!notePrompt) {
+            return;
+          }
+          navigate(noteFromLogHref(notePrompt.id), { replace: true });
+        }}
+        onClose={() => {
+          if (notePrompt) {
+            goToDay(notePrompt);
+          }
+          setNotePrompt(null);
         }}
       />
     </div>

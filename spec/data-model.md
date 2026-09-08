@@ -141,10 +141,17 @@ erDiagram
         text drunk_on
         text drink_type
         text drink_name
+        text producer
+        text origin
+        text variety
+        integer vintage
         integer volume_ml
         real abv_percent
         real alcohol_g
         text memo
+        text place_name
+        real place_lat
+        real place_lng
         text my_drink_id FK
         text bottle_id FK
         integer created_at
@@ -192,6 +199,9 @@ erDiagram
         text drink_name
         text drink_type
         integer vintage
+        text producer
+        text origin
+        text variety
         text tasted_on
         text appearance
         text aroma
@@ -297,7 +307,7 @@ erDiagram
 | `drink_logs.memo` | 0〜500 |
 | `my_drinks.name` | 1〜40 |
 | `bottles.name` / `tasting_notes.drink_name` | 1〜100 |
-| `producer` / `origin` / `variety` / `shop` / `storage` | 0〜100 |
+| `producer` / `origin` / `variety` / `shop` / `storage` / `place_name` | 0〜100 |
 | `purchased_on` / `stored_on` | `YYYY-MM-DD`（JST）または NULL。未来不可 |
 | `bottles.memo` / ノート 4 欄 | 0〜2000 |
 | `vintage` | 1800〜2100 または NULL（NV / 未入力） |
@@ -325,10 +335,17 @@ erDiagram
 | drunkOn | drunk_on | text | NO | | JST 日付。サーバー算出 |
 | drinkType | drink_type | text | NO | CHECK enum | 7 種 |
 | drinkName | drink_name | text | YES | ≦100 | マイドリンク名（≦40）またはボトル名（≦100）のスナップショット。上限は 3-01 で 100 に統一 |
+| producer | producer | text | YES | ≦100 | 生産者 |
+| origin | origin | text | YES | ≦100 | 生産国 |
+| variety | variety | text | YES | ≦100 | 品種 |
+| vintage | vintage | integer | YES | 1800〜2100 | ヴィンテージ。NV / 未入力は NULL |
 | volumeMl | volume_ml | integer | NO | 1〜5000 | ml |
 | abvPercent | abv_percent | real | NO | 0〜100 | %。0 は可 |
 | alcoholG | alcohol_g | real | NO | 小数第 2 位 | サーバー再計算 |
 | memo | memo | text | YES | ≦500 | 任意メモ |
+| placeName | place_name | text | YES | ≦100 | 店名など。URL は持たない |
+| placeLat | place_lat | real | YES | −90〜90 | 緯度。`place_lng` と対 |
+| placeLng | place_lng | real | YES | −180〜180 | 経度。`place_lat` と対 |
 | myDrinkId | my_drink_id | text | YES | FK → my_drinks.id SET NULL | 参照は任意。値の正はスナップショット列 |
 | bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携（1-07）。`log-new` で手動。他人の id は 404 |
 | createdAt | created_at | integer | NO | | UTC ms |
@@ -364,16 +381,16 @@ erDiagram
 |---|---|---|---|---|---|
 | id | id | text | NO | PK | UUID v4 |
 | userId | user_id | text | NO | FK → user.id CASCADE | |
-| name | name | text | NO | 1〜100 | 銘柄名 |
+| name | name | text | NO | 1〜100 | 品名 |
 | drinkType | drink_type | text | NO | CHECK enum | 飲酒記録と同じ 7 種 |
 | producer | producer | text | YES | ≦100 | 生産者 |
-| origin | origin | text | YES | ≦100 | 産地 |
+| origin | origin | text | YES | ≦100 | 生産国 |
 | variety | variety | text | YES | ≦100 | 品種（ブドウ・米・ホップ等） |
 | vintage | vintage | integer | YES | 1800〜2100 | 年。NV は NULL |
 | purchasedOn | purchased_on | text | YES | `YYYY-MM-DD` | 購入日（JST）。未入力可。当日に自動設定しない |
 | priceJpy | price_jpy | integer | YES | >= 0 | 購入価格（円、小数なし） |
 | shop | shop | text | YES | ≦100 | 購入場所 |
-| storedOn | stored_on | text | YES | `YYYY-MM-DD` | 保管日（JST）。`created_at` とは別列。新規作成で省略時はサーバーの JST 当日。既存行は NULL のまま（一括補完しない） |
+| storedOn | stored_on | text | YES | `YYYY-MM-DD` | 保管日（JST）。`created_at` とは別列。新規作成で省略時は撮影日（無ければサーバーの JST 当日）。既存行は NULL のまま（一括補完しない） |
 | storage | storage | text | YES | ≦100 | 保管場所。新規作成で省略時は「自宅セラー」。既存行の空欄は補完しない |
 | memo | memo | text | YES | ≦2000 | メモ |
 | status | status | text | NO | CHECK enum, default `sealed` | 未開栓（棚） / 開栓（貯蔵庫） |
@@ -393,10 +410,13 @@ erDiagram
 | id | id | text | NO | PK | UUID v4 |
 | userId | user_id | text | NO | FK → user.id CASCADE | |
 | bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携。他ユーザーの id は 404 |
-| drinkName | drink_name | text | NO | 1〜100 | 銘柄スナップショット |
+| drinkName | drink_name | text | NO | 1〜100 | 品名スナップショット |
 | drinkType | drink_type | text | NO | CHECK enum | 種類スナップショット |
-| vintage | vintage | integer | YES | 1800〜2100 | ビンテージ。NV / 未入力は NULL |
-| tastedOn | tasted_on | text | NO | `YYYY-MM-DD` | 飲んだ日（JST） |
+| vintage | vintage | integer | YES | 1800〜2100 | ヴィンテージ。NV / 未入力は NULL |
+| producer | producer | text | YES | ≦100 | 生産者 |
+| origin | origin | text | YES | ≦100 | 生産国 |
+| variety | variety | text | YES | ≦100 | 品種 |
+| tastedOn | tasted_on | text | NO | `YYYY-MM-DD` | テイスティング日（JST） |
 | appearance | appearance | text | YES | ≦2000 | 外観 |
 | aroma | aroma | text | YES | ≦2000 | 香り |
 | taste | taste | text | YES | ≦2000 | 味わい |
@@ -405,7 +425,7 @@ erDiagram
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
 
-ボトル選択時: サーバーが自ユーザーのボトルを読み、`drink_name` / `drink_type` をコピーする。以降ボトルを改名してもノートは当時の値を保持する。`vintage` はノート独自で、サーバーはボトルから上書きしない（クライアントが空欄ならボトルの年を埋める）。ボトル詳細のノート一覧は `bottle_id` で辿る。
+ボトル選択時: サーバーが自ユーザーのボトルを読み、`drink_name` / `drink_type` をコピーする。以降ボトルを改名してもノートは当時の値を保持する。`producer` / `origin` / `variety` / `vintage` はボディがあれば採用、省略時はボトルからコピーする（作成時）。ボトル詳細のノート一覧は `bottle_id` で辿る。
 
 ボトル未選択（都度入力）: `bottle_id` は NULL。`drink_name` と `drink_type` は手入力必須。
 
@@ -592,10 +612,17 @@ export const drinkLogs = sqliteTable(
     drunkOn: text("drunk_on").notNull(),
     drinkType: text("drink_type", { enum: drinkTypeEnum }).notNull(),
     drinkName: text("drink_name"),
+    producer: text("producer"),
+    origin: text("origin"),
+    variety: text("variety"),
+    vintage: integer("vintage"),
     volumeMl: integer("volume_ml").notNull(),
     abvPercent: real("abv_percent").notNull(),
     alcoholG: real("alcohol_g").notNull(),
     memo: text("memo"),
+    placeName: text("place_name"),
+    placeLat: real("place_lat"),
+    placeLng: real("place_lng"),
     myDrinkId: text("my_drink_id").references(() => myDrinks.id, { onDelete: "set null" }),
     bottleId: text("bottle_id").references(() => bottles.id, { onDelete: "set null" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
@@ -653,6 +680,9 @@ export const tastingNotes = sqliteTable(
     drinkName: text("drink_name").notNull(),
     drinkType: text("drink_type", { enum: drinkTypeEnum }).notNull(),
     vintage: integer("vintage"),
+    producer: text("producer"),
+    origin: text("origin"),
+    variety: text("variety"),
     tastedOn: text("tasted_on").notNull(),
     appearance: text("appearance"),
     aroma: text("aroma"),

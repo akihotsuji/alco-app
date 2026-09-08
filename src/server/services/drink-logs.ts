@@ -1,9 +1,10 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
-import { bottles, drinkLogs, myDrinks, photos } from "@/db/schema.ts";
+import { drinkLogs, myDrinks, photos } from "@/db/schema.ts";
 import { calculateAlcoholGrams, isDryDay, sumAlcoholGrams } from "@/shared/alcohol.ts";
 import type { DrinkType } from "@/shared/constants.ts";
+import { normalizeOptionalText, resolveIdentityFields } from "@/shared/identity.ts";
 import {
   type CreateDrinkLogInput,
   DRINK_LOG_MESSAGES,
@@ -25,6 +26,7 @@ import {
   tokyoToday,
 } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
+import { requireOwnBottle } from "./bottles.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
 type DrinkLogRow = typeof drinkLogs.$inferSelect;
@@ -42,10 +44,17 @@ export function toDrinkLog(row: DrinkLogRow, photoRows: readonly PhotoRow[]): Dr
     drunkOn: row.drunkOn,
     drinkType: row.drinkType,
     drinkName: row.drinkName,
+    producer: row.producer,
+    origin: row.origin,
+    variety: row.variety,
+    vintage: row.vintage,
     volumeMl: row.volumeMl,
     abvPercent: row.abvPercent,
     alcoholG: row.alcoholG,
     memo: row.memo,
+    placeName: row.placeName,
+    placeLat: row.placeLat,
+    placeLng: row.placeLng,
     myDrinkId: row.myDrinkId,
     bottleId: row.bottleId,
     thumbPhotoId: metas[0]?.id ?? null,
@@ -62,10 +71,17 @@ export function toDrinkLogItem(row: DrinkLogRow, thumbPhotoId: string | null): D
     drunkOn: row.drunkOn,
     drinkType: row.drinkType,
     drinkName: row.drinkName,
+    producer: row.producer,
+    origin: row.origin,
+    variety: row.variety,
+    vintage: row.vintage,
     volumeMl: row.volumeMl,
     abvPercent: row.abvPercent,
     alcoholG: row.alcoholG,
     memo: row.memo,
+    placeName: row.placeName,
+    placeLat: row.placeLat,
+    placeLng: row.placeLng,
     myDrinkId: row.myDrinkId,
     bottleId: row.bottleId,
     thumbPhotoId,
@@ -126,14 +142,7 @@ async function resolveMyDrink(db: AppBatchDb, userId: string, myDrinkId: string)
 
 /** 貯蔵庫（consumed）の本も選べる。status では絞らない。 */
 async function resolveBottle(db: AppBatchDb, userId: string, bottleId: string) {
-  const [row] = await db
-    .select({ id: bottles.id, name: bottles.name, drinkType: bottles.drinkType })
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  if (!row) {
-    throw new ApiError("not_found");
-  }
-  return row;
+  return requireOwnBottle(db, userId, bottleId);
 }
 
 /** 自分の **未紐付け** 写真だけ紐付けられる。他人・紐付け済み・不明はすべて 404。 */
@@ -177,7 +186,8 @@ export async function createDrinkLog(input: {
   const now = input.now ?? new Date();
 
   let drinkType: DrinkType = body.drinkType;
-  let drinkName: string | null = null;
+  let drinkName: string | null = normalizeOptionalText(body.drinkName);
+  let bottleSnap: Awaited<ReturnType<typeof resolveBottle>> | null = null;
 
   const myDrinkId = body.myDrinkId ?? null;
   if (myDrinkId) {
@@ -187,11 +197,12 @@ export async function createDrinkLog(input: {
   const bottleId = body.bottleId ?? null;
   if (bottleId) {
     // ボトル紐付きは種類と名前をボトルで上書き。量・度数はリクエストが正（api-design 4.3）
-    const bottle = await resolveBottle(db, userId, bottleId);
-    drinkType = bottle.drinkType;
-    drinkName = bottle.name;
+    bottleSnap = await resolveBottle(db, userId, bottleId);
+    drinkType = bottleSnap.drinkType;
+    drinkName = bottleSnap.name;
   }
 
+  const identity = resolveIdentityFields(body, bottleSnap);
   const photoRows = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
 
   const drunkAt = body.drunkAt ? new Date(body.drunkAt) : now;
@@ -203,10 +214,17 @@ export async function createDrinkLog(input: {
     drunkOn: tokyoToday(drunkAt),
     drinkType,
     drinkName,
+    producer: identity.producer,
+    origin: identity.origin,
+    variety: identity.variety,
+    vintage: identity.vintage,
     volumeMl: body.volumeMl,
     abvPercent: body.abvPercent,
     alcoholG: calculateAlcoholGrams(body.volumeMl, body.abvPercent),
     memo: normalizeMemo(body.memo),
+    placeName: normalizeOptionalText(body.placeName),
+    placeLat: body.placeLat ?? null,
+    placeLng: body.placeLng ?? null,
     myDrinkId,
     bottleId,
     createdAt: now,
@@ -394,17 +412,27 @@ export async function updateDrinkLog(input: {
 
   let drinkName = current.drinkName;
   let drinkType = body.drinkType ?? current.drinkType;
+  if (body.drinkName !== undefined) {
+    drinkName = normalizeOptionalText(body.drinkName);
+  }
   if (body.myDrinkId) {
     const preset = await resolveMyDrink(db, userId, body.myDrinkId);
     if (body.bottleId === null || (body.bottleId === undefined && current.bottleId === null)) {
       drinkName = preset.name;
     }
   }
+  let bottleSnap: Awaited<ReturnType<typeof resolveBottle>> | null = null;
   if (body.bottleId) {
-    const bottle = await resolveBottle(db, userId, body.bottleId);
-    drinkName = bottle.name;
-    drinkType = bottle.drinkType;
+    bottleSnap = await resolveBottle(db, userId, body.bottleId);
+    drinkName = bottleSnap.name;
+    drinkType = bottleSnap.drinkType;
   }
+  const identity = resolveIdentityFields(body, bottleSnap ?? {
+    producer: current.producer,
+    origin: current.origin,
+    variety: current.variety,
+    vintage: current.vintage,
+  });
 
   const desiredPhotoRows =
     body.photoIds === undefined
@@ -436,6 +464,13 @@ export async function updateDrinkLog(input: {
     ...(body.myDrinkId === undefined ? {} : { myDrinkId: body.myDrinkId }),
     ...(body.bottleId === undefined ? {} : { bottleId: body.bottleId }),
     ...(drinkName === current.drinkName ? {} : { drinkName }),
+    ...(body.producer === undefined && !bottleSnap ? {} : { producer: identity.producer }),
+    ...(body.origin === undefined && !bottleSnap ? {} : { origin: identity.origin }),
+    ...(body.variety === undefined && !bottleSnap ? {} : { variety: identity.variety }),
+    ...(body.vintage === undefined && !bottleSnap ? {} : { vintage: identity.vintage }),
+    ...(body.placeName === undefined ? {} : { placeName: normalizeOptionalText(body.placeName) }),
+    ...(body.placeLat === undefined ? {} : { placeLat: body.placeLat }),
+    ...(body.placeLng === undefined ? {} : { placeLng: body.placeLng }),
     updatedAt,
   };
 

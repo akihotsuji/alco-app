@@ -3,7 +3,16 @@ import { applyRecognizeToLogForm } from "./drink-recognize.ts";
 import { initialLogFormState } from "./log-form.ts";
 
 const NOW = new Date("2026-09-05T04:05:00.000Z");
-const untouched = { drinkType: false, volumeMl: false, abvPercent: false };
+const untouched = {
+  drinkName: false,
+  drinkType: false,
+  volumeMl: false,
+  abvPercent: false,
+  producer: false,
+  origin: false,
+  variety: false,
+  vintage: false,
+};
 
 describe("applyRecognizeToLogForm", () => {
   it("種類と量を先に選び、量チップに合う値ならその値のまま", () => {
@@ -59,7 +68,7 @@ describe("applyRecognizeToLogForm", () => {
         drinkType: { value: "beer", confidence: 0.9 },
         volumeMl: { value: 350, confidence: 0.9 },
       },
-      touched: { drinkType: false, volumeMl: true, abvPercent: false },
+      touched: { ...untouched, volumeMl: true },
     });
     expect(next.drinkType).toBe("wine");
     expect(next.volumeMl).toBe(150);

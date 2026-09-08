@@ -307,11 +307,18 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | drunkAt | string | ISO UTC |
 | drunkOn | string | JST 日（サーバー算出） |
 | drinkType | enum | 7 種（data-model 5.3） |
-| drinkName | string \| null | マイドリンク名スナップショット |
+| drinkName | string \| null | 品名スナップショット |
+| producer | string \| null | 生産者 ≦100 |
+| origin | string \| null | 生産国 ≦100 |
+| variety | string \| null | 品種 ≦100 |
+| vintage | number \| null | 1800〜2100。NV は null |
 | volumeMl | number | 整数 ml |
 | abvPercent | number | % |
 | alcoholG | number | サーバー計算 |
 | memo | string \| null | ≦500 |
+| placeName | string \| null | 店名など ≦100。URL は持たない |
+| placeLat | number \| null | 緯度。`placeLng` と対 |
+| placeLng | number \| null | 経度。`placeLat` と対 |
 | myDrinkId | string \| null | 参照。削除後は null |
 | bottleId | string \| null | セラー連携（1-07）。削除後は null |
 | thumbPhotoId | string \| null | 記録写真（1 枚）の id |
@@ -402,6 +409,11 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | abvPercent | 必須 | 0〜100、小数第 1 位。**0 は可** |
 | memo | 任意 | 空は null |
 | myDrinkId | 任意 | 自分の ID のみ。他人・不明は 404。量・度数・種類はリクエストが正。`drinkName` はプリセット名をコピーする。量をサーバーに上書きさせない 1 タップは 4.4 |
+| drinkName | 任意 | ≦100。ボトルありではサーバーがボトル名で上書き |
+| producer / origin / variety | 任意 | ≦100。ボトルありではボディがあれば採用、省略時はボトルからコピー |
+| vintage | 任意 | 1800〜2100 または null。ボトルありではボディがあれば採用、省略時はボトルからコピー |
+| placeName | 任意 | ≦100 |
+| placeLat / placeLng | 任意 | **両方揃える**。片方だけは 400。範囲 lat −90〜90、lng −180〜180 |
 | bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404。`drinkName` にボトル名、`drinkType` はボトルの種類で上書き（1-07） |
 | photoIds | 任意 | 自分の **未紐付け**写真 id。最大 1。他人・紐付け済み・不明は 404。同一トランザクションで `drink_log_id` をセット（1-07） |
 
@@ -425,13 +437,18 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 
 #### POST /api/drink-logs/recognize
 
-記録写真（グラス / 缶 / 瓶）から **種類・量・度数の候補**を返す。ラベル OCR ではない。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` と **同じ 30 回 / 日（JST）** を共有する。
+記録写真（グラス / 缶 / 瓶）から **品名・識別 4 項目・種類・量・度数の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` と **同じ 30 回 / 日（JST）** を共有する。`max_tokens` は 500 程度。
 
 `multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。
 
 ```json
 {
   "fields": {
+    "drinkName": { "value": "サンプル赤", "confidence": 0.8 },
+    "producer": { "value": "生産者", "confidence": 0.7 },
+    "origin": { "value": "フランス", "confidence": 0.7 },
+    "variety": { "value": "ピノ", "confidence": 0.6 },
+    "vintage": { "value": 2020, "confidence": 0.7 },
     "drinkType": { "value": "beer", "confidence": 0.8 },
     "volumeMl": { "value": 350, "confidence": 0.7 },
     "abvPercent": { "value": 5, "confidence": 0.6 }
@@ -505,7 +522,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 | クエリ | 説明 |
 |---|---|
 | `view` | `cellar`（既定。`sealed`、`createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用） |
-| `q` | 銘柄名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
+| `q` | 品名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
 | `drinkType` | 7 種のいずれか |
 | `limit`, `cursor` | 2.7 |
 
@@ -589,7 +606,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | クエリ | 説明 |
 |---|---|
 | `bottleId` | 指定時、**自分のボトル**でなければ 404（空配列にしない。5-04） |
-| `q` | 銘柄名（スナップショット）の部分一致。最大 100 文字 |
+| `q` | 品名（スナップショット）の部分一致。最大 100 文字 |
 | `drinkType` | 7 種 |
 | `ratingX10Min`, `ratingX10Max` | 10〜50、5 刻み。`min <= max` |
 | `limit`, `cursor` | 2.7 |
@@ -601,7 +618,8 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404 |
 | drinkName | `bottleId` なしのとき必須 | ボトルありのときは**送っても無視**し、サーバーがボトルからコピー |
 | drinkType | `bottleId` なしのとき必須 | 同上 |
-| vintage | 任意 | 1800〜2100 または null。ボトルありでも送った値を採用（サーバーはボトルから上書きしない） |
+| vintage | 任意 | 1800〜2100 または null。ボディがあれば採用、省略時はボトルからコピー（作成時） |
+| producer / origin / variety | 任意 | ≦100。ボディがあれば採用、省略時はボトルからコピー（作成時） |
 | tastedOn | 必須 | JST 日。未来は 400 |
 | appearance, aroma, taste, finish | 任意 | 各 ≦2000 |
 | ratingX10 | 必須 | 10〜50、5 刻み |
@@ -613,7 +631,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 #### POST /api/tasting-notes/recognize
 
-ノート写真（ラベル / グラス / 缶 / 瓶）から **銘柄・種類・ビンテージの候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` および `POST /api/drink-logs/recognize` と **同じ 30 回 / 日（JST）** を共有する。`/:id` より **先に登録**する。
+ノート写真（ラベル / グラス / 缶 / 瓶）から **品名・種類・識別 4 項目の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` および `POST /api/drink-logs/recognize` と **同じ 30 回 / 日（JST）** を共有する。`/:id` より **先に登録**する。`max_tokens` は 500 程度。
 
 `multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。
 
@@ -622,7 +640,10 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
   "fields": {
     "drinkName": { "value": "サンプル赤", "confidence": 0.82 },
     "drinkType": { "value": "wine", "confidence": 0.9 },
-    "vintage": { "value": 2020, "confidence": 0.7 }
+    "vintage": { "value": 2020, "confidence": 0.7 },
+    "producer": { "value": "生産者", "confidence": 0.7 },
+    "origin": { "value": "フランス", "confidence": 0.7 },
+    "variety": { "value": "ピノ", "confidence": 0.6 }
   },
   "provider": "workers-ai",
   "remainingToday": 27
@@ -632,7 +653,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | 規則 | 内容 |
 |---|---|
 | プロバイダ | 4.5.3 と同じ Workers AI Vision。実装は `NoteRecognizer`（`LabelRecognizer` と同じ口）。プロンプトはサーバー固定（ユーザー文を混ぜない） |
-| 出力 | `drinkName` ≦100、`drinkType` 7 種、`vintage` 1800〜2100、`confidence` 0〜1。検証落ちは省く。空 `fields` でも 200 |
+| 出力 | `drinkName` ≦100、`drinkType` 7 種、`producer` / `origin` / `variety` ≦100、`vintage` 1800〜2100、`confidence` 0〜1。検証落ちは省く。空 `fields` でも 200。`name` / `drinkName` はどちらも品名 |
 | 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）、20 秒タイムアウト |
 | クライアント | 確度 0.5 未満は捨てる。空欄にだけ入れる。ボトル選択中は種類を変えない |
 | 対象 | `note-new` / `note-edit` |

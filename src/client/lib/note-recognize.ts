@@ -12,17 +12,24 @@ export type NoteRecognizeTouched = {
   drinkName: boolean;
   drinkType: boolean;
   vintage: boolean;
+  producer: boolean;
+  origin: boolean;
+  variety: boolean;
 };
 
 export type ApplyNoteRecognizeResult = {
   next: NoteFormState;
-  applied: Array<"drinkName" | "drinkType" | "vintage">;
+  applied: Array<"drinkName" | "drinkType" | "vintage" | "producer" | "origin" | "variety">;
 };
 
 function usable<T>(
   field: { value: T; confidence: number } | undefined,
 ): field is { value: T; confidence: number } {
   return field !== undefined && field.confidence >= AI_RECOGNIZE_MIN_CONFIDENCE;
+}
+
+function empty(value: string): boolean {
+  return value.trim().length === 0;
 }
 
 /** 空欄にだけ入れる。触った欄とボトルで埋まった種類は上書きしない */
@@ -35,7 +42,7 @@ export function applyRecognizeToNoteForm(input: {
   const applied: ApplyNoteRecognizeResult["applied"] = [];
   const lockType = input.touched.drinkType || Boolean(input.state.bottleId);
 
-  if (usable(input.fields.drinkName) && next.drinkName.trim() === "" && !input.touched.drinkName) {
+  if (usable(input.fields.drinkName) && empty(next.drinkName) && !input.touched.drinkName) {
     next.drinkName = input.fields.drinkName.value;
     applied.push("drinkName");
   }
@@ -43,9 +50,21 @@ export function applyRecognizeToNoteForm(input: {
     next.drinkType = input.fields.drinkType.value;
     applied.push("drinkType");
   }
-  if (usable(input.fields.vintage) && next.vintage.trim() === "" && !input.touched.vintage) {
+  if (usable(input.fields.vintage) && empty(next.vintage) && !input.touched.vintage) {
     next.vintage = String(input.fields.vintage.value);
     applied.push("vintage");
+  }
+  if (usable(input.fields.producer) && empty(next.producer) && !input.touched.producer) {
+    next.producer = input.fields.producer.value;
+    applied.push("producer");
+  }
+  if (usable(input.fields.origin) && empty(next.origin) && !input.touched.origin) {
+    next.origin = input.fields.origin.value;
+    applied.push("origin");
+  }
+  if (usable(input.fields.variety) && empty(next.variety) && !input.touched.variety) {
+    next.variety = input.fields.variety.value;
+    applied.push("variety");
   }
 
   return { next, applied };

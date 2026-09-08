@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
@@ -251,7 +252,7 @@ function BatchRowCard({
         <div className="bottle-batch-fields">
           <div className="bottle-batch-name-row">
             <label className="field-label" htmlFor={nameId}>
-              銘柄名
+              {BOTTLE_FIELD_LABELS.name}
             </label>
             <IconButton
               label="この行を外す"
@@ -336,7 +337,7 @@ function BatchRowCard({
           />
           <DetailField
             id={`${id}-origin`}
-            label="産地"
+            label={BOTTLE_FIELD_LABELS.origin}
             value={row.form.origin}
             maxLength={BOTTLE_TEXT_MAX_LENGTH}
             disabled={disabled}
@@ -384,20 +385,6 @@ function BatchRowCard({
         </p>
       ) : null}
     </li>
-  );
-}
-
-function FieldWithAiMark({ marked, children }: { marked: boolean; children: ReactNode }) {
-  return (
-    <div className={marked ? "field-with-ai is-ai" : "field-with-ai"}>
-      {children}
-      {marked ? (
-        <span className="pill ai">
-          <Sparkles size={11} aria-hidden />
-          AI
-        </span>
-      ) : null}
-    </div>
   );
 }
 

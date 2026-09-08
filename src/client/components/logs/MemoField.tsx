@@ -24,7 +24,7 @@ export function MemoField({ value, error, onChange }: MemoFieldProps) {
         aria-invalid={error ? true : undefined}
         maxLength={MEMO_MAX_LENGTH}
         rows={3}
-        placeholder="飲んだ場所など"
+        placeholder="味や相手など"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />

@@ -29,6 +29,9 @@ export type PickedBottle = {
   drinkType: DrinkType;
   status: BottleStatus;
   vintage: number | null;
+  producer: string | null;
+  origin: string | null;
+  variety: string | null;
 };
 
 type BottlePickerRowProps = {
@@ -144,7 +147,7 @@ export function BottlePickerRow({
             aria-label="ボトルを検索"
             value={q}
             maxLength={100}
-            placeholder="銘柄名・生産者・品種"
+            placeholder="品名・生産者・品種"
             onChange={(event) => setQ(event.target.value)}
           />
           <button
@@ -159,7 +162,7 @@ export function BottlePickerRow({
             なし
           </button>
           {list.isError ? <p className="bottle-picker-error">読み込めませんでした</p> : null}
-          {requireSearch && !searched ? <p className="bottle-picker-empty">銘柄名で検索</p> : null}
+          {requireSearch && !searched ? <p className="bottle-picker-empty">品名で検索</p> : null}
           {list.isSuccess && list.data.items.length === 0 ? (
             <p className="bottle-picker-empty">該当するボトルがありません</p>
           ) : null}
@@ -176,6 +179,9 @@ export function BottlePickerRow({
                       drinkType: item.drinkType,
                       status: item.status,
                       vintage: item.vintage,
+                      producer: item.producer,
+                      origin: item.origin,
+                      variety: item.variety,
                     });
                     setOpen(false);
                     setQ("");
@@ -226,6 +232,9 @@ export function usePrefillBottle(
         drinkType: query.data.drinkType,
         status: query.data.status,
         vintage: query.data.vintage,
+        producer: query.data.producer,
+        origin: query.data.origin,
+        variety: query.data.variety,
       });
     }
     if (query.isError) {

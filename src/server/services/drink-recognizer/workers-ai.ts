@@ -23,7 +23,7 @@ export function createWorkersAiDrinkRecognizer(ai: Ai): LabelRecognizer {
           },
         ],
         guided_json: DRINK_RECOGNIZE_GUIDED_JSON_SCHEMA,
-        max_tokens: 300,
+        max_tokens: 500,
         temperature: 0,
       });
     },

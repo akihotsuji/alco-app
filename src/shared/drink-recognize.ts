@@ -2,11 +2,12 @@ import { z } from "zod";
 import { ABV_PERCENT_MAX, ABV_PERCENT_MIN, VOLUME_ML_MAX, VOLUME_ML_MIN } from "./alcohol.ts";
 import { DEFAULT_LABEL_RECOGNIZE_PROVIDER, LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
 import { drinkTypeSchema } from "./drink-logs.ts";
+import { pickIdentityRecognizeFields } from "./identity-recognize.ts";
 import { extractModelPayload } from "./label-recognize.ts";
 
 /**
  * `POST /api/drink-logs/recognize` の契約。
- * 正本: spec/api-design.md 4.3 / spec/features/drink-log.md 3.2
+ * 正本: spec/api-design.md 4.3 / spec/features/register-identity.md 6
  */
 
 const confidenceSchema = z.number().min(0).max(1);
@@ -33,12 +34,26 @@ const abvCandidateSchema = z.object({
   confidence: confidenceSchema,
 });
 
-export const drinkRecognizeFieldKeys = ["drinkType", "volumeMl", "abvPercent"] as const;
+export const drinkRecognizeFieldKeys = [
+  "drinkName",
+  "producer",
+  "origin",
+  "variety",
+  "vintage",
+  "drinkType",
+  "volumeMl",
+  "abvPercent",
+] as const;
 
 export type DrinkRecognizeFieldKey = (typeof drinkRecognizeFieldKeys)[number];
 
 export const drinkRecognizeFieldsSchema = z
   .object({
+    drinkName: z.object({ value: z.string(), confidence: confidenceSchema }).optional(),
+    producer: z.object({ value: z.string(), confidence: confidenceSchema }).optional(),
+    origin: z.object({ value: z.string(), confidence: confidenceSchema }).optional(),
+    variety: z.object({ value: z.string(), confidence: confidenceSchema }).optional(),
+    vintage: z.object({ value: z.number().int(), confidence: confidenceSchema }).optional(),
     drinkType: drinkTypeCandidateSchema.optional(),
     volumeMl: volumeCandidateSchema.optional(),
     abvPercent: abvCandidateSchema.optional(),
@@ -72,7 +87,7 @@ export function pickDrinkRecognizeFields(raw: unknown): DrinkRecognizeFields {
     return {};
   }
   const source = asRecord(record.fields) ?? record;
-  const fields: DrinkRecognizeFields = {};
+  const fields: DrinkRecognizeFields = { ...pickIdentityRecognizeFields(source) };
   const drinkType = drinkTypeCandidateSchema.safeParse(source.drinkType);
   if (drinkType.success) {
     fields.drinkType = drinkType.data;

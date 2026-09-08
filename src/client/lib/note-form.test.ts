@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TASTING_NOTE_MESSAGES } from "@/shared/tasting-notes.ts";
+import type { DrinkLog } from "@/shared/drink-logs.ts";
 import {
   applySelectedBottle,
   bottleRowLabel,
@@ -9,6 +10,7 @@ import {
   isNoteFormDirty,
   NOTE_SAVE_DISABLED_HINT,
   NOTE_SAVE_LABELS,
+  noteFormStateFromDrinkLog,
   noteSaveDisabledHint,
   toCreateTastingNoteBody,
   toUpdateTastingNoteBody,
@@ -183,6 +185,45 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
     );
     expect(next.vintage).toBe("2018");
     expect(next.drinkName).toBe("棚の赤");
+  });
+
+  it("飲酒記録からの引き継ぎは識別と日付を入れ、評価は空のまま", () => {
+    const log = {
+      id: "11111111-1111-4111-8111-111111111111",
+      drunkAt: NOW.toISOString(),
+      drunkOn: "2026-09-07",
+      drinkType: "wine",
+      drinkName: "サンプル赤",
+      producer: "生産者",
+      origin: "フランス",
+      variety: "ピノ",
+      vintage: 2020,
+      volumeMl: 125,
+      abvPercent: 12,
+      alcoholG: 12,
+      memo: null,
+      placeName: "居酒屋",
+      placeLat: 35.6,
+      placeLng: 139.7,
+      myDrinkId: null,
+      bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      thumbPhotoId: null,
+      photos: [],
+      createdAt: NOW.toISOString(),
+      updatedAt: NOW.toISOString(),
+    } satisfies DrinkLog;
+    const state = noteFormStateFromDrinkLog(log, NOW);
+    expect(state).toMatchObject({
+      drinkName: "サンプル赤",
+      drinkType: "wine",
+      vintage: "2020",
+      producer: "生産者",
+      origin: "フランス",
+      variety: "ピノ",
+      bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      tastedOn: "2026-09-07",
+      ratingX10: null,
+    });
   });
 
   it("未操作の必須空欄は赤くせず、保存無効時は短い説明", () => {

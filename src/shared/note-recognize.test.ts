@@ -13,9 +13,11 @@ describe("pickNoteRecognizeFields", () => {
         drinkName: { value: "サンプル赤", confidence: 0.84 },
         drinkType: { value: "vodka", confidence: 0.9 },
         vintage: { value: 1200, confidence: 0.9 },
+        origin: { value: "フランス", confidence: 0.7 },
       }),
     ).toEqual({
       drinkName: { value: "サンプル赤", confidence: 0.84 },
+      origin: { value: "フランス", confidence: 0.7 },
     });
   });
 

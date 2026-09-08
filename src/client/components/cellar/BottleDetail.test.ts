@@ -38,10 +38,14 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).toContain("notesTotalCount");
   });
 
-  it("プロパティの年はビンテージと書く", () => {
+  it("プロパティの年はヴィンテージ、産地は生産国と書く", () => {
+    expect(source).toContain("BOTTLE_FIELD_LABELS.name");
     expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
     expect(source).toContain("BOTTLE_FIELD_LABELS.variety");
+    expect(source).toContain("BOTTLE_FIELD_LABELS.origin");
     expect(source).not.toContain('label: "年"');
+    expect(source).not.toContain('label: "銘柄名"');
+    expect(source).not.toContain('label: "産地"');
     expect(source).toContain("BOTTLE_FIELD_LABELS.storedOn");
     expect(source).toContain("BOTTLE_FIELD_LABELS.storage");
   });

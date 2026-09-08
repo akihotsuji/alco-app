@@ -11,18 +11,23 @@ export const NOTE_RECOGNIZE_SYSTEM_PROMPT = [
   "{",
   '  "drinkName": { "value": string, "confidence": number },',
   '  "drinkType": { "value": string, "confidence": number },',
-  '  "vintage": { "value": number, "confidence": number }',
+  '  "vintage": { "value": number, "confidence": number },',
+  '  "producer": { "value": string, "confidence": number },',
+  '  "origin": { "value": string, "confidence": number },',
+  '  "variety": { "value": string, "confidence": number }',
   "}",
   `drinkType must be one of: ${DRINK_TYPES.join(", ")}.`,
   "wine=ワイン/wine glass/wine bottle, beer=ビール/beer glass/pint/can, whisky=ウイスキー/rocks glass,",
   "sake=日本酒/ochoko/tokkuri, shochu=焼酎, cocktail=カクテル/cocktail glass, other=不明・その他.",
   "drinkName is the brand, cuvée, or recognizable drink name. Max 100 characters.",
+  "producer is the winery/distillery/brewery. origin is the country of production (e.g. フランス, Japan).",
+  "variety is grape, rice, hop, or malt variety.",
   "vintage is a 4-digit year from 1800 to 2100. Omit for NV / non-vintage / beer / cocktails without a year.",
   "confidence is 0 to 1.",
 ].join(" ");
 
 export const NOTE_RECOGNIZE_USER_PROMPT =
-  "Guess the drink name, type, and vintage from this photo and return the JSON object described in the system message.";
+  "Guess the drink name, type, vintage, producer, country of origin, and variety from this photo and return the JSON object described in the system message.";
 
 export const NOTE_RECOGNIZE_GUIDED_JSON_SCHEMA = {
   type: "object",
@@ -51,6 +56,33 @@ export const NOTE_RECOGNIZE_GUIDED_JSON_SCHEMA = {
       additionalProperties: false,
       properties: {
         value: { type: "integer" },
+        confidence: { type: "number" },
+      },
+      required: ["value", "confidence"],
+    },
+    producer: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        value: { type: "string" },
+        confidence: { type: "number" },
+      },
+      required: ["value", "confidence"],
+    },
+    origin: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        value: { type: "string" },
+        confidence: { type: "number" },
+      },
+      required: ["value", "confidence"],
+    },
+    variety: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        value: { type: "string" },
         confidence: { type: "number" },
       },
       required: ["value", "confidence"],

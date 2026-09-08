@@ -147,6 +147,7 @@ function LogDayRow({ item, ref, highlighted, fading, removing }: LogDayRowProps)
     formatTokyoTime(new Date(item.drunkAt)),
     `${item.abvPercent}%`,
     item.bottleId ? item.drinkName : null,
+    item.placeName,
   ]
     .filter((value): value is string => Boolean(value))
     .join(" ・ ");

@@ -80,7 +80,7 @@ export function CellarToolbar({
             aria-label="検索"
             value={qInput}
             maxLength={100}
-            placeholder="銘柄名・生産者・品種"
+            placeholder="品名・生産者・品種"
             onChange={(event) => setQInput(event.target.value)}
           />
         ) : (

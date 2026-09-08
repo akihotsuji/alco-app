@@ -57,6 +57,8 @@ export type ProcessedPhoto = {
   blob: Blob;
   previewUrl: string;
   recognizeJpeg?: Blob;
+  /** JPEG EXIF または File.lastModified から取った撮影時刻（ISO） */
+  capturedAt?: string;
   /** セラーのみ。切り抜きの成否と理由・工程時間 */
   cutout?: CutoutOutcome;
 };

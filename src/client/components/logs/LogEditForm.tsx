@@ -5,6 +5,9 @@ import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
@@ -13,8 +16,10 @@ import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
+import { PlaceField } from "@/client/components/logs/PlaceField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
+import { Input } from "@/client/components/ui/input.tsx";
 import {
   useDeleteDrinkLog,
   useDrinkLog,
@@ -44,7 +49,8 @@ import type { MotionState } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
-import type { DrinkLog } from "@/shared/drink-logs.ts";
+import { DRINK_NAME_MAX_LENGTH, type DrinkLog } from "@/shared/drink-logs.ts";
+import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 
 export function LogEditForm({ logId }: { logId: string | undefined }) {
   const query = useDrinkLog(logId);
@@ -215,7 +221,57 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         onClear={() => (attachment ? void clearAttachment("log") : void removeExistingPhoto())}
         error={visibleErrors.photoIds}
       />
+      <section className="log-form-section">
+        <FieldLabel htmlFor="log-edit-drink-name" optional>
+          {IDENTITY_FIELD_LABELS.drinkName}
+        </FieldLabel>
+        <FieldWithAiMark marked={false}>
+          <Input
+            id="log-edit-drink-name"
+            value={state.drinkName}
+            maxLength={DRINK_NAME_MAX_LENGTH}
+            aria-invalid={visibleErrors.drinkName ? true : undefined}
+            onChange={(event) => update({ drinkName: event.target.value }, "drinkName")}
+          />
+        </FieldWithAiMark>
+        {visibleErrors.drinkName ? (
+          <p className="field-error" role="alert">
+            {visibleErrors.drinkName}
+          </p>
+        ) : null}
+      </section>
       <DrinkTypeSelect value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
+      <BottlePickerRow
+        placement="optional"
+        bottleId={state.bottleId}
+        bottleName={state.bottleName}
+        error={visibleErrors.bottleId}
+        onSelect={(bottle) => {
+          setState((current) =>
+            bottle
+              ? applySelectedBottle(current, bottle, { preserveEdits: true })
+              : clearSelectedBottle(current),
+          );
+          setServerErrors({});
+          setFormError(null);
+        }}
+      />
+      <IdentityFields
+        idPrefix="log-edit"
+        values={{
+          vintage: state.vintage,
+          variety: state.variety,
+          producer: state.producer,
+          origin: state.origin,
+        }}
+        errors={{
+          vintage: visibleErrors.vintage,
+          variety: visibleErrors.variety,
+          producer: visibleErrors.producer,
+          origin: visibleErrors.origin,
+        }}
+        onChange={(field, value) => update({ [field]: value }, field)}
+      />
       <VolumeField
         drinkType={state.drinkType}
         value={state.volumeMl}
@@ -234,25 +290,17 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         error={visibleErrors.drunkAt}
         onChange={(drunkAt) => update({ drunkAt }, "drunkAt")}
       />
+      <PlaceField
+        placeName={state.placeName}
+        placeLat={state.placeLat}
+        placeLng={state.placeLng}
+        error={visibleErrors.placeName}
+        onChangeName={(placeName) => update({ placeName }, "placeName")}
+      />
       <MemoField
         value={state.memo}
         error={visibleErrors.memo}
         onChange={(memo) => update({ memo }, "memo")}
-      />
-      <BottlePickerRow
-        placement="optional"
-        bottleId={state.bottleId}
-        bottleName={state.bottleName}
-        error={visibleErrors.bottleId}
-        onSelect={(bottle) => {
-          setState((current) =>
-            bottle
-              ? applySelectedBottle(current, bottle, { preserveEdits: true })
-              : clearSelectedBottle(current),
-          );
-          setServerErrors({});
-          setFormError(null);
-        }}
       />
       <SaveBar
         label={saveButtonLabel(updateLog.isPending, photoStatus)}

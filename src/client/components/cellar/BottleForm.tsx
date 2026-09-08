@@ -1,9 +1,10 @@
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
@@ -41,6 +42,7 @@ import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
+import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import {
@@ -279,6 +281,17 @@ export function BottleFormFields({
   }, [attachment, mode]);
 
   useEffect(() => {
+    const capturedAt = attachment?.capturedAt;
+    if (mode !== "new" || !capturedAt || storedOnTouched) {
+      return;
+    }
+    setState((current) => ({
+      ...current,
+      storedOn: capturedAtToCalendarDate(capturedAt, new Date()),
+    }));
+  }, [attachment?.capturedAt, mode, storedOnTouched]);
+
+  useEffect(() => {
     const field = firstBottleDetailsErrorField(serverErrors);
     if (!field) {
       return;
@@ -326,6 +339,7 @@ export function BottleFormFields({
         toCreateBottleBody(resolvedState, attachment?.photoId ?? null, {
           now,
           storedOnTouched: storedOnTouchedRef.current,
+          capturedAt: attachment?.capturedAt,
         }),
       );
       return;
@@ -424,7 +438,7 @@ export function BottleFormFields({
       {mode === "new" && recognizeStatus ? <RecognizeBanner status={recognizeStatus} /> : null}
       <div className="log-form-section">
         <label className="field-label" htmlFor="bottle-name">
-          銘柄名
+          {BOTTLE_FIELD_LABELS.name}
         </label>
         <FieldWithAiMark marked={aiMarks.has("name")}>
           <Input
@@ -484,7 +498,7 @@ export function BottleFormFields({
       />
       <DetailField
         id="bottle-origin"
-        label="産地"
+        label={BOTTLE_FIELD_LABELS.origin}
         value={state.origin}
         maxLength={BOTTLE_TEXT_MAX_LENGTH}
         placeholder="例：シチリア"
@@ -513,7 +527,11 @@ export function BottleFormFields({
                 value={state.storedOn}
                 type="date"
                 max={tokyoToday()}
-                hint={mode === "new" ? "初期値は登録日です。変更できます。" : undefined}
+                hint={
+                  mode === "new"
+                    ? "初期値は撮影日です。写真がなければ今日です。変更できます。"
+                    : undefined
+                }
                 error={errors.storedOn}
                 onChange={(storedOn) => update({ storedOn })}
               />
@@ -621,20 +639,6 @@ export function BottleFormFields({
           onPrimary={onDelete}
           onClose={() => setDeleteOpen(false)}
         />
-      ) : null}
-    </div>
-  );
-}
-
-function FieldWithAiMark({ marked, children }: { marked: boolean; children: ReactNode }) {
-  return (
-    <div className={marked ? "field-with-ai is-ai" : "field-with-ai"}>
-      {children}
-      {marked ? (
-        <span className="pill ai">
-          <Sparkles size={11} aria-hidden />
-          AI
-        </span>
       ) : null}
     </div>
   );

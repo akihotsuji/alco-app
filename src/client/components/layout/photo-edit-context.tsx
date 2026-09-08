@@ -10,6 +10,7 @@ import {
 } from "react";
 import { deletePhoto, uploadPhoto } from "@/client/hooks/use-photos.ts";
 import { historyHasFlag, withHistoryFlag } from "@/client/lib/history-state.ts";
+import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
 import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
@@ -22,6 +23,7 @@ export type PhotoAttachment = {
   photoId: string | null;
   status: "uploading" | "ready" | "error";
   recognizeJpeg?: Blob;
+  capturedAt?: string;
 };
 
 /**
@@ -38,6 +40,8 @@ export type PhotoCollectSession = {
   onUpdate: (attachment: PhotoAttachment) => void;
   /** 未紐付けの旧 id。再編集で置き換えるときだけ消し、既存の紐付きは送らない */
   previousPhotoId?: string | null;
+  /** 再編集では処理済み JPEG から EXIF が消えるので、最初に取った撮影時刻を維持する */
+  previousCapturedAt?: string;
 };
 
 /** セラーまとめて追加。使う直後に次の撮影を開き、処理は裏で進める */
@@ -156,6 +160,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const intentRef = useRef<CaptureIntent | null>(null);
   const collectRef = useRef<PhotoCollectSession | null>(null);
   const burstRef = useRef<PhotoBurstSession | null>(null);
+  const capturedAtRef = useRef<string | undefined>(undefined);
 
   const canCollectMore = useCallback(() => burstRef.current?.canCollectMore() ?? false, []);
 
@@ -214,6 +219,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
   const loadFile = useCallback(
     async (nextKind: PhotoEditContextKind, file: File) => {
+      capturedAtRef.current = (await capturedAtFromFile(file)) ?? undefined;
       const decoded = await decodePickedFile(file);
       openWithSource(nextKind, decoded.bitmap, decoded.error);
     },
@@ -245,6 +251,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     if (!file) {
       return;
     }
+    capturedAtRef.current = (await capturedAtFromFile(file)) ?? undefined;
     const decoded = await decodePickedFile(file);
     setSource((prev) => {
       prev?.close();
@@ -276,6 +283,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
             photoId: null,
             status: "uploading",
             recognizeJpeg: processed.recognizeJpeg,
+            capturedAt: processed.capturedAt ?? capturedAtRef.current,
           },
         };
       });
@@ -318,6 +326,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
         photoId: null,
         status: "uploading",
         recognizeJpeg: processed.recognizeJpeg,
+        capturedAt: processed.capturedAt ?? collect.previousCapturedAt ?? capturedAtRef.current,
       };
       collect.onUpdate(draft);
       try {
@@ -339,13 +348,17 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       collectRef.current = keepOpen && burst ? burst.nextCollect() : null;
       // 読み取り用 JPEG は attachment 側へ移る
       setPendingRecognizeJpeg(null);
+      const withCapture: ProcessedPhoto = {
+        ...processed,
+        capturedAt: processed.capturedAt ?? capturedAtRef.current,
+      };
       const commit = () => {
         if (collect) {
-          void beginCollectedUpload(processed, collect);
+          void beginCollectedUpload(withCapture, collect);
           setCollectedCount((count) => count + 1);
           return;
         }
-        void beginUpload(kind, processed);
+          void beginUpload(kind, withCapture);
       };
       if (keepOpen) {
         commit();
@@ -367,6 +380,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
 
   const loadBurstFile = useCallback(async (file: File) => {
+    capturedAtRef.current = (await capturedAtFromFile(file)) ?? undefined;
     const decoded = await decodePickedFile(file);
     setSource((prev) => {
       if (prev && prev !== decoded.bitmap) {
@@ -387,6 +401,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
         blob: current.blob,
         previewUrl: current.previewUrl,
         recognizeJpeg: current.recognizeJpeg,
+        capturedAt: current.capturedAt,
       });
     },
     [attachments, beginUpload],
@@ -453,12 +468,14 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       collectRef.current = collect;
       burstRef.current = null;
       setBurstActive(false);
+      capturedAtRef.current = collect.previousCapturedAt;
       const file = new File([blob], blob.type === "image/webp" ? "photo.webp" : "photo.jpg", {
         type: blob.type || "image/jpeg",
       });
-      await loadFile(nextKind, file);
+      const decoded = await decodePickedFile(file);
+      openWithSource(nextKind, decoded.bitmap, decoded.error);
     },
-    [loadFile],
+    [openWithSource],
   );
 
   const retryCollectedUpload = useCallback(
@@ -468,6 +485,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
           blob: attachment.blob,
           previewUrl: attachment.previewUrl,
           recognizeJpeg: attachment.recognizeJpeg,
+          capturedAt: attachment.capturedAt,
         },
         collect,
       );

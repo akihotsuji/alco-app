@@ -1,6 +1,8 @@
 import { isApiClientError } from "@/client/lib/api.ts";
 import { vintageSchema } from "@/shared/bottles.ts";
 import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
+import { IDENTITY_MESSAGES, IDENTITY_TEXT_MAX_LENGTH, normalizeOptionalText } from "@/shared/identity.ts";
+import type { DrinkLog } from "@/shared/drink-logs.ts";
 import {
   type CreateTastingNoteInput,
   isTastedOnAllowed,
@@ -20,6 +22,9 @@ export type NoteFormState = {
   drinkName: string;
   drinkType: DrinkType | null;
   vintage: string;
+  producer: string;
+  origin: string;
+  variety: string;
   tastedOn: string;
   ratingX10: number | null;
   appearance: string;
@@ -32,6 +37,9 @@ export type NoteFormField =
   | "drinkName"
   | "drinkType"
   | "vintage"
+  | "producer"
+  | "origin"
+  | "variety"
   | "tastedOn"
   | "ratingX10"
   | "appearance"
@@ -66,6 +74,9 @@ export function initialNoteFormState(now: Date = new Date()): NoteFormState {
     drinkName: "",
     drinkType: null,
     vintage: "",
+    producer: "",
+    origin: "",
+    variety: "",
     tastedOn: tokyoToday(now),
     ratingX10: null,
     appearance: "",
@@ -83,12 +94,18 @@ export function applySelectedBottle(
     drinkType: DrinkType;
     status: BottleStatus;
     vintage?: number | null;
+    producer?: string | null;
+    origin?: string | null;
+    variety?: string | null;
   },
   options: { preserveEdits?: boolean } = {},
 ): NoteFormState {
   const keepName = options.preserveEdits && state.drinkName.trim().length > 0;
   const keepType = options.preserveEdits && state.drinkType !== null;
   const keepVintage = options.preserveEdits && state.vintage.trim().length > 0;
+  const keepProducer = options.preserveEdits && state.producer.trim().length > 0;
+  const keepOrigin = options.preserveEdits && state.origin.trim().length > 0;
+  const keepVariety = options.preserveEdits && state.variety.trim().length > 0;
   return {
     ...state,
     bottleId: bottle.id,
@@ -101,6 +118,9 @@ export function applySelectedBottle(
       : bottle.vintage === null || bottle.vintage === undefined
         ? ""
         : String(bottle.vintage),
+    producer: keepProducer ? state.producer : (bottle.producer ?? ""),
+    origin: keepOrigin ? state.origin : (bottle.origin ?? ""),
+    variety: keepVariety ? state.variety : (bottle.variety ?? ""),
   };
 }
 
@@ -122,12 +142,32 @@ export function noteFormStateFromNote(note: TastingNote): NoteFormState {
     drinkName: note.drinkName,
     drinkType: note.drinkType,
     vintage: note.vintage === null ? "" : String(note.vintage),
+    producer: note.producer ?? "",
+    origin: note.origin ?? "",
+    variety: note.variety ?? "",
     tastedOn: note.tastedOn,
     ratingX10: note.ratingX10,
     appearance: note.appearance ?? "",
     aroma: note.aroma ?? "",
     taste: note.taste ?? "",
     finish: note.finish ?? "",
+  };
+}
+
+/** `log-new` 保存後の連続導線。評価は未選択のまま */
+export function noteFormStateFromDrinkLog(log: DrinkLog, now: Date = new Date()): NoteFormState {
+  return {
+    ...initialNoteFormState(now),
+    bottleId: log.bottleId,
+    bottleName: log.bottleId ? (log.drinkName ?? null) : null,
+    bottleStatus: null,
+    drinkName: log.drinkName ?? "",
+    drinkType: log.drinkType,
+    vintage: log.vintage === null ? "" : String(log.vintage),
+    producer: log.producer ?? "",
+    origin: log.origin ?? "",
+    variety: log.variety ?? "",
+    tastedOn: log.drunkOn,
   };
 }
 
@@ -165,6 +205,11 @@ export function validateNoteForm(state: NoteFormState, now: Date = new Date()): 
   const vintage = state.vintage.trim();
   if (vintage.length > 0 && !vintageSchema.safeParse(Number(vintage)).success) {
     errors.vintage = TASTING_NOTE_MESSAGES.vintage;
+  }
+  for (const key of ["producer", "origin", "variety"] as const) {
+    if (state[key].length > IDENTITY_TEXT_MAX_LENGTH) {
+      errors[key] = IDENTITY_MESSAGES.text;
+    }
   }
   for (const key of ["appearance", "aroma", "taste", "finish"] as const) {
     if (state[key].length > NOTE_TEXT_MAX_LENGTH) {
@@ -265,6 +310,18 @@ export function toCreateTastingNoteBody(
   }
   const vintage = state.vintage.trim();
   body.vintage = vintage.length === 0 ? null : Number(vintage);
+  const producer = normalizeOptionalText(state.producer);
+  if (producer) {
+    body.producer = producer;
+  }
+  const origin = normalizeOptionalText(state.origin);
+  if (origin) {
+    body.origin = origin;
+  }
+  const variety = normalizeOptionalText(state.variety);
+  if (variety) {
+    body.variety = variety;
+  }
   const appearance = optionalText(state.appearance);
   const aroma = optionalText(state.aroma);
   const taste = optionalText(state.taste);
@@ -299,6 +356,15 @@ export function toUpdateTastingNoteBody(
   if (state.vintage.trim() !== initial.vintage.trim()) {
     const vintage = state.vintage.trim();
     body.vintage = vintage.length === 0 ? null : Number(vintage);
+  }
+  if (state.producer.trim() !== initial.producer.trim()) {
+    body.producer = normalizeOptionalText(state.producer);
+  }
+  if (state.origin.trim() !== initial.origin.trim()) {
+    body.origin = normalizeOptionalText(state.origin);
+  }
+  if (state.variety.trim() !== initial.variety.trim()) {
+    body.variety = normalizeOptionalText(state.variety);
   }
   if (state.ratingX10 !== initial.ratingX10 && state.ratingX10 !== null) {
     body.ratingX10 = state.ratingX10;
@@ -343,6 +409,9 @@ export function isNoteFormDirty(state: NoteFormState, initial: NoteFormState): b
     state.drinkName !== initial.drinkName ||
     state.drinkType !== initial.drinkType ||
     state.vintage !== initial.vintage ||
+    state.producer !== initial.producer ||
+    state.origin !== initial.origin ||
+    state.variety !== initial.variety ||
     state.tastedOn !== initial.tastedOn ||
     state.ratingX10 !== initial.ratingX10 ||
     state.appearance !== initial.appearance ||
@@ -363,6 +432,9 @@ const FIELD_KEYS: readonly NoteFormField[] = [
   "drinkName",
   "drinkType",
   "vintage",
+  "producer",
+  "origin",
+  "variety",
   "tastedOn",
   "ratingX10",
   "appearance",

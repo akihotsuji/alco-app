@@ -11,12 +11,20 @@ import {
   abvPercentSchema,
   type CreateDrinkLogInput,
   DRINK_LOG_MESSAGES,
+  DRINK_NAME_MAX_LENGTH,
   type DrinkLog,
   isDrunkAtAllowed,
   memoSchema,
   type UpdateDrinkLogInput,
   volumeMlSchema,
 } from "@/shared/drink-logs.ts";
+import {
+  IDENTITY_MESSAGES,
+  IDENTITY_TEXT_MAX_LENGTH,
+  normalizeOptionalText,
+  vintageSchema,
+} from "@/shared/identity.ts";
+import { PLACE_MESSAGES, placeCoordsArePaired } from "@/shared/place.ts";
 import {
   formatMonthDay,
   formatTokyoTime,
@@ -32,16 +40,36 @@ import {
 
 export type LogFormState = {
   drinkType: DrinkType;
+  drinkName: string;
   volumeMl: number | null;
   abvPercent: number | null;
   /** UTC ISO。表示・入力は Asia/Tokyo 固定 */
   drunkAt: string;
+  producer: string;
+  origin: string;
+  variety: string;
+  vintage: string;
+  placeName: string;
+  placeLat: number | null;
+  placeLng: number | null;
   memo: string;
   bottleId: string | null;
   bottleName: string | null;
 };
 
-export type LogFormField = "volumeMl" | "abvPercent" | "drunkAt" | "memo" | "photoIds" | "bottleId";
+export type LogFormField =
+  | "drinkName"
+  | "volumeMl"
+  | "abvPercent"
+  | "drunkAt"
+  | "producer"
+  | "origin"
+  | "variety"
+  | "vintage"
+  | "placeName"
+  | "memo"
+  | "photoIds"
+  | "bottleId";
 
 export type LogFormErrors = Partial<Record<LogFormField, string>>;
 
@@ -79,9 +107,17 @@ export function initialLogFormState(dateParam: string | null | undefined, now: D
   const preset = DRINK_TYPE_PRESETS[DEFAULT_DRINK_TYPE];
   return {
     drinkType: DEFAULT_DRINK_TYPE,
+    drinkName: "",
     volumeMl: preset.volumeMl,
     abvPercent: preset.abvPercent,
     drunkAt: initialDrunkAt(dateParam, now),
+    producer: "",
+    origin: "",
+    variety: "",
+    vintage: "",
+    placeName: "",
+    placeLat: null,
+    placeLng: null,
     memo: "",
     bottleId: null,
     bottleName: null,
@@ -100,15 +136,41 @@ export function applyDrinkType(state: LogFormState, drinkType: DrinkType): LogFo
  */
 export function applySelectedBottle(
   state: LogFormState,
-  bottle: { id: string; name: string; drinkType: DrinkType },
+  bottle: {
+    id: string;
+    name: string;
+    drinkType: DrinkType;
+    producer?: string | null;
+    origin?: string | null;
+    variety?: string | null;
+    vintage?: number | null;
+  },
   options: { preserveEdits?: boolean } = {},
 ): LogFormState {
+  const linked = { ...state, bottleId: bottle.id, bottleName: bottle.name };
+  const fillEmpty = (current: string, next: string | null | undefined) =>
+    current.trim().length > 0 ? current : (next ?? "");
+  const withIdentity = {
+    ...linked,
+    drinkName: fillEmpty(linked.drinkName, bottle.name),
+    producer: fillEmpty(linked.producer, bottle.producer),
+    origin: fillEmpty(linked.origin, bottle.origin),
+    variety: fillEmpty(linked.variety, bottle.variety),
+    vintage:
+      linked.vintage.trim().length > 0
+        ? linked.vintage
+        : bottle.vintage === null || bottle.vintage === undefined
+          ? ""
+          : String(bottle.vintage),
+  };
   if (options.preserveEdits) {
-    return { ...state, bottleId: bottle.id, bottleName: bottle.name };
+    return withIdentity;
   }
   const next =
-    bottle.drinkType === state.drinkType ? state : applyDrinkType(state, bottle.drinkType);
-  return { ...next, bottleId: bottle.id, bottleName: bottle.name };
+    bottle.drinkType === withIdentity.drinkType
+      ? withIdentity
+      : applyDrinkType(withIdentity, bottle.drinkType);
+  return { ...next, bottleId: bottle.id, bottleName: bottle.name, drinkName: fillEmpty(next.drinkName, bottle.name) };
 }
 
 /** 遅れて届いたボトル取得で、触った入力を上書きしない */
@@ -119,6 +181,14 @@ export function shouldPreserveBottlePrefill(state: LogFormState, initial: LogFor
     state.abvPercent !== initial.abvPercent ||
     state.memo !== initial.memo ||
     state.drunkAt !== initial.drunkAt ||
+    state.drinkName !== initial.drinkName ||
+    state.producer !== initial.producer ||
+    state.origin !== initial.origin ||
+    state.variety !== initial.variety ||
+    state.vintage !== initial.vintage ||
+    state.placeName !== initial.placeName ||
+    state.placeLat !== initial.placeLat ||
+    state.placeLng !== initial.placeLng ||
     state.bottleId !== initial.bottleId
   );
 }
@@ -212,6 +282,26 @@ export function validateLogForm(state: LogFormState, now: Date): LogFormErrors {
   if (!memoSchema.safeParse(state.memo).success) {
     errors.memo = DRINK_LOG_MESSAGES.memo;
   }
+  if (state.drinkName.length > DRINK_NAME_MAX_LENGTH) {
+    errors.drinkName = DRINK_LOG_MESSAGES.drinkName;
+  }
+  for (const key of ["producer", "origin", "variety"] as const) {
+    if (state[key].length > IDENTITY_TEXT_MAX_LENGTH) {
+      errors[key] = IDENTITY_MESSAGES.text;
+    }
+  }
+  const vintage = state.vintage.trim();
+  if (vintage.length > 0 && !vintageSchema.safeParse(Number(vintage)).success) {
+    errors.vintage = IDENTITY_MESSAGES.vintage;
+  }
+  if (
+    !placeCoordsArePaired({
+      placeLat: state.placeLat,
+      placeLng: state.placeLng,
+    })
+  ) {
+    errors.placeName = PLACE_MESSAGES.pair;
+  }
   return errors;
 }
 
@@ -303,15 +393,49 @@ export function toCreateDrinkLogBody(
   if (state.bottleId) {
     body.bottleId = state.bottleId;
   }
+  const drinkName = normalizeOptionalText(state.drinkName);
+  if (drinkName) {
+    body.drinkName = drinkName;
+  }
+  const producer = normalizeOptionalText(state.producer);
+  if (producer) {
+    body.producer = producer;
+  }
+  const origin = normalizeOptionalText(state.origin);
+  if (origin) {
+    body.origin = origin;
+  }
+  const variety = normalizeOptionalText(state.variety);
+  if (variety) {
+    body.variety = variety;
+  }
+  const vintage = state.vintage.trim();
+  body.vintage = vintage.length === 0 ? null : Number(vintage);
+  const placeName = normalizeOptionalText(state.placeName);
+  if (placeName) {
+    body.placeName = placeName;
+  }
+  if (state.placeLat !== null && state.placeLng !== null) {
+    body.placeLat = state.placeLat;
+    body.placeLng = state.placeLng;
+  }
   return body;
 }
 
 export function logFormStateFromDrinkLog(log: DrinkLog): LogFormState {
   return {
     drinkType: log.drinkType,
+    drinkName: log.drinkName ?? "",
     volumeMl: log.volumeMl,
     abvPercent: log.abvPercent,
     drunkAt: log.drunkAt,
+    producer: log.producer ?? "",
+    origin: log.origin ?? "",
+    variety: log.variety ?? "",
+    vintage: log.vintage === null ? "" : String(log.vintage),
+    placeName: log.placeName ?? "",
+    placeLat: log.placeLat,
+    placeLng: log.placeLng,
     memo: log.memo ?? "",
     bottleId: log.bottleId,
     bottleName: log.bottleId ? (log.drinkName ?? null) : null,
@@ -346,6 +470,29 @@ export function toUpdateDrinkLogBody(
   if (state.bottleId !== initial.bottleId) {
     body.bottleId = state.bottleId;
   }
+  if (state.drinkName.trim() !== initial.drinkName.trim()) {
+    body.drinkName = normalizeOptionalText(state.drinkName);
+  }
+  if (state.producer.trim() !== initial.producer.trim()) {
+    body.producer = normalizeOptionalText(state.producer);
+  }
+  if (state.origin.trim() !== initial.origin.trim()) {
+    body.origin = normalizeOptionalText(state.origin);
+  }
+  if (state.variety.trim() !== initial.variety.trim()) {
+    body.variety = normalizeOptionalText(state.variety);
+  }
+  if (state.vintage.trim() !== initial.vintage.trim()) {
+    const vintage = state.vintage.trim();
+    body.vintage = vintage.length === 0 ? null : Number(vintage);
+  }
+  if (state.placeName.trim() !== initial.placeName.trim()) {
+    body.placeName = normalizeOptionalText(state.placeName);
+  }
+  if (state.placeLat !== initial.placeLat || state.placeLng !== initial.placeLng) {
+    body.placeLat = state.placeLat;
+    body.placeLng = state.placeLng;
+  }
   return Object.keys(body).length > 0 ? body : null;
 }
 
@@ -357,6 +504,14 @@ export function isLogFormDirty(state: LogFormState, initial: LogFormState): bool
     state.abvPercent !== initial.abvPercent ||
     state.drunkAt !== initial.drunkAt ||
     state.memo.trim().length > 0 ||
+    state.drinkName !== initial.drinkName ||
+    state.producer !== initial.producer ||
+    state.origin !== initial.origin ||
+    state.variety !== initial.variety ||
+    state.vintage !== initial.vintage ||
+    state.placeName !== initial.placeName ||
+    state.placeLat !== initial.placeLat ||
+    state.placeLng !== initial.placeLng ||
     state.bottleId !== initial.bottleId
   );
 }
@@ -373,9 +528,15 @@ export type SaveFailure = {
 };
 
 const FIELD_KEYS: readonly LogFormField[] = [
+  "drinkName",
   "volumeMl",
   "abvPercent",
   "drunkAt",
+  "producer",
+  "origin",
+  "variety",
+  "vintage",
+  "placeName",
   "memo",
   "photoIds",
   "bottleId",

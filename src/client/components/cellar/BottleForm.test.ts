@@ -41,7 +41,9 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain('mode === "new" && recognizeStatus');
     expect(source).toContain("<RecognizeBanner");
     expect(source).toContain("FieldWithAiMark");
-    expect(source).toContain('className="pill ai"');
+    expect(source).toContain("BOTTLE_FIELD_LABELS.name");
+    expect(source).toContain("BOTTLE_FIELD_LABELS.origin");
+    expect(source).toContain("capturedAtToCalendarDate");
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });
 

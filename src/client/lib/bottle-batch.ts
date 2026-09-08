@@ -8,6 +8,7 @@ import {
   validateBottleForm,
 } from "@/client/lib/bottle-form.ts";
 import type { RecognizeBannerStatus, RecognizeMarkField } from "@/client/lib/label-recognize.ts";
+import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import type { CreateBottleInput } from "@/shared/bottles.ts";
 
 /** 一度に積める行数（04-cellar G1） */
@@ -38,11 +39,15 @@ export type BottleBatchRow = {
   error: string | null;
 };
 
-export function newBatchRow(key: string, photo: PhotoAttachment): BottleBatchRow {
+export function newBatchRow(key: string, photo: PhotoAttachment, now: Date = new Date()): BottleBatchRow {
+  const form = createEmptyBottleForm(now);
+  if (photo.capturedAt) {
+    form.storedOn = capturedAtToCalendarDate(photo.capturedAt, now);
+  }
   return {
     key,
     photo,
-    form: createEmptyBottleForm(),
+    form,
     aiMarks: [],
     recognize: null,
     drinkTypeTouched: false,
@@ -151,7 +156,9 @@ export function canSubmitBatch(rows: readonly BottleBatchRow[]): boolean {
 }
 
 export function batchRowBody(row: BottleBatchRow): CreateBottleInput | null {
-  return toCreateBottleBody(row.form, row.photo.photoId);
+  return toCreateBottleBody(row.form, row.photo.photoId, {
+    capturedAt: row.photo.capturedAt,
+  });
 }
 
 /** 未紐付けのままの写真 id（破棄・行削除で `DELETE /api/photos/:id` する） */

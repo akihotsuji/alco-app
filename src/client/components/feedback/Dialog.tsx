@@ -15,6 +15,7 @@ type DialogProps = {
   pending?: boolean;
   onPrimary: () => void;
   onClose: () => void;
+  secondaryLabel?: string;
 };
 
 export function Dialog({
@@ -26,6 +27,7 @@ export function Dialog({
   pending = false,
   onPrimary,
   onClose,
+  secondaryLabel = "キャンセル",
 }: DialogProps) {
   return (
     <DialogRoot
@@ -64,7 +66,7 @@ export function Dialog({
           {pending ? "処理中" : primaryLabel}
         </Button>
         <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
-          キャンセル
+          {secondaryLabel}
         </Button>
       </DialogContent>
     </DialogRoot>
