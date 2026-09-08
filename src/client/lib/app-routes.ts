@@ -20,14 +20,14 @@ export type TabId = (typeof TAB_IDS)[number];
 export type TabDef = {
   id: TabId;
   label: string;
-  /** タブの根。中央タブ「＋ 記録」は着地画面を持たない作成動作なので `null`（00-common 1.2） */
+  /** タブの根。中央タブ「記録」は着地画面を持たない作成動作なので `null`（00-common 1.2） */
   root: string | null;
 };
 
 export const TABS: readonly TabDef[] = [
   { id: "home", label: "ホーム", root: "/" },
   { id: "cellar", label: "セラー", root: "/cellar" },
-  { id: "log", label: "＋ 記録", root: null },
+  { id: "log", label: "記録", root: null },
   { id: "notes", label: "ノート", root: "/notes" },
   { id: "settings", label: "設定", root: "/settings" },
 ];

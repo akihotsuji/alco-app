@@ -45,6 +45,7 @@ export function toTastingNote(
     id: row.id,
     drinkName: row.drinkName,
     drinkType: row.drinkType,
+    vintage: row.vintage,
     tastedOn: row.tastedOn,
     ratingX10: row.ratingX10,
     bottleId: row.bottleId,
@@ -70,6 +71,7 @@ export function toTastingNoteListItem(
     id: row.id,
     drinkName: row.drinkName,
     drinkType: row.drinkType,
+    vintage: row.vintage,
     tastedOn: row.tastedOn,
     ratingX10: row.ratingX10,
     bottleId: row.bottleId,
@@ -275,6 +277,7 @@ export async function createTastingNote(input: {
     bottleId,
     drinkName,
     drinkType,
+    vintage: body.vintage ?? null,
     tastedOn: body.tastedOn,
     appearance: normalizeNoteText(body.appearance),
     aroma: normalizeNoteText(body.aroma),
@@ -482,6 +485,7 @@ export async function updateTastingNote(input: {
 
   const patch = {
     ...(body.tastedOn === undefined ? {} : { tastedOn: body.tastedOn }),
+    ...(body.vintage === undefined ? {} : { vintage: body.vintage }),
     ...(body.ratingX10 === undefined ? {} : { ratingX10: body.ratingX10 }),
     ...(body.appearance === undefined ? {} : { appearance: normalizeNoteText(body.appearance) }),
     ...(body.aroma === undefined ? {} : { aroma: normalizeNoteText(body.aroma) }),

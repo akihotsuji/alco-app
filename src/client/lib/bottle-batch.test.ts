@@ -151,6 +151,7 @@ describe("保存可否と本数", () => {
       count: 2,
       producer: null,
       origin: null,
+      variety: null,
       vintage: null,
       purchasedOn: null,
       priceJpy: null,

@@ -36,6 +36,16 @@ export function createTastingNote(body: CreateTastingNoteInput, client: ApiClien
   return unwrap(client.api["tasting-notes"].$post({ json: body }));
 }
 
+export function recognizeNotePhoto(file: Blob, client: ApiClient = api) {
+  return unwrap(
+    client.api["tasting-notes"].recognize.$post({
+      form: {
+        file: new File([file], "note.jpg", { type: "image/jpeg" }),
+      },
+    }),
+  );
+}
+
 export function updateTastingNote(
   id: string,
   body: UpdateTastingNoteInput,

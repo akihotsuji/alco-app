@@ -72,6 +72,7 @@ export function toBottle(row: BottleRow, photoRows: readonly PhotoRow[]): Bottle
     drinkType: row.drinkType,
     producer: row.producer,
     origin: row.origin,
+    variety: row.variety,
     vintage: row.vintage,
     purchasedOn: row.purchasedOn,
     priceJpy: row.priceJpy,
@@ -291,6 +292,7 @@ function attributesFromBody(body: CreateBottleInput | UpdateBottleInput) {
     ...(body.drinkType === undefined ? {} : { drinkType: body.drinkType }),
     ...(body.producer === undefined ? {} : { producer: normalizeOptionalText(body.producer) }),
     ...(body.origin === undefined ? {} : { origin: normalizeOptionalText(body.origin) }),
+    ...(body.variety === undefined ? {} : { variety: normalizeOptionalText(body.variety) }),
     ...(body.vintage === undefined ? {} : { vintage: body.vintage }),
     ...(body.purchasedOn === undefined ? {} : { purchasedOn: body.purchasedOn }),
     ...(body.priceJpy === undefined ? {} : { priceJpy: body.priceJpy }),
@@ -332,6 +334,7 @@ export async function createBottles(input: {
     drinkType: body.drinkType,
     producer: normalizeOptionalText(body.producer),
     origin: normalizeOptionalText(body.origin),
+    variety: normalizeOptionalText(body.variety),
     vintage: body.vintage ?? null,
     purchasedOn: body.purchasedOn ?? null,
     priceJpy: body.priceJpy ?? null,
@@ -444,6 +447,7 @@ export type OwnBottleSnap = {
   name: string;
   drinkType: DrinkType;
   status: BottleStatus;
+  vintage: number | null;
 };
 
 /** 自分のボトルのみ。貯蔵庫も含む。他人・不在は同じ 404（存在を漏らさない）。 */
@@ -458,6 +462,7 @@ export async function requireOwnBottle(
       name: bottles.name,
       drinkType: bottles.drinkType,
       status: bottles.status,
+      vintage: bottles.vintage,
     })
     .from(bottles)
     .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
@@ -492,6 +497,7 @@ function searchCondition(q: string) {
   return or(
     sql`${bottles.name} LIKE ${pattern} ESCAPE '\\'`,
     sql`${bottles.producer} LIKE ${pattern} ESCAPE '\\'`,
+    sql`${bottles.variety} LIKE ${pattern} ESCAPE '\\'`,
   );
 }
 

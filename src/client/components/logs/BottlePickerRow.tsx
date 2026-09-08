@@ -28,6 +28,7 @@ export type PickedBottle = {
   name: string;
   drinkType: DrinkType;
   status: BottleStatus;
+  vintage: number | null;
 };
 
 type BottlePickerRowProps = {
@@ -117,7 +118,7 @@ export function BottlePickerRow({
             aria-label="ボトルを検索"
             value={q}
             maxLength={100}
-            placeholder="銘柄名・生産者"
+            placeholder="銘柄名・生産者・品種"
             onChange={(event) => setQ(event.target.value)}
           />
           <button
@@ -148,6 +149,7 @@ export function BottlePickerRow({
                       name: item.name,
                       drinkType: item.drinkType,
                       status: item.status,
+                      vintage: item.vintage,
                     });
                     setOpen(false);
                     setQ("");
@@ -197,6 +199,7 @@ export function usePrefillBottle(
         name: query.data.name,
         drinkType: query.data.drinkType,
         status: query.data.status,
+        vintage: query.data.vintage,
       });
     }
     if (query.isError) {

@@ -29,6 +29,7 @@ function toItem(key: string, attachment: PhotoAttachment, persisted: boolean): N
     blob: attachment.blob,
     status: attachment.status,
     persisted,
+    recognizeJpeg: attachment.recognizeJpeg,
   };
 }
 

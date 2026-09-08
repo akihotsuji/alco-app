@@ -205,6 +205,16 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           {formError}
         </p>
       ) : null}
+      <CompactPhotoField
+        onCapture={() => void startCapture("log")}
+        onLibrary={() => void startCapture("log", { source: "library" })}
+        attachment={attachment}
+        existingPreviewUrl={existingPhotoId ? photoContentUrl(existingPhotoId) : null}
+        onEdit={() => (attachment ? void editAttachment("log") : void startCapture("log"))}
+        onRetry={() => void retryUpload("log")}
+        onClear={() => (attachment ? void clearAttachment("log") : void removeExistingPhoto())}
+        error={visibleErrors.photoIds}
+      />
       <DrinkTypeSelect value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
       <BottlePickerRow
         bottleId={state.bottleId}
@@ -235,16 +245,6 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         now={new Date()}
         error={visibleErrors.drunkAt}
         onChange={(drunkAt) => update({ drunkAt }, "drunkAt")}
-      />
-      <CompactPhotoField
-        onCapture={() => void startCapture("log")}
-        onLibrary={() => void startCapture("log", { source: "library" })}
-        attachment={attachment}
-        existingPreviewUrl={existingPhotoId ? photoContentUrl(existingPhotoId) : null}
-        onEdit={() => (attachment ? void editAttachment("log") : void startCapture("log"))}
-        onRetry={() => void retryUpload("log")}
-        onClear={() => (attachment ? void clearAttachment("log") : void removeExistingPhoto())}
-        error={visibleErrors.photoIds}
       />
       <MemoField
         value={state.memo}

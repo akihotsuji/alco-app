@@ -505,7 +505,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 | クエリ | 説明 |
 |---|---|
 | `view` | `cellar`（既定。`sealed`、`createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用） |
-| `q` | 銘柄名・生産者の部分一致。最大 100 文字。空は未指定と同じ |
+| `q` | 銘柄名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
 | `drinkType` | 7 種のいずれか |
 | `limit`, `cursor` | 2.7 |
 
@@ -554,6 +554,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
     "producer":   { "value": "サンプル生産者", "confidence": 0.71 },
     "origin":     { "value": "フランス", "confidence": 0.62 },
     "vintage":    { "value": 2020, "confidence": 0.9 },
+    "variety":    { "value": "シャルドネ", "confidence": 0.7 },
     "drinkType":  { "value": "wine", "confidence": 0.95 },
     "abvPercent": { "value": 13.5, "confidence": 0.4 }
   },
@@ -566,7 +567,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 |---|---|
 | プロバイダ | **Cloudflare Workers AI**（binding `AI`。モデルは `@cf/meta/llama-4-scout-17b-16e-instruct`。公式一覧の Vision 対応・指示追従。定数は `WORKERS_AI_VISION_MODEL`）。実装は `LabelRecognizer` インターフェースにし、将来 Gemini 等を差し替えられるようにする |
 | プロンプト | サーバー固定。ユーザー入力を含めない。「JSON のみで返す」指示 + スキーマ例。言語は日本語ラベル・英語ラベル両対応 |
-| 出力の扱い | モデル出力は **信頼しない入力**として Zod で検証する。`name` / `producer` / `origin` ≦100 文字、`vintage` 1800〜2100 の整数、`drinkType` 7 種、`abvPercent` 0〜100 小数 1 桁、`confidence` 0〜1。検証に落ちたフィールドは **省く**（全体を失敗にしない）。文字列は制御文字を除去 |
+| 出力の扱い | モデル出力は **信頼しない入力**として Zod で検証する。`name` / `producer` / `origin` / `variety` ≦100 文字、`vintage` 1800〜2100 の整数、`drinkType` 7 種、`abvPercent` 0〜100 小数 1 桁、`confidence` 0〜1。検証に落ちたフィールドは **省く**（全体を失敗にしない）。文字列は制御文字を除去 |
 | 欠落 | 読めなかったフィールドは省く。`fields` が空でも 200 |
 | 上限 | ユーザーごと **30 回 / 日（JST）**。`ai_usage` を先に加算し、超過は 429 `rate_limited`。失敗（502）は加算しない |
 | タイムアウト | 20 秒。超過は 502 `upstream_error` |
@@ -600,6 +601,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404 |
 | drinkName | `bottleId` なしのとき必須 | ボトルありのときは**送っても無視**し、サーバーがボトルからコピー |
 | drinkType | `bottleId` なしのとき必須 | 同上 |
+| vintage | 任意 | 1800〜2100 または null。ボトルありでも送った値を採用（サーバーはボトルから上書きしない） |
 | tastedOn | 必須 | JST 日。未来は 400 |
 | appearance, aroma, taste, finish | 任意 | 各 ≦2000 |
 | ratingX10 | 必須 | 10〜50、5 刻み |
@@ -608,6 +610,34 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 スナップショット方針は data-model 6.4。以降のボトル改名はノートに反映しない。
 
 成功: 201（`photos` を含む）。
+
+#### POST /api/tasting-notes/recognize
+
+ノート写真（ラベル / グラス / 缶 / 瓶）から **銘柄・種類・ビンテージの候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` および `POST /api/drink-logs/recognize` と **同じ 30 回 / 日（JST）** を共有する。`/:id` より **先に登録**する。
+
+`multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。
+
+```json
+{
+  "fields": {
+    "drinkName": { "value": "サンプル赤", "confidence": 0.82 },
+    "drinkType": { "value": "wine", "confidence": 0.9 },
+    "vintage": { "value": 2020, "confidence": 0.7 }
+  },
+  "provider": "workers-ai",
+  "remainingToday": 27
+}
+```
+
+| 規則 | 内容 |
+|---|---|
+| プロバイダ | 4.5.3 と同じ Workers AI Vision。実装は `NoteRecognizer`（`LabelRecognizer` と同じ口）。プロンプトはサーバー固定（ユーザー文を混ぜない） |
+| 出力 | `drinkName` ≦100、`drinkType` 7 種、`vintage` 1800〜2100、`confidence` 0〜1。検証落ちは省く。空 `fields` でも 200 |
+| 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）、20 秒タイムアウト |
+| クライアント | 確度 0.5 未満は捨てる。空欄にだけ入れる。ボトル選択中は種類を変えない |
+| 対象 | `note-new` / `note-edit` |
+
+公開エンドポイントではない。
 
 #### GET / PATCH / DELETE /api/tasting-notes/:id
 
@@ -711,7 +741,7 @@ src/server/
   routes/drink-logs.ts  # /summary を /:id より前
   routes/my-drinks.ts
   routes/bottles.ts
-  routes/tasting-notes.ts
+  routes/tasting-notes.ts  # /recognize を /:id より前
   routes/photos.ts
   services/             # 複数ルートで共有する業務ロジック
 ```
@@ -757,7 +787,7 @@ src/server/
 | ノートと飲酒記録の同時作成 | v1.x（開栓 → 記録も作らない。2026-09-06） |
 | 切り抜きと長方形の両方を保存 | v1.x（MVP はどちらか 1 枚） |
 | Gemini / OpenAI 等の外部 Vision API | 将来。`LabelRecognizer` の差し替えで対応。外部送信の明記と承認が前提 |
-| 記録・ノート写真の AI 推定（種類・度数） | 将来 |
+| 記録・ノート写真の AI 推定 | 記録は `POST /api/drink-logs/recognize`。ノートは `POST /api/tasting-notes/recognize`（本変更） |
 | CSV エクスポート | 将来構想 |
 | アカウント削除 API | 将来（FK CASCADE は data-model 済み） |
 | パスワードリセットメール | Phase 8-03 |
@@ -785,7 +815,7 @@ src/server/
 | bottle-archive（貯蔵庫） | `GET /api/bottles?view=archive` |
 | bottle-new / bottle-edit | `POST /api/bottles`（`count`, `photoIds`）、PATCH、`POST /api/photos`、`POST /api/bottles/recognize`（bottle-new のみ） |
 | bottle-detail | `GET /api/bottles/:id`、`POST /api/bottles/:id/consume`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
-| note-list / note-detail / note-new / note-edit | `/api/tasting-notes`（`photoIds`）、`/api/photos`、`GET /api/bottles?view=all&q=` |
+| note-list / note-detail / note-new / note-edit | `/api/tasting-notes`（`photoIds`）、`POST /api/tasting-notes/recognize`、`/api/photos`、`GET /api/bottles?view=all&q=` |
 | photo-edit | `POST /api/photos`（未紐付け）、`DELETE /api/photos/:id`（破棄） |
 | settings | `GET /api/me`、Better Auth ログアウト / 表示名 |
 

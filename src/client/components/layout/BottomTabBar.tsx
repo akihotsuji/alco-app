@@ -20,7 +20,7 @@ export function BottomTabBar({ activeTab, onSelect }: BottomTabBarProps) {
     <nav className="tab-bar" aria-label="メイン">
       {TABS.map((tab) => {
         if (tab.root === null) {
-          // 中央タブは「＋ 記録」作成ボタンで着地画面を持たないため、現在地ハイライトも aria-current も付けない
+          // 中央タブは「記録」作成ボタンで着地画面を持たないため、現在地ハイライトも aria-current も付けない
           return (
             <button
               key={tab.id}

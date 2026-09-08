@@ -105,7 +105,7 @@ describe("computeMascotLayout", () => {
     expect(layout.width).toBeCloseTo(layout.height * 0.75);
     expect(layout.x).toBeCloseTo(1024 - layout.width - short * 0.04);
     expect(layout.y).toBeCloseTo(1280 - layout.height - short * 0.04);
-    expect(layout.glowRadius).toBeCloseTo(layout.width * 0.6);
+    expect("glowRadius" in layout).toBe(false);
   });
 });
 

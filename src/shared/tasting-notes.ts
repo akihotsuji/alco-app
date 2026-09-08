@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { vintageSchema } from "./bottles.ts";
 import { BOTTLE_STATUSES, PHOTO_OWNER_LIMITS } from "./constants.ts";
 import { drinkTypeSchema } from "./drink-logs.ts";
 import { photoMetaSchema } from "./photos.ts";
@@ -26,6 +27,7 @@ export const TASTING_NOTE_MESSAGES = {
   drinkName: `1文字以上${NOTE_DRINK_NAME_MAX_LENGTH}文字以内で入力してください`,
   drinkType: "種類を選んでください",
   noteText: `${NOTE_TEXT_MAX_LENGTH}文字以内で入力してください`,
+  vintage: "1800以上2100以下のビンテージを入力してください",
   photoIdsMax: `写真は${TASTING_NOTE_PHOTO_MAX}枚まで添付できます`,
   photoIdsDuplicate: "写真の指定が正しくありません",
   photoNotFound: "写真をもう一度撮ってください",
@@ -152,6 +154,7 @@ export const createTastingNoteSchema = z
     bottleId: referenceId.nullable().optional(),
     drinkName: noteDrinkNameSchema.optional(),
     drinkType: drinkTypeSchema.optional(),
+    vintage: vintageSchema.nullable().optional(),
     tastedOn: tastedOnSchema,
     appearance: noteTextSchema.nullable().optional(),
     aroma: noteTextSchema.nullable().optional(),
@@ -170,6 +173,7 @@ export const updateTastingNoteSchema = z
     bottleId: referenceId.nullable().optional(),
     drinkName: noteDrinkNameSchema.optional(),
     drinkType: drinkTypeSchema.optional(),
+    vintage: vintageSchema.nullable().optional(),
     tastedOn: tastedOnSchema.optional(),
     appearance: noteTextSchema.nullable().optional(),
     aroma: noteTextSchema.nullable().optional(),
@@ -256,6 +260,7 @@ export const tastingNoteListItemSchema = z.object({
   id: z.string(),
   drinkName: z.string(),
   drinkType: drinkTypeSchema,
+  vintage: z.number().int().nullable(),
   tastedOn: z.string(),
   ratingX10: z.number().int(),
   bottleId: z.string().nullable(),

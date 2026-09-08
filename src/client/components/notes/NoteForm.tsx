@@ -6,7 +6,9 @@ import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
+import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
+import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { NotePhotoStrip } from "@/client/components/notes/NotePhotoStrip.tsx";
@@ -50,8 +52,16 @@ import {
 } from "@/client/lib/note-form.ts";
 import type { NotePhotoItem } from "@/client/lib/note-photos.ts";
 import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
+import {
+  applyRecognizeToNoteForm,
+  countNoteRecognizeFields,
+  NOTE_RECOGNIZE_BANNER,
+  type NoteRecognizeTouched,
+} from "@/client/lib/note-recognize.ts";
+import { startNoteRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
+import { BOTTLE_FIELD_LABELS } from "@/shared/bottles.ts";
 import type { TastingNote } from "@/shared/tasting-notes.ts";
 import { NOTE_DRINK_NAME_MAX_LENGTH } from "@/shared/tasting-notes.ts";
 
@@ -90,6 +100,7 @@ function NoteNewWithBottle({ bottleId }: { bottleId: string }) {
         name: query.data.name,
         drinkType: query.data.drinkType,
         status: query.data.status,
+        vintage: query.data.vintage,
       })}
     />
   );
@@ -422,6 +433,65 @@ function NoteFormFields({
   onDiscard: () => void;
   onCloseDiscard: () => void;
 }) {
+  const { pendingRecognizeJpeg } = usePhotoEdit();
+  const [recognizeStatus, setRecognizeStatus] = useState<
+    "loading" | "success" | "failure" | null
+  >(null);
+  const touchedRef = useRef<NoteRecognizeTouched>({
+    drinkName: false,
+    drinkType: false,
+    vintage: false,
+  });
+  const recognizedJpegRef = useRef<Blob | null>(null);
+  const recognizeRequestRef = useRef(0);
+  const stateRef = useRef(state);
+  const onUpdateRef = useRef(onUpdate);
+  stateRef.current = state;
+  onUpdateRef.current = onUpdate;
+
+  useEffect(() => {
+    if (!pendingRecognizeJpeg) {
+      return;
+    }
+    startNoteRecognition(pendingRecognizeJpeg).catch(() => {});
+  }, [pendingRecognizeJpeg]);
+
+  useEffect(() => {
+    const jpeg =
+      photos.items.find((item) => item.recognizeJpeg)?.recognizeJpeg ?? pendingRecognizeJpeg;
+    if (!jpeg || recognizedJpegRef.current === jpeg) {
+      return;
+    }
+    recognizedJpegRef.current = jpeg;
+    const requestId = recognizeRequestRef.current + 1;
+    recognizeRequestRef.current = requestId;
+    setRecognizeStatus("loading");
+    void startNoteRecognition(jpeg)
+      .then((result) => {
+        if (requestId !== recognizeRequestRef.current) {
+          return;
+        }
+        if (countNoteRecognizeFields(result.fields) === 0) {
+          setRecognizeStatus("failure");
+          return;
+        }
+        onUpdateRef.current(
+          applyRecognizeToNoteForm({
+            state: stateRef.current,
+            fields: result.fields,
+            touched: touchedRef.current,
+          }).next,
+        );
+        setRecognizeStatus("success");
+      })
+      .catch(() => {
+        if (requestId !== recognizeRequestRef.current) {
+          return;
+        }
+        setRecognizeStatus("failure");
+      });
+  }, [pendingRecognizeJpeg, photos.items]);
+
   return (
     <div className="form-page log-form">
       {lead ? <p className="form-lead">{lead}</p> : null}
@@ -429,6 +499,24 @@ function NoteFormFields({
         <p className="form-error" role="alert">
           {formError}
         </p>
+      ) : null}
+      <NotePhotoStrip
+        items={photos.items}
+        canAdd={photos.canAdd}
+        error={errors.photoIds}
+        onAdd={() => void photos.addPhoto()}
+        onLibrary={() => void photos.addPhoto("library")}
+        onEdit={(key) => void photos.editPhoto(key)}
+        onRetry={(key) => void photos.retryPhoto(key)}
+        onRemove={(key) => {
+          recognizedJpegRef.current = null;
+          setRecognizeStatus(null);
+          void photos.removePhoto(key);
+        }}
+        onMakeFirst={photos.makeFirst}
+      />
+      {recognizeStatus ? (
+        <RecognizeBanner status={recognizeStatus} messages={NOTE_RECOGNIZE_BANNER} />
       ) : null}
       <BottlePickerRow
         label="セラーから選ぶ"
@@ -443,6 +531,7 @@ function NoteFormFields({
         error={errors.bottleId}
         onSelect={(bottle) => {
           if (bottle) {
+            touchedRef.current.drinkType = true;
             onUpdate(applySelectedBottle(state, bottle, { preserveEdits: true }));
           } else {
             onUpdate(clearSelectedBottle(state));
@@ -459,7 +548,10 @@ function NoteFormFields({
           maxLength={NOTE_DRINK_NAME_MAX_LENGTH}
           placeholder="例：Planeta"
           aria-invalid={errors.drinkName ? true : undefined}
-          onChange={(event) => onUpdate({ drinkName: event.target.value }, "drinkName")}
+          onChange={(event) => {
+            touchedRef.current.drinkName = true;
+            onUpdate({ drinkName: event.target.value }, "drinkName");
+          }}
         />
         {errors.drinkName ? (
           <p className="field-error" role="alert">
@@ -471,8 +563,30 @@ function NoteFormFields({
         required
         value={state.drinkType}
         error={errors.drinkType}
-        onChange={(drinkType) => onUpdate({ drinkType }, "drinkType")}
+        onChange={(drinkType) => {
+          touchedRef.current.drinkType = true;
+          onUpdate({ drinkType }, "drinkType");
+        }}
       />
+      <section className="log-form-section">
+        <FieldLabel htmlFor="note-vintage">{BOTTLE_FIELD_LABELS.vintage}</FieldLabel>
+        <Input
+          id="note-vintage"
+          value={state.vintage}
+          inputMode="numeric"
+          placeholder="NV"
+          aria-invalid={errors.vintage ? true : undefined}
+          onChange={(event) => {
+            touchedRef.current.vintage = true;
+            onUpdate({ vintage: event.target.value }, "vintage");
+          }}
+        />
+        {errors.vintage ? (
+          <p className="field-error" role="alert">
+            {errors.vintage}
+          </p>
+        ) : null}
+      </section>
       <TastedOnRow
         value={state.tastedOn}
         now={new Date()}
@@ -492,19 +606,6 @@ function NoteFormFields({
         errors={errors}
         defaultOpen={noteDetailOpen(state)}
         onChange={(field, value) => onUpdate({ [field]: value }, field)}
-        between={
-          <NotePhotoStrip
-            items={photos.items}
-            canAdd={photos.canAdd}
-            error={errors.photoIds}
-            onAdd={() => void photos.addPhoto()}
-            onLibrary={() => void photos.addPhoto("library")}
-            onEdit={(key) => void photos.editPhoto(key)}
-            onRetry={(key) => void photos.retryPhoto(key)}
-            onRemove={(key) => void photos.removePhoto(key)}
-            onMakeFirst={photos.makeFirst}
-          />
-        }
       />
       <SaveBar
         label={noteSaveButtonLabel(pending, photoStatus)}

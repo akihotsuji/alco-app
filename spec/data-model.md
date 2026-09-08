@@ -170,6 +170,7 @@ erDiagram
         text drink_type
         text producer
         text origin
+        text variety
         integer vintage
         text purchased_on
         integer price_jpy
@@ -190,6 +191,7 @@ erDiagram
         text bottle_id FK
         text drink_name
         text drink_type
+        integer vintage
         text tasted_on
         text appearance
         text aroma
@@ -295,7 +297,7 @@ erDiagram
 | `drink_logs.memo` | 0〜500 |
 | `my_drinks.name` | 1〜40 |
 | `bottles.name` / `tasting_notes.drink_name` | 1〜100 |
-| `producer` / `origin` / `shop` / `storage` | 0〜100 |
+| `producer` / `origin` / `variety` / `shop` / `storage` | 0〜100 |
 | `purchased_on` / `stored_on` | `YYYY-MM-DD`（JST）または NULL。未来不可 |
 | `bottles.memo` / ノート 4 欄 | 0〜2000 |
 | `vintage` | 1800〜2100 または NULL（NV / 未入力） |
@@ -366,6 +368,7 @@ erDiagram
 | drinkType | drink_type | text | NO | CHECK enum | 飲酒記録と同じ 7 種 |
 | producer | producer | text | YES | ≦100 | 生産者 |
 | origin | origin | text | YES | ≦100 | 産地 |
+| variety | variety | text | YES | ≦100 | 品種（ブドウ・米・ホップ等） |
 | vintage | vintage | integer | YES | 1800〜2100 | 年。NV は NULL |
 | purchasedOn | purchased_on | text | YES | `YYYY-MM-DD` | 購入日（JST）。未入力可。当日に自動設定しない |
 | priceJpy | price_jpy | integer | YES | >= 0 | 購入価格（円、小数なし） |
@@ -392,6 +395,7 @@ erDiagram
 | bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携。他ユーザーの id は 404 |
 | drinkName | drink_name | text | NO | 1〜100 | 銘柄スナップショット |
 | drinkType | drink_type | text | NO | CHECK enum | 種類スナップショット |
+| vintage | vintage | integer | YES | 1800〜2100 | ビンテージ。NV / 未入力は NULL |
 | tastedOn | tasted_on | text | NO | `YYYY-MM-DD` | 飲んだ日（JST） |
 | appearance | appearance | text | YES | ≦2000 | 外観 |
 | aroma | aroma | text | YES | ≦2000 | 香り |
@@ -401,7 +405,7 @@ erDiagram
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
 
-ボトル選択時: サーバーが自ユーザーのボトルを読み、`drink_name` / `drink_type` をコピーする。以降ボトルを改名してもノートは当時の値を保持する。ボトル詳細のノート一覧は `bottle_id` で辿る。
+ボトル選択時: サーバーが自ユーザーのボトルを読み、`drink_name` / `drink_type` をコピーする。以降ボトルを改名してもノートは当時の値を保持する。`vintage` はノート独自で、サーバーはボトルから上書きしない（クライアントが空欄ならボトルの年を埋める）。ボトル詳細のノート一覧は `bottle_id` で辿る。
 
 ボトル未選択（都度入力）: `bottle_id` は NULL。`drink_name` と `drink_type` は手入力必須。
 
@@ -617,6 +621,7 @@ export const bottles = sqliteTable(
     drinkType: text("drink_type", { enum: drinkTypeEnum }).notNull(),
     producer: text("producer"),
     origin: text("origin"),
+    variety: text("variety"),
     vintage: integer("vintage"),
     purchasedOn: text("purchased_on"),
     priceJpy: integer("price_jpy"),
@@ -647,6 +652,7 @@ export const tastingNotes = sqliteTable(
     bottleId: text("bottle_id").references(() => bottles.id, { onDelete: "set null" }),
     drinkName: text("drink_name").notNull(),
     drinkType: text("drink_type", { enum: drinkTypeEnum }).notNull(),
+    vintage: integer("vintage"),
     tastedOn: text("tasted_on").notNull(),
     appearance: text("appearance"),
     aroma: text("aroma"),

@@ -4,7 +4,6 @@ import {
   PHOTO_CUTOUT_SHADOW,
   PHOTO_DECODE_MAX_EDGE,
   PHOTO_MASCOT_ASPECT,
-  PHOTO_MASCOT_GLOW_RADIUS_RATIO,
   PHOTO_MASCOT_MARGIN_RATIO,
   PHOTO_MASCOT_SHORT_SIDE_RATIO,
   PHOTO_OUTPUT_LONG_EDGE,
@@ -31,9 +30,6 @@ export type MascotLayout = {
   y: number;
   width: number;
   height: number;
-  glowCx: number;
-  glowCy: number;
-  glowRadius: number;
 };
 
 export type CutoutPlacement = {
@@ -129,9 +125,6 @@ export function computeMascotLayout(photoWidth: number, photoHeight: number): Ma
     y,
     width,
     height,
-    glowCx: x + width / 2,
-    glowCy: y + height / 2,
-    glowRadius: width * PHOTO_MASCOT_GLOW_RADIUS_RATIO,
   };
 }
 

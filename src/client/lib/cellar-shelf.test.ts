@@ -22,6 +22,7 @@ function item(partial: Partial<BottleItem> & Pick<BottleItem, "id" | "name">): B
     drinkType: "wine",
     producer: null,
     origin: null,
+    variety: null,
     vintage: null,
     purchasedOn: null,
     priceJpy: null,

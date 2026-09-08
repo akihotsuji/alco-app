@@ -24,6 +24,7 @@ import {
   type RemoveBackgroundProgress,
   supportsBackgroundRemoval,
 } from "@/client/lib/photo/remove-background.ts";
+import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import {
   getColorCorrectionPref,
   getComposeMascotPref,
@@ -32,6 +33,7 @@ import {
   setComposeMascotPref,
   setCutoutPref,
 } from "@/client/lib/preferences.ts";
+import type { PhotoMascotPose } from "@/shared/constants.ts";
 
 const PREVIEW_DEBOUNCE_MS = 500;
 
@@ -62,6 +64,7 @@ export function PhotoEdit() {
   const [previewCutout, setPreviewCutout] = useState<HTMLCanvasElement | null>(null);
   const [cutoutMessage, setCutoutMessage] = useState<string | null>(null);
   const [mascotMounted, setMascotMounted] = useState(getComposeMascotPref);
+  const [mascotPose, setMascotPose] = useState<PhotoMascotPose>("default");
   const filterSupported = useMemo(() => supportsCanvasFilter(), []);
   const cutoutSupported = kind === "cellar" && supportsBackgroundRemoval();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -80,6 +83,7 @@ export function PhotoEdit() {
     const nextMascot = getComposeMascotPref();
     setMascotOn(nextMascot);
     setMascotMounted(nextMascot);
+    setMascotPose(pickMascotPose());
     setCutoutOn(getCutoutPref());
     setProcessing(false);
     setCutoutBusy(false);
@@ -252,10 +256,12 @@ export function PhotoEdit() {
         offsetY,
         filterOn: filterOn && filterSupported,
         mascotOn: kind !== "cellar" && mascotOn,
+        mascotPose,
         cutoutOn: kind === "cellar" && cutoutOn && cutoutSupported,
         onCutoutProgress: setCutoutProgress,
         // 背景除去を待たずにラベル読み取りを始められるよう、切り抜く前の JPEG を先に渡す
-        onRecognizeJpeg: kind === "cellar" || kind === "log" ? offerRecognizeJpeg : undefined,
+        onRecognizeJpeg:
+          kind === "cellar" || kind === "log" || kind === "note" ? offerRecognizeJpeg : undefined,
       });
       if (processed.cutout?.status === "failed") {
         // 一時的な失敗。`photo.cutout` はユーザーがトグルを操作したときだけ変える
@@ -350,7 +356,7 @@ export function PhotoEdit() {
               className={`photo-edit-mascot${reducedMotionClass()}${mascotOn ? "" : " is-off"}`}
               style={{ opacity: mascotOn ? 1 : 0 }}
             >
-              <Mascot pose="surprised" size={64} aria-hidden />
+              <Mascot pose={mascotPose} size={64} aria-hidden />
             </span>
           ) : null}
           {kind === "cellar" && (cutoutBusy || processing) ? (

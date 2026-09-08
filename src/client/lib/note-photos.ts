@@ -13,6 +13,7 @@ export type NotePhotoItem = {
   status: "uploading" | "ready" | "error";
   /** すでにこのノートへ紐付いている。未保存の新規は false */
   persisted: boolean;
+  recognizeJpeg?: Blob;
 };
 
 export function itemsFromNotePhotos(photos: readonly PhotoMeta[]): NotePhotoItem[] {
