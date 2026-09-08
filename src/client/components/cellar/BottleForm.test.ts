@@ -17,13 +17,21 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain("errors.name");
     expect(source).toContain("errors.vintage");
     expect(source).toContain("errors.purchasedOn");
+    expect(source).toContain("errors.storedOn");
     expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
     expect(source).toContain("BOTTLE_FIELD_LABELS.purchasedOn");
-    expect(source).toContain('layout="inline"');
+    expect(source).toContain("BOTTLE_FIELD_LABELS.storedOn");
+    expect(source).toContain("ボトル情報");
+    expect(source).toContain("保管情報");
+    expect(source).toContain("購入情報");
+    expect(source).not.toContain('layout="inline"');
     expect(source).toContain('type="date"');
+    expect(source).toContain("visibleFieldErrors");
+    expect(source).toContain("firstBottleDetailsErrorField");
     expect(source).toContain('className="field-error"');
     expect(source).toContain('role="alert"');
     expect(source).toContain("disabled={!canSubmit}");
+    expect(source).toContain("createEmptyBottleForm");
     expect(validateBottleForm(INITIAL_BOTTLE_FORM).name).toBe(BOTTLE_MESSAGES.name);
   });
 

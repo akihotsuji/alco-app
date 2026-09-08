@@ -22,6 +22,8 @@ export const BOTTLE_SEARCH_MAX_LENGTH = 100;
 export const BOTTLE_VIEWS = ["cellar", "archive", "all"] as const;
 export type BottleView = (typeof BOTTLE_VIEWS)[number];
 
+export const DEFAULT_BOTTLE_STORAGE = "自宅セラー";
+
 export const BOTTLE_MESSAGES = {
   name: `1文字以上${BOTTLE_NAME_MAX_LENGTH}文字以内で入力してください`,
   drinkType: "種類を選んでください",
@@ -29,6 +31,8 @@ export const BOTTLE_MESSAGES = {
   vintage: `${BOTTLE_VINTAGE_MIN}以上${BOTTLE_VINTAGE_MAX}以下のビンテージを入力してください`,
   purchasedOn: "日付の形式が正しくありません",
   purchasedOnFuture: "未来の日付は指定できません",
+  storedOn: "日付の形式が正しくありません",
+  storedOnFuture: "未来の日付は指定できません",
   priceJpy: "0以上の整数で入力してください",
   memo: `${BOTTLE_MEMO_MAX_LENGTH}文字以内で入力してください`,
   count: `${BOTTLE_COUNT_MIN}以上${BOTTLE_COUNT_MAX}以下で入力してください`,
@@ -43,7 +47,10 @@ export const BOTTLE_MESSAGES = {
 
 export const BOTTLE_FIELD_LABELS = {
   vintage: "ビンテージ",
+  storedOn: "保管日",
+  storage: "保管場所",
   purchasedOn: "購入日",
+  priceJpy: "購入価格",
 } as const;
 
 const referenceId = z.string().uuid();
@@ -55,6 +62,8 @@ export function escapeLike(value: string): string {
 export function isPurchasedOnAllowed(value: string, now: Date = new Date()): boolean {
   return parseCalendarDate(value) !== null && value <= tokyoToday(now);
 }
+
+export const isStoredOnAllowed = isPurchasedOnAllowed;
 
 export const bottleNameSchema = z
   .string({ error: BOTTLE_MESSAGES.name })
@@ -76,12 +85,24 @@ export const vintageSchema = z
   .min(BOTTLE_VINTAGE_MIN, { error: BOTTLE_MESSAGES.vintage })
   .max(BOTTLE_VINTAGE_MAX, { error: BOTTLE_MESSAGES.vintage });
 
-export const purchasedOnSchema = z
-  .string({ error: BOTTLE_MESSAGES.purchasedOn })
-  .refine((value) => parseCalendarDate(value) !== null, { error: BOTTLE_MESSAGES.purchasedOn })
-  .refine((value) => parseCalendarDate(value) === null || isPurchasedOnAllowed(value), {
-    error: BOTTLE_MESSAGES.purchasedOnFuture,
-  });
+function bottleCalendarDateSchema(invalid: string, future: string) {
+  return z
+    .string({ error: invalid })
+    .refine((value) => parseCalendarDate(value) !== null, { error: invalid })
+    .refine((value) => parseCalendarDate(value) === null || isPurchasedOnAllowed(value), {
+      error: future,
+    });
+}
+
+export const purchasedOnSchema = bottleCalendarDateSchema(
+  BOTTLE_MESSAGES.purchasedOn,
+  BOTTLE_MESSAGES.purchasedOnFuture,
+);
+
+export const storedOnSchema = bottleCalendarDateSchema(
+  BOTTLE_MESSAGES.storedOn,
+  BOTTLE_MESSAGES.storedOnFuture,
+);
 
 export const priceJpySchema = z
   .number({ error: BOTTLE_MESSAGES.priceJpy })
@@ -103,6 +124,7 @@ const bottleFields = {
   purchasedOn: purchasedOnSchema.nullable().optional(),
   priceJpy: priceJpySchema.nullable().optional(),
   shop: bottleTextSchema.nullable().optional(),
+  storedOn: storedOnSchema.nullable().optional(),
   storage: bottleTextSchema.nullable().optional(),
   memo: bottleMemoSchema.nullable().optional(),
   photoIds: z
@@ -130,6 +152,7 @@ export const updateBottleSchema = z
     purchasedOn: bottleFields.purchasedOn,
     priceJpy: bottleFields.priceJpy,
     shop: bottleFields.shop,
+    storedOn: bottleFields.storedOn,
     storage: bottleFields.storage,
     memo: bottleFields.memo,
     photoIds: bottleFields.photoIds,
@@ -185,6 +208,7 @@ export const bottleItemSchema = z
     purchasedOn: z.string().nullable(),
     priceJpy: z.number().int().nullable(),
     shop: z.string().nullable(),
+    storedOn: z.string().nullable(),
     storage: z.string().nullable(),
     memo: z.string().nullable(),
     status: bottleStatusSchema,

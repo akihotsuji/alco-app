@@ -51,12 +51,15 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
     { label: BOTTLE_FIELD_LABELS.vintage, value: vintageLabel(bottle.vintage) },
     ...(bottle.origin ? [{ label: "産地", value: bottle.origin }] : []),
     ...(bottle.producer ? [{ label: "生産者", value: bottle.producer }] : []),
-    ...(bottle.purchasedOn ? [{ label: "購入日", value: bottle.purchasedOn }] : []),
+    ...(bottle.purchasedOn
+      ? [{ label: BOTTLE_FIELD_LABELS.purchasedOn, value: bottle.purchasedOn }]
+      : []),
     ...(bottle.priceJpy !== null
       ? [{ label: "価格", value: formatPriceJpy(bottle.priceJpy) }]
       : []),
     ...(bottle.shop ? [{ label: "購入場所", value: bottle.shop }] : []),
-    ...(bottle.storage ? [{ label: "保管場所", value: bottle.storage }] : []),
+    ...(bottle.storedOn ? [{ label: BOTTLE_FIELD_LABELS.storedOn, value: bottle.storedOn }] : []),
+    ...(bottle.storage ? [{ label: BOTTLE_FIELD_LABELS.storage, value: bottle.storage }] : []),
     ...(bottle.memo ? [{ label: "メモ", value: bottle.memo }] : []),
   ];
 

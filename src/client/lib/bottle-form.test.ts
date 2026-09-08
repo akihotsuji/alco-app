@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { BOTTLE_MESSAGES, type Bottle } from "@/shared/bottles.ts";
+import { BOTTLE_MESSAGES, type Bottle, DEFAULT_BOTTLE_STORAGE } from "@/shared/bottles.ts";
+import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiClientError } from "./api.ts";
 import {
   bottleFormStateFromBottle,
   bottleStatusPill,
   canSubmitBottleForm,
+  createEmptyBottleForm,
   describeBottleSaveFailure,
   formatPriceJpy,
   hasBottleDetails,
-  INITIAL_BOTTLE_FORM,
   isBottleFormDirty,
   isUuid,
+  resolveCreateStoredOn,
   toCreateBottleBody,
   toUpdateBottleBody,
   validateBottleForm,
@@ -19,46 +21,42 @@ import {
 import { FORM_ERROR_MESSAGES } from "./log-form.ts";
 
 const NOW = new Date("2026-09-06T03:00:00.000Z");
+const EMPTY = createEmptyBottleForm(NOW);
 
 describe("validateBottleForm", () => {
   it("初期は名前空で保存できない。名前があれば通る", () => {
-    expect(validateBottleForm(INITIAL_BOTTLE_FORM, NOW).name).toBe(BOTTLE_MESSAGES.name);
-    expect(
-      canSubmitBottleForm(
-        INITIAL_BOTTLE_FORM,
-        validateBottleForm(INITIAL_BOTTLE_FORM, NOW),
-        "none",
-      ),
-    ).toBe(false);
-    const named = { ...INITIAL_BOTTLE_FORM, name: "サンプル赤" };
+    expect(validateBottleForm(EMPTY, NOW).name).toBe(BOTTLE_MESSAGES.name);
+    expect(canSubmitBottleForm(EMPTY, validateBottleForm(EMPTY, NOW), "none")).toBe(false);
+    const named = { ...EMPTY, name: "サンプル赤" };
     expect(validateBottleForm(named, NOW)).toEqual({});
     expect(canSubmitBottleForm(named, {}, "none")).toBe(true);
     expect(canSubmitBottleForm(named, {}, "uploading")).toBe(false);
   });
 
-  it("年・価格・購入日の範囲", () => {
+  it("年・価格・購入日・保管日の範囲", () => {
+    expect(validateBottleForm({ ...EMPTY, name: "赤", vintage: "1799" }, NOW).vintage).toBe(
+      BOTTLE_MESSAGES.vintage,
+    );
+    expect(validateBottleForm({ ...EMPTY, name: "赤", priceJpy: "-1" }, NOW).priceJpy).toBe(
+      BOTTLE_MESSAGES.priceJpy,
+    );
     expect(
-      validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", vintage: "1799" }, NOW).vintage,
-    ).toBe(BOTTLE_MESSAGES.vintage);
-    expect(
-      validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", priceJpy: "-1" }, NOW).priceJpy,
-    ).toBe(BOTTLE_MESSAGES.priceJpy);
-    expect(
-      validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", purchasedOn: "2026-09-07" }, NOW)
-        .purchasedOn,
+      validateBottleForm({ ...EMPTY, name: "赤", purchasedOn: "2026-09-07" }, NOW).purchasedOn,
     ).toBe(BOTTLE_MESSAGES.purchasedOnFuture);
     expect(
-      validateBottleForm({ ...INITIAL_BOTTLE_FORM, name: "赤", purchasedOn: "2026-02-30" }, NOW)
-        .purchasedOn,
+      validateBottleForm({ ...EMPTY, name: "赤", purchasedOn: "2026-02-30" }, NOW).purchasedOn,
     ).toBe(BOTTLE_MESSAGES.purchasedOn);
+    expect(validateBottleForm({ ...EMPTY, name: "赤", storedOn: "2026-09-07" }, NOW).storedOn).toBe(
+      BOTTLE_MESSAGES.storedOnFuture,
+    );
   });
 });
 
 describe("toCreate / toUpdate", () => {
-  it("作成は trim と空欄 null。写真 id を付ける", () => {
+  it("作成は trim と空欄 null。写真 id を付ける。未変更の保管日は保存日", () => {
     const body = toCreateBottleBody(
       {
-        ...INITIAL_BOTTLE_FORM,
+        ...EMPTY,
         name: "  サンプル赤  ",
         count: 3,
         producer: "  生産者  ",
@@ -66,6 +64,7 @@ describe("toCreate / toUpdate", () => {
         memo: "  ",
       },
       "11111111-1111-4111-8111-111111111111",
+      { now: NOW, storedOnTouched: false },
     );
     expect(body).toEqual({
       name: "サンプル赤",
@@ -77,25 +76,50 @@ describe("toCreate / toUpdate", () => {
       purchasedOn: null,
       priceJpy: null,
       shop: null,
-      storage: null,
+      storedOn: tokyoToday(NOW),
+      storage: DEFAULT_BOTTLE_STORAGE,
       memo: null,
       photoIds: ["11111111-1111-4111-8111-111111111111"],
     });
   });
 
-  it("編集は変わった欄だけ。写真削除は空配列", () => {
-    const initial = { ...INITIAL_BOTTLE_FORM, name: "元" };
+  it("保管日を変えたらその値。日付またぎでも手動値は維持", () => {
+    const opened = createEmptyBottleForm(new Date("2026-09-06T03:00:00.000Z"));
+    const nextDay = new Date("2026-09-07T03:00:00.000Z");
+    expect(
+      toCreateBottleBody({ ...opened, name: "赤" }, null, {
+        now: nextDay,
+        storedOnTouched: false,
+      })?.storedOn,
+    ).toBe(tokyoToday(nextDay));
+    expect(
+      toCreateBottleBody({ ...opened, name: "赤", storedOn: "2026-08-01" }, null, {
+        now: nextDay,
+        storedOnTouched: true,
+      })?.storedOn,
+    ).toBe("2026-08-01");
+    expect(resolveCreateStoredOn(opened, false, nextDay)).toBe(tokyoToday(nextDay));
+    expect(resolveCreateStoredOn({ ...opened, storedOn: "2026-08-01" }, true, nextDay)).toBe(
+      "2026-08-01",
+    );
+  });
+
+  it("編集は変わった欄だけ。写真削除は空配列。空の保管欄は埋めない", () => {
+    const initial = { ...createEmptyBottleForm(NOW), name: "元", storedOn: "", storage: "" };
     expect(toUpdateBottleBody(initial, initial, null, false)).toBeNull();
     expect(toUpdateBottleBody({ ...initial, name: "改名" }, initial, null, false)).toEqual({
       name: "改名",
     });
     expect(toUpdateBottleBody(initial, initial, null, true)).toEqual({ photoIds: [] });
+    expect(
+      toUpdateBottleBody({ ...initial, storedOn: "2026-01-02" }, initial, null, false),
+    ).toEqual({ storedOn: "2026-01-02" });
   });
 });
 
 describe("dirty / helpers", () => {
   it("本数を含むときだけ count を見る", () => {
-    const initial = INITIAL_BOTTLE_FORM;
+    const initial = EMPTY;
     expect(isBottleFormDirty(initial, initial, true)).toBe(false);
     expect(isBottleFormDirty({ ...initial, count: 2 }, initial, true)).toBe(true);
     expect(isBottleFormDirty({ ...initial, count: 2 }, initial, false)).toBe(false);
@@ -103,8 +127,10 @@ describe("dirty / helpers", () => {
   });
 
   it("詳細の有無と表示", () => {
-    expect(hasBottleDetails(INITIAL_BOTTLE_FORM)).toBe(false);
-    expect(hasBottleDetails({ ...INITIAL_BOTTLE_FORM, vintage: "2020" })).toBe(true);
+    expect(hasBottleDetails(EMPTY)).toBe(false);
+    expect(hasBottleDetails({ ...EMPTY, storage: DEFAULT_BOTTLE_STORAGE })).toBe(false);
+    expect(hasBottleDetails({ ...EMPTY, vintage: "2020" })).toBe(true);
+    expect(hasBottleDetails({ ...EMPTY, storage: "リビング" })).toBe(true);
     expect(vintageLabel(null)).toBe("NV");
     expect(vintageLabel(2020)).toBe("2020");
     expect(bottleStatusPill({ status: "sealed", consumedOn: null })).toEqual({
@@ -135,6 +161,7 @@ describe("dirty / helpers", () => {
       purchasedOn: "2026-06-01",
       priceJpy: 3800,
       shop: null,
+      storedOn: "2026-05-01",
       storage: null,
       memo: null,
       status: "sealed",
@@ -151,6 +178,12 @@ describe("dirty / helpers", () => {
       vintage: "2020",
       priceJpy: "3800",
       origin: "",
+      storedOn: "2026-05-01",
+      storage: "",
+    });
+    expect(bottleFormStateFromBottle({ ...bottle, storedOn: null, storage: null })).toMatchObject({
+      storedOn: "",
+      storage: "",
     });
   });
 });

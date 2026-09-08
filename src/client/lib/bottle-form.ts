@@ -12,14 +12,16 @@ import {
   bottleNameSchema,
   bottleTextSchema,
   type CreateBottleInput,
+  DEFAULT_BOTTLE_STORAGE,
   isPurchasedOnAllowed,
+  isStoredOnAllowed,
   normalizeOptionalText,
   priceJpySchema,
   type UpdateBottleInput,
   vintageSchema,
 } from "@/shared/bottles.ts";
 import type { DrinkType } from "@/shared/constants.ts";
-import { formatShortMonthDay, parseCalendarDate } from "@/shared/tokyo-date.ts";
+import { formatShortMonthDay, parseCalendarDate, tokyoToday } from "@/shared/tokyo-date.ts";
 
 export const DEFAULT_BOTTLE_DRINK_TYPE: DrinkType = "wine";
 
@@ -33,6 +35,7 @@ export type BottleFormState = {
   purchasedOn: string;
   priceJpy: string;
   shop: string;
+  storedOn: string;
   storage: string;
   memo: string;
 };
@@ -47,9 +50,22 @@ export type BottleFormField =
   | "purchasedOn"
   | "priceJpy"
   | "shop"
+  | "storedOn"
   | "storage"
   | "memo"
   | "photoIds";
+
+export const BOTTLE_DETAILS_ERROR_FIELDS = [
+  "producer",
+  "origin",
+  "vintage",
+  "storedOn",
+  "storage",
+  "purchasedOn",
+  "priceJpy",
+  "shop",
+  "memo",
+] as const satisfies readonly BottleFormField[];
 
 export type BottleFormErrors = Partial<Record<BottleFormField, string>>;
 
@@ -58,19 +74,24 @@ export const BOTTLE_SAVE_LABELS = {
   save: "保存する",
 } as const;
 
-export const INITIAL_BOTTLE_FORM: BottleFormState = {
-  name: "",
-  drinkType: DEFAULT_BOTTLE_DRINK_TYPE,
-  count: 1,
-  producer: "",
-  origin: "",
-  vintage: "",
-  purchasedOn: "",
-  priceJpy: "",
-  shop: "",
-  storage: "",
-  memo: "",
-};
+export function createEmptyBottleForm(now: Date = new Date()): BottleFormState {
+  return {
+    name: "",
+    drinkType: DEFAULT_BOTTLE_DRINK_TYPE,
+    count: 1,
+    producer: "",
+    origin: "",
+    vintage: "",
+    purchasedOn: "",
+    priceJpy: "",
+    shop: "",
+    storedOn: tokyoToday(now),
+    storage: DEFAULT_BOTTLE_STORAGE,
+    memo: "",
+  };
+}
+
+export const INITIAL_BOTTLE_FORM: BottleFormState = createEmptyBottleForm();
 
 export function bottleFormStateFromBottle(bottle: Bottle): BottleFormState {
   return {
@@ -83,6 +104,7 @@ export function bottleFormStateFromBottle(bottle: Bottle): BottleFormState {
     purchasedOn: bottle.purchasedOn ?? "",
     priceJpy: bottle.priceJpy === null ? "" : String(bottle.priceJpy),
     shop: bottle.shop ?? "",
+    storedOn: bottle.storedOn ?? "",
     storage: bottle.storage ?? "",
     memo: bottle.memo ?? "",
   };
@@ -138,6 +160,14 @@ export function validateBottleForm(
       errors.purchasedOn = BOTTLE_MESSAGES.purchasedOnFuture;
     }
   }
+  const storedOn = state.storedOn.trim();
+  if (storedOn.length > 0) {
+    if (parseCalendarDate(storedOn) === null) {
+      errors.storedOn = BOTTLE_MESSAGES.storedOn;
+    } else if (!isStoredOnAllowed(storedOn, now)) {
+      errors.storedOn = BOTTLE_MESSAGES.storedOnFuture;
+    }
+  }
   const price = state.priceJpy.trim();
   if (price.length > 0) {
     const parsed = Number(price);
@@ -163,6 +193,7 @@ export function canSubmitBottleForm(
 }
 
 export function hasBottleDetails(state: BottleFormState): boolean {
+  const storage = state.storage.trim();
   return (
     state.producer.trim().length > 0 ||
     state.origin.trim().length > 0 ||
@@ -170,9 +201,26 @@ export function hasBottleDetails(state: BottleFormState): boolean {
     state.purchasedOn.trim().length > 0 ||
     state.priceJpy.trim().length > 0 ||
     state.shop.trim().length > 0 ||
-    state.storage.trim().length > 0 ||
+    (storage.length > 0 && storage !== DEFAULT_BOTTLE_STORAGE) ||
     state.memo.trim().length > 0
   );
+}
+
+export function firstBottleDetailsErrorField(
+  errors: BottleFormErrors,
+): (typeof BOTTLE_DETAILS_ERROR_FIELDS)[number] | undefined {
+  return BOTTLE_DETAILS_ERROR_FIELDS.find((field) => errors[field]);
+}
+
+export function resolveCreateStoredOn(
+  state: BottleFormState,
+  storedOnTouched: boolean,
+  now: Date = new Date(),
+): string | null {
+  if (!storedOnTouched) {
+    return tokyoToday(now);
+  }
+  return state.storedOn.trim() || null;
 }
 
 function optionalFields(state: BottleFormState): {
@@ -182,6 +230,7 @@ function optionalFields(state: BottleFormState): {
   purchasedOn: string | null;
   priceJpy: number | null;
   shop: string | null;
+  storedOn: string | null;
   storage: string | null;
   memo: string | null;
 } {
@@ -194,6 +243,7 @@ function optionalFields(state: BottleFormState): {
     purchasedOn: state.purchasedOn.trim() || null,
     priceJpy: price.length === 0 ? null : Number(price),
     shop: normalizeOptionalText(state.shop),
+    storedOn: state.storedOn.trim() || null,
     storage: normalizeOptionalText(state.storage),
     memo: normalizeOptionalText(state.memo),
   };
@@ -202,15 +252,24 @@ function optionalFields(state: BottleFormState): {
 export function toCreateBottleBody(
   state: BottleFormState,
   photoId: string | null,
+  options: { now?: Date; storedOnTouched?: boolean } = {},
 ): CreateBottleInput | null {
-  if (!canSubmitBottleForm(state, validateBottleForm(state), photoId ? "ready" : "none")) {
+  const now = options.now ?? new Date();
+  const storedOnTouched = options.storedOnTouched ?? false;
+  const resolved = {
+    ...state,
+    storedOn: resolveCreateStoredOn(state, storedOnTouched, now) ?? "",
+  };
+  if (
+    !canSubmitBottleForm(resolved, validateBottleForm(resolved, now), photoId ? "ready" : "none")
+  ) {
     return null;
   }
   const body: CreateBottleInput = {
-    name: state.name.trim(),
-    drinkType: state.drinkType,
-    count: state.count,
-    ...optionalFields(state),
+    name: resolved.name.trim(),
+    drinkType: resolved.drinkType,
+    count: resolved.count,
+    ...optionalFields(resolved),
   };
   if (photoId) {
     body.photoIds = [photoId];
@@ -251,6 +310,9 @@ export function toUpdateBottleBody(
   if (next.shop !== prev.shop) {
     body.shop = next.shop;
   }
+  if (next.storedOn !== prev.storedOn) {
+    body.storedOn = next.storedOn;
+  }
   if (next.storage !== prev.storage) {
     body.storage = next.storage;
   }
@@ -286,6 +348,7 @@ export function isBottleFormDirty(
     state.purchasedOn !== initial.purchasedOn ||
     state.priceJpy !== initial.priceJpy ||
     state.shop !== initial.shop ||
+    state.storedOn !== initial.storedOn ||
     state.storage !== initial.storage ||
     state.memo !== initial.memo
   );
@@ -307,6 +370,7 @@ const FIELD_KEYS: readonly BottleFormField[] = [
   "purchasedOn",
   "priceJpy",
   "shop",
+  "storedOn",
   "storage",
   "memo",
   "photoIds",

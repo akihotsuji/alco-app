@@ -79,6 +79,7 @@ export const bottles = sqliteTable(
     purchasedOn: text("purchased_on"),
     priceJpy: integer("price_jpy"),
     shop: text("shop"),
+    storedOn: text("stored_on"),
     storage: text("storage"),
     memo: text("memo"),
     status: text("status", { enum: BOTTLE_STATUSES }).notNull().default(DEFAULT_BOTTLE_STATUS),
