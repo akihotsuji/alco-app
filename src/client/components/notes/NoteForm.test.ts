@@ -20,4 +20,12 @@ describe("NoteForm 写真先頭と AI / ビンテージ", () => {
     expect(source).toContain("applyRecognizeToNoteForm");
     expect(source).toContain("NOTE_RECOGNIZE_BANNER");
   });
+
+  it("関連付けは保存直前の任意行で、後選択は手入力を残す", () => {
+    expect(source.indexOf('placement="optional"')).toBeGreaterThan(
+      source.indexOf("<NoteTextFields"),
+    );
+    expect(source).toContain("TargetBottleChip");
+    expect(source).toContain("preserveEdits: true");
+  });
 });

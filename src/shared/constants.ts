@@ -178,6 +178,24 @@ export const UI_PREF_KEYS = {
   theme: "ui.theme",
 } as const;
 
+/** 初回ガイド（spec/features/first-run-guide.md）。値は userId 付き JSON */
+export const GUIDE_PREF_KEY = "guide.first-run";
+
+export const GUIDE_STATUSES = ["unset", "skipped", "completed", "existing"] as const;
+
+export type GuideStatus = (typeof GUIDE_STATUSES)[number];
+
+/** キャラの短い動き（character.md 6 章）。CSS トークンと揃える */
+export const MASCOT_LIFE_MS = {
+  blink: 150,
+  gaze: 240,
+  wink: 380,
+  react: 400,
+  idleBlinkMin: 15_000,
+  idleBlinkMax: 30_000,
+  tapCooldown: 1_200,
+} as const;
+
 export const REDUCE_MOTION_PREFS = ["system", "always"] as const;
 
 export type ReduceMotionPref = (typeof REDUCE_MOTION_PREFS)[number];

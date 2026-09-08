@@ -3,6 +3,7 @@ import {
   addFabForRoute,
   hidesTabBar,
   isValidLogDateParam,
+  logCreateHref,
   logFormHrefs,
   noteCreateHref,
   notesListHref,
@@ -241,6 +242,24 @@ describe("note hrefs", () => {
     expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}`).header.left).toEqual({
       kind: "back",
       fallback: `/notes?bottleId=${id}`,
+    });
+    expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}&from=detail`).header.left).toEqual({
+      kind: "back",
+      fallback: `/cellar/${id}`,
+    });
+    expect(noteCreateHref(id, "opened")).toBe(`/notes/new?bottleId=${id}&from=opened`);
+  });
+});
+
+describe("logCreateHref", () => {
+  it("ボトル詳細起点は bottleId と from を付け、戻り先を詳細にする", () => {
+    const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    expect(logCreateHref({ bottleId: id, from: "detail" })).toBe(
+      `/logs/new?bottleId=${id}&from=detail`,
+    );
+    expect(resolveAppRoute("/logs/new", NOW, `?bottleId=${id}&from=opened`).header.left).toEqual({
+      kind: "back",
+      fallback: `/cellar/${id}`,
     });
   });
 });

@@ -216,18 +216,6 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         error={visibleErrors.photoIds}
       />
       <DrinkTypeSelect value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
-      <BottlePickerRow
-        bottleId={state.bottleId}
-        bottleName={state.bottleName}
-        error={visibleErrors.bottleId}
-        onSelect={(bottle) => {
-          setState((current) =>
-            bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current),
-          );
-          setServerErrors({});
-          setFormError(null);
-        }}
-      />
       <VolumeField
         drinkType={state.drinkType}
         value={state.volumeMl}
@@ -250,6 +238,21 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         value={state.memo}
         error={visibleErrors.memo}
         onChange={(memo) => update({ memo }, "memo")}
+      />
+      <BottlePickerRow
+        placement="optional"
+        bottleId={state.bottleId}
+        bottleName={state.bottleName}
+        error={visibleErrors.bottleId}
+        onSelect={(bottle) => {
+          setState((current) =>
+            bottle
+              ? applySelectedBottle(current, bottle, { preserveEdits: true })
+              : clearSelectedBottle(current),
+          );
+          setServerErrors({});
+          setFormError(null);
+        }}
       />
       <SaveBar
         label={saveButtonLabel(updateLog.isPending, photoStatus)}

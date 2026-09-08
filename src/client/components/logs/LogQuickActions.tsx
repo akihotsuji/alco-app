@@ -11,6 +11,8 @@ type LogQuickActionsProps = {
   disabled?: boolean;
   primaryEnter?: boolean;
   onPrimary?: () => void;
+  /** 初回ガイド中は本番フォームへ進まず練習へ */
+  onPrimaryIntercept?: () => void;
 };
 
 export function LogQuickActions({
@@ -20,6 +22,7 @@ export function LogQuickActions({
   disabled = false,
   primaryEnter = false,
   onPrimary,
+  onPrimaryIntercept,
 }: LogQuickActionsProps) {
   return (
     <div className="home-actions">
@@ -32,7 +35,14 @@ export function LogQuickActions({
         <Link
           className={cn(buttonVariants(), "home-log-btn", primaryEnter && "home-log-btn-enter")}
           to={newHref}
-          onClick={onPrimary}
+          data-guide-target={onPrimaryIntercept ? "record" : undefined}
+          onClick={(event) => {
+            onPrimary?.();
+            if (onPrimaryIntercept) {
+              event.preventDefault();
+              onPrimaryIntercept();
+            }
+          }}
         >
           <Plus size={20} aria-hidden />
           お酒を記録する

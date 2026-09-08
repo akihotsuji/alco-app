@@ -42,13 +42,13 @@ alwaysApply: false
 
 - 演出は `spec/motion-design.md` の `M-xx` に **あるものだけ**を、画面設計の該当行が指す場所に作る。設計に無い動きを足さない
 - 時間・イージング・水位線の色は **モーショントークンだけ**（`--dur-*` / `--ease-*` / `--fill-tint*`）。その場の `duration-[...]` / `ease-[...]` / `transition: ... 200ms` / `@keyframes` 内の生の秒数は禁止。上限は `--dur-fill`（400ms）
-- 動くのは **状態変化の瞬間だけ**。待機ループ・シマー・バウンス・発光・パララックス・ページ遷移のスライドは禁止。`animation-iteration-count: infinite` はスピナー（`photo-spin`）以外で使わない
+- 動くのは **状態変化の瞬間だけ**。待機の揺れ・ジャンプ・シマー・発光・パララックスは禁止。`animation-iteration-count: infinite` はスピナー（`photo-spin`）以外で使わない。キャラの待機まばたきは JS が 15〜30 秒おきに 1 回発火する
 - 動かすのは `transform` と `opacity`（行の挿入は `grid-template-rows: 0fr → 1fr`）。`height` / `box-shadow` を直接アニメーションしない。outset ↔ inset は `::after` の不透明度で切り替える
 - 拡大は禁止。縮小 `scale(0.985) translateY(1px)` は主ボタンと中央タブのみ
 - 状態は `data-state`（`idle | pressed | loading | success | error`）で表し、CSS が反応する。React 側でアニメーションを制御しない。モーションライブラリ（framer-motion 等）は入れない
 - reduced motion: `useReducedMotion()`（`src/client/hooks/use-reduced-motion.ts`）と `html[data-reduce-motion="1"]` の 1 組だけ。OS 設定と設定「動きを減らす」の両方で有効にし、移動・拡縮を全廃して不透明度のフェード（≦150ms）だけ残す。`scrollIntoView` / `scrollTo` の `behavior` もこれに従う
 - 触感: `src/client/lib/haptic.ts` の `haptic("light" | "success")` 以外から `navigator.vibrate` を呼ばない。既定 OFF、失敗時は鳴らさない、キャラの動きに同期させない
-- キャラの動きは保存成功時のみ（クロスフェード、4px 移動 1 回、`cheer` の `pour`）。押下・入力・エラー・待機で動かさない
+- キャラの動きは保存成功に加え、短いまばたき・登場時の視線・タップ／完了のウィンクだけ。待機の揺れ・ジャンプは置かない。reduced motion ではまばたき・ウィンク・傾き・液面を止める
 
 ## キャラクター
 

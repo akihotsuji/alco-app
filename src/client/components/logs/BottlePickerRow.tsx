@@ -40,9 +40,15 @@ type BottlePickerRowProps = {
   valueLabel?: string;
   clearable?: boolean;
   requireSearch?: boolean;
+  /** 通常フォームは保存直前の任意行。大きなカードにしない */
+  placement?: "field" | "optional";
   error?: string;
   onSelect: (bottle: PickedBottle | null) => void;
 };
+
+export function TargetBottleChip({ name }: { name: string }) {
+  return <p className="form-target-chip">対象：{name}</p>;
+}
 
 export function BottlePickerRow({
   bottleId,
@@ -53,6 +59,7 @@ export function BottlePickerRow({
   valueLabel,
   clearable = false,
   requireSearch = false,
+  placement = "field",
   error,
   onSelect,
 }: BottlePickerRowProps) {
@@ -66,28 +73,47 @@ export function BottlePickerRow({
     pickerBottlesQueryEnabled(open, qDebounced, requireSearch),
   );
 
+  const optional = placement === "optional";
+  const displayName = valueLabel ?? bottleName;
+
   return (
-    <section className="log-form-section">
-      <FieldLabel>{label}</FieldLabel>
-      {hint ? <p className="field-hint">{hint}</p> : null}
-      <div className="form-row">
-        <button type="button" className="form-row-hit" onClick={() => setOpen(true)}>
-          <span className="form-row-value form-row-value-start">
-            {valueLabel ?? bottleName ?? emptyValue}
-          </span>
-          <ChevronRight size={20} className="form-row-chevron" aria-hidden />
+    <section className={optional ? "bottle-link-section" : "log-form-section"}>
+      {optional ? null : <FieldLabel>{label}</FieldLabel>}
+      {optional || !hint ? null : <p className="field-hint">{hint}</p>}
+      {optional && !bottleId ? (
+        <button type="button" className="bottle-link-row" onClick={() => setOpen(true)}>
+          セラーのボトルと関連付ける（任意）
         </button>
-        {clearable && bottleId ? (
-          <button
-            type="button"
-            className="form-row-clear"
-            aria-label="ボトルを解除"
-            onClick={() => onSelect(null)}
-          >
-            <X size={18} aria-hidden />
+      ) : null}
+      {optional && bottleId ? (
+        <div className="bottle-link-selected">
+          <span className="bottle-link-name">{displayName ?? "ボトル"}</span>
+          <button type="button" className="bottle-link-action" onClick={() => setOpen(true)}>
+            変更
           </button>
-        ) : null}
-      </div>
+          <button type="button" className="bottle-link-action" onClick={() => onSelect(null)}>
+            解除
+          </button>
+        </div>
+      ) : null}
+      {optional ? null : (
+        <div className="form-row">
+          <button type="button" className="form-row-hit" onClick={() => setOpen(true)}>
+            <span className="form-row-value form-row-value-start">{displayName ?? emptyValue}</span>
+            <ChevronRight size={20} className="form-row-chevron" aria-hidden />
+          </button>
+          {clearable && bottleId ? (
+            <button
+              type="button"
+              className="form-row-clear"
+              aria-label="ボトルを解除"
+              onClick={() => onSelect(null)}
+            >
+              <X size={18} aria-hidden />
+            </button>
+          ) : null}
+        </div>
+      )}
       {error ? (
         <p className="field-error" role="alert">
           {error}

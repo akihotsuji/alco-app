@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { endSession } from "@/client/auth/end-session.ts";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { DisplayNameRow } from "@/client/components/settings/DisplayNameRow.tsx";
 import { HapticPrefRow } from "@/client/components/settings/HapticPrefRow.tsx";
 import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPrefRow.tsx";
@@ -21,6 +23,8 @@ import { APP_VERSION } from "@/shared/constants.ts";
 
 export function SettingsPage() {
   const me = useMe();
+  const navigate = useNavigate();
+  const guide = useFirstRunGuide();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [composeMascot, setComposeMascot] = useState(getComposeMascotPref);
   const [colorCorrection, setColorCorrection] = useState(getColorCorrectionPref);
@@ -96,6 +100,16 @@ export function SettingsPage() {
         <h2 className="settings-heading">操作</h2>
         <HapticPrefRow />
         <ReduceMotionPrefRow />
+        <button
+          type="button"
+          className="settings-row"
+          onClick={() => {
+            guide.replay();
+            navigate("/");
+          }}
+        >
+          使い方を見る
+        </button>
         <button
           type="button"
           className="settings-row settings-logout"

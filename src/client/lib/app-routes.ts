@@ -1,3 +1,4 @@
+import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import {
   MONTH_TO_WEEK_LABEL,
   monthSummaryTitle,
@@ -138,13 +139,29 @@ function logDayPath(date: string, today: string): string {
   return date === today ? "/logs" : `/logs/${date}`;
 }
 
-/** `log-new?date=` の戻り先。過去日なら その日の `log-day`、それ以外（今日・未来・不正）は今日 */
+/** `log-new?date=` の戻り先。ボトル詳細起点は詳細へ。過去日なら その日の `log-day`、それ以外は今日 */
 function logNewFallback(search: string, today: string): string {
-  const date = new URLSearchParams(search).get("date");
+  const params = new URLSearchParams(search);
+  const bottleId = params.get("bottleId");
+  if (bottleId && isUuidParam(bottleId) && parseFormOrigin(params.get("from"))) {
+    return `/cellar/${bottleId}`;
+  }
+  const date = params.get("date");
   if (date && isValidLogDateParam(date) && date < today) {
     return logDayPath(date, today);
   }
   return "/logs";
+}
+
+function noteNewFallback(bottleId: string | null, search: string): string {
+  if (
+    bottleId &&
+    isUuidParam(bottleId) &&
+    parseFormOrigin(new URLSearchParams(search).get("from"))
+  ) {
+    return `/cellar/${bottleId}`;
+  }
+  return notesListHref(bottleId);
 }
 
 export function resolveAppRoute(
@@ -272,7 +289,7 @@ export function resolveAppRoute(
       });
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return formRoute("note-new", "notes", "ノートを作成", notesListHref(bottleId));
+      return formRoute("note-new", "notes", "ノートを作成", noteNewFallback(bottleId, search));
     }
     if (segments.length === 3 && segments[2] === "edit" && segments[1]) {
       return formRoute("note-edit", "notes", "ノートを編集", `/notes/${segments[1]}`);
@@ -320,6 +337,25 @@ export function logFormHrefs(date?: string): { newHref: string; cameraHref: stri
   };
 }
 
+export function logCreateHref(input?: {
+  date?: string;
+  bottleId?: string | null;
+  from?: "opened" | "detail" | null;
+}): string {
+  const params = new URLSearchParams();
+  if (input?.date) {
+    params.set("date", input.date);
+  }
+  if (input?.bottleId && isUuidParam(input.bottleId)) {
+    params.set("bottleId", input.bottleId);
+    if (input.from) {
+      params.set("from", input.from);
+    }
+  }
+  const query = params.toString();
+  return query ? `/logs/new?${query}` : "/logs/new";
+}
+
 export function isFutureTokyoDate(date: string, now: Date = new Date()): boolean {
   return isValidLogDateParam(date) && date > tokyoToday(now);
 }
@@ -330,9 +366,16 @@ export function isUuidParam(value: string): boolean {
   return UUID_RE.test(value);
 }
 
-export function noteCreateHref(bottleId?: string | null): string {
+export function noteCreateHref(
+  bottleId?: string | null,
+  from?: "opened" | "detail" | null,
+): string {
   if (bottleId && isUuidParam(bottleId)) {
-    return `/notes/new?bottleId=${encodeURIComponent(bottleId)}`;
+    const params = new URLSearchParams({ bottleId });
+    if (from) {
+      params.set("from", from);
+    }
+    return `/notes/new?${params.toString()}`;
   }
   return "/notes/new";
 }

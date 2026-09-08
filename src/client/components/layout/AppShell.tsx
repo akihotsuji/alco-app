@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
+import { FirstRunGuideHost } from "@/client/components/guide/FirstRunGuideHost.tsx";
+import {
+  FirstRunGuideProvider,
+  useFirstRunGuide,
+} from "@/client/components/guide/first-run-guide-context.tsx";
 import { AddFab } from "@/client/components/layout/AddFab.tsx";
 import { AppHeader } from "@/client/components/layout/AppHeader.tsx";
 import { BottomTabBar } from "@/client/components/layout/BottomTabBar.tsx";
@@ -24,7 +29,9 @@ export function AppShell() {
   return (
     <LeaveGuardProvider>
       <HeaderOverrideProvider>
-        <AppShellFrame />
+        <FirstRunGuideProvider>
+          <AppShellFrame />
+        </FirstRunGuideProvider>
       </HeaderOverrideProvider>
     </LeaveGuardProvider>
   );
@@ -34,11 +41,12 @@ function AppShellFrame() {
   const location = useLocation();
   const navigate = useNavigate();
   const photoEdit = usePhotoEdit();
+  const guide = useFirstRunGuide();
   const reduceMotion = useReducedMotion();
   const { override } = useHeaderOverride();
   const contentRef = useRef<HTMLDivElement>(null);
   const route = resolveAppRoute(location.pathname, new Date(), location.search);
-  const hideTabs = hidesTabBar(location.pathname, photoEdit.open);
+  const hideTabs = hidesTabBar(location.pathname, photoEdit.open) || guide.step === "practice";
   const addFab = hideTabs ? null : addFabForRoute(location.pathname, location.search);
   const header = {
     ...route.header,
@@ -61,6 +69,10 @@ function AppShellFrame() {
 
   function onSelectTab(tab: TabDef) {
     if (tab.root === null) {
+      if (guide.interceptRecord) {
+        guide.onHomeRecordAction();
+        return;
+      }
       // 中央タブ「記録」は着地せず記録フォームを開く。撮影は開始しない
       navigate("/logs/new");
       return;
@@ -86,6 +98,7 @@ function AppShellFrame() {
       </div>
       {hideTabs ? null : <BottomTabBar activeTab={route.parentTab} onSelect={onSelectTab} />}
       {addFab ? <AddFab fab={addFab} /> : null}
+      <FirstRunGuideHost />
       <PhotoEdit />
     </div>
   );

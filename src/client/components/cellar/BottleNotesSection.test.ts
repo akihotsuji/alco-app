@@ -10,10 +10,10 @@ const source = readFileSync(
 );
 
 describe("BottleNotesSection T6", () => {
-  it("見出しと書く・すべて・行を仕様どおりに出す", () => {
+  it("見出しとすべて・行を仕様どおりに出す。作成は T3c だけ", () => {
     expect(source).toContain("ノート");
-    expect(source).toContain("書く ›");
-    expect(source).toContain("noteCreateHref(bottleId)");
+    expect(source).not.toContain("書く ›");
+    expect(source).not.toContain("noteCreateHref");
     expect(source).toContain("notesListHref(bottleId)");
     expect(source).toContain("bottleNoteRowText");
     expect(source).toContain("bottleNotesAllLabel");

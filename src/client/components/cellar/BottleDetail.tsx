@@ -2,17 +2,23 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { BottleNotesSection } from "@/client/components/cellar/BottleNotesSection.tsx";
 import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.tsx";
+import { OpenedFollowupSheet } from "@/client/components/cellar/OpenedFollowupSheet.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
-import { noteCreateHref } from "@/client/lib/app-routes.ts";
+import { logCreateHref, noteCreateHref } from "@/client/lib/app-routes.ts";
 import { bottleStatusPill, formatPriceJpy, vintageLabel } from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
-import { bottleConsumeState, rememberShelfEvent } from "@/client/lib/history-state.ts";
+import { rememberShelfEvent } from "@/client/lib/history-state.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import {
+  markOpenedFollowupDismissed,
+  markOpenedFollowupPending,
+  shouldShowOpenedFollowup,
+} from "@/client/lib/opened-followup.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { BOTTLE_FIELD_LABELS, type Bottle } from "@/shared/bottles.ts";
 import { DRINK_TYPE_LABELS } from "@/shared/constants.ts";
@@ -31,6 +37,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const [lightbox, setLightbox] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [consumeState, setConsumeState] = useState<MotionState>("idle");
+  const [followupOpen, setFollowupOpen] = useState(() => shouldShowOpenedFollowup(bottle.id));
   const consume = useConsumeBottle();
   const restore = useRestoreBottle();
   const navigate = useNavigate();
@@ -69,6 +76,11 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
     return navigator.onLine ? FORM_ERROR_MESSAGES.generic : FORM_ERROR_MESSAGES.offline;
   }
 
+  function dismissFollowup() {
+    markOpenedFollowupDismissed(bottle.id);
+    setFollowupOpen(false);
+  }
+
   function onConsume() {
     if (pending) {
       return;
@@ -84,13 +96,9 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           createdAt: result.createdAt,
           drinkType: result.drinkType,
         });
-        navigate("/cellar", {
-          state: bottleConsumeState({
-            bottleId: result.id,
-            createdAt: result.createdAt,
-            drinkType: result.drinkType,
-          }),
-        });
+        markOpenedFollowupPending(result.id);
+        setFollowupOpen(true);
+        setConsumeState("idle");
       },
       onError: () => {
         setConsumeState("error");
@@ -156,9 +164,17 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         <p className="bottle-summary">{summary.join(" ・ ")}</p>
       </div>
       {archived ? (
-        <Button asChild>
-          <Link to={noteCreateHref(bottle.id)}>ノートを書く</Link>
-        </Button>
+        <div className="bottle-followup-actions">
+          <Link
+            className="bottle-followup-row"
+            to={logCreateHref({ bottleId: bottle.id, from: "detail" })}
+          >
+            飲んだ量を記録
+          </Link>
+          <Link className="bottle-followup-row" to={noteCreateHref(bottle.id, "detail")}>
+            テイスティングを書く
+          </Link>
+        </div>
       ) : (
         <Button
           type="button"
@@ -216,6 +232,18 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           <img src={photoContentUrl(photo.id)} alt="" />
         </button>
       ) : null}
+      <OpenedFollowupSheet
+        open={followupOpen}
+        onClose={dismissFollowup}
+        onLog={() => {
+          dismissFollowup();
+          navigate(logCreateHref({ bottleId: bottle.id, from: "opened" }));
+        }}
+        onNote={() => {
+          dismissFollowup();
+          navigate(noteCreateHref(bottle.id, "opened"));
+        }}
+      />
     </div>
   );
 }

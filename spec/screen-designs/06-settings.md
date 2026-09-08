@@ -47,6 +47,9 @@
 │ │ 動きを減らす      端末の設定に従う ›│  │  2 択セグメント（端末の設定に従う / 常に減らす）
 │ └──────────────────────────────┘  │
 │ ┌ 行 ─────────────────────────┐  │
+│ │ 使い方を見る                 ›│  │  初回ガイドを再実行
+│ └──────────────────────────────┘  │
+│ ┌ 行 ─────────────────────────┐  │
 │ │ ログアウト                    │  │  danger 文字
 │ └──────────────────────────────┘  │
 │ alco-app 0.1.0                    │  13px muted
@@ -67,10 +70,11 @@
 | S6 | ログアウト | 行（danger） | 確認ダイアログ「ログアウトしますか」→ `signOut` → `/login` | Better Auth |
 | S7 | 注記 | テキスト | バージョン（ビルド時定数） | — |
 | S8 | 触感フィードバック | スイッチ | `navigator.vibrate` による軽い振動（押下 10ms、保存成功 10-40-10ms）を有効にする。**既定 OFF**。`localStorage` `ui.haptic`。副文「対応端末（Android）で有効」。`navigator.vibrate` が無い端末（iOS）ではスイッチを無効にし副文「この端末では使えません」。ON にした瞬間に `haptic("light")` を 1 回鳴らして確認できる（[../motion-design.md](../motion-design.md) 6.5、X5） | クライアント |
-| S9 | 動きを減らす | 2 択セグメント（行内） | 「端末の設定に従う」（既定）/「常に減らす」。`localStorage` `ui.reduce-motion` = `system` / `always`。`always` または OS の `prefers-reduced-motion: reduce` で `AppShell` が `<html data-reduce-motion="1">` を付ける（[../motion-design.md](../motion-design.md) 6.8、X5）。OS 側が reduce のときは「端末の設定で動きが減っています」を副文に出す | クライアント |
+| S9 | 動きを減らす | 2 択セグメント（行内） | 「端末の設定に従う」（既定）/「常に減らす」。`localStorage` `ui.reduce-motion` = `system` / `always`。`always` または OS の `prefers-reduced-motion: reduce` で `AppShell` が `<html data-reduce-motion="1">` を付ける（[../motion-design.md](../motion-design.md) 6.8、X5）。OS 側が reduce のときは「端末の設定で動きが減っています」を副文に出す。ON のときキャラのまばたき・ウィンク・傾き・液面も止める | クライアント |
 | S10 | 外観 | チップ列 3 択（`fieldset` / `legend`） | 「端末に従う」（既定）/「ライト」/「ダーク」。`localStorage` `ui.theme` = `system` / `light` / `dark`。`main.tsx` が React の描画より前に `lib/theme.ts` で解決し `<html data-theme="light|dark">` を付ける。CSS のトークンはこの属性だけを見る（属性が付く前の初回描画は `prefers-color-scheme` フォールバック）。`system` のときは OS の外観変更（`matchMedia` change）に追従する。別タブの変更は `storage` イベントで追従。選んだ瞬間に切り替わり、リロード後も維持 | クライアント |
+| S11 | 使い方を見る | 行 | 「操作」節。タップで初回ガイドをホームの記録ボタンから再実行する（[08-first-run-guide.md](08-first-run-guide.md)）。健康情報の入力は置かない | クライアント |
 
-S8 / S9 は「操作」節としてセラー節の下、ログアウトの上に置く。S10 は「表示」節としてセラー節と操作節の間に置く。いずれもサーバーに持たない（端末ごとの設定）。
+S8 / S9 / S11 は「操作」節としてセラー節の下、ログアウトの上に置く。S10 は「表示」節としてセラー節と操作節の間に置く。いずれもサーバーに持たない（端末ごとの設定）。
 
 ### 状態
 
@@ -101,4 +105,5 @@ S8 / S9 は「操作」節としてセラー節の下、ログアウトの上に
 - [ ] 「動きを減らす = 常に減らす」で `<html data-reduce-motion="1">` が付き、移動・水位線が消える。OS が reduce のときは副文が出る
 - [ ] ログアウトに確認、成功で `/login`
 - [ ] 「外観」は既定「端末に従う」で OS に追従し、「ライト」/「ダーク」を選ぶと即時に切り替わり、リロード後も維持される（`<html data-theme>`）
+- [ ] 「使い方を見る」で初回ガイドを再実行できる
 - [ ] 招待コードが無い

@@ -1,31 +1,52 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
+import { GuideHomeBanner } from "@/client/components/guide/GuideHomeBanner.tsx";
 import { HomeWeekStrip } from "@/client/components/home/HomeWeekStrip.tsx";
 import { TodaySummaryCard } from "@/client/components/home/TodaySummaryCard.tsx";
 import { LogQuickActions } from "@/client/components/logs/LogQuickActions.tsx";
 import { MyDrinkQuickList } from "@/client/components/logs/MyDrinkQuickList.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Card } from "@/client/components/ui/card.tsx";
+import { useBottles } from "@/client/hooks/use-bottles.ts";
 import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
 import { useDrinkLogSummary } from "@/client/hooks/use-drink-log-summary.ts";
 import { useMyDrinks } from "@/client/hooks/use-my-drinks.ts";
+import { getTastingNotes } from "@/client/hooks/use-tasting-notes.ts";
 import { logFormHrefs } from "@/client/lib/app-routes.ts";
 import { haptic } from "@/client/lib/haptic.ts";
+import { parseMascotPreview, resolveMascotPresence } from "@/client/lib/mascot-presence.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
+import { queryKeys } from "@/client/lib/query-keys.ts";
 import { formatHomeDateLabel, tokyoToday } from "@/shared/tokyo-date.ts";
 
 let homePrimaryEntered = false;
 
 export function HomePage() {
   const today = tokyoToday();
+  const [searchParams] = useSearchParams();
+  const guide = useFirstRunGuide();
   // H8 は写真なしで log-new。H9 だけ「撮ってから入力へ」（中央タブは撮影しない）
   const { newHref } = logFormHrefs();
   const captureLog = useCaptureLog();
   const daySummary = useDrinkLogSummary("day", today);
   const weekSummary = useDrinkLogSummary("week", today);
   const myDrinks = useMyDrinks();
+  const homeReady = !daySummary.isPending && !weekSummary.isPending && !myDrinks.isPending;
+  const logsEmpty =
+    (daySummary.data?.totalCount ?? 0) === 0 &&
+    (weekSummary.data?.totalCount ?? 0) === 0 &&
+    (myDrinks.data?.items.length ?? 0) === 0;
+  const extraEnabled = guide.status === "unset" && homeReady && logsEmpty;
+  const bottles = useBottles({ view: "all", limit: 1 }, extraEnabled);
+  const notes = useQuery({
+    queryKey: queryKeys.tastingNotesList({ limit: 1 }),
+    queryFn: () => getTastingNotes({ limit: 1 }),
+    enabled: extraEnabled,
+  });
   const [cheering, setCheering] = useState(false);
   const [todayFilling, setTodayFilling] = useState(false);
   const previousTodayCount = useRef<number | null>(null);
@@ -35,6 +56,11 @@ export function HomePage() {
   homePrimaryEntered = true;
 
   const todayCount = daySummary.data?.totalCount ?? 0;
+  const presence = resolveMascotPresence({
+    todayCount: daySummary.data ? daySummary.data.totalCount : null,
+    preview: parseMascotPreview(searchParams.get("mascotPreview")),
+  }).presence;
+
   useEffect(() => {
     if (previousTodayCount.current === 0 && todayCount > 0) {
       setTodayFilling(true);
@@ -57,6 +83,30 @@ export function HomePage() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (guide.status !== "unset" || !homeReady) {
+      return;
+    }
+    if (!logsEmpty) {
+      guide.applyActivity(true);
+      return;
+    }
+    if (bottles.isPending || notes.isPending || bottles.isError || notes.isError) {
+      return;
+    }
+    guide.applyActivity((bottles.data?.totalCount ?? 0) > 0 || (notes.data?.totalCount ?? 0) > 0);
+  }, [
+    bottles.data?.totalCount,
+    bottles.isError,
+    bottles.isPending,
+    guide,
+    homeReady,
+    logsEmpty,
+    notes.data?.totalCount,
+    notes.isError,
+    notes.isPending,
+  ]);
 
   function cheer() {
     setCheering(true);
@@ -93,14 +143,17 @@ export function HomePage() {
             totalCount={daySummary.data.totalCount}
             totalAlcoholG={daySummary.data.totalAlcoholG}
             cheering={cheering}
+            presence={presence}
           />
         ) : null}
         <LogQuickActions
           newHref={newHref}
-          onCamera={captureLog}
+          onCamera={guide.interceptRecord ? guide.onHomeRecordAction : captureLog}
           primaryEnter={playPrimaryEnter.current}
           onPrimary={() => haptic("light")}
+          onPrimaryIntercept={guide.interceptRecord ? guide.onHomeRecordAction : undefined}
         />
+        <GuideHomeBanner />
       </div>
       {summaryPending ? (
         <div className="skeleton-card home-week-skeleton" role="status">
