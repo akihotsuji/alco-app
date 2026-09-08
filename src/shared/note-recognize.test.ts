@@ -22,7 +22,8 @@ describe("pickNoteRecognizeFields", () => {
   it("fields ラッパーと vintage の文字列を受け付ける", () => {
     expect(
       parseNoteRecognizePayload({
-        response: '{"fields":{"vintage":{"value":"2019","confidence":0.8},"drinkType":{"value":"wine","confidence":0.9}}}',
+        response:
+          '{"fields":{"vintage":{"value":"2019","confidence":0.8},"drinkType":{"value":"wine","confidence":0.9}}}',
       }),
     ).toEqual({
       vintage: { value: 2019, confidence: 0.8 },

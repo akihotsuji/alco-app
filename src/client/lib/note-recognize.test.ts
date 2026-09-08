@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyRecognizeToNoteForm } from "./note-recognize.ts";
 import { initialNoteFormState } from "./note-form.ts";
+import { applyRecognizeToNoteForm } from "./note-recognize.ts";
 
 const NOW = new Date("2026-09-08T03:00:00.000Z");
 

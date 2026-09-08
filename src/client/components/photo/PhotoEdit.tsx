@@ -6,6 +6,7 @@ import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { BOTTLE_BATCH_MESSAGES } from "@/client/lib/bottle-batch.ts";
 import { applyPreset } from "@/client/lib/photo/apply-preset.ts";
+import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import { cutoutFailedUserMessage } from "@/client/lib/photo/cutout-result.ts";
 import { prefersReducedMotion, supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
 import {
@@ -24,7 +25,6 @@ import {
   type RemoveBackgroundProgress,
   supportsBackgroundRemoval,
 } from "@/client/lib/photo/remove-background.ts";
-import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import {
   getColorCorrectionPref,
   getComposeMascotPref,

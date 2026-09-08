@@ -1,12 +1,9 @@
 import { z } from "zod";
-import {
-  BOTTLE_VINTAGE_MAX,
-  BOTTLE_VINTAGE_MIN,
-} from "./bottles.ts";
-import { NOTE_DRINK_NAME_MAX_LENGTH } from "./tasting-notes.ts";
+import { BOTTLE_VINTAGE_MAX, BOTTLE_VINTAGE_MIN } from "./bottles.ts";
 import { DEFAULT_LABEL_RECOGNIZE_PROVIDER, LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
 import { drinkTypeSchema } from "./drink-logs.ts";
 import { extractModelPayload, stripControlChars } from "./label-recognize.ts";
+import { NOTE_DRINK_NAME_MAX_LENGTH } from "./tasting-notes.ts";
 
 /**
  * `POST /api/tasting-notes/recognize` の契約。
@@ -16,7 +13,10 @@ import { extractModelPayload, stripControlChars } from "./label-recognize.ts";
 const confidenceSchema = z.number().min(0).max(1);
 
 const drinkNameCandidateSchema = z.object({
-  value: z.string().transform(stripControlChars).pipe(z.string().min(1).max(NOTE_DRINK_NAME_MAX_LENGTH)),
+  value: z
+    .string()
+    .transform(stripControlChars)
+    .pipe(z.string().min(1).max(NOTE_DRINK_NAME_MAX_LENGTH)),
   confidence: confidenceSchema,
 });
 

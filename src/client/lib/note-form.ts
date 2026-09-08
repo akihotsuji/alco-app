@@ -1,6 +1,6 @@
 import { isApiClientError } from "@/client/lib/api.ts";
-import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
 import { vintageSchema } from "@/shared/bottles.ts";
+import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
 import {
   type CreateTastingNoteInput,
   isTastedOnAllowed,

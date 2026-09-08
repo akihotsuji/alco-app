@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
@@ -8,7 +9,6 @@ import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
-import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { NotePhotoStrip } from "@/client/components/notes/NotePhotoStrip.tsx";
@@ -51,13 +51,13 @@ import {
   visibleNoteFormErrors,
 } from "@/client/lib/note-form.ts";
 import type { NotePhotoItem } from "@/client/lib/note-photos.ts";
-import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import {
   applyRecognizeToNoteForm,
   countNoteRecognizeFields,
   NOTE_RECOGNIZE_BANNER,
   type NoteRecognizeTouched,
 } from "@/client/lib/note-recognize.ts";
+import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import { startNoteRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
@@ -434,9 +434,9 @@ function NoteFormFields({
   onCloseDiscard: () => void;
 }) {
   const { pendingRecognizeJpeg } = usePhotoEdit();
-  const [recognizeStatus, setRecognizeStatus] = useState<
-    "loading" | "success" | "failure" | null
-  >(null);
+  const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | "failure" | null>(
+    null,
+  );
   const touchedRef = useRef<NoteRecognizeTouched>({
     drinkName: false,
     drinkType: false,
