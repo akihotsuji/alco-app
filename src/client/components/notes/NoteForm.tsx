@@ -58,8 +58,8 @@ import {
 import type { NotePhotoItem } from "@/client/lib/note-photos.ts";
 import {
   applyRecognizeToNoteForm,
-  latestNoteRecognizeJpeg,
   countNoteRecognizeFields,
+  latestNoteRecognizeJpeg,
   NOTE_RECOGNIZE_BANNER,
   type NoteRecognizeTouched,
 } from "@/client/lib/note-recognize.ts";

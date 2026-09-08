@@ -120,9 +120,7 @@ describe("latestNoteRecognizeJpeg", () => {
   it("最後に付いた認識用 JPEG を使う", () => {
     const first = new Blob(["a"], { type: "image/jpeg" });
     const last = new Blob(["b"], { type: "image/jpeg" });
-    expect(
-      latestNoteRecognizeJpeg([{ recognizeJpeg: first }, { recognizeJpeg: last }]),
-    ).toBe(last);
+    expect(latestNoteRecognizeJpeg([{ recognizeJpeg: first }, { recognizeJpeg: last }])).toBe(last);
     expect(latestNoteRecognizeJpeg([{}, { recognizeJpeg: first }])).toBe(first);
     expect(latestNoteRecognizeJpeg([])).toBeUndefined();
   });
