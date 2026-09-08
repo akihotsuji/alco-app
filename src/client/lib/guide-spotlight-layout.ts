@@ -142,31 +142,34 @@ export function guideTipLayout(
   return { top, left, width, placement, arrowLeft };
 }
 
-function isMeasurable(node: { getBoundingClientRect?: () => DOMRect | GuideRect } | null): boolean {
+type MeasurableBox = { getBoundingClientRect: () => DOMRect | GuideRect };
+
+function isMeasurable(node: { getBoundingClientRect?: unknown } | null): node is MeasurableBox {
   return node !== null && typeof node.getBoundingClientRect === "function";
+}
+
+function rectOf(node: MeasurableBox): GuideRect {
+  const rect = node.getBoundingClientRect();
+  return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
 }
 
 export function collectGuideMeasureRects(el: HTMLElement): GuideRect[] {
   if (!shouldMeasureGuideContents(el)) {
-    const self = el.getBoundingClientRect();
-    return [{ top: self.top, left: self.left, width: self.width, height: self.height }];
+    return [rectOf(el)];
   }
-  const parts: HTMLElement[] = [];
+  const parts: MeasurableBox[] = [];
   const legend = el.querySelector(":scope > legend");
   if (isMeasurable(legend)) {
-    parts.push(legend as HTMLElement);
+    parts.push(legend);
   }
   for (const child of el.children) {
     if (child === legend || !isMeasurable(child)) {
       continue;
     }
-    parts.push(child as HTMLElement);
+    parts.push(child);
   }
   const targets = parts.length > 0 ? parts : [el];
-  return targets.map((node) => {
-    const rect = node.getBoundingClientRect();
-    return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
-  });
+  return targets.map(rectOf);
 }
 
 export function queryPreferredGuideTarget(selector: string): {
