@@ -34,6 +34,8 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("preserveEdits: true");
     expect(source).toContain("inheritOwnedPhoto");
     expect(source).toContain("firstPhotoId");
+    expect(source).toContain("記録した品名・識別と写真を引き継ぎます。");
+    expect(source).not.toContain("写真はコピーしません");
     expect(edit).toContain("<IdentityFields");
     expect(edit).toContain("<PlaceField");
     expect(edit).not.toContain("requestCurrentPosition");

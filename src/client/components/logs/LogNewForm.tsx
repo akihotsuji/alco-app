@@ -486,7 +486,7 @@ export function LogNewForm() {
       <Dialog
         open={notePrompt !== null}
         title="テイスティングノートをつける？"
-        body="記録した品名や識別を引き継ぎます。写真はコピーしません。"
+        body="記録した品名・識別と写真を引き継ぎます。"
         primaryLabel="つける"
         secondaryLabel="あとで"
         onPrimary={() => {
