@@ -4,8 +4,17 @@ import {
   displayNameSchema,
   loginFormSchema,
   resolveSafeRedirect,
+  SESSION_EXPIRES_IN_SECONDS,
+  SESSION_UPDATE_AGE_SECONDS,
   signupFormSchema,
 } from "./auth.ts";
+
+describe("session duration constants", () => {
+  it("有効期間は 30 日、更新間隔は 1 日（秒）", () => {
+    expect(SESSION_EXPIRES_IN_SECONDS).toBe(60 * 60 * 24 * 30);
+    expect(SESSION_UPDATE_AGE_SECONDS).toBe(60 * 60 * 24);
+  });
+});
 
 describe("resolveSafeRedirect", () => {
   it("空や不正値は / にする", () => {

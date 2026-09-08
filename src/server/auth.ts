@@ -4,7 +4,12 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as authSchema from "@/db/auth-schema.ts";
 import { type AppDb, createD1Db } from "@/db/index.ts";
 import type * as schema from "@/db/schema.ts";
-import { AUTH_PASSWORD_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH } from "@/shared/auth.ts";
+import {
+  AUTH_PASSWORD_MAX_LENGTH,
+  AUTH_PASSWORD_MIN_LENGTH,
+  SESSION_EXPIRES_IN_SECONDS,
+  SESSION_UPDATE_AGE_SECONDS,
+} from "@/shared/auth.ts";
 import { readAuthSecret, resolveAuthBaseURL } from "./env.ts";
 
 export type AuthDb = AppDb | LibSQLDatabase<typeof schema>;
@@ -31,6 +36,11 @@ export function createAuth(options: CreateAuthOptions) {
       minPasswordLength: AUTH_PASSWORD_MIN_LENGTH,
       maxPasswordLength: AUTH_PASSWORD_MAX_LENGTH,
       requireEmailVerification: false,
+    },
+    session: {
+      expiresIn: SESSION_EXPIRES_IN_SECONDS,
+      updateAge: SESSION_UPDATE_AGE_SECONDS,
+      disableSessionRefresh: false,
     },
     // 2-01 の Auth スキーマに rate_limit が無いため、ストレージはメモリ（標準）
     rateLimit: {

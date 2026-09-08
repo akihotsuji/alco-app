@@ -27,6 +27,21 @@ export function isPublicApiRoute(method: string, path: string): boolean {
 }
 
 /**
+ * `auth.api.getSession` が返す Set-Cookie を Hono 応答へ載せる。
+ * サーバー内部呼び出しのヘッダーは HTTP 応答へ自動では乗らない（Better Auth 1.7.2）。
+ * 複数の Set-Cookie は append し、値はログに出さない。
+ */
+export function appendSetCookieHeaders(c: Context<AppEnv>, headers: Headers | undefined): void {
+  if (!headers) {
+    return;
+  }
+  const cookies = typeof headers.getSetCookie === "function" ? headers.getSetCookie() : [];
+  for (const cookie of cookies) {
+    c.header("Set-Cookie", cookie, { append: true });
+  }
+}
+
+/**
  * `/api/*` 全体に掛ける認証ミドルウェア。公開ルート以外はセッション必須（401）。
  * ハンドラは `c.get("user").id` だけを所有者キーにし、リクエスト中の userId は見ない。
  * Auth の組み立て（D1 接続）は公開ルートでは行わない。
@@ -40,14 +55,18 @@ export function createAuthGuard(resolveAuth: AuthResolver) {
 
     const auth = resolveAuth(c);
     c.set("auth", auth);
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) {
+    const result = await auth.api.getSession({
+      headers: c.req.raw.headers,
+      returnHeaders: true,
+    });
+    appendSetCookieHeaders(c, result.headers);
+    if (!result.response) {
       throw new ApiError("unauthorized");
     }
     c.set("user", {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
+      id: result.response.user.id,
+      email: result.response.user.email,
+      name: result.response.user.name,
     });
     await next();
   });
