@@ -67,7 +67,7 @@ pnpm exec wrangler deploy --env dev
 2. サインアップ（招待なし。メール＋パスワード）
 3. マイドリンクを 1 つ作り、今夜から使う
 
-CI 未整備のデプロイ権限はオーナーのマシンまたは手動。エージェントはトークンを受け取らず、都度 `wrangler login --device` をオーナーが承認する（正本は [spec/dev-deploy.md](../../spec/dev-deploy.md)）。
+日常の dev デプロイは `main` マージ後の GitHub Actions（[spec/features/dev-deploy-ci.md](../../spec/features/dev-deploy-ci.md)）。手動やエージェント経由は都度 `wrangler login --device` をオーナーが承認する（正本は [spec/dev-deploy.md](../../spec/dev-deploy.md)）。
 
 失敗時は `pnpm exec wrangler tail --env dev` で Workers ログを見る。サーバーはメソッドとパスだけを出す。Cookie・セッショントークン・パスワードをログに足さない。
 

@@ -9,7 +9,7 @@
 
 ## 1. 概要
 
-PR ごとに lint / typecheck / test / 依存監査（OSV-Scanner）を走らせ、壊れたコードを `main` に入れない。デプロイは Phase 7-02。本タスクは **検証のみ**。
+PR ごとに lint / typecheck / test / 依存監査（OSV-Scanner）を走らせ、壊れたコードを `main` に入れない。本タスクは **検証のみ**。dev デプロイは `.github/workflows/deploy-dev.yml`（[spec/features/dev-deploy-ci.md](../../spec/features/dev-deploy-ci.md)）。
 
 ## 2. 前提条件
 
@@ -27,7 +27,7 @@ PR ごとに lint / typecheck / test / 依存監査（OSV-Scanner）を走らせ
 
 **対象外**
 
-- デプロイジョブ
+- デプロイジョブ（`ci.yml` には足さない。dev デプロイは `deploy-dev.yml`）
 - Playwright（Phase 6。ジョブ追加時は別ファイルか matrix）
 - ブランチ保護の GitHub 設定（0-08）
 
@@ -71,7 +71,7 @@ gh pr create --title "chore: PR向けCIを追加" --body "lint / typecheck / tes
 
 3. Actions タブでパスを確認する。失敗したら修正コミットを同じ PR に足す。
 
-4. Cloudflare のトークンは **このワークフローに不要**。誤って `wrangler deploy` を足さない。
+4. Cloudflare のトークンは **`ci.yml` に不要**。誤って `wrangler deploy` を `ci.yml` に足さない。
 
 ## 7. 仕様詳細
 
@@ -131,6 +131,6 @@ permissions: デフォルトの `contents: read` で足りる。`pull-requests: 
 | install | `pnpm install --frozen-lockfile` |
 | 実行順 | `lint` → `typecheck` → `test` → OSV-Scanner（lockfile） |
 | audit | CI は **OSV-Scanner v2.5.1**（SHA256 固定）で `pnpm-lock.yaml` を検査。既知脆弱性があれば非ゼロ終了。npm の `/-/npm/v1/security/audits` は使わない（ソケットタイムアウトが多発）。黙って監査を外さない。ローカルは `pnpm audit --audit-level=high` でも可 |
-| 権限 | `contents: read`。`pull_request_target` 不使用。シークレット・デプロイなし |
+| 権限 | `contents: read`。`pull_request_target` 不使用。`ci.yml` はシークレット・デプロイなし |
 | ジョブ名 | `lint / typecheck / test / audit`（0-08 の必須チェックには使わない） |
 | 前提の緩和 | 0-06（Vitest）未マージでも、既存の `pnpm test` を CI が呼ぶ。ランナー差し替え後も script 名は変えない |

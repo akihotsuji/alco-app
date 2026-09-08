@@ -1,13 +1,15 @@
 # dev 環境デプロイ（3-07）
 
-飲酒記録が使える状態を Cloudflare の **dev Workers** に載せる手順。本番分離と CI 自動デプロイは Phase 7。後で [operations.md](operations.md)（Phase 7）へ統合する。
+飲酒記録が使える状態を Cloudflare の **dev Workers** に載せる手順。**日常の更新は GitHub Actions**（`main` マージ後に `env.dev` へ自動デプロイ）。手動 wrangler はフォールバック。本番分離と本番デプロイは Phase 7。後で [operations.md](operations.md)（Phase 7）へ統合する。
+
+自動デプロイの正本は [features/dev-deploy-ci.md](features/dev-deploy-ci.md)。
 
 ## 前提
 
 - 3-02〜3-06 が main に入っている
 - 0-03 の D1 `alco-app-dev` / R2 `alco-app-photos-dev`、Worker 名 `alco-app-dev`
-- デプロイ権限はオーナーのマシン、またはエージェントが `wrangler login --device` で都度承認を取る。トークン値はチャットに出さない
-- GitHub Secrets の `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` は Phase 7 の CI 用。エージェントの手動デプロイでは使わない
+- 自動デプロイには GitHub Secrets の `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` が必要（値はチャットに出さない）
+- 手動デプロイの権限はオーナーのマシン、またはエージェントが `wrangler login --device` で都度承認を取る。トークン値はチャットに出さない。エージェントの手動デプロイでは GitHub Secrets を使わない
 
 ## コマンド
 
@@ -30,7 +32,9 @@ pnpm exec wrangler deploy --env dev
 - デプロイ成果物の workers.dev URL は **公開しない**（招待制は採用していない）
 - workers.dev のアカウントサブドメインは Cloudflare ダッシュボードの設定。リポジトリとこのファイルには書かない
 
-初回デプロイは **2026-09-06** にオーナーが migrate / secret / deploy を実行済み。Phase 5 完了版の再デプロイは **2026-09-07**（`e057825`、デバイス認証のあと `pnpm build` と `wrangler deploy --env dev`）。以降の更新は `pnpm build` と `wrangler deploy --env dev` を毎回行う（secret は入っているので `secret put` は不要。migrate は差分があるときだけ。エージェントは毎回デバイス認証する）。
+初回デプロイは **2026-09-06** にオーナーが migrate / secret / deploy を実行済み。Phase 5 完了版の再デプロイは **2026-09-07**（`e057825`、デバイス認証のあと `pnpm build` と `wrangler deploy --env dev`）。
+
+以降の日常更新は `main` マージで `Deploy dev` ワークフローが `pnpm build`・リモート migrate・`wrangler deploy --env dev` を行う。secret は入っているので `secret put` は不要。シークレット未設定時や CI 障害時だけ、上記の手動コマンドを使う（エージェントは毎回デバイス認証する）。
 
 ## デプロイ後
 

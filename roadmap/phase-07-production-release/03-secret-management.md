@@ -64,8 +64,9 @@ GitHub: Settings → Secrets and variables → Actions。
 
 | キー | local | Workers dev | Workers prod | GitHub |
 |---|---|---|---|---|
-| BETTER_AUTH_SECRET | .dev.vars | wrangler secret | wrangler secret | 不要（デプロイしない） |
-| CLOUDFLARE_API_TOKEN | 使わない（wrangler login） | - | - | Actions |
+| BETTER_AUTH_SECRET | .dev.vars | wrangler secret | wrangler secret | 不要（Worker の wrangler secret。GitHub には置かない） |
+| CLOUDFLARE_API_TOKEN | 使わない（wrangler login） | - | - | Actions（`deploy-dev.yml`） |
+| CLOUDFLARE_ACCOUNT_ID | 使わない | - | - | Actions（`deploy-dev.yml`） |
 
 Auth secret は環境ごとに変える（dev 漏洩が本番セッションを割れない）。
 

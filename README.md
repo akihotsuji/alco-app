@@ -56,7 +56,7 @@ pnpm build
 pnpm exec wrangler dev --env dev
 ```
 
-デプロイ（dev）は [spec/dev-deploy.md](spec/dev-deploy.md)。エージェントからは毎回 `wrangler login --device` をオーナーが承認してから `pnpm build` と `wrangler deploy --env dev` を実行する。
+デプロイ（dev）の日常経路は GitHub Actions（[spec/features/dev-deploy-ci.md](spec/features/dev-deploy-ci.md)）。`main` の CI が成功すると `pnpm build`・リモート D1 migrate・`wrangler deploy --env dev` が走る。手動は [spec/dev-deploy.md](spec/dev-deploy.md)。エージェントから手動デプロイするときは毎回 `wrangler login --device` をオーナーが承認してから同じコマンドを実行する。
 
 ## クライアントのデータ取得
 
@@ -94,7 +94,7 @@ Workers の `Env` 型は `worker-configuration.d.ts`（`wrangler types --env dev
 
 ## CI
 
-PR と `main` への push で GitHub Actions（`.github/workflows/ci.yml`）が次を実行する。デプロイはしない。
+PR と `main` への push で GitHub Actions（`.github/workflows/ci.yml`）が次を実行する。このワークフローはデプロイしない。`main` の CI 成功後は `.github/workflows/deploy-dev.yml` が Cloudflare `env.dev` へ載せる。
 
 ```powershell
 pnpm install --frozen-lockfile
