@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { CELLAR_PREF_KEYS, PHOTO_PREF_KEYS, UI_PREF_KEYS } from "@/shared/constants.ts";
+import {
+  CELLAR_PREF_KEYS,
+  LOGS_PREF_KEYS,
+  PHOTO_PREF_KEYS,
+  UI_PREF_KEYS,
+} from "@/shared/constants.ts";
 import {
   getCellarListViewPref,
   getCellarRecognizePref,
@@ -7,6 +12,7 @@ import {
   getComposeMascotPref,
   getCutoutPref,
   getHapticPref,
+  getRecordLocationPref,
   getReduceMotionPref,
   parseReduceMotionPref,
   setCellarListViewPref,
@@ -15,6 +21,7 @@ import {
   setComposeMascotPref,
   setCutoutPref,
   setHapticPref,
+  setRecordLocationPref,
   setReduceMotionPref,
 } from "./preferences.ts";
 
@@ -110,6 +117,20 @@ describe("UI 操作設定", () => {
     expect(getHapticPref()).toBe(true);
     setHapticPref(false);
     expect(memory.get(UI_PREF_KEYS.haptic)).toBe("false");
+  });
+
+  it("現在地を記録するは既定 ON で、キーは logs.recordLocation", () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: localStorageStub,
+    });
+    expect(LOGS_PREF_KEYS.recordLocation).toBe("logs.recordLocation");
+    expect(getRecordLocationPref()).toBe(true);
+    setRecordLocationPref(false);
+    expect(memory.get(LOGS_PREF_KEYS.recordLocation)).toBe("false");
+    expect(getRecordLocationPref()).toBe(false);
+    setRecordLocationPref(true);
+    expect(memory.get(LOGS_PREF_KEYS.recordLocation)).toBe("true");
   });
 
   it("動きを減らすは既定 system、always を保存できる", () => {

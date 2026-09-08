@@ -7,6 +7,7 @@ import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-cont
 import { GuideFanMenu } from "@/client/components/guide/GuideFanMenu.tsx";
 import { DisplayNameRow } from "@/client/components/settings/DisplayNameRow.tsx";
 import { HapticPrefRow } from "@/client/components/settings/HapticPrefRow.tsx";
+import { RecordLocationPrefRow } from "@/client/components/settings/RecordLocationPrefRow.tsx";
 import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPrefRow.tsx";
 import { ThemePrefRow } from "@/client/components/settings/ThemePrefRow.tsx";
 import { Switch } from "@/client/components/ui/switch.tsx";
@@ -29,6 +30,9 @@ export function SettingsPage() {
   const reduceMotion = useReducedMotion();
   const fanAnchorRef = useRef<HTMLDivElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [composeMascot, setComposeMascot] = useState(getComposeMascotPref);
+  const [colorCorrection, setColorCorrection] = useState(getColorCorrectionPref);
+  const [recognize, setRecognize] = useState(getCellarRecognizePref);
 
   useLayoutEffect(() => {
     if (!guide.pickerOpen) {
@@ -49,9 +53,6 @@ export function SettingsPage() {
       behavior: reduceMotion ? "auto" : "smooth",
     });
   }, [guide.pickerOpen, reduceMotion]);
-  const [composeMascot, setComposeMascot] = useState(getComposeMascotPref);
-  const [colorCorrection, setColorCorrection] = useState(getColorCorrectionPref);
-  const [recognize, setRecognize] = useState(getCellarRecognizePref);
 
   return (
     <div className="settings-page">
@@ -112,6 +113,11 @@ export function SettingsPage() {
           </span>
           <span className="settings-caption">写真を Cloudflare の AI に送ります</span>
         </div>
+      </section>
+
+      <section className="settings-section">
+        <h2 className="settings-heading">記録</h2>
+        <RecordLocationPrefRow />
       </section>
 
       <section className="settings-section">

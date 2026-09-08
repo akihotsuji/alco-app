@@ -36,6 +36,70 @@ export type PlaceCoords = {
   placeLng?: number | null;
 };
 
+export type PlaceInput = PlaceCoords & {
+  placeName?: string | null;
+};
+
+export const PLACE_UI = {
+  recorded: "現在地を記録しました",
+  formMapsWithCoords: "この場所を地図で見る",
+  formMapsNameOnly: "この場所を地図で探す",
+  dayHeading: "その日いた場所",
+  dayUnnamed: "地図で見る",
+} as const;
+
+export type DayPlaceLink = {
+  key: string;
+  label: string;
+  href: string;
+};
+
+export function hasPlaceCoords(
+  input: PlaceInput,
+): input is PlaceInput & { placeLat: number; placeLng: number } {
+  return typeof input.placeLat === "number" && typeof input.placeLng === "number";
+}
+
+export function placeMapsLinkLabel(input: PlaceInput): string {
+  return hasPlaceCoords(input) ? PLACE_UI.formMapsWithCoords : PLACE_UI.formMapsNameOnly;
+}
+
+function roundCoord(value: number): string {
+  return value.toFixed(4);
+}
+
+export function placeDedupeKey(input: PlaceInput): string {
+  const name = input.placeName?.trim() ?? "";
+  if (hasPlaceCoords(input)) {
+    return `${name}|${roundCoord(input.placeLat)}|${roundCoord(input.placeLng)}`;
+  }
+  return `name:${name}`;
+}
+
+/** 日別の「その日いた場所」。自前生成かつ安全な URL だけ返す */
+export function placesForDay(items: readonly PlaceInput[]): DayPlaceLink[] {
+  const seen = new Set<string>();
+  const places: DayPlaceLink[] = [];
+  for (const item of items) {
+    const href = googleMapsSearchUrl(item);
+    if (!href || !isSafeGoogleMapsHref(href)) {
+      continue;
+    }
+    const key = placeDedupeKey(item);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    const name = item.placeName?.trim() ?? "";
+    places.push({
+      key,
+      label: name || PLACE_UI.dayUnnamed,
+      href,
+    });
+  }
+  return places;
+}
+
 export function placeCoordsArePaired(value: PlaceCoords): boolean {
   const hasLat = value.placeLat !== undefined && value.placeLat !== null;
   const hasLng = value.placeLng !== undefined && value.placeLng !== null;

@@ -8,7 +8,7 @@ const source = readFileSync(
   "utf8",
 );
 
-describe("SettingsPage S11", () => {
+describe("SettingsPage S11 / S12", () => {
   it("操作節に使い方を見るがあり、扇からツアーを始める", () => {
     expect(source).toContain("使い方を見る");
     expect(source).toContain("GuideFanMenu");
@@ -18,5 +18,16 @@ describe("SettingsPage S11", () => {
     expect(source).toContain("scrollIntoView");
     expect(source).not.toContain("guide.replay()");
     expect(source).not.toContain("健康");
+  });
+
+  it("記録節に現在地を記録するがある", () => {
+    expect(source).toContain("記録");
+    expect(source).toContain("RecordLocationPrefRow");
+    expect(source.indexOf('<h2 className="settings-heading">記録</h2>')).toBeGreaterThan(
+      source.indexOf('<h2 className="settings-heading">セラー</h2>'),
+    );
+    expect(source.indexOf('<h2 className="settings-heading">表示</h2>')).toBeGreaterThan(
+      source.indexOf('<h2 className="settings-heading">記録</h2>'),
+    );
   });
 });

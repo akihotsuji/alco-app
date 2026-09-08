@@ -1,9 +1,13 @@
+import { MapPin } from "lucide-react";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import {
   googleMapsSearchUrl,
+  hasPlaceCoords,
   isSafeGoogleMapsHref,
   PLACE_NAME_MAX_LENGTH,
+  PLACE_UI,
+  placeMapsLinkLabel,
 } from "@/shared/place.ts";
 
 type PlaceFieldProps = {
@@ -21,12 +25,14 @@ export function PlaceField({
   error,
   onChangeName,
 }: PlaceFieldProps) {
-  const href = googleMapsSearchUrl({
+  const place = {
     placeName: placeName.trim() || null,
     placeLat,
     placeLng,
-  });
+  };
+  const href = googleMapsSearchUrl(place);
   const safeHref = href && isSafeGoogleMapsHref(href) ? href : null;
+  const recorded = hasPlaceCoords(place);
 
   return (
     <section className="log-form-section">
@@ -41,9 +47,11 @@ export function PlaceField({
         aria-invalid={error ? true : undefined}
         onChange={(event) => onChangeName(event.target.value)}
       />
+      {recorded ? <p className="place-recorded">{PLACE_UI.recorded}</p> : null}
       {safeHref ? (
         <a className="place-maps-link" href={safeHref} target="_blank" rel="noreferrer">
-          Google マップで開く
+          <MapPin size={16} aria-hidden />
+          {placeMapsLinkLabel(place)}
         </a>
       ) : null}
       {error ? (
