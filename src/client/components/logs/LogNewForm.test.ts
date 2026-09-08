@@ -28,6 +28,7 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source.indexOf("<PlaceField")).toBeGreaterThan(source.indexOf("<DrunkAtRow"));
     expect(source.indexOf("<MemoField")).toBeGreaterThan(source.indexOf("<PlaceField"));
     expect(source).toContain("requestCurrentPosition");
+    expect(source).toContain("getRecordLocationPref");
     expect(source).toContain("capturedAtToDrunkAt");
     expect(source).toContain("テイスティングノートをつける？");
     expect(source).toContain("noteFromLogHref");

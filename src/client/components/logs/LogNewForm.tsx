@@ -54,6 +54,7 @@ import {
 import type { MotionState } from "@/client/lib/motion.ts";
 import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import { capturedAtToDrunkAt, shouldKeepQueryDrunkAt } from "@/client/lib/photo/captured-at.ts";
+import { getRecordLocationPref } from "@/client/lib/preferences.ts";
 import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { DRINK_LOG_MESSAGES, DRINK_NAME_MAX_LENGTH } from "@/shared/drink-logs.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
@@ -181,6 +182,9 @@ export function LogNewForm() {
       return;
     }
     geoRequested.current = true;
+    if (!getRecordLocationPref()) {
+      return;
+    }
     void requestCurrentPosition().then((position) => {
       if (!position) {
         return;

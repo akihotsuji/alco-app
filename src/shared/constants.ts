@@ -217,11 +217,16 @@ export const CELLAR_PREF_KEYS = {
   listView: "cellar.listView",
 } as const;
 
-/** 操作設定の localStorage キー（spec/screen-designs/06-settings.md S8 / S9、motion-design 6.5 / 6.7） */
+/** 操作設定の localStorage キー（spec/screen-designs/06-settings.md S8 / S9 / S10、motion-design 6.5 / 6.7） */
 export const UI_PREF_KEYS = {
   haptic: "ui.haptic",
   reduceMotion: "ui.reduce-motion",
   theme: "ui.theme",
+} as const;
+
+/** 記録設定（06-settings S12） */
+export const LOGS_PREF_KEYS = {
+  recordLocation: "logs.recordLocation",
 } as const;
 
 /** 初回ガイド（spec/features/first-run-guide.md）。値は userId 付き JSON */

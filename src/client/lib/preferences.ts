@@ -3,6 +3,7 @@ import {
   CELLAR_PREF_KEYS,
   type CellarListView,
   DEFAULT_CELLAR_LIST_VIEW,
+  LOGS_PREF_KEYS,
   PHOTO_PREF_KEYS,
   REDUCE_MOTION_PREFS,
   type ReduceMotionPref,
@@ -87,6 +88,11 @@ export function setCellarListViewPref(value: CellarListView): void {
 const hapticPref = flagPref(UI_PREF_KEYS.haptic, false);
 export const getHapticPref = hapticPref.get;
 export const setHapticPref = hapticPref.set;
+
+/** 現在地を記録する（06-settings S12）。既定 ON */
+const recordLocationPref = flagPref(LOGS_PREF_KEYS.recordLocation, true);
+export const getRecordLocationPref = recordLocationPref.get;
+export const setRecordLocationPref = recordLocationPref.set;
 
 export function parseReduceMotionPref(raw: string | null): ReduceMotionPref {
   for (const value of REDUCE_MOTION_PREFS) {
