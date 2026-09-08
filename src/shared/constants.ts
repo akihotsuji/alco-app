@@ -84,9 +84,9 @@ export const PHOTO_SCALE_MAX = 3;
 export const PHOTO_MASCOT_SHORT_SIDE_RATIO = 0.22;
 export const PHOTO_MASCOT_MARGIN_RATIO = 0.04;
 export const PHOTO_MASCOT_ASPECT = { width: 3, height: 4 } as const;
-export const PHOTO_MASCOT_GLOW_RADIUS_RATIO = 0.6;
 export const PHOTO_MASCOT_STROKE = "#2B261F";
-export const PHOTO_MASCOT_GLOW = "rgba(255, 255, 255, 0.6)";
+export const PHOTO_MASCOT_POSES = ["default", "surprised", "rest", "cheer"] as const;
+export type PhotoMascotPose = (typeof PHOTO_MASCOT_POSES)[number];
 
 export const PHOTO_DECODE_MAX_EDGE = 2560;
 

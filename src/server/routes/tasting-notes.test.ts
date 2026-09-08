@@ -58,6 +58,7 @@ describe("POST /api/tasting-notes", () => {
     expect(body).toMatchObject({
       drinkName: "サンプル赤",
       drinkType: "wine",
+      vintage: null,
       tastedOn: TODAY,
       ratingX10: 45,
       appearance: null,
@@ -97,6 +98,23 @@ describe("POST /api/tasting-notes", () => {
     );
     expect((await postNote(ctx.app, a.cookie, { ...HAND, bottleId: MISSING })).status).toBe(404);
     expect(await ctx.db.select().from(tastingNotes)).toHaveLength(1);
+  });
+
+  it("ビンテージは任意。作成と PATCH で保存する", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const created = tastingNoteSchema.parse(
+      await (await postNote(ctx.app, a.cookie, { ...HAND, vintage: 2018 })).json(),
+    );
+    expect(created.vintage).toBe(2018);
+    const patched = tastingNoteSchema.parse(
+      await (await patchNote(ctx.app, a.cookie, created.id, { vintage: 2020 })).json(),
+    );
+    expect(patched.vintage).toBe(2020);
+    const cleared = tastingNoteSchema.parse(
+      await (await patchNote(ctx.app, a.cookie, created.id, { vintage: null })).json(),
+    );
+    expect(cleared.vintage).toBeNull();
   });
 
   it("評価 3.3 / 未来日 / 7 枚は 400。ノートは作らない", async () => {

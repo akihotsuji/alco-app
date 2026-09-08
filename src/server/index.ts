@@ -17,6 +17,7 @@ import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
 import { createWorkersAiDrinkRecognizer } from "./services/drink-recognizer/workers-ai.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import { createWorkersAiRecognizer } from "./services/label-recognizer/workers-ai.ts";
+import { createWorkersAiNoteRecognizer } from "./services/note-recognizer/workers-ai.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
 
@@ -26,6 +27,7 @@ export type CreateAppOptions = {
   photos?: PhotoBucket;
   labelRecognizer?: LabelRecognizer;
   drinkRecognizer?: LabelRecognizer;
+  noteRecognizer?: LabelRecognizer;
   recognizeTimeoutMs?: number;
 };
 
@@ -94,7 +96,11 @@ export function createApp(options: CreateAppOptions = {}) {
     getLabelRecognizer: (c) => options.labelRecognizer ?? createWorkersAiRecognizer(c.env.AI),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
   });
-  const tastingNotesRoute = createTastingNotesRoute(routeDeps);
+  const tastingNotesRoute = createTastingNotesRoute({
+    ...routeDeps,
+    getNoteRecognizer: (c) => options.noteRecognizer ?? createWorkersAiNoteRecognizer(c.env.AI),
+    recognizeTimeoutMs: options.recognizeTimeoutMs,
+  });
 
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app

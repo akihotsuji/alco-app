@@ -49,6 +49,7 @@ function NoteDetailBody({ note }: { note: TastingNote }) {
         <RatingStars ratingX10={note.ratingX10} size={20} />
         <strong>{formatRatingX10(note.ratingX10)}</strong>
         <span className="note-detail-date">{formatLongJapaneseDate(note.tastedOn)}</span>
+        {note.vintage !== null ? <span>{note.vintage}</span> : null}
       </div>
       {note.bottle ? (
         <Link className="form-row note-bottle-link" to={`/cellar/${note.bottle.id}`}>

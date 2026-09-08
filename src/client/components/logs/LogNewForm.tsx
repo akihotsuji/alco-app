@@ -246,6 +246,21 @@ export function LogNewForm() {
           {formError}
         </p>
       ) : null}
+      <CompactPhotoField
+        onCapture={() => void startCapture("log")}
+        onLibrary={() => void startCapture("log", { source: "library" })}
+        attachment={attachment}
+        onEdit={() => void editAttachment("log")}
+        onRetry={() => void retryUpload("log")}
+        onClear={() => {
+          recognizedJpegRef.current = null;
+          setRecognizeStatus(null);
+          void clearAttachment("log");
+        }}
+        error={visibleErrors.photoIds}
+        recognizeStatus={recognizeStatus}
+        recognizeMessage={recognizeStatus ? DRINK_RECOGNIZE_BANNER[recognizeStatus] : undefined}
+      />
       <DrinkTypeSelect
         value={state.drinkType}
         onChange={(drinkType) => {
@@ -297,21 +312,6 @@ export function LogNewForm() {
         now={now}
         error={visibleErrors.drunkAt}
         onChange={(drunkAt) => update({ drunkAt }, "drunkAt")}
-      />
-      <CompactPhotoField
-        onCapture={() => void startCapture("log")}
-        onLibrary={() => void startCapture("log", { source: "library" })}
-        attachment={attachment}
-        onEdit={() => void editAttachment("log")}
-        onRetry={() => void retryUpload("log")}
-        onClear={() => {
-          recognizedJpegRef.current = null;
-          setRecognizeStatus(null);
-          void clearAttachment("log");
-        }}
-        error={visibleErrors.photoIds}
-        recognizeStatus={recognizeStatus}
-        recognizeMessage={recognizeStatus ? DRINK_RECOGNIZE_BANNER[recognizeStatus] : undefined}
       />
       <MemoField
         value={state.memo}

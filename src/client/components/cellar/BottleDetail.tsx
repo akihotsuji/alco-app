@@ -43,12 +43,14 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const summary = [
     DRINK_TYPE_LABELS[bottle.drinkType],
     vintageLabel(bottle.vintage),
+    bottle.variety,
     bottle.origin,
   ].filter((value): value is string => Boolean(value));
   const rows: { label: string; value: string }[] = [
     { label: "銘柄名", value: bottle.name },
     { label: "種類", value: DRINK_TYPE_LABELS[bottle.drinkType] },
     { label: BOTTLE_FIELD_LABELS.vintage, value: vintageLabel(bottle.vintage) },
+    ...(bottle.variety ? [{ label: BOTTLE_FIELD_LABELS.variety, value: bottle.variety }] : []),
     ...(bottle.origin ? [{ label: "産地", value: bottle.origin }] : []),
     ...(bottle.producer ? [{ label: "生産者", value: bottle.producer }] : []),
     ...(bottle.purchasedOn

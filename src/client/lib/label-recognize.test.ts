@@ -10,6 +10,7 @@ describe("applyRecognizeToForm", () => {
         name: { value: "AI名", confidence: 0.9 },
         producer: { value: "生産者", confidence: 0.71 },
         origin: { value: "フランス", confidence: 0.49 },
+        variety: { value: "カベルネ", confidence: 0.8 },
         vintage: { value: 2020, confidence: 0.9 },
         drinkType: { value: "whisky", confidence: 0.95 },
         abvPercent: { value: 13.5, confidence: 0.99 },
@@ -20,7 +21,9 @@ describe("applyRecognizeToForm", () => {
     expect(result.next.name).toBe("手入力");
     expect(result.next.producer).toBe("生産者");
     expect(result.next.origin).toBe("");
+    expect(result.next.variety).toBe("カベルネ");
     expect(result.next.vintage).toBe("2020");
+    expect(result.marks.has("variety")).toBe(true);
     expect(result.next.drinkType).toBe("whisky");
     expect(result.next.storedOn).toBe(INITIAL_BOTTLE_FORM.storedOn);
     expect(result.next.storage).toBe(INITIAL_BOTTLE_FORM.storage);

@@ -24,7 +24,7 @@ describe("isValidLogDateParam", () => {
 });
 
 describe("TABS", () => {
-  it("中央タブ「＋ 記録」だけ根を持たない（作成ボタン。00-common 1.2）", () => {
+  it("中央タブ「記録」だけ根を持たない（作成ボタン。00-common 1.2）", () => {
     expect(TABS.map((tab) => tab.id)).toEqual(["home", "cellar", "log", "notes", "settings"]);
     expect(TABS.find((tab) => tab.id === "log")?.root).toBeNull();
     for (const tab of TABS.filter((tab) => tab.id !== "log")) {

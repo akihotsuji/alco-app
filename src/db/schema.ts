@@ -75,6 +75,7 @@ export const bottles = sqliteTable(
     drinkType: text("drink_type", { enum: DRINK_TYPES }).notNull(),
     producer: text("producer"),
     origin: text("origin"),
+    variety: text("variety"),
     vintage: integer("vintage"),
     purchasedOn: text("purchased_on"),
     priceJpy: integer("price_jpy"),
@@ -134,6 +135,7 @@ export const tastingNotes = sqliteTable(
     // ボトル改名後も当時の値を残すためのスナップショット
     drinkName: text("drink_name").notNull(),
     drinkType: text("drink_type", { enum: DRINK_TYPES }).notNull(),
+    vintage: integer("vintage"),
     tastedOn: text("tasted_on").notNull(),
     appearance: text("appearance"),
     aroma: text("aroma"),

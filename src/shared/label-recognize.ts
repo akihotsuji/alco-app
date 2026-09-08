@@ -58,6 +58,7 @@ export const recognizeFieldKeys = [
   "name",
   "producer",
   "origin",
+  "variety",
   "vintage",
   "drinkType",
   "abvPercent",
@@ -70,6 +71,7 @@ export const recognizeFieldsSchema = z
     name: textCandidateSchema(BOTTLE_NAME_MAX_LENGTH).optional(),
     producer: textCandidateSchema(BOTTLE_TEXT_MAX_LENGTH).optional(),
     origin: textCandidateSchema(BOTTLE_TEXT_MAX_LENGTH).optional(),
+    variety: textCandidateSchema(BOTTLE_TEXT_MAX_LENGTH).optional(),
     vintage: vintageCandidateSchema.optional(),
     drinkType: drinkTypeCandidateSchema.optional(),
     abvPercent: abvCandidateSchema.optional(),
@@ -111,6 +113,10 @@ export function pickRecognizeFields(raw: unknown): RecognizeFields {
   const origin = textCandidateSchema(BOTTLE_TEXT_MAX_LENGTH).safeParse(source.origin);
   if (origin.success) {
     fields.origin = origin.data;
+  }
+  const variety = textCandidateSchema(BOTTLE_TEXT_MAX_LENGTH).safeParse(source.variety);
+  if (variety.success) {
+    fields.variety = variety.data;
   }
   const vintage = vintageCandidateSchema.safeParse(source.vintage);
   if (vintage.success) {

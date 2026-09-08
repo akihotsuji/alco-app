@@ -55,9 +55,6 @@ import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { CountStepper } from "./CountStepper.tsx";
 
 const DETAIL_FIELD_IDS: Record<(typeof BOTTLE_DETAILS_ERROR_FIELDS)[number], string> = {
-  producer: "bottle-producer",
-  origin: "bottle-origin",
-  vintage: "bottle-vintage",
   storedOn: "bottle-stored-on",
   storage: "bottle-storage",
   purchasedOn: "bottle-purchased-on",
@@ -191,6 +188,9 @@ export function BottleFormFields({
     if (patch.origin !== undefined) {
       clearAiMark("origin");
     }
+    if (patch.variety !== undefined) {
+      clearAiMark("variety");
+    }
     if (patch.vintage !== undefined) {
       clearAiMark("vintage");
     }
@@ -267,9 +267,6 @@ export function BottleFormFields({
         });
         if (applied) {
           setAiMarks(applied.marks);
-          if (applied.openDetails) {
-            setDetailsOpen(true);
-          }
         }
         setRecognizeStatus("success");
       })
@@ -454,6 +451,47 @@ export function BottleFormFields({
       {mode === "new" ? (
         <CountStepper value={state.count} onChange={(count) => update({ count })} />
       ) : null}
+      <div className="bottle-details-pair">
+        <DetailField
+          id="bottle-vintage"
+          label={BOTTLE_FIELD_LABELS.vintage}
+          value={state.vintage}
+          inputMode="numeric"
+          placeholder="NV"
+          error={errors.vintage}
+          aiMarked={aiMarks.has("vintage")}
+          onChange={(vintage) => update({ vintage })}
+        />
+        <DetailField
+          id="bottle-variety"
+          label={BOTTLE_FIELD_LABELS.variety}
+          value={state.variety}
+          maxLength={BOTTLE_TEXT_MAX_LENGTH}
+          placeholder="例：カベルネ"
+          error={errors.variety}
+          aiMarked={aiMarks.has("variety")}
+          onChange={(variety) => update({ variety })}
+        />
+      </div>
+      <DetailField
+        id="bottle-producer"
+        label="生産者"
+        value={state.producer}
+        maxLength={BOTTLE_TEXT_MAX_LENGTH}
+        error={errors.producer}
+        aiMarked={aiMarks.has("producer")}
+        onChange={(producer) => update({ producer })}
+      />
+      <DetailField
+        id="bottle-origin"
+        label="産地"
+        value={state.origin}
+        maxLength={BOTTLE_TEXT_MAX_LENGTH}
+        placeholder="例：シチリア"
+        error={errors.origin}
+        aiMarked={aiMarks.has("origin")}
+        onChange={(origin) => update({ origin })}
+      />
       <section className="log-form-section">
         <button
           type="button"
@@ -468,39 +506,6 @@ export function BottleFormFields({
         </button>
         {detailsOpen ? (
           <div id={detailsId} className="bottle-details">
-            <DetailsSection title="ボトル情報" optional>
-              <DetailField
-                id="bottle-producer"
-                label="生産者"
-                value={state.producer}
-                maxLength={BOTTLE_TEXT_MAX_LENGTH}
-                error={errors.producer}
-                aiMarked={aiMarks.has("producer")}
-                onChange={(producer) => update({ producer })}
-              />
-              <div className="bottle-details-pair">
-                <DetailField
-                  id="bottle-origin"
-                  label="産地"
-                  value={state.origin}
-                  maxLength={BOTTLE_TEXT_MAX_LENGTH}
-                  placeholder="例：シチリア"
-                  error={errors.origin}
-                  aiMarked={aiMarks.has("origin")}
-                  onChange={(origin) => update({ origin })}
-                />
-                <DetailField
-                  id="bottle-vintage"
-                  label={BOTTLE_FIELD_LABELS.vintage}
-                  value={state.vintage}
-                  inputMode="numeric"
-                  placeholder="NV"
-                  error={errors.vintage}
-                  aiMarked={aiMarks.has("vintage")}
-                  onChange={(vintage) => update({ vintage })}
-                />
-              </div>
-            </DetailsSection>
             <DetailsSection title="保管情報">
               <DetailField
                 id="bottle-stored-on"

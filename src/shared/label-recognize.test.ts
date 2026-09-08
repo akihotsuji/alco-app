@@ -13,6 +13,7 @@ describe("pickRecognizeFields", () => {
       name: { value: "サンプル赤", confidence: 0.86 },
       producer: { value: "x".repeat(101), confidence: 0.9 },
       origin: { value: "フランス\u0000", confidence: 0.7 },
+      variety: { value: "カベルネ", confidence: 0.8 },
       vintage: { value: 1200, confidence: 0.9 },
       drinkType: { value: "vodka", confidence: 0.9 },
       abvPercent: { value: 13.55, confidence: 0.4 },
@@ -21,6 +22,7 @@ describe("pickRecognizeFields", () => {
     expect(fields).toEqual({
       name: { value: "サンプル赤", confidence: 0.86 },
       origin: { value: "フランス", confidence: 0.7 },
+      variety: { value: "カベルネ", confidence: 0.8 },
       abvPercent: { value: 13.6, confidence: 0.4 },
     });
   });

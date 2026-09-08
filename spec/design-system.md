@@ -250,7 +250,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | `--mascot-wine-light` | `#B34A5A` | `#B34A5A` | 水面ハイライト |
 | `--mascot-ink` | `#1F1B17` | `#1F1B17` | 黒目・閉じた目（テーマで変えない） |
 | `--mascot-line` | `var(--foreground)` | `var(--foreground)` | 輪郭（`currentColor` で継承） |
-| `--mascot-glow` | `rgba(255,255,255,0.6)` | 同じ | 写真合成時の背後グロー |
+| `--mascot-glow` | `rgba(255,255,255,0.6)` | 同じ | **使わない**。写真合成の背後グローは廃止（2026-09-08）。トークンは互換のため残す |
 
 サイズは `size` プロップ（px）。トークンにしない。
 

@@ -320,7 +320,7 @@ describe("GET /api/bottles", () => {
     expect(other.totalCount).toBe(1);
   });
 
-  it("q は自分の銘柄名・生産者だけ。% はリテラル", async () => {
+  it("q は自分の銘柄名・生産者・品種だけ。% はリテラル", async () => {
     const ctx = await createTestApp();
     const [a, b] = await createTestUserPair(ctx.app, [
       { name: "A", email: "a@example.com", password: "password1" },
@@ -331,7 +331,11 @@ describe("GET /api/bottles", () => {
       drinkType: "wine",
       producer: "山の生産者",
     });
-    await postBottle(ctx.app, a.cookie, { name: "別の白", drinkType: "wine" });
+    await postBottle(ctx.app, a.cookie, {
+      name: "別の白",
+      drinkType: "wine",
+      variety: "シャルドネ",
+    });
     await postBottle(ctx.app, b.cookie, { name: "100%赤", drinkType: "wine" });
 
     const percent = bottlesResponseSchema.parse(
@@ -345,6 +349,12 @@ describe("GET /api/bottles", () => {
     );
     expect(producer.items).toHaveLength(1);
     expect(producer.items[0]?.producer).toBe("山の生産者");
+
+    const variety = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "q=シャルドネ")).json(),
+    );
+    expect(variety.items).toHaveLength(1);
+    expect(variety.items[0]?.variety).toBe("シャルドネ");
   });
 
   it("view=all は貯蔵庫も含む。archive は consumedAt 降順", async () => {

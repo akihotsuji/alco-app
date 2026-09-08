@@ -1,4 +1,5 @@
 import { isApiClientError } from "@/client/lib/api.ts";
+import { vintageSchema } from "@/shared/bottles.ts";
 import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
 import {
   type CreateTastingNoteInput,
@@ -18,6 +19,7 @@ export type NoteFormState = {
   bottleStatus: BottleStatus | null;
   drinkName: string;
   drinkType: DrinkType | null;
+  vintage: string;
   tastedOn: string;
   ratingX10: number | null;
   appearance: string;
@@ -29,6 +31,7 @@ export type NoteFormState = {
 export type NoteFormField =
   | "drinkName"
   | "drinkType"
+  | "vintage"
   | "tastedOn"
   | "ratingX10"
   | "appearance"
@@ -62,6 +65,7 @@ export function initialNoteFormState(now: Date = new Date()): NoteFormState {
     bottleStatus: null,
     drinkName: "",
     drinkType: null,
+    vintage: "",
     tastedOn: tokyoToday(now),
     ratingX10: null,
     appearance: "",
@@ -73,11 +77,18 @@ export function initialNoteFormState(now: Date = new Date()): NoteFormState {
 
 export function applySelectedBottle(
   state: NoteFormState,
-  bottle: { id: string; name: string; drinkType: DrinkType; status: BottleStatus },
+  bottle: {
+    id: string;
+    name: string;
+    drinkType: DrinkType;
+    status: BottleStatus;
+    vintage?: number | null;
+  },
   options: { preserveEdits?: boolean } = {},
 ): NoteFormState {
   const keepName = options.preserveEdits && state.drinkName.trim().length > 0;
   const keepType = options.preserveEdits && state.drinkType !== null;
+  const keepVintage = options.preserveEdits && state.vintage.trim().length > 0;
   return {
     ...state,
     bottleId: bottle.id,
@@ -85,6 +96,11 @@ export function applySelectedBottle(
     bottleStatus: bottle.status,
     drinkName: keepName ? state.drinkName : bottle.name,
     drinkType: keepType ? state.drinkType : bottle.drinkType,
+    vintage: keepVintage
+      ? state.vintage
+      : bottle.vintage === null || bottle.vintage === undefined
+        ? ""
+        : String(bottle.vintage),
   };
 }
 
@@ -105,6 +121,7 @@ export function noteFormStateFromNote(note: TastingNote): NoteFormState {
     bottleStatus: note.bottle?.status ?? null,
     drinkName: note.drinkName,
     drinkType: note.drinkType,
+    vintage: note.vintage === null ? "" : String(note.vintage),
     tastedOn: note.tastedOn,
     ratingX10: note.ratingX10,
     appearance: note.appearance ?? "",
@@ -144,6 +161,10 @@ export function validateNoteForm(state: NoteFormState, now: Date = new Date()): 
     if (!state.drinkType) {
       errors.drinkType = TASTING_NOTE_MESSAGES.drinkType;
     }
+  }
+  const vintage = state.vintage.trim();
+  if (vintage.length > 0 && !vintageSchema.safeParse(Number(vintage)).success) {
+    errors.vintage = TASTING_NOTE_MESSAGES.vintage;
   }
   for (const key of ["appearance", "aroma", "taste", "finish"] as const) {
     if (state[key].length > NOTE_TEXT_MAX_LENGTH) {
@@ -242,6 +263,8 @@ export function toCreateTastingNoteBody(
     body.drinkName = state.drinkName.trim();
     body.drinkType = state.drinkType;
   }
+  const vintage = state.vintage.trim();
+  body.vintage = vintage.length === 0 ? null : Number(vintage);
   const appearance = optionalText(state.appearance);
   const aroma = optionalText(state.aroma);
   const taste = optionalText(state.taste);
@@ -272,6 +295,10 @@ export function toUpdateTastingNoteBody(
   const body: UpdateTastingNoteInput = {};
   if (state.tastedOn !== initial.tastedOn) {
     body.tastedOn = state.tastedOn;
+  }
+  if (state.vintage.trim() !== initial.vintage.trim()) {
+    const vintage = state.vintage.trim();
+    body.vintage = vintage.length === 0 ? null : Number(vintage);
   }
   if (state.ratingX10 !== initial.ratingX10 && state.ratingX10 !== null) {
     body.ratingX10 = state.ratingX10;
@@ -315,6 +342,7 @@ export function isNoteFormDirty(state: NoteFormState, initial: NoteFormState): b
     state.bottleId !== initial.bottleId ||
     state.drinkName !== initial.drinkName ||
     state.drinkType !== initial.drinkType ||
+    state.vintage !== initial.vintage ||
     state.tastedOn !== initial.tastedOn ||
     state.ratingX10 !== initial.ratingX10 ||
     state.appearance !== initial.appearance ||
@@ -334,6 +362,7 @@ export type NoteSaveFailure = {
 const FIELD_KEYS: readonly NoteFormField[] = [
   "drinkName",
   "drinkType",
+  "vintage",
   "tastedOn",
   "ratingX10",
   "appearance",

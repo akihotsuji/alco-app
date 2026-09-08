@@ -36,6 +36,7 @@ describe("BottleDetail 状態バッジ", () => {
 
   it("プロパティの年はビンテージと書く", () => {
     expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
+    expect(source).toContain("BOTTLE_FIELD_LABELS.variety");
     expect(source).not.toContain('label: "年"');
     expect(source).toContain("BOTTLE_FIELD_LABELS.storedOn");
     expect(source).toContain("BOTTLE_FIELD_LABELS.storage");

@@ -1,0 +1,59 @@
+import { DRINK_TYPES } from "@/shared/constants.ts";
+
+/** サーバー固定。ユーザー入力は含めない。ラベルまたはグラス写真から銘柄・種類・年を推測する */
+export const NOTE_RECOGNIZE_SYSTEM_PROMPT = [
+  "You estimate tasting-note fields from a photo of a drink, glass, can, or bottle label.",
+  "Return JSON only. No markdown. No extra keys.",
+  "Prefer printed label text. If a field is not fully readable, infer a likely value from the glass, bottle, and typical brand/type/vintage.",
+  "Use lower confidence for inferred values. Omit a field only when you have no reasonable guess.",
+  "Do not invent completely unrelated brands. Do not encourage drinking.",
+  "Schema:",
+  "{",
+  '  "drinkName": { "value": string, "confidence": number },',
+  '  "drinkType": { "value": string, "confidence": number },',
+  '  "vintage": { "value": number, "confidence": number }',
+  "}",
+  `drinkType must be one of: ${DRINK_TYPES.join(", ")}.`,
+  "wine=ワイン/wine glass/wine bottle, beer=ビール/beer glass/pint/can, whisky=ウイスキー/rocks glass,",
+  "sake=日本酒/ochoko/tokkuri, shochu=焼酎, cocktail=カクテル/cocktail glass, other=不明・その他.",
+  "drinkName is the brand, cuvée, or recognizable drink name. Max 100 characters.",
+  "vintage is a 4-digit year from 1800 to 2100. Omit for NV / non-vintage / beer / cocktails without a year.",
+  "confidence is 0 to 1.",
+].join(" ");
+
+export const NOTE_RECOGNIZE_USER_PROMPT =
+  "Guess the drink name, type, and vintage from this photo and return the JSON object described in the system message.";
+
+export const NOTE_RECOGNIZE_GUIDED_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    drinkName: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        value: { type: "string" },
+        confidence: { type: "number" },
+      },
+      required: ["value", "confidence"],
+    },
+    drinkType: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        value: { type: "string", enum: [...DRINK_TYPES] },
+        confidence: { type: "number" },
+      },
+      required: ["value", "confidence"],
+    },
+    vintage: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        value: { type: "integer" },
+        confidence: { type: "number" },
+      },
+      required: ["value", "confidence"],
+    },
+  },
+} as const;

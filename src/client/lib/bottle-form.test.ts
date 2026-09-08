@@ -72,6 +72,7 @@ describe("toCreate / toUpdate", () => {
       count: 3,
       producer: "生産者",
       origin: null,
+      variety: null,
       vintage: 2020,
       purchasedOn: null,
       priceJpy: null,
@@ -129,7 +130,8 @@ describe("dirty / helpers", () => {
   it("詳細の有無と表示", () => {
     expect(hasBottleDetails(EMPTY)).toBe(false);
     expect(hasBottleDetails({ ...EMPTY, storage: DEFAULT_BOTTLE_STORAGE })).toBe(false);
-    expect(hasBottleDetails({ ...EMPTY, vintage: "2020" })).toBe(true);
+    expect(hasBottleDetails({ ...EMPTY, vintage: "2020" })).toBe(false);
+    expect(hasBottleDetails({ ...EMPTY, variety: "カベルネ" })).toBe(false);
     expect(hasBottleDetails({ ...EMPTY, storage: "リビング" })).toBe(true);
     expect(vintageLabel(null)).toBe("NV");
     expect(vintageLabel(2020)).toBe("2020");
@@ -157,6 +159,7 @@ describe("dirty / helpers", () => {
       drinkType: "wine",
       producer: "生産者",
       origin: null,
+      variety: null,
       vintage: 2020,
       purchasedOn: "2026-06-01",
       priceJpy: 3800,

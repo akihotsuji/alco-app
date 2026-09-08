@@ -31,6 +31,7 @@ export type BottleFormState = {
   count: number;
   producer: string;
   origin: string;
+  variety: string;
   vintage: string;
   purchasedOn: string;
   priceJpy: string;
@@ -46,6 +47,7 @@ export type BottleFormField =
   | "count"
   | "producer"
   | "origin"
+  | "variety"
   | "vintage"
   | "purchasedOn"
   | "priceJpy"
@@ -56,9 +58,6 @@ export type BottleFormField =
   | "photoIds";
 
 export const BOTTLE_DETAILS_ERROR_FIELDS = [
-  "producer",
-  "origin",
-  "vintage",
   "storedOn",
   "storage",
   "purchasedOn",
@@ -81,6 +80,7 @@ export function createEmptyBottleForm(now: Date = new Date()): BottleFormState {
     count: 1,
     producer: "",
     origin: "",
+    variety: "",
     vintage: "",
     purchasedOn: "",
     priceJpy: "",
@@ -100,6 +100,7 @@ export function bottleFormStateFromBottle(bottle: Bottle): BottleFormState {
     count: 1,
     producer: bottle.producer ?? "",
     origin: bottle.origin ?? "",
+    variety: bottle.variety ?? "",
     vintage: bottle.vintage === null ? "" : String(bottle.vintage),
     purchasedOn: bottle.purchasedOn ?? "",
     priceJpy: bottle.priceJpy === null ? "" : String(bottle.priceJpy),
@@ -135,6 +136,9 @@ export function validateBottleForm(
   }
   if (!bottleTextSchema.safeParse(state.origin).success) {
     errors.origin = BOTTLE_MESSAGES.text;
+  }
+  if (!bottleTextSchema.safeParse(state.variety).success) {
+    errors.variety = BOTTLE_MESSAGES.text;
   }
   if (!bottleTextSchema.safeParse(state.shop).success) {
     errors.shop = BOTTLE_MESSAGES.text;
@@ -195,9 +199,6 @@ export function canSubmitBottleForm(
 export function hasBottleDetails(state: BottleFormState): boolean {
   const storage = state.storage.trim();
   return (
-    state.producer.trim().length > 0 ||
-    state.origin.trim().length > 0 ||
-    state.vintage.trim().length > 0 ||
     state.purchasedOn.trim().length > 0 ||
     state.priceJpy.trim().length > 0 ||
     state.shop.trim().length > 0 ||
@@ -226,6 +227,7 @@ export function resolveCreateStoredOn(
 function optionalFields(state: BottleFormState): {
   producer: string | null;
   origin: string | null;
+  variety: string | null;
   vintage: number | null;
   purchasedOn: string | null;
   priceJpy: number | null;
@@ -239,6 +241,7 @@ function optionalFields(state: BottleFormState): {
   return {
     producer: normalizeOptionalText(state.producer),
     origin: normalizeOptionalText(state.origin),
+    variety: normalizeOptionalText(state.variety),
     vintage: vintage.length === 0 ? null : Number(vintage),
     purchasedOn: state.purchasedOn.trim() || null,
     priceJpy: price.length === 0 ? null : Number(price),
@@ -298,6 +301,9 @@ export function toUpdateBottleBody(
   if (next.origin !== prev.origin) {
     body.origin = next.origin;
   }
+  if (next.variety !== prev.variety) {
+    body.variety = next.variety;
+  }
   if (next.vintage !== prev.vintage) {
     body.vintage = next.vintage;
   }
@@ -344,6 +350,7 @@ export function isBottleFormDirty(
   return (
     state.producer !== initial.producer ||
     state.origin !== initial.origin ||
+    state.variety !== initial.variety ||
     state.vintage !== initial.vintage ||
     state.purchasedOn !== initial.purchasedOn ||
     state.priceJpy !== initial.priceJpy ||
@@ -366,6 +373,7 @@ const FIELD_KEYS: readonly BottleFormField[] = [
   "count",
   "producer",
   "origin",
+  "variety",
   "vintage",
   "purchasedOn",
   "priceJpy",

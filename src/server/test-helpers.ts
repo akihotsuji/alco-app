@@ -72,6 +72,7 @@ export async function createTestApp(
   options: {
     labelRecognizer?: LabelRecognizer;
     drinkRecognizer?: LabelRecognizer;
+    noteRecognizer?: LabelRecognizer;
     recognizeTimeoutMs?: number;
   } = {},
 ) {
@@ -98,6 +99,13 @@ export async function createTestApp(
       createStubLabelRecognizer(async () => ({
         drinkType: { value: "beer", confidence: 0.8 },
         volumeMl: { value: 350, confidence: 0.7 },
+      })),
+    noteRecognizer:
+      options.noteRecognizer ??
+      createStubLabelRecognizer(async () => ({
+        drinkName: { value: "サンプル赤", confidence: 0.84 },
+        drinkType: { value: "wine", confidence: 0.8 },
+        vintage: { value: 2020, confidence: 0.7 },
       })),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
   });

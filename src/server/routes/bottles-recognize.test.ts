@@ -69,6 +69,7 @@ describe("POST /api/bottles/recognize", () => {
       labelRecognizer: createStubLabelRecognizer(async () => ({
         name: { value: "サンプル赤", confidence: 0.86 },
         producer: { value: "生産者", confidence: 0.71 },
+        variety: { value: "カベルネ", confidence: 0.8 },
         vintage: { value: 2020, confidence: 0.9 },
       })),
     });
@@ -80,6 +81,7 @@ describe("POST /api/bottles/recognize", () => {
     expect(body.remainingToday).toBe(AI_RECOGNIZE_DAILY_LIMIT - 1);
     expect(body.fields.name?.value).toBe("サンプル赤");
     expect(body.fields.producer?.value).toBe("生産者");
+    expect(body.fields.variety?.value).toBe("カベルネ");
     expect(body.fields.vintage?.value).toBe(2020);
     expect(await usageCount(ctx, a.userId)).toBe(1);
   });

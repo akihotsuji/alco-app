@@ -47,6 +47,7 @@ export const BOTTLE_MESSAGES = {
 
 export const BOTTLE_FIELD_LABELS = {
   vintage: "ビンテージ",
+  variety: "品種",
   storedOn: "保管日",
   storage: "保管場所",
   purchasedOn: "購入日",
@@ -120,6 +121,7 @@ const bottleFields = {
   drinkType: drinkTypeSchema,
   producer: bottleTextSchema.nullable().optional(),
   origin: bottleTextSchema.nullable().optional(),
+  variety: bottleTextSchema.nullable().optional(),
   vintage: vintageSchema.nullable().optional(),
   purchasedOn: purchasedOnSchema.nullable().optional(),
   priceJpy: priceJpySchema.nullable().optional(),
@@ -148,6 +150,7 @@ export const updateBottleSchema = z
     drinkType: bottleFields.drinkType.optional(),
     producer: bottleFields.producer,
     origin: bottleFields.origin,
+    variety: bottleFields.variety,
     vintage: bottleFields.vintage,
     purchasedOn: bottleFields.purchasedOn,
     priceJpy: bottleFields.priceJpy,
@@ -204,6 +207,7 @@ export const bottleItemSchema = z
     drinkType: drinkTypeSchema,
     producer: z.string().nullable(),
     origin: z.string().nullable(),
+    variety: z.string().nullable(),
     vintage: z.number().int().nullable(),
     purchasedOn: z.string().nullable(),
     priceJpy: z.number().int().nullable(),

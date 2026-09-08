@@ -356,6 +356,16 @@ function BatchRowCard({
             aiMarked={marks.has("vintage")}
             onChange={(vintage) => onPatch({ vintage })}
           />
+          <DetailField
+            id={`${id}-variety`}
+            label={BOTTLE_FIELD_LABELS.variety}
+            value={row.form.variety}
+            maxLength={BOTTLE_TEXT_MAX_LENGTH}
+            disabled={disabled}
+            error={errors.variety}
+            aiMarked={marks.has("variety")}
+            onChange={(variety) => onPatch({ variety })}
+          />
         </div>
       ) : null}
       {row.recognize === "loading" || row.recognize === "failure" ? (

@@ -29,6 +29,13 @@
       "when": 1788825939786,
       "tag": "0003_bottles_stored_on",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788835401679,
+      "tag": "0004_add_bottle_variety_and_note_vintage",
+      "breakpoints": true
     }
   ]
 }

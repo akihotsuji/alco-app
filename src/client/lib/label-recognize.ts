@@ -10,7 +10,7 @@ export const RECOGNIZE_BANNER = {
 
 export type RecognizeBannerStatus = "loading" | "success" | "failure";
 
-export type RecognizeMarkField = "name" | "producer" | "origin" | "vintage";
+export type RecognizeMarkField = "name" | "producer" | "origin" | "variety" | "vintage";
 
 export type ApplyRecognizeInput = {
   state: BottleFormState;
@@ -53,6 +53,11 @@ export function applyRecognizeToForm(input: ApplyRecognizeInput): ApplyRecognize
     marks.add("origin");
     applied.push("origin");
   }
+  if (usable(input.fields.variety) && next.variety.trim() === "") {
+    next.variety = input.fields.variety.value;
+    marks.add("variety");
+    applied.push("variety");
+  }
   if (usable(input.fields.vintage) && next.vintage.trim() === "") {
     next.vintage = String(input.fields.vintage.value);
     marks.add("vintage");
@@ -65,7 +70,9 @@ export function applyRecognizeToForm(input: ApplyRecognizeInput): ApplyRecognize
   return {
     next,
     marks,
-    openDetails: applied.some((key) => key === "producer" || key === "origin" || key === "vintage"),
+    openDetails: applied.some(
+      (key) => key === "producer" || key === "origin" || key === "variety" || key === "vintage",
+    ),
     applied,
   };
 }

@@ -19,11 +19,13 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain("errors.purchasedOn");
     expect(source).toContain("errors.storedOn");
     expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
+    expect(source).toContain("BOTTLE_FIELD_LABELS.variety");
     expect(source).toContain("BOTTLE_FIELD_LABELS.purchasedOn");
     expect(source).toContain("BOTTLE_FIELD_LABELS.storedOn");
-    expect(source).toContain("ボトル情報");
     expect(source).toContain("保管情報");
     expect(source).toContain("購入情報");
+    expect(source).toContain('id="bottle-variety"');
+    expect(source).not.toContain("ボトル情報");
     expect(source).not.toContain('layout="inline"');
     expect(source).toContain('type="date"');
     expect(source).toContain("visibleFieldErrors");

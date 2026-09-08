@@ -73,6 +73,7 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
       name: "棚の赤",
       drinkType: "wine",
       status: "sealed",
+      vintage: 2019,
     });
     state.ratingX10 = 40;
     state.taste = "  酸がきれい  ";
@@ -82,6 +83,7 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
     ]);
     expect(body).toMatchObject({
       bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      vintage: 2019,
       ratingX10: 40,
       taste: "酸がきれい",
       photoIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
@@ -153,12 +155,34 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
         name: "棚の赤",
         drinkType: "wine",
         status: "sealed",
+        vintage: 2021,
       },
       { preserveEdits: true },
     );
     expect(next.drinkName).toBe("自分で書いた");
     expect(next.drinkType).toBe("beer");
+    expect(next.vintage).toBe("2021");
     expect(next.bottleId).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  });
+
+  it("ボトル選択で直したビンテージは上書きしない", () => {
+    const edited = {
+      ...initialNoteFormState(NOW),
+      vintage: "2018",
+    };
+    const next = applySelectedBottle(
+      edited,
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        name: "棚の赤",
+        drinkType: "wine",
+        status: "sealed",
+        vintage: 2021,
+      },
+      { preserveEdits: true },
+    );
+    expect(next.vintage).toBe("2018");
+    expect(next.drinkName).toBe("棚の赤");
   });
 
   it("未操作の必須空欄は赤くせず、保存無効時は短い説明", () => {

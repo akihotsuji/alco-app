@@ -61,7 +61,7 @@ function AppShellFrame() {
 
   function onSelectTab(tab: TabDef) {
     if (tab.root === null) {
-      // 中央タブ「＋ 記録」は着地せず記録フォームを開く。撮影は開始しない
+      // 中央タブ「記録」は着地せず記録フォームを開く。撮影は開始しない
       navigate("/logs/new");
       return;
     }

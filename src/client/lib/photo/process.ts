@@ -1,4 +1,4 @@
-import { PHOTO_CUTOUT_MASK_CACHE_SIZE } from "@/shared/constants.ts";
+import { PHOTO_CUTOUT_MASK_CACHE_SIZE, type PhotoMascotPose } from "@/shared/constants.ts";
 import { applyPreset, type ColorPreset } from "./apply-preset.ts";
 import { composeMascot } from "./compose-mascot.ts";
 import { cropResize } from "./crop-resize.ts";
@@ -43,6 +43,7 @@ export type PhotoEditParams = {
 
 export type ProcessPhotoInput = PhotoEditParams & {
   mascotOn: boolean;
+  mascotPose?: PhotoMascotPose;
   cutoutOn: boolean;
   onCutoutProgress?: (progress: RemoveBackgroundProgress) => void;
   /**
@@ -236,13 +237,13 @@ export async function processPhoto(input: ProcessPhotoInput): Promise<ProcessedP
 
   const filtered = applyPreset(prepared.cropped, prepared.preset);
   let recognizeJpeg: Blob | undefined;
-  if (input.kind === "log") {
+  if (input.kind === "log" || input.kind === "note") {
     recognizeJpeg = await toJpegBlob(filtered);
     input.onRecognizeJpeg?.(recognizeJpeg);
   }
   let canvas = filtered;
   if (input.mascotOn) {
-    canvas = await composeMascot(canvas);
+    canvas = await composeMascot(canvas, input.mascotPose);
   }
   const blob = await toJpegBlob(canvas);
   return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg };
