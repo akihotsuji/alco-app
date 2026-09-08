@@ -1,4 +1,3 @@
-import { Search } from "lucide-react";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import {
   DialogContent,
@@ -26,7 +25,6 @@ type NoteToolbarProps = {
 export function NoteToolbar({
   qInput,
   setQInput,
-  searchOpen,
   setSearchOpen,
   typeOpen,
   setTypeOpen,
@@ -38,22 +36,18 @@ export function NoteToolbar({
 }: NoteToolbarProps) {
   return (
     <>
-      <div className="cellar-toolbar">
-        {searchOpen ? (
-          <Input
-            className="cellar-search-field"
-            aria-label="検索"
-            value={qInput}
-            maxLength={100}
-            placeholder="銘柄名"
-            onChange={(event) => setQInput(event.target.value)}
-          />
-        ) : (
-          <Chip selected={false} className="chip-with-icon" onSelect={() => setSearchOpen(true)}>
-            <Search size={16} aria-hidden />
-            検索
-          </Chip>
-        )}
+      <div className="cellar-toolbar note-toolbar">
+        <Input
+          className="cellar-search-field"
+          aria-label="銘柄・メモで検索"
+          value={qInput}
+          maxLength={100}
+          placeholder="銘柄・メモで検索"
+          onChange={(event) => {
+            setSearchOpen(true);
+            setQInput(event.target.value);
+          }}
+        />
         {drinkType ? (
           <Chip selected onSelect={clearDrinkType}>
             {DRINK_TYPE_LABELS[drinkType]} ×

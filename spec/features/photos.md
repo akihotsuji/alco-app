@@ -4,7 +4,7 @@
 
 ## 方針
 
-- 取り込みは 2 経路。基本は撮影（`accept="image/*"` + `capture="environment"`）。保存済み写真は別ボタン（`capture` なし）。中央タブ / ホームのカメラ / `?camera=1` は撮影から。`getUserMedia` は使わない
+- 取り込みは 2 経路。基本は撮影（`accept="image/*"` + `capture="environment"`）。保存済み写真は別ボタン（`capture` なし）。記録・ノートのフォームは「写真を撮る / 選ぶ」の明示タップだけ。ホームの「写真から記録」とセラー追加の `?camera=1` は撮影から。記録・ノートは `?camera=1` でも自動起動しない。`getUserMedia` は使わない
 - 切り抜き・色補正・キャラ合成・JPEG 化はすべて端末内 Canvas。サーバーは検証と保存だけ
 - 「使う」直後に **未紐付け** で `POST /api/photos`。フォーム保存時の `photoIds` 紐付けは各機能フェーズ
 - 背景除去の実体は 4-06（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`。ORT の glue `.mjs` と `.wasm` を同じディレクトリへ明示）。2-08 はトグル差し込み口と、WebP VP8X alpha → `kind=cutout` のサーバー判定

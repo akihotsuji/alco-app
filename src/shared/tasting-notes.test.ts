@@ -9,6 +9,7 @@ import {
   RATING_X10_MIN,
   ratingStarFill,
   ratingX10FromStar,
+  ratingX10FromStarTap,
   stepRatingX10,
   TASTING_NOTE_MESSAGES,
   tastingNotesQuerySchema,
@@ -60,6 +61,9 @@ describe("ratingX10 helpers", () => {
     expect(ratingStarFill(45)).toEqual({ full: 4, half: true });
     expect(ratingStarFill(40)).toEqual({ full: 4, half: false });
     expect(ratingX10FromStar(3)).toBe(30);
+    expect(ratingX10FromStarTap(null, 4)).toBe(40);
+    expect(ratingX10FromStarTap(40, 4)).toBe(45);
+    expect(ratingX10FromStarTap(50, 5)).toBe(50);
   });
 
   it("未選択からの ± は 1.0。下限・上限で止める", () => {

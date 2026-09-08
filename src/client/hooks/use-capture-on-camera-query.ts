@@ -5,7 +5,7 @@ import {
   usePhotoEdit,
 } from "@/client/components/layout/photo-edit-context.tsx";
 
-/** `?camera=1` の新規作成画面で撮影を開始する。記録・ノート・セラーのフォームが共有する。 */
+/** `?camera=1` の新規作成画面で撮影を開始する。セラー追加のみが使う。記録・ノートは自動起動しない。 */
 export function useCaptureOnCameraQuery(kind: PhotoEditContextKind, enabled: boolean) {
   const [searchParams] = useSearchParams();
   const { startCapture, attachments, retryUpload, clearAttachment } = usePhotoEdit();

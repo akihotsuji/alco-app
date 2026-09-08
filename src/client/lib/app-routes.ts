@@ -20,14 +20,14 @@ export type TabId = (typeof TAB_IDS)[number];
 export type TabDef = {
   id: TabId;
   label: string;
-  /** タブの根。中央タブ「記録」は着地画面を持たない動作（撮影開始）なので `null`（00-common 1.2 (c)） */
+  /** タブの根。中央タブ「＋ 記録」は着地画面を持たない作成動作なので `null`（00-common 1.2） */
   root: string | null;
 };
 
 export const TABS: readonly TabDef[] = [
   { id: "home", label: "ホーム", root: "/" },
   { id: "cellar", label: "セラー", root: "/cellar" },
-  { id: "log", label: "記録", root: null },
+  { id: "log", label: "＋ 記録", root: null },
   { id: "notes", label: "ノート", root: "/notes" },
   { id: "settings", label: "設定", root: "/settings" },
 ];
@@ -45,6 +45,7 @@ export type HeaderRight =
   | { kind: "batch"; to: string }
   | { kind: "edit"; to: string }
   | { kind: "text"; to: string; label: string }
+  | { kind: "create"; to: string; label: string }
   | { kind: "day-next"; date: string; disabled: boolean };
 
 /** セラー / ノート一覧の右下 FAB（00-common 1.4） */
@@ -194,7 +195,7 @@ export function resolveAppRoute(
       return found("log-day", "home", logDayHeader(today, today));
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return formRoute("log-new", "home", "記録する", logNewFallback(search, today));
+      return formRoute("log-new", "home", "お酒を記録", logNewFallback(search, today));
     }
     if (segments[1] === "my-drinks") {
       if (segments.length === 2) {
@@ -267,7 +268,7 @@ export function resolveAppRoute(
           bottleId && isUuidParam(bottleId)
             ? { kind: "back", fallback: `/cellar/${bottleId}` }
             : SPACER,
-        right: SPACER,
+        right: { kind: "create", to: noteCreateHref(bottleId), label: "＋\u00a0作成" },
       });
     }
     if (segments[1] === "new" && segments.length === 2) {
@@ -331,9 +332,9 @@ export function isUuidParam(value: string): boolean {
 
 export function noteCreateHref(bottleId?: string | null): string {
   if (bottleId && isUuidParam(bottleId)) {
-    return `/notes/new?bottleId=${encodeURIComponent(bottleId)}&camera=1`;
+    return `/notes/new?bottleId=${encodeURIComponent(bottleId)}`;
   }
-  return "/notes/new?camera=1";
+  return "/notes/new";
 }
 
 export function notesListHref(bottleId?: string | null): string {
@@ -343,7 +344,7 @@ export function notesListHref(bottleId?: string | null): string {
   return "/notes";
 }
 
-/** 一覧だけ右下 FAB。作成・編集・詳細・他タブには出さない（00-common 1.4） */
+/** セラー一覧だけ右下 FAB。ノート作成はヘッダー。作成・編集・詳細・他タブには出さない（00-common 1.4） */
 export function addFabForRoute(
   pathname: string,
   search = "",
@@ -352,10 +353,6 @@ export function addFabForRoute(
   const route = resolveAppRoute(pathname, now, search);
   if (route.screenId === "bottle-list") {
     return { to: "/cellar/new?camera=1", label: "追加" };
-  }
-  if (route.screenId === "note-list") {
-    const bottleId = new URLSearchParams(search).get("bottleId");
-    return { to: noteCreateHref(bottleId), label: "作成" };
   }
   return null;
 }

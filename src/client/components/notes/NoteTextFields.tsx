@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react";
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { NOTE_TEXT_MAX_LENGTH } from "@/shared/tasting-notes.ts";
 
@@ -15,6 +16,7 @@ type NoteTextFieldsProps = {
     finish?: string;
   };
   defaultOpen?: boolean;
+  between?: ReactNode;
   onChange: (field: "taste" | "appearance" | "aroma" | "finish", value: string) => void;
 };
 
@@ -32,6 +34,7 @@ export function NoteTextFields({
   finish,
   errors,
   defaultOpen = false,
+  between,
   onChange,
 }: NoteTextFieldsProps) {
   const [open, setOpen] = useState(defaultOpen);
@@ -42,13 +45,14 @@ export function NoteTextFields({
     <>
       {expanded ? null : (
         <section className="log-form-section">
-          <label className="field-label" htmlFor={`${tasteId}-one`}>
-            一言
-          </label>
+          <FieldLabel htmlFor={`${tasteId}-one`} optional>
+            ひとこと
+          </FieldLabel>
           <Input
             id={`${tasteId}-one`}
             value={taste}
             maxLength={NOTE_TEXT_MAX_LENGTH}
+            placeholder="短い感想"
             aria-invalid={errors.taste ? true : undefined}
             onChange={(event) => onChange("taste", event.target.value)}
           />
@@ -59,6 +63,7 @@ export function NoteTextFields({
           ) : null}
         </section>
       )}
+      {between}
       <section className="log-form-section">
         <button
           type="button"
@@ -117,9 +122,7 @@ function NoteTextarea({
   const id = useId();
   return (
     <div className="log-form-section">
-      <label className="field-label" htmlFor={id}>
-        {label}
-      </label>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <textarea
         id={id}
         className="memo-textarea"

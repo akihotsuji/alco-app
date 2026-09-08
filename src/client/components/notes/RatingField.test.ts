@@ -8,6 +8,7 @@ import {
   RATING_X10_MIN,
   RATING_X10_STEP,
   ratingX10FromStar,
+  ratingX10FromStarTap,
   stepRatingX10,
 } from "@/shared/tasting-notes.ts";
 
@@ -16,7 +17,7 @@ const field = readFileSync(join(here, "RatingField.tsx"), "utf8");
 const stars = readFileSync(join(here, "RatingStars.tsx"), "utf8");
 const form = readFileSync(join(here, "NoteForm.tsx"), "utf8");
 
-describe("RatingField ステッパー", () => {
+describe("RatingField 星タップと数値", () => {
   it("± は 0.5（ratingX10 で 5）。未選択から 1.0、上限は 5.0", () => {
     const stepped: number[] = [];
     let current: number | null = null;
@@ -32,13 +33,18 @@ describe("RatingField ステッパー", () => {
     expect(RATING_X10_STEP).toBe(5);
   });
 
-  it("星タップは整数 1〜5。ステッパーは下限・上限で disabled", () => {
-    expect(field).toContain("stepRatingX10(value, -5)");
-    expect(field).toContain("stepRatingX10(value, 5)");
-    expect(field).toContain("disabled={value === RATING_X10_MIN}");
-    expect(field).toContain("disabled={value === RATING_X10_MAX}");
-    expect(field).toContain("評価を下げる");
-    expect(field).toContain("評価を上げる");
+  it("同じ星の再タップで +0.5。5.0 は上限。数値欄でキーボード操作", () => {
+    expect(ratingX10FromStarTap(null, 4)).toBe(40);
+    expect(ratingX10FromStarTap(40, 4)).toBe(45);
+    expect(ratingX10FromStarTap(45, 4)).toBe(40);
+    expect(ratingX10FromStarTap(50, 5)).toBe(50);
+    expect(ratingX10FromStarTap(45, 5)).toBe(50);
+    expect(field).toContain("ratingX10FromStarTap");
+    expect(field).toContain("step={0.5}");
+    expect(field).toContain('placeholder="未選択"');
+    expect(field).toContain("評価（1.0〜5.0、0.5刻み）");
+    expect(field).not.toContain("評価を下げる");
+    expect(field).not.toContain("評価を上げる");
     expect(field).toContain('className="field-error"');
     expect(stars).toContain("[1, 2, 3, 4, 5]");
     expect(stars).toContain("ratingX10FromStar(star)");

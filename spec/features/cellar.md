@@ -175,13 +175,13 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | T3 | 開栓する | 棚のときだけ Button 主。確認なし。即時 `POST consume`。送信中「開栓中」+ 水位線（M-04）。2xx で **即** `/cellar`（M-05）+ トースト「開栓しました  取り消す」5 秒（`cheer` + M-25）。`haptic("success")`。取り消す = `restore` | `POST /api/bottles/:id/consume` |
 | T4 | セラーに戻す | 貯蔵庫のとき T5 の上。Button 副。即時 `restore` → **棚の詳細**へ。トースト「セラーに戻しました」（`cheer` + M-25）。記録は消さない | `POST /api/bottles/:id/restore` |
 | T5 | プロパティ | 順: 銘柄名 / 種類 / ビンテージ（無ければ「NV」）/ 産地 / 生産者 / 購入日 / 価格 / 購入場所 / 保管日 / 保管場所 / メモ。銘柄名・種類・ビンテージ以外は空行を出さない。**品種列は持たない**。価格は `¥3,800`（整数・桁区切り） | data-model 6.3 |
-| T6 | ノート節 | 最新 3 件 +「すべて（N）›」→ `/notes?bottleId=`。「書く ›」→ `/notes/new?bottleId=&camera=1`。0 件でも見出し +「書く ›」は出す | `GET /api/tasting-notes?bottleId=&limit=3` |
+| T6 | ノート節 | 最新 3 件 +「すべて（N）›」→ `/notes?bottleId=`。「書く ›」→ `/notes/new?bottleId=`（撮影しない）。0 件でも見出し +「書く ›」は出す | `GET /api/tasting-notes?bottleId=&limit=3` |
 | T7 | 記録節 | このボトルの記録 最新 3 件。行 → `log-edit`。0 件なら節ごと出さない | `GET /api/drink-logs?bottleId=&limit=3` |
 | T8 | 編集 | ヘッダー右 → `/cellar/:bottleId/edit` | — |
 
 貯蔵庫（`consumed`）のとき:
 
-- T3 は **「ノートを書く」**（Button 主）に置き換える。`/notes/new?bottleId=&camera=1`（**4-03 で出す**。ノート本体は Phase 5）
+- T3 は **「ノートを書く」**（Button 主）に置き換える。`/notes/new?bottleId=`（撮影しない。**4-03 で出す**。ノート本体は Phase 5）
 - T4 を出す
 - 写真は減彩しない（詳細では原色。減彩は貯蔵庫一覧だけ）
 

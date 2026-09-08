@@ -7,9 +7,13 @@ import {
   clearSelectedBottle,
   initialNoteFormState,
   isNoteFormDirty,
+  NOTE_SAVE_DISABLED_HINT,
+  NOTE_SAVE_LABELS,
+  noteSaveDisabledHint,
   toCreateTastingNoteBody,
   toUpdateTastingNoteBody,
   validateNoteForm,
+  visibleNoteFormErrors,
 } from "./note-form.ts";
 
 const NOW = new Date("2026-09-07T03:00:00.000Z");
@@ -134,5 +138,39 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
     const initial = initialNoteFormState(NOW);
     expect(isNoteFormDirty(initial, initial)).toBe(false);
     expect(isNoteFormDirty({ ...initial, ratingX10: 40 }, initial)).toBe(true);
+  });
+
+  it("ボトル選択は空欄だけ埋め、直した銘柄・種類は上書きしない", () => {
+    const edited = {
+      ...initialNoteFormState(NOW),
+      drinkName: "自分で書いた",
+      drinkType: "beer" as const,
+    };
+    const next = applySelectedBottle(
+      edited,
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        name: "棚の赤",
+        drinkType: "wine",
+        status: "sealed",
+      },
+      { preserveEdits: true },
+    );
+    expect(next.drinkName).toBe("自分で書いた");
+    expect(next.drinkType).toBe("beer");
+    expect(next.bottleId).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  });
+
+  it("未操作の必須空欄は赤くせず、保存無効時は短い説明", () => {
+    const state = initialNoteFormState(NOW);
+    const errors = validateNoteForm(state, NOW);
+    expect(
+      visibleNoteFormErrors(errors, { submitted: false, touched: {} }).ratingX10,
+    ).toBeUndefined();
+    expect(visibleNoteFormErrors(errors, { submitted: true, touched: {} }).ratingX10).toBe(
+      TASTING_NOTE_MESSAGES.rating,
+    );
+    expect(NOTE_SAVE_LABELS.idle).toBe("ノートを保存");
+    expect(noteSaveDisabledHint(state, errors, "none")).toBe(NOTE_SAVE_DISABLED_HINT);
   });
 });

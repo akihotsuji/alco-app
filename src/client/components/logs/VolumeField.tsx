@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
-import { isManualVolume, volumeChipValues } from "@/client/lib/log-form.ts";
+import { extraVolumeChips, isManualVolume, primaryVolumeChips } from "@/client/lib/log-form.ts";
 import { VOLUME_ML_MAX, VOLUME_ML_MIN } from "@/shared/alcohol.ts";
 import type { DrinkType } from "@/shared/constants.ts";
 
@@ -19,72 +20,76 @@ function parseVolume(raw: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/** N4: スコア 40px + 種類の量チップ + ボトル量 375 / 750 / 1500 + 「手入力」（数値キーボード、1〜5000 整数） */
+/** N4: 数値 + ml を一つの入力。種類のよく使う量を近くに、残りは「その他」 */
 export function VolumeField({ drinkType, value, error, onChange }: VolumeFieldProps) {
-  // 呼び元が drinkType を key にして再マウントするので、種類変更時はここで初期化される
-  const [manualOpen, setManualOpen] = useState(() => isManualVolume(drinkType, value));
-  const [focusRequested, setFocusRequested] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (manualOpen && focusRequested) {
-      // 手入力に切り替えた直後は現在値を全選択し、そのまま打ち直せるようにする
-      inputRef.current?.focus();
-      inputRef.current?.select();
-      setFocusRequested(false);
-    }
-  }, [manualOpen, focusRequested]);
-
-  function openManual() {
-    setManualOpen(true);
-    setFocusRequested(true);
-  }
+  const primary = primaryVolumeChips(drinkType);
+  const extra = extraVolumeChips(drinkType);
+  const extrasOpenNeeded = extra.includes(value ?? -1);
+  const [extrasOpen, setExtrasOpen] = useState(extrasOpenNeeded);
 
   return (
     <fieldset className="log-form-section">
-      <legend className="field-label">量</legend>
-      <div className="score-row">
-        {manualOpen ? (
-          <>
-            <input
-              ref={inputRef}
-              type="number"
-              inputMode="numeric"
-              className="score-input"
-              aria-label="量（ml）"
-              aria-invalid={error ? true : undefined}
-              min={VOLUME_ML_MIN}
-              max={VOLUME_ML_MAX}
-              step={1}
-              value={value ?? ""}
-              onChange={(event) => onChange(parseVolume(event.target.value))}
-            />
-            <span className="score-unit">ml</span>
-          </>
-        ) : (
-          <button type="button" className="score-button" onClick={openManual}>
-            <span className="score-value">{value ?? "—"}</span>
-            <span className="score-unit">ml</span>
-          </button>
-        )}
+      <legend>
+        <FieldLabel>飲んだ量</FieldLabel>
+      </legend>
+      <div className="unit-field">
+        <input
+          type="number"
+          inputMode="numeric"
+          className="unit-field-input"
+          aria-label="飲んだ量（ml）"
+          aria-invalid={error ? true : undefined}
+          min={VOLUME_ML_MIN}
+          max={VOLUME_ML_MAX}
+          step={1}
+          value={value ?? ""}
+          onChange={(event) => onChange(parseVolume(event.target.value))}
+        />
+        <span className="unit-field-suffix">ml</span>
       </div>
-      <div className="chip-row">
-        {volumeChipValues(drinkType).map((chip) => (
-          <Chip
-            key={chip}
-            selected={!manualOpen && value === chip}
-            onSelect={() => {
-              setManualOpen(false);
-              onChange(chip);
-            }}
-          >
-            {chip}
-          </Chip>
-        ))}
-        <Chip selected={manualOpen} onSelect={openManual}>
-          手入力
-        </Chip>
-      </div>
+      {primary.length > 0 || extra.length > 0 ? (
+        <div className="chip-row chip-row-wrap">
+          {primary.map((chip) => (
+            <Chip
+              key={chip}
+              selected={value === chip}
+              onSelect={() => {
+                onChange(chip);
+              }}
+            >
+              {chip} ml
+            </Chip>
+          ))}
+          {extra.length > 0 ? (
+            <Chip
+              selected={extrasOpen || extrasOpenNeeded}
+              onSelect={() => {
+                setExtrasOpen((current) => !current);
+              }}
+            >
+              その他
+            </Chip>
+          ) : null}
+        </div>
+      ) : null}
+      {extrasOpen || extrasOpenNeeded ? (
+        <div className="chip-row chip-row-wrap">
+          {extra.map((chip) => (
+            <Chip
+              key={chip}
+              selected={value === chip}
+              onSelect={() => {
+                onChange(chip);
+              }}
+            >
+              {chip} ml
+            </Chip>
+          ))}
+        </div>
+      ) : null}
+      {isManualVolume(drinkType, value) && value !== null ? (
+        <p className="field-hint">手入力中</p>
+      ) : null}
       {error ? (
         <p className="field-error" role="alert">
           {error}

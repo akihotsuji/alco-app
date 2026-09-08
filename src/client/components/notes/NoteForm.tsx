@@ -4,10 +4,11 @@ import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
-import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
+import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { NotePhotoStrip } from "@/client/components/notes/NotePhotoStrip.tsx";
 import { NoteTextFields } from "@/client/components/notes/NoteTextFields.tsx";
 import { RatingField } from "@/client/components/notes/RatingField.tsx";
@@ -35,14 +36,17 @@ import {
   initialNoteFormState,
   isNoteFormDirty,
   type NoteFormErrors,
+  type NoteFormField,
   type NoteFormState,
   noteDetailOpen,
   noteFormStateFromNote,
   noteSaveButtonLabel,
+  noteSaveDisabledHint,
   type PhotoSaveStatus,
   toCreateTastingNoteBody,
   toUpdateTastingNoteBody,
   validateNoteForm,
+  visibleNoteFormErrors,
 } from "@/client/lib/note-form.ts";
 import type { NotePhotoItem } from "@/client/lib/note-photos.ts";
 import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
@@ -95,7 +99,7 @@ function NoteNewFields({ prefill }: { prefill?: NoteFormState }) {
   const navigate = useNavigate();
   const { setGuard } = useLeaveGuard();
   const { showToast } = useToast();
-  const photos = useNotePhotos([], true);
+  const photos = useNotePhotos([]);
   const create = useCreateTastingNote();
   const [now] = useState(() => new Date());
   const [initial] = useState(() => prefill ?? initialNoteFormState(now));
@@ -103,11 +107,14 @@ function NoteNewFields({ prefill }: { prefill?: NoteFormState }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<NoteFormErrors>({});
   const [saveState, setSaveState] = useState<MotionState>("idle");
+  const [submitted, setSubmitted] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<NoteFormField, boolean>>>({});
   const [discardOpen, setDiscardOpen] = useState(false);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const photoStatus: PhotoSaveStatus = photos.photoStatus;
   const errors: NoteFormErrors = { ...validateNoteForm(state), ...serverErrors };
+  const visibleErrors = visibleNoteFormErrors(errors, { submitted, touched });
   const canSubmit = canSubmitNoteForm(state, errors, photoStatus);
   const dirty = isNoteFormDirty(state, initial) || photos.items.length > 0;
 
@@ -123,13 +130,17 @@ function NoteNewFields({ prefill }: { prefill?: NoteFormState }) {
     return () => setGuard(null);
   }, [dirty, setGuard]);
 
-  function update(patch: Partial<NoteFormState>) {
+  function update(patch: Partial<NoteFormState>, field?: NoteFormField) {
+    if (field) {
+      setTouched((current) => ({ ...current, [field]: true }));
+    }
     setState((current) => ({ ...current, ...patch }));
     setServerErrors({});
     setFormError(null);
   }
 
   function submit() {
+    setSubmitted(true);
     const body = toCreateTastingNoteBody(state, photos.photoIds);
     if (!body || !canSubmit || create.isPending) {
       return;
@@ -174,7 +185,9 @@ function NoteNewFields({ prefill }: { prefill?: NoteFormState }) {
   return (
     <NoteFormFields
       state={state}
-      errors={errors}
+      errors={visibleErrors}
+      saveHint={noteSaveDisabledHint(state, errors, photoStatus)}
+      lead="香りや味わいを残す"
       formError={formError}
       photoStatus={photoStatus}
       canSubmit={canSubmit}
@@ -220,7 +233,7 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { setGuard } = useLeaveGuard();
-  const photos = useNotePhotos(note.photos, false);
+  const photos = useNotePhotos(note.photos);
   const updateNote = useUpdateTastingNote();
   const deleteNote = useDeleteTastingNote();
   const [initial] = useState(() => noteFormStateFromNote(note));
@@ -228,12 +241,15 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<NoteFormErrors>({});
   const [saveState, setSaveState] = useState<MotionState>("idle");
+  const [submitted, setSubmitted] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<NoteFormField, boolean>>>({});
   const [discardOpen, setDiscardOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const photoStatus: PhotoSaveStatus = photos.photoStatus;
   const errors = { ...validateNoteForm(state), ...serverErrors };
+  const visibleErrors = visibleNoteFormErrors(errors, { submitted, touched });
   const dirty = isNoteFormDirty(state, initial) || photos.photosDirty;
   const canSubmit = dirty && canSubmitNoteForm(state, errors, photoStatus) && !deleteNote.isPending;
 
@@ -249,13 +265,17 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
     return () => setGuard(null);
   }, [dirty, setGuard]);
 
-  function update(patch: Partial<NoteFormState>) {
+  function update(patch: Partial<NoteFormState>, field?: NoteFormField) {
+    if (field) {
+      setTouched((current) => ({ ...current, [field]: true }));
+    }
     setState((current) => ({ ...current, ...patch }));
     setServerErrors({});
     setFormError(null);
   }
 
   function submit() {
+    setSubmitted(true);
     const body = toUpdateTastingNoteBody(
       state,
       initial,
@@ -324,7 +344,8 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
     <>
       <NoteFormFields
         state={state}
-        errors={errors}
+        errors={visibleErrors}
+        saveHint={noteSaveDisabledHint(state, errors, photoStatus)}
         formError={formError}
         photoStatus={photoStatus}
         canSubmit={canSubmit}
@@ -361,6 +382,8 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
 function NoteFormFields({
   state,
   errors,
+  saveHint,
+  lead,
   formError,
   photoStatus,
   canSubmit,
@@ -376,6 +399,8 @@ function NoteFormFields({
 }: {
   state: NoteFormState;
   errors: NoteFormErrors;
+  saveHint: string | null;
+  lead?: string;
   formError: string | null;
   photoStatus: PhotoSaveStatus;
   canSubmit: boolean;
@@ -390,7 +415,7 @@ function NoteFormFields({
     removePhoto: (key: string) => Promise<void>;
     makeFirst: (key: string) => void;
   };
-  onUpdate: (patch: Partial<NoteFormState>) => void;
+  onUpdate: (patch: Partial<NoteFormState>, field?: NoteFormField) => void;
   onSave: () => void;
   discardOpen: boolean;
   discardBody: string;
@@ -399,23 +424,15 @@ function NoteFormFields({
 }) {
   return (
     <div className="form-page log-form">
+      {lead ? <p className="form-lead">{lead}</p> : null}
       {formError ? (
         <p className="form-error" role="alert">
           {formError}
         </p>
       ) : null}
-      <NotePhotoStrip
-        items={photos.items}
-        canAdd={photos.canAdd}
-        error={errors.photoIds}
-        onAdd={() => void photos.addPhoto()}
-        onLibrary={() => void photos.addPhoto("library")}
-        onEdit={(key) => void photos.editPhoto(key)}
-        onRetry={(key) => void photos.retryPhoto(key)}
-        onRemove={(key) => void photos.removePhoto(key)}
-        onMakeFirst={photos.makeFirst}
-      />
       <BottlePickerRow
+        label="セラーから選ぶ"
+        hint="選ばずに入力することもできます"
         bottleId={state.bottleId}
         bottleName={state.bottleName}
         valueLabel={
@@ -426,52 +443,46 @@ function NoteFormFields({
         error={errors.bottleId}
         onSelect={(bottle) => {
           if (bottle) {
-            onUpdate(applySelectedBottle(state, bottle));
+            onUpdate(applySelectedBottle(state, bottle, { preserveEdits: true }));
           } else {
             onUpdate(clearSelectedBottle(state));
           }
         }}
       />
-      {state.bottleId ? null : (
-        <>
-          <section className="log-form-section">
-            <label className="field-label" htmlFor="note-drink-name">
-              銘柄名
-            </label>
-            <Input
-              id="note-drink-name"
-              value={state.drinkName}
-              maxLength={NOTE_DRINK_NAME_MAX_LENGTH}
-              aria-invalid={errors.drinkName ? true : undefined}
-              onChange={(event) => onUpdate({ drinkName: event.target.value })}
-            />
-            {errors.drinkName ? (
-              <p className="field-error" role="alert">
-                {errors.drinkName}
-              </p>
-            ) : null}
-          </section>
-          <DrinkTypeChips
-            value={state.drinkType}
-            onChange={(drinkType) => onUpdate({ drinkType })}
-          />
-          {errors.drinkType ? (
-            <p className="field-error" role="alert">
-              {errors.drinkType}
-            </p>
-          ) : null}
-        </>
-      )}
+      <section className="log-form-section">
+        <FieldLabel htmlFor="note-drink-name" required>
+          銘柄名
+        </FieldLabel>
+        <Input
+          id="note-drink-name"
+          value={state.drinkName}
+          maxLength={NOTE_DRINK_NAME_MAX_LENGTH}
+          placeholder="例：Planeta"
+          aria-invalid={errors.drinkName ? true : undefined}
+          onChange={(event) => onUpdate({ drinkName: event.target.value }, "drinkName")}
+        />
+        {errors.drinkName ? (
+          <p className="field-error" role="alert">
+            {errors.drinkName}
+          </p>
+        ) : null}
+      </section>
+      <DrinkTypeSelect
+        required
+        value={state.drinkType}
+        error={errors.drinkType}
+        onChange={(drinkType) => onUpdate({ drinkType }, "drinkType")}
+      />
       <TastedOnRow
         value={state.tastedOn}
         now={new Date()}
         error={errors.tastedOn}
-        onChange={(tastedOn) => onUpdate({ tastedOn })}
+        onChange={(tastedOn) => onUpdate({ tastedOn }, "tastedOn")}
       />
       <RatingField
         value={state.ratingX10}
         error={errors.ratingX10}
-        onChange={(ratingX10) => onUpdate({ ratingX10 })}
+        onChange={(ratingX10) => onUpdate({ ratingX10 }, "ratingX10")}
       />
       <NoteTextFields
         taste={state.taste}
@@ -480,12 +491,26 @@ function NoteFormFields({
         finish={state.finish}
         errors={errors}
         defaultOpen={noteDetailOpen(state)}
-        onChange={(field, value) => onUpdate({ [field]: value })}
+        onChange={(field, value) => onUpdate({ [field]: value }, field)}
+        between={
+          <NotePhotoStrip
+            items={photos.items}
+            canAdd={photos.canAdd}
+            error={errors.photoIds}
+            onAdd={() => void photos.addPhoto()}
+            onLibrary={() => void photos.addPhoto("library")}
+            onEdit={(key) => void photos.editPhoto(key)}
+            onRetry={(key) => void photos.retryPhoto(key)}
+            onRemove={(key) => void photos.removePhoto(key)}
+            onMakeFirst={photos.makeFirst}
+          />
+        }
       />
       <SaveBar
         label={noteSaveButtonLabel(pending, photoStatus)}
         pending={pending}
         disabled={!canSubmit}
+        hint={!canSubmit ? saveHint : null}
         state={saveState}
         onSave={onSave}
       />

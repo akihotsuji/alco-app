@@ -13,8 +13,8 @@ const edit = readFileSync(join(dir, "../photo/PhotoEdit.tsx"), "utf8");
 
 describe("ノート写真ストリップ / カルーセル", () => {
   it("撮るタイルと先頭化メニューを出し、6 枚で撮るを止める", () => {
-    expect(strip).toContain("撮る");
-    expect(strip).toContain("IMAGE_PICK_LABELS.noteLibrary");
+    expect(strip).toContain("IMAGE_PICK_LABELS.capture");
+    expect(strip).toContain("IMAGE_PICK_LABELS.captureLibrary");
     expect(strip).toContain("先頭にする");
     expect(strip).toContain("NOTE_PHOTO_LIMIT_MESSAGE");
     expect(strip).toContain("disabled={!canAdd}");

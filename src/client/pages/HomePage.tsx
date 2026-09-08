@@ -20,7 +20,7 @@ let homePrimaryEntered = false;
 
 export function HomePage() {
   const today = tokyoToday();
-  // H8 は写真なしで log-new。H9 は中央タブと同じ「撮ってから入力へ」
+  // H8 は写真なしで log-new。H9 だけ「撮ってから入力へ」（中央タブは撮影しない）
   const { newHref } = logFormHrefs();
   const captureLog = useCaptureLog();
   const daySummary = useDrinkLogSummary("day", today);

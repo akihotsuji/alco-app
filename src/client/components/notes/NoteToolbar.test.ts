@@ -11,7 +11,7 @@ const list = readFileSync(join(here, "NoteList.tsx"), "utf8");
 
 describe("NoteToolbar 一覧フィルタ", () => {
   it("検索・種類・★4 以上で絞り、選択中の種類は「ワイン ×」", () => {
-    expect(toolbar).toContain('aria-label="検索"');
+    expect(toolbar).toContain('aria-label="銘柄・メモで検索"');
     expect(toolbar).toContain("setQInput(event.target.value)");
     expect(toolbar).toContain("selectDrinkType(type)");
     expect(toolbar).toContain("clearDrinkType");

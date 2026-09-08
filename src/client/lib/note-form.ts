@@ -43,10 +43,12 @@ export type NoteFormErrors = Partial<Record<NoteFormField, string>>;
 export type PhotoSaveStatus = "none" | "uploading" | "ready" | "error";
 
 export const NOTE_SAVE_LABELS = {
-  idle: "保存する",
+  idle: "ノートを保存",
   saving: "保存中",
   photoUploading: "写真を保存中",
 } as const;
+
+export const NOTE_SAVE_DISABLED_HINT = "必須項目を入力してください";
 
 export const NOTE_FORM_ERROR_MESSAGES = {
   generic: "保存できませんでした。もう一度試してください",
@@ -72,14 +74,17 @@ export function initialNoteFormState(now: Date = new Date()): NoteFormState {
 export function applySelectedBottle(
   state: NoteFormState,
   bottle: { id: string; name: string; drinkType: DrinkType; status: BottleStatus },
+  options: { preserveEdits?: boolean } = {},
 ): NoteFormState {
+  const keepName = options.preserveEdits && state.drinkName.trim().length > 0;
+  const keepType = options.preserveEdits && state.drinkType !== null;
   return {
     ...state,
     bottleId: bottle.id,
     bottleName: bottle.name,
     bottleStatus: bottle.status,
-    drinkName: bottle.name,
-    drinkType: bottle.drinkType,
+    drinkName: keepName ? state.drinkName : bottle.name,
+    drinkType: keepType ? state.drinkType : bottle.drinkType,
   };
 }
 
@@ -169,6 +174,47 @@ export function noteSaveButtonLabel(pending: boolean, photoStatus: PhotoSaveStat
     return NOTE_SAVE_LABELS.photoUploading;
   }
   return NOTE_SAVE_LABELS.idle;
+}
+
+export function noteSaveDisabledHint(
+  state: NoteFormState,
+  errors: NoteFormErrors,
+  photoStatus: PhotoSaveStatus,
+): string | null {
+  if (photoStatus === "uploading") {
+    return "写真の保存が終わるまでお待ちください";
+  }
+  if (photoStatus === "error") {
+    return "写真を再試行するか削除してください";
+  }
+  if (!canSubmitNoteForm(state, errors, photoStatus)) {
+    return NOTE_SAVE_DISABLED_HINT;
+  }
+  return null;
+}
+
+const EMPTY_REQUIRED_NOTE_FIELDS = new Set<NoteFormField>(["ratingX10", "drinkName", "drinkType"]);
+
+export function visibleNoteFormErrors(
+  errors: NoteFormErrors,
+  options: { submitted: boolean; touched: Partial<Record<NoteFormField, boolean>> },
+): NoteFormErrors {
+  if (options.submitted) {
+    return errors;
+  }
+  const visible: NoteFormErrors = {};
+  for (const [key, message] of Object.entries(errors) as [NoteFormField, string | undefined][]) {
+    if (!message) {
+      continue;
+    }
+    if (EMPTY_REQUIRED_NOTE_FIELDS.has(key) && !options.touched[key]) {
+      continue;
+    }
+    if (options.touched[key] || !EMPTY_REQUIRED_NOTE_FIELDS.has(key)) {
+      visible[key] = message;
+    }
+  }
+  return visible;
 }
 
 function optionalText(value: string): string | undefined {

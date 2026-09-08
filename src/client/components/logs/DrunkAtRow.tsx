@@ -1,4 +1,5 @@
-import { ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { formatDrunkAtLabel } from "@/client/lib/log-form.ts";
 import { DRUNK_AT_FUTURE_TOLERANCE_MS } from "@/shared/drink-logs.ts";
 import { instantToTokyoLocal, tokyoLocalToIso } from "@/shared/tokyo-date.ts";
@@ -11,7 +12,7 @@ type DrunkAtRowProps = {
 };
 
 /**
- * N7: 行「日時 今日 13:05 ›」。タップでネイティブ `datetime-local` が開く（行全体に透明な入力を重ねる）。
+ * N7: ラベル上 + 行「今日 13:05 ›」。タップでネイティブ `datetime-local`。
  * 値は常に Asia/Tokyo として解釈し UTC ISO で保持する（端末 TZ 非依存。drink-log.md 3.7）。
  */
 export function DrunkAtRow({ value, now, error, onChange }: DrunkAtRowProps) {
@@ -20,14 +21,17 @@ export function DrunkAtRow({ value, now, error, onChange }: DrunkAtRowProps) {
 
   return (
     <section className="log-form-section">
+      <FieldLabel>飲んだ日時</FieldLabel>
       <div className="form-row">
-        <span className="form-row-label">日時</span>
-        <span className="form-row-value">{formatDrunkAtLabel(value, now)}</span>
+        <Calendar size={18} className="form-row-icon" aria-hidden />
+        <span className="form-row-value form-row-value-start">
+          {formatDrunkAtLabel(value, now)}
+        </span>
         <ChevronRight size={20} className="form-row-chevron" aria-hidden />
         <input
           type="datetime-local"
           className="form-row-native"
-          aria-label="日時"
+          aria-label="飲んだ日時"
           aria-invalid={error ? true : undefined}
           value={local}
           max={max}

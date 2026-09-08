@@ -14,6 +14,10 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("DRINK_RECOGNIZE_BANNER");
     expect(source).toContain("touchedRef.current.drinkType = true");
     expect(source).toContain("touchedRef.current.volumeMl = true");
+    expect(source).toContain("usePhotoEdit");
+    expect(source).not.toContain("useCaptureOnCameraQuery");
+    expect(source).toContain("CompactPhotoField");
+    expect(edit).toContain("CompactPhotoField");
     expect(edit).not.toContain("startDrinkRecognition");
   });
 });
