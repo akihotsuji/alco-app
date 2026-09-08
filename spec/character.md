@@ -22,7 +22,7 @@ Phase 1-08 の成果物。ニューモーフィズムだけでは素っ気ない
 | モーション | 保存成功のほか、短いまばたき・登場時の視線・タップ／完了のウィンクを許可。待機の揺れ・ジャンプは禁止。口・手足・新キャラ・育成は作らない | [motion-design.md](motion-design.md) 6.6（2026-09-08 改訂）。reduced motion で無効 |
 | 写真合成 | 記録・ノートの写真は **右下に 4 ポーズのいずれか**を合成できる（編集画面オープン時に抽選。既定 ON、保存前に OFF 可。背後グローは敷かない）。セラー写真には合成しない | 2026-09-08。白い丸が見えるのをやめ、記録に反応している感じを出す。ポーズは増やさない |
 | 描画方式 | インライン SVG（React コンポーネント）。ラスタ画像は持たない | テーマ追従（線色 `currentColor`）、拡縮自由 |
-| アプリアイコン | 「通常」ポーズを角丸正方形（primary 塗り）に載せたものを Phase 6-01 で生成 | ホーム画面追加時の識別 |
+| アプリアイコン | 「通常」ポーズを primary 正方形に載せる。角丸は OS が付ける。ビルド時に PNG 化（6-01。[features/pwa.md](features/pwa.md)） | ホーム画面追加時の識別 |
 
 ---
 
@@ -144,7 +144,7 @@ viewBox `0 0 120 160`。比率は 3:4。
 - 2 体目のキャラクター、表情差分の追加（4 ポーズで凍結）
 - 吹き出しでの会話文。空状態の文言はテキストブロックとして置き、キャラは添えるだけ
 - 飲酒を促す文脈での使用（「乾杯しよう」「あと 1 杯で…」）
-- ラスタ画像（PNG）の直置き。アプリアイコンだけ Phase 6-01 でビルド時に生成
+- ラスタ画像（PNG）の直置き。アプリアイコンだけ Phase 6-01 でビルド時に生成（`public/pwa/`。gitignore。ソースは `mascot-default.svg` + ライト `--primary`）
 - ボタン・入力・ラベルの上に重ねる。タップ領域を侵さない
 - ユーザーによる色・ポーズのカスタマイズ
 
@@ -180,9 +180,24 @@ src/client/components/mascot/compose-mascot.ts                    ← Canvas 合
 
 ---
 
-## 10. 関連
+## 10. アプリアイコン（6-01）
+
+ホーム追加用。仕様の正本は [features/pwa.md](features/pwa.md)。
+
+| 項目 | 値 |
+|---|---|
+| ポーズ | `default` のみ |
+| 地 | ライト `--primary` `#7A3538` の正方形。ソースに角丸を焼き込まない |
+| 線 | ライト `--primary-fg` `#FFF8F4`（primary 地で輪郭が見える） |
+| 配置 | 高さ = キャンバスの 62%（maskable の内側 80% に収める） |
+| 生成 | `vite.pwa-icons.ts` が `sharp` で 192 / 512 / maskable 512 / Apple 180 を `public/pwa/` へ書く |
+
+テーマ（ライト／ダーク）ではアイコンを切り替えない。ブランド資産としてライト primary で固定する。
+
+## 11. 関連
 
 - [design-system.md](design-system.md) キャラクター節
 - [motion-design.md](motion-design.md) 6.6 character usage、M-25（水面上昇）、M-26（空状態の出現）
 - [screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md) 写真の撮影・編集・合成
+- [features/pwa.md](features/pwa.md) マニフェスト・SW・アイコン生成
 - [roadmap/phase-01-design/08-character-mascot.md](../roadmap/phase-01-design/08-character-mascot.md)

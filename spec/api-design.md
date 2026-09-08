@@ -220,6 +220,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 - 4-06: 端末内 WASM 背景除去のため `script-src` / `worker-src` に `'wasm-unsafe-eval'` を追加。モデルと ORT（`.mjs` / `.wasm`）は同一オリジン `/models/`（`connect-src 'self'` のまま。CDN は使わない）。`/models/*` の Content-Type は `_headers` で固定し、欠落時の SPA fallback HTML をモデルや WASM 用 JS と誤認しないようにする
 - `Permissions-Policy` の `geolocation=(self)` は飲酒記録の新規フォームが現在地を 1 回取るため（[register-identity.md](features/register-identity.md) 4）。`geolocation=()` だとブラウザが Geolocation API を拒否する。マイクは使わないので `microphone=()` のまま
 - Vite 開発サーバー（`pnpm dev`）では `_headers` は適用されない（React Fast Refresh がインラインスクリプトを使うため、適用すると開発が止まる）。CSP の確認は `pnpm build` → `wrangler dev --env dev` で行う
+- 6-01: Service Worker（`/sw.js`）は静的アセット。`_headers` で `Cache-Control: no-cache`。`/api/*` は Workbox の NetworkOnly（セッション JSON と認可付き写真を SW キャッシュしない）。登録はバンドル JS の `navigator.serviceWorker.register` で、`script-src` に `'unsafe-inline'` は足さない。詳細は [features/pwa.md](features/pwa.md)
 
 ### 2.11 入力検証
 

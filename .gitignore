@@ -101,6 +101,9 @@ $RECYCLE.BIN/
 public/models/*.onnx
 public/models/ort/
 
+# PWA アイコン PNG（6-01。ソースは spec/assets/character/mascot-default.svg）
+public/pwa/*.png
+
 # --- キャッシュ ---
 .cache/
 .turbo/

@@ -12,6 +12,8 @@
       "drizzle.config.ts",
       "vite.config.ts",
       "vite.alias.ts",
+      "vite.pwa.ts",
+      "vite.pwa-icons.ts",
       "vitest.config.ts",
       "index.html",
       "tsconfig.json",
