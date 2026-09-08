@@ -5,7 +5,11 @@ import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.ts
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
-import { BottlePickerRow, usePrefillBottle } from "@/client/components/logs/BottlePickerRow.tsx";
+import {
+  BottlePickerRow,
+  TargetBottleChip,
+  usePrefillBottle,
+} from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
@@ -13,6 +17,7 @@ import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
+import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import {
   applyRecognizeToLogForm,
   countDrinkRecognizeFields,
@@ -26,6 +31,7 @@ import {
   applySelectedBottle,
   canSubmitLogForm,
   clearSelectedBottle,
+  shouldPreserveBottlePrefill,
   describeSaveFailure,
   initialLogFormState,
   isLogFormDirty,
@@ -71,6 +77,8 @@ export function LogNewForm() {
   const [initial] = useState(() => initialLogFormState(searchParams.get("date"), now));
   const [state, setState] = useState(initial);
   const queryBottleId = searchParams.get("bottleId");
+  const formOrigin = parseFormOrigin(searchParams.get("from"));
+  const fromBottle = Boolean(formOrigin && queryBottleId);
   const [formError, setFormError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<LogFormErrors>({});
   const [saveState, setSaveState] = useState<MotionState>("idle");
@@ -127,8 +135,13 @@ export function LogNewForm() {
       if (!bottle) {
         return;
       }
-      touchedRef.current.drinkType = true;
-      setState((current) => applySelectedBottle(current, bottle));
+      setState((current) => {
+        const preserveEdits = !fromBottle || shouldPreserveBottlePrefill(current, initial);
+        if (!preserveEdits) {
+          touchedRef.current.drinkType = true;
+        }
+        return applySelectedBottle(current, bottle, { preserveEdits });
+      });
     },
     () => setServerErrors({ bottleId: DRINK_LOG_MESSAGES.bottleNotFound }),
   );
@@ -241,6 +254,7 @@ export function LogNewForm() {
   return (
     <div className="form-page log-form">
       <p className="form-lead">飲んだ量を残す</p>
+      {fromBottle && state.bottleName ? <TargetBottleChip name={state.bottleName} /> : null}
       {formError ? (
         <p className="form-error" role="alert">
           {formError}
@@ -268,21 +282,6 @@ export function LogNewForm() {
           touchedRef.current.volumeMl = true;
           touchedRef.current.abvPercent = true;
           setState((current) => applyDrinkType(current, drinkType));
-          setServerErrors({});
-          setFormError(null);
-        }}
-      />
-      <BottlePickerRow
-        bottleId={state.bottleId}
-        bottleName={state.bottleName}
-        error={visibleErrors.bottleId}
-        onSelect={(bottle) => {
-          if (bottle) {
-            touchedRef.current.drinkType = true;
-          }
-          setState((current) =>
-            bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current),
-          );
           setServerErrors({});
           setFormError(null);
         }}
@@ -317,6 +316,21 @@ export function LogNewForm() {
         value={state.memo}
         error={visibleErrors.memo}
         onChange={(memo) => update({ memo }, "memo")}
+      />
+      <BottlePickerRow
+        placement="optional"
+        bottleId={state.bottleId}
+        bottleName={state.bottleName}
+        error={visibleErrors.bottleId}
+        onSelect={(bottle) => {
+          setState((current) =>
+            bottle
+              ? applySelectedBottle(current, bottle, { preserveEdits: true })
+              : clearSelectedBottle(current),
+          );
+          setServerErrors({});
+          setFormError(null);
+        }}
       />
       <SaveBar
         label={saveButtonLabel(false, photoStatus)}

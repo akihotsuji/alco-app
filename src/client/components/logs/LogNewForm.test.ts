@@ -20,4 +20,12 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(edit).toContain("CompactPhotoField");
     expect(edit).not.toContain("startDrinkRecognition");
   });
+
+  it("関連付けは保存直前の任意行で、後選択は手入力を残す", () => {
+    expect(source.indexOf("placement=\"optional\"")).toBeGreaterThan(source.indexOf("<MemoField"));
+    expect(source).toContain("TargetBottleChip");
+    expect(source).toContain("preserveEdits: true");
+    expect(edit).toContain("placement=\"optional\"");
+    expect(edit.indexOf("placement=\"optional\"")).toBeGreaterThan(edit.indexOf("<MemoField"));
+  });
 });

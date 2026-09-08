@@ -16,6 +16,7 @@ import {
   isLogFormDirty,
   isManualVolume,
   liveAlcoholGrams,
+  shouldPreserveBottlePrefill,
   logFormStateFromDrinkLog,
   logSaveDisabledHint,
   primaryVolumeChips,
@@ -67,7 +68,7 @@ describe("drink type", () => {
     expect(applyDrinkType(beer, "whisky")).toMatchObject({ volumeMl: 30, abvPercent: 40 });
   });
 
-  it("ボトル選択は種類が違うときだけ量・度数を上書きする", () => {
+  it("初回引き継ぎは種類が違うとき量・度数を種類デフォルトにする。後選択は手入力を残す", () => {
     const state = { ...initialLogFormState(null, NOW), volumeMl: 150 };
     const same = applySelectedBottle(state, {
       id: "11111111-1111-4111-8111-111111111111",
@@ -83,6 +84,17 @@ describe("drink type", () => {
     });
     expect(beer.volumeMl).toBe(350);
     expect(beer.drinkType).toBe("beer");
+    const later = applySelectedBottle(state, beer, { preserveEdits: true });
+    expect(later.volumeMl).toBe(150);
+    expect(later.drinkType).toBe("wine");
+    expect(later.bottleId).toBe(beer.bottleId);
+    expect(later.bottleName).toBe("ラガー");
+  });
+
+  it("遅れて届いた取得は、触った入力があると上書きしない", () => {
+    const initial = initialLogFormState(null, NOW);
+    expect(shouldPreserveBottlePrefill(initial, initial)).toBe(false);
+    expect(shouldPreserveBottlePrefill({ ...initial, volumeMl: 200 }, initial)).toBe(true);
   });
 
   it("「その他」は量・度数が空になり保存できない（E18）", () => {

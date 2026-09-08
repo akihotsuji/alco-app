@@ -21,10 +21,14 @@ describe("BottleDetail 状態バッジ", () => {
     });
   });
 
-  it("棚は開栓する、貯蔵庫はノートを書くとセラーに戻す", () => {
+  it("棚は開栓する、貯蔵庫は記録とテイスティングの入口とセラーに戻す", () => {
     expect(source).toContain("開栓する");
-    expect(source).toContain("ノートを書く");
+    expect(source).toContain("飲んだ量を記録");
+    expect(source).toContain("テイスティングを書く");
     expect(source).toContain("セラーに戻す");
+    expect(source).toContain("OpenedFollowupSheet");
+    expect(source).not.toContain("ノートを書く");
+    expect(source).not.toContain("navigate(\"/cellar\"");
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });
 

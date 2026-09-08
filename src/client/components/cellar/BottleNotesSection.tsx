@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { noteCreateHref, notesListHref } from "@/client/lib/app-routes.ts";
+import { notesListHref } from "@/client/lib/app-routes.ts";
 import { bottleNoteRowText, bottleNotesAllLabel } from "@/client/lib/bottle-notes.ts";
 import type { TastingNoteListItem } from "@/shared/tasting-notes.ts";
 
@@ -14,9 +14,6 @@ export function BottleNotesSection({ bottleId, notes, totalCount }: BottleNotesS
     <section className="bottle-section">
       <div className="bottle-section-head">
         <h2 className="bottle-section-title">ノート</h2>
-        <Link className="bottle-section-action" to={noteCreateHref(bottleId)}>
-          書く ›
-        </Link>
       </div>
       {notes.length > 0 ? (
         <ul className="bottle-log-list">

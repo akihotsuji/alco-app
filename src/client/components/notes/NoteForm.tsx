@@ -9,7 +9,7 @@ import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
-import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
+import { BottlePickerRow, TargetBottleChip } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { NotePhotoStrip } from "@/client/components/notes/NotePhotoStrip.tsx";
 import { NoteTextFields } from "@/client/components/notes/NoteTextFields.tsx";
@@ -26,6 +26,7 @@ import {
 } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { notesListHref } from "@/client/lib/app-routes.ts";
+import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import { isUuid } from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
@@ -72,16 +73,23 @@ const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真�
 export function NoteNewForm() {
   const [searchParams] = useSearchParams();
   const bottleId = searchParams.get("bottleId");
+  const formOrigin = parseFormOrigin(searchParams.get("from"));
   if (bottleId && !isUuid(bottleId)) {
     return <NotFoundPage />;
   }
   if (bottleId) {
-    return <NoteNewWithBottle bottleId={bottleId} />;
+    return <NoteNewWithBottle bottleId={bottleId} formOrigin={formOrigin} />;
   }
   return <NoteNewFields />;
 }
 
-function NoteNewWithBottle({ bottleId }: { bottleId: string }) {
+function NoteNewWithBottle({
+  bottleId,
+  formOrigin,
+}: {
+  bottleId: string;
+  formOrigin: ReturnType<typeof parseFormOrigin>;
+}) {
   const query = useBottle(bottleId);
   if (query.isPending) {
     return <DetailSkeleton />;
@@ -95,6 +103,7 @@ function NoteNewWithBottle({ bottleId }: { bottleId: string }) {
   }
   return (
     <NoteNewFields
+      formOrigin={formOrigin}
       prefill={applySelectedBottle(initialNoteFormState(), {
         id: query.data.id,
         name: query.data.name,
@@ -106,7 +115,13 @@ function NoteNewWithBottle({ bottleId }: { bottleId: string }) {
   );
 }
 
-function NoteNewFields({ prefill }: { prefill?: NoteFormState }) {
+function NoteNewFields({
+  prefill,
+  formOrigin = null,
+}: {
+  prefill?: NoteFormState;
+  formOrigin?: ReturnType<typeof parseFormOrigin>;
+}) {
   const navigate = useNavigate();
   const { setGuard } = useLeaveGuard();
   const { showToast } = useToast();
@@ -199,6 +214,7 @@ function NoteNewFields({ prefill }: { prefill?: NoteFormState }) {
       errors={visibleErrors}
       saveHint={noteSaveDisabledHint(state, errors, photoStatus)}
       lead="香りや味わいを残す"
+      targetName={formOrigin && state.bottleName ? state.bottleName : null}
       formError={formError}
       photoStatus={photoStatus}
       canSubmit={canSubmit}
@@ -395,6 +411,7 @@ function NoteFormFields({
   errors,
   saveHint,
   lead,
+  targetName,
   formError,
   photoStatus,
   canSubmit,
@@ -412,6 +429,7 @@ function NoteFormFields({
   errors: NoteFormErrors;
   saveHint: string | null;
   lead?: string;
+  targetName?: string | null;
   formError: string | null;
   photoStatus: PhotoSaveStatus;
   canSubmit: boolean;
@@ -495,6 +513,7 @@ function NoteFormFields({
   return (
     <div className="form-page log-form">
       {lead ? <p className="form-lead">{lead}</p> : null}
+      {targetName ? <TargetBottleChip name={targetName} /> : null}
       {formError ? (
         <p className="form-error" role="alert">
           {formError}
@@ -518,26 +537,6 @@ function NoteFormFields({
       {recognizeStatus ? (
         <RecognizeBanner status={recognizeStatus} messages={NOTE_RECOGNIZE_BANNER} />
       ) : null}
-      <BottlePickerRow
-        label="セラーから選ぶ"
-        hint="選ばずに入力することもできます"
-        bottleId={state.bottleId}
-        bottleName={state.bottleName}
-        valueLabel={
-          state.bottleName ? bottleRowLabel(state.bottleName, state.bottleStatus) : undefined
-        }
-        clearable
-        requireSearch
-        error={errors.bottleId}
-        onSelect={(bottle) => {
-          if (bottle) {
-            touchedRef.current.drinkType = true;
-            onUpdate(applySelectedBottle(state, bottle, { preserveEdits: true }));
-          } else {
-            onUpdate(clearSelectedBottle(state));
-          }
-        }}
-      />
       <section className="log-form-section">
         <FieldLabel htmlFor="note-drink-name" required>
           銘柄名
@@ -606,6 +605,22 @@ function NoteFormFields({
         errors={errors}
         defaultOpen={noteDetailOpen(state)}
         onChange={(field, value) => onUpdate({ [field]: value }, field)}
+      />
+      <BottlePickerRow
+        placement="optional"
+        bottleId={state.bottleId}
+        bottleName={state.bottleName}
+        valueLabel={
+          state.bottleName ? bottleRowLabel(state.bottleName, state.bottleStatus) : undefined
+        }
+        error={errors.bottleId}
+        onSelect={(bottle) => {
+          if (bottle) {
+            onUpdate(applySelectedBottle(state, bottle, { preserveEdits: true }));
+          } else {
+            onUpdate(clearSelectedBottle(state));
+          }
+        }}
       />
       <SaveBar
         label={noteSaveButtonLabel(pending, photoStatus)}

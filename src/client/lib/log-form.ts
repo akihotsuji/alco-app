@@ -94,14 +94,33 @@ export function applyDrinkType(state: LogFormState, drinkType: DrinkType): LogFo
   return { ...state, drinkType, volumeMl: preset.volumeMl, abvPercent: preset.abvPercent };
 }
 
-/** N8: ボトルを選ぶと種類を合わせ、違う種類なら量・度数もデフォルト投入 */
+/**
+ * N8: ボトル詳細・開栓後の初回引き継ぎは種類（と種類デフォルトの量・度数）を入れる。
+ * 後からの関連付けは手入力を上書きしない。ボトル固有の度数は推測しない。
+ */
 export function applySelectedBottle(
   state: LogFormState,
   bottle: { id: string; name: string; drinkType: DrinkType },
+  options: { preserveEdits?: boolean } = {},
 ): LogFormState {
+  if (options.preserveEdits) {
+    return { ...state, bottleId: bottle.id, bottleName: bottle.name };
+  }
   const next =
     bottle.drinkType === state.drinkType ? state : applyDrinkType(state, bottle.drinkType);
   return { ...next, bottleId: bottle.id, bottleName: bottle.name };
+}
+
+/** 遅れて届いたボトル取得で、触った入力を上書きしない */
+export function shouldPreserveBottlePrefill(state: LogFormState, initial: LogFormState): boolean {
+  return (
+    state.drinkType !== initial.drinkType ||
+    state.volumeMl !== initial.volumeMl ||
+    state.abvPercent !== initial.abvPercent ||
+    state.memo !== initial.memo ||
+    state.drunkAt !== initial.drunkAt ||
+    state.bottleId !== initial.bottleId
+  );
 }
 
 export function clearSelectedBottle(state: LogFormState): LogFormState {
