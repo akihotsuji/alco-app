@@ -56,17 +56,15 @@
 
 各項目は「対象 / 演出意図 / 動きの内容 / 開始条件 / 継続時間 / UI/UX 上のメリット / 実装難易度」。数値は 6 章のトークン名で書く（値は 6 章）。
 
-### 3.1 ホーム「記録する」主要ボタン（`M-01`〜`M-03`）
+### 3.1 主ボタンの押下（`M-01`〜`M-02`。`M-03` は廃止）
 
-`home` H8。詳細は 8 章。
+主ボタン全般（`log-new` の保存など）。中央タブは同じ沈みを `M-21` で使う。ホーム H8 は 2026-09-08 に廃止したため、`M-03`（ホーム主ボタンの 1 回出現）も廃止。詳細は 8 章。
 
 | ID | 対象 | 演出意図 | 動きの内容 | 開始条件 | 継続 | メリット | 難易度 |
 |---|---|---|---|---|---|---|---|
 | M-01 | 主ボタン 押下 | 「押せた」感触。沈む | `--shadow-primary` → pressed inset、`scale(0.985) translateY(1px)`、明度 0.92 | `pointerdown` / `:active` | 押し `--dur-press`、戻り `--dur-release` | 誤タップの自覚、押し心地 | 低 |
 | M-02 | 主ボタン 戻り | やわらかく戻る | 沈みから元に戻る。`--ease-settle` でわずかに（≦2%）行き過ぎて止まる | `pointerup` / `:active` 解除 | `--dur-release` | 「反応した」と感じる。跳ねない | 低 |
-| M-03 | 主ボタン 出現（1 回） | 押したくなる | ホーム初回表示時のみ、影 0 → `--shadow-primary`、`translateY(4px)` → 0 | ホームのマウント 1 回（同一セッションで再表示しても再生しない） | `--dur-enter` | 主導線の位置を目に入れる。以後は静止 | 低 |
-
-補足: ホームの「記録する」は `log-new` へ **遷移する Link** であり、その場で保存は起きない。したがって「成功状態」はこのボタンには無い。成功の演出は 3.2（保存ボタン）と 3.3（1 タップ）に置く。
+| M-03 | （廃止） | — | ホーム H8 の 1 回出現。記録 CTA をホームから外したため対象なし | — | — | — | — |
 
 ### 3.2 記録の保存（`log-new` N10「保存する」）（`M-04`〜`M-06`）
 
@@ -276,7 +274,7 @@ iOS は Vibration API 非対応のため、主導線の理解を触感に依存�
 - **ライブラリを足さない**。CSS transition / `@keyframes` と最小の Web Animations API（数字のカウント）だけ。framer-motion 等は導入しない（バンドル + 設計との二重管理）
 - 状態は **`data-state` 属性**で表す（`idle | pressed | loading | success | error`）。CSS はそれに反応する。React 側は状態を置くだけで、アニメーションの制御をしない
 - DOM 構造は変えない。疑似要素（`::before` 水位線、`::after` 影の重ね）で描く
-- 「1 回だけ」の演出は **`sessionStorage` または React の ref** で再生済みを記録する（M-03 / M-19 / M-26）
+- 「1 回だけ」の演出は **`sessionStorage` または React の ref** で再生済みを記録する（M-19 / M-26。M-03 は廃止）
 - `useReducedMotion()` フック（`src/client/hooks/use-reduced-motion.ts`）を 1 か所に置き、**OS の `prefers-reduced-motion: reduce` または設定「動きを減らす = 常に減らす」（`ui.reduce-motion`、06-settings S9）のどちらかで true**。`scrollIntoView` の `behavior` や `pour` の有無など JS 側の分岐に使う。CSS 側は `AppShell` が `<html data-reduce-motion="1">` を付け外しし、その属性で一括無効化する（メディアクエリと設定を 1 つのセレクタに集約するため。テーマの `.dark` 固定禁止とは別の話で、これは OS 設定を上書きする逃げ道）
 - 行の挿入は `height` をアニメーションせず、外側ラッパーの `grid-template-rows: 0fr → 1fr`（対応ブラウザ）で行う。非対応環境は不透明度のフェードだけ
 - 全てのトークンは `styles.css` の `:root` に置き、`bg-[...]` と同様に **その場の `duration-[...]` / `ease-[...]` は禁止**（`ui-design` ルールに追記）
@@ -314,7 +312,7 @@ html[data-reduce-motion="1"] .log-row-enter {
 |---|---|---|---|---|---|
 | M-01 | Button 主 / 中央タブ | `:active` | `transform: scale(0.985) translateY(1px)`、pressed inset（`::after` opacity 1）、`filter: brightness(0.92)` | press `--dur-press` `--ease-out` | 影と明度のみ即時 |
 | M-02 | 同上 | `:active` 解除 | 上記を元に戻す | `--dur-release` `--ease-settle` | 即時 |
-| M-03 | ホーム主ボタン | マウント 1 回 | `opacity 0→1`、`translateY(4px)→0`、`box-shadow none→primary` | `--dur-enter` `--ease-out` | 無し |
+| M-03 | （廃止） | — | ホーム H8 の出現演出。対象なし | — | — |
 | M-04 | Button 主 `data-state="loading"` | 送信開始 | `::before` 水位線 `transform: scaleY(0→1)`（`transform-origin: bottom`、`background: var(--fill-tint)`）、ラベル「保存中」、`disabled` | `--dur-fill` `--ease-fill`、1 回 | 水位線無し。ラベルのみ |
 | M-06 | 同上 `data-state="error"` | 非 2xx | `::before opacity 1→0`、ラベル復帰 | `--dur-state` `--ease-in` | 即時 |
 | M-07 | Chip | 送信中 | `is-on` 維持、`color: var(--muted)`、`disabled` | `--dur-press` | 同じ |
@@ -339,9 +337,9 @@ html[data-reduce-motion="1"] .log-row-enter {
 
 ---
 
-## 8. ホーム「記録する」主要ボタンの詳細設計
+## 8. 主ボタンの押下（`M-01` / `M-02`）
 
-前提: ベージュの地、ワインレッドの塗り（`--primary`）+ `--shadow-primary`、高さ 52px、角 `--radius`。**Link として `log-new` に遷移する**ため、このボタン自身に loading / success は無い。loading / success を持つのは同じ `Button` 部品を使う `log-new` の「保存する」（M-04〜M-06）と、その場で保存が完了するマイドリンクチップ（M-07〜M-08）。
+前提: ベージュの地、ワインレッドの塗り（`--primary`）+ `--shadow-primary`、高さ 52px、角 `--radius`。ホームの「お酒を記録する」（H8）は 2026-09-08 に廃止。押下の沈みは主ボタンと中央タブ（`M-21`）が共有する。loading / success を持つのは `log-new` の「保存する」（M-04〜M-06）と、その場で保存が完了するマイドリンクチップ（M-07〜M-08）。
 
 ### 8.1 状態
 
@@ -354,13 +352,12 @@ html[data-reduce-motion="1"] .log-row-enter {
 | success（チップのみ） | 水位線 1 回 + inset → outset 復帰 | 遷移しない場面の成功表示 |
 | disabled | 既存（不透明 0.6）。影は `--shadow-primary` のまま | 未来日など |
 
-### 8.2 アニメーションの流れ（ホームで押した場合）
+### 8.2 アニメーションの流れ（中央タブで押した場合）
 
 ```
 0ms     pointerdown   → scale 0.985 / translateY 1px / 影 inset / 明度 0.92   (90ms, ease-out)
 ~90ms   [沈んだまま]                                                          指が触れている間
 pointerup             → 元へ戻る (160ms, ease-settle。2% 以内の行き過ぎ)
-同時                  → haptic("light")（設定 ON かつ Android のみ）
 同時                  → navigate("/logs/new")                                 戻りを待たない
 ```
 
@@ -392,7 +389,6 @@ pointerup           → 戻る (160ms) と同時に POST 開始 → data-state="
 
 | タイミング | 種別 |
 |---|---|
-| ホーム「記録する」pointerup | `light`（10ms） |
 | 保存 2xx / チップ 2xx | `success`（10, 40, 10） |
 | 失敗 | 無し |
 
@@ -400,16 +396,16 @@ pointerup           → 戻る (160ms) と同時に POST 開始 → data-state="
 
 ### 8.5 キャラクターの最小演出
 
-- ホームの「記録する」押下では **キャラは動かさない**（P3: 触った場所で起きる。カードのキャラは指から遠い）
+- 中央タブ押下では **キャラは動かさない**（P3: 触った場所で起きる。カードのキャラは指から遠い）
 - 1 タップ記録（チップ）の成功では、既存仕様の `cheer` 300ms → `default` に加え、切替の瞬間に **上 4px → 0**（`--dur-state`）を 1 回。水面上昇は同時に行わない（トーストの `cheer` が担う。同時に 2 か所で水面を上げない）
 - 記録 0 → 1 で `rest` → `default` のクロスフェード（既存 200ms）
 
 ### 8.6 実装方針（画面構造を壊さない）
 
-- `Button` の `default` variant に `data-state` 属性と `::before` / `::after` を追加する。`LogQuickActions` の Link は `buttonVariants()` を使っているので **DOM は変えない**
+- `Button` の `default` variant に `data-state` 属性と `::before` / `::after` を追加する
 - `active:` の Tailwind ユーティリティを、`data-state="pressed"` ではなく引き続き `:active` で扱う（JS で pressed を管理しない）。`transform` を transition プロパティに足す
 - loading は `useMutation` の `isPending` を `data-state` に写す。success は状態を置かない（即遷移）
-- `haptic()` は `onPointerUp` ではなく mutation の `onSuccess` と Link の `onClick` で呼ぶ（キャンセルされたタップに振動させない）
+- `haptic()` は `onPointerUp` ではなく mutation の `onSuccess` で呼ぶ（キャンセルされたタップに振動させない）
 
 ---
 
@@ -577,7 +573,7 @@ bottle-detail（開栓する を押す）
 |---|---|---|---|---|
 | X1 | `?highlight=` のリング（M-14〜M-16）を **`useHighlightRow` フック**として共通部品化し、`log-new` / `log-edit` の保存後の到着で使う（日別の 1 タップは 2026-09-06 (c) で無くなった）。セラーの `BottleTile[data-enter]`（M-11）も同じ考え方で作る | 到着先で同じ挙動を保証 | 03-log D8、04-cellar 一覧の状態表 | 3-05（作成）、4-03 / 4-04（利用） |
 | X2 | 保存後トーストの「取り消す」で、**消える行を `--dur-state` で inset にしてからフェードアウト**（日別のみ。ホームの 1 タップ undo は数字が戻るだけ） | 何が取り消されたかが分かる | 03-log D9 / 状態表 | 3-05 |
-| X3 | **廃止**（2026-09-06）。中央タブは着地せず撮影を開始する (c) に確定したため、「着地時に『記録する』を 1 回出現させる」対象が無くなった。M-03 はホーム H8 の初回出現のみ | — | 03-log から削除 | — |
+| X3 | **廃止**（2026-09-06 / 2026-09-08）。着地時の出現対象が無く、ホーム H8 も廃止したため M-03 も廃止 | — | 03-log / 02-home から削除 | — |
 | X4 | 保存失敗時に `navigator.onLine === false` なら文言を **「オフラインです。接続してからもう一度試してください」** にする（それ以外は汎用文のまま） | 実機での失敗原因の大半 | 00-common 2.4 | 3-02 |
 | X5 | 設定に **「触感フィードバック」**（既定 OFF、`ui.haptic`）と **「動きを減らす」**（`ui.reduce-motion`: OS の設定に従う / 常に減らす。既定は OS に従う）の 2 スイッチ | OS の reduced-motion を触れないユーザーの逃げ道。haptic の ON 入口 | 06-settings S8 / S9 | 3-07 |
 | X6 | ホームの今週日付 H6 のタップ先を **その日の `log-day`**（`/logs/:date`）にする。今日カード本体は **今日の `/logs`**（2026-09-06 (c)。週サマリー行きは「詳しく見る ›」H13） | 「水曜に何飲んだ？」への最短経路。今日の一覧はカードから | 02-home H2 / H6 / H13 | 3-03 |
@@ -603,7 +599,7 @@ bottle-detail（開栓する を押す）
 - [design-system.md](design-system.md) モーション節（トークン値の写し）
 - [character.md](character.md) 6 章モーション
 - [screen-designs/00-common.md](screen-designs/00-common.md) トースト・ダイアログ・空状態
-- [screen-designs/02-home.md](screen-designs/02-home.md) H8 / H11 / H12、1 タップ直後の状態
+- [screen-designs/02-home.md](screen-designs/02-home.md) H11 / H12、1 タップ直後の状態
 - [screen-designs/03-log.md](screen-designs/03-log.md) D8 ハイライト、N10 保存
 - [screen-designs/04-cellar.md](screen-designs/04-cellar.md) T3 開栓、`bottle-list` 到着時の M-10 / M-11 / M-32
 - 実装: `src/client/styles.css`、`src/client/components/ui/button.tsx`、`src/client/components/feedback/ToastProvider.tsx`、`src/client/components/mascot/Mascot.tsx`

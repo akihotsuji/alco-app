@@ -77,7 +77,7 @@ describe("unionRects / viewport offset", () => {
       true,
     );
     expect(shouldMeasureGuideContents({ tagName: "DIV", className: "save-bar" })).toBe(true);
-    expect(shouldMeasureGuideContents({ tagName: "BUTTON", className: "home-log-btn" })).toBe(
+    expect(shouldMeasureGuideContents({ tagName: "BUTTON", className: "tab-center-btn" })).toBe(
       false,
     );
   });
@@ -114,13 +114,13 @@ describe("unionRects / viewport offset", () => {
     expect(collectGuideMeasureRects(bar)).toEqual([{ top: 700, left: 20, width: 350, height: 52 }]);
   });
 
-  it("記録ボタンは自身の矩形を使う", () => {
+  it("中央タブは自身の矩形を使う", () => {
     const button = fakeNode(
-      { top: 400, left: 24, width: 342, height: 52 },
-      { tagName: "BUTTON", className: "home-log-btn" },
+      { top: 400, left: 24, width: 60, height: 60 },
+      { tagName: "SPAN", className: "tab-center-btn" },
     );
     expect(collectGuideMeasureRects(button)).toEqual([
-      { top: 400, left: 24, width: 342, height: 52 },
+      { top: 400, left: 24, width: 60, height: 60 },
     ]);
   });
 });

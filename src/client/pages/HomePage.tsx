@@ -6,31 +6,22 @@ import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { HomeWeekStrip } from "@/client/components/home/HomeWeekStrip.tsx";
 import { TodaySummaryCard } from "@/client/components/home/TodaySummaryCard.tsx";
-import { LogQuickActions } from "@/client/components/logs/LogQuickActions.tsx";
 import { MyDrinkQuickList } from "@/client/components/logs/MyDrinkQuickList.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Card } from "@/client/components/ui/card.tsx";
 import { useBottles } from "@/client/hooks/use-bottles.ts";
-import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
 import { useDrinkLogSummary } from "@/client/hooks/use-drink-log-summary.ts";
 import { useMyDrinks } from "@/client/hooks/use-my-drinks.ts";
 import { getTastingNotes } from "@/client/hooks/use-tasting-notes.ts";
-import { logFormHrefs } from "@/client/lib/app-routes.ts";
-import { haptic } from "@/client/lib/haptic.ts";
 import { parseMascotPreview, resolveMascotPresence } from "@/client/lib/mascot-presence.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { formatHomeDateLabel, tokyoToday } from "@/shared/tokyo-date.ts";
 
-let homePrimaryEntered = false;
-
 export function HomePage() {
   const today = tokyoToday();
   const [searchParams] = useSearchParams();
   const guide = useFirstRunGuide();
-  // H8 は写真なしで log-new。H9 だけ「撮ってから入力へ」（中央タブは撮影しない）
-  const { newHref } = logFormHrefs();
-  const captureLog = useCaptureLog();
   const daySummary = useDrinkLogSummary("day", today);
   const weekSummary = useDrinkLogSummary("week", today);
   const myDrinks = useMyDrinks();
@@ -51,8 +42,6 @@ export function HomePage() {
   const previousTodayCount = useRef<number | null>(null);
   const cheerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fillTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const playPrimaryEnter = useRef(!homePrimaryEntered);
-  homePrimaryEntered = true;
 
   const todayCount = daySummary.data?.totalCount ?? 0;
   const presence = resolveMascotPresence({
@@ -145,14 +134,6 @@ export function HomePage() {
             presence={presence}
           />
         ) : null}
-        <LogQuickActions
-          newHref={newHref}
-          onCamera={guide.interceptRecord ? guide.onHomeRecordAction : captureLog}
-          primaryEnter={playPrimaryEnter.current}
-          onPrimary={() => haptic("light")}
-          onPrimaryIntercept={guide.interceptRecord ? guide.onHomeRecordAction : undefined}
-          guideTarget={guide.step === "home-record" ? "record" : undefined}
-        />
       </div>
       {summaryPending ? (
         <div className="skeleton-card home-week-skeleton" role="status">

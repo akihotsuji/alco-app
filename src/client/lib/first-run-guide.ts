@@ -275,7 +275,10 @@ export type GuideSpotlightConfig = {
 
 export function guideSpotlight(step: GuideStep): GuideSpotlightConfig | null {
   if (step === "home-record") {
-    return { target: '[data-guide-target="record"]', message: "飲んだ量は、ここから残せます" };
+    return {
+      target: '[data-guide-target="record"]',
+      message: "中央の記録タブをタップすると、飲酒記録ができます",
+    };
   }
   if (step === "practice-volume") {
     return {

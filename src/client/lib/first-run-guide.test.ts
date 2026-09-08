@@ -127,6 +127,7 @@ describe("nextGuideStep / spotlight", () => {
 
   it("保存までスポットライト対象がある", () => {
     expect(guideSpotlight("home-record")?.target).toContain("record");
+    expect(guideSpotlight("home-record")?.message).toContain("記録タブ");
     expect(guideSpotlight("practice-volume")?.target).toContain("volume");
     expect(guideSpotlight("practice-save")?.target).toContain("save");
     expect(guideSpotlight("cellar-save")?.target).toContain("save");

@@ -6,14 +6,19 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "HomePage.tsx"), "utf8");
 
 describe("HomePage 順序", () => {
-  it("今日の記録 → 記録操作 → 今週 → マイドリンクの順を維持する", () => {
+  it("今日の記録 → 今週 → マイドリンクの順を維持する", () => {
     const today = source.indexOf("<TodaySummaryCard");
-    const actions = source.indexOf("<LogQuickActions");
     const week = source.indexOf("<HomeWeekStrip");
     const myDrinks = source.indexOf('className="home-mydrinks"');
     expect(today).toBeGreaterThan(-1);
-    expect(actions).toBeGreaterThan(today);
-    expect(week).toBeGreaterThan(actions);
+    expect(week).toBeGreaterThan(today);
     expect(myDrinks).toBeGreaterThan(week);
+  });
+
+  it("記録の入口ボタンを置かない", () => {
+    expect(source).not.toContain("LogQuickActions");
+    expect(source).not.toContain("お酒を記録する");
+    expect(source).not.toContain("写真から記録");
+    expect(source).not.toContain("useCaptureLog");
   });
 });

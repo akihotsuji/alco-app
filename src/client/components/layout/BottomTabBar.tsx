@@ -5,6 +5,8 @@ import { TABS, type TabDef, type TabId } from "@/client/lib/app-routes.ts";
 type BottomTabBarProps = {
   activeTab: TabId | null;
   onSelect: (tab: TabDef) => void;
+  /** 初回ガイドの記録 1/3。中央タブ円をスポットライトする */
+  guideTarget?: string;
 };
 
 const ICONS: Record<TabId, ReactNode> = {
@@ -15,7 +17,7 @@ const ICONS: Record<TabId, ReactNode> = {
   settings: <Settings size={20} aria-hidden />,
 };
 
-export function BottomTabBar({ activeTab, onSelect }: BottomTabBarProps) {
+export function BottomTabBar({ activeTab, onSelect, guideTarget }: BottomTabBarProps) {
   return (
     <nav className="tab-bar" aria-label="メイン">
       {TABS.map((tab) => {
@@ -29,7 +31,9 @@ export function BottomTabBar({ activeTab, onSelect }: BottomTabBarProps) {
               aria-label="お酒を記録"
               onClick={() => onSelect(tab)}
             >
-              <span className="tab-center-btn">{ICONS[tab.id]}</span>
+              <span className="tab-center-btn" data-guide-target={guideTarget}>
+                {ICONS[tab.id]}
+              </span>
               <span className="tab-label tab-center-label">{tab.label}</span>
             </button>
           );
