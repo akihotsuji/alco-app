@@ -1,6 +1,7 @@
 import { type ClientRequestOptions, type ClientResponse, hc } from "hono/client";
 import type { AppType } from "@/server/index.ts";
 import { type ApiErrorCode, type ApiErrorFields, apiErrorBodySchema } from "@/shared/api-error.ts";
+import { takeEarlyFetch } from "./early-fetch.ts";
 
 /**
  * Hono RPC クライアント。SPA と API は同一 Worker・同一オリジンなので base は相対 `/`。
@@ -10,6 +11,16 @@ import { type ApiErrorCode, type ApiErrorFields, apiErrorBodySchema } from "@/sh
 export function createApiClient(options: ClientRequestOptions = {}) {
   return hc<AppType>("/", {
     ...options,
+    fetch: (input: Request | string | URL, init?: RequestInit) => {
+      const early = takeEarlyFetch(input, init);
+      if (early) {
+        return early;
+      }
+      if (options.fetch) {
+        return options.fetch(input, init);
+      }
+      return fetch(input, init);
+    },
     // セッション Cookie を必ず付ける（同一オリジンでも明示する）
     init: { credentials: "include", ...options.init },
   });

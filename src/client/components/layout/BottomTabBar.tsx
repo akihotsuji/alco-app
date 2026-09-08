@@ -1,6 +1,7 @@
 import { House, NotebookPen, Plus, Settings, Wine } from "lucide-react";
 import type { ReactNode } from "react";
 import { TABS, type TabDef, type TabId } from "@/client/lib/app-routes.ts";
+import { prefetchTabPointerProps } from "@/client/lib/route-chunks.ts";
 
 type BottomTabBarProps = {
   activeTab: TabId | null;
@@ -30,6 +31,7 @@ export function BottomTabBar({ activeTab, onSelect, guideTarget }: BottomTabBarP
               className="tab-center"
               aria-label="お酒を記録"
               onClick={() => onSelect(tab)}
+              {...prefetchTabPointerProps(tab.id)}
             >
               <span className="tab-center-btn" data-guide-target={guideTarget}>
                 {ICONS[tab.id]}
@@ -46,6 +48,7 @@ export function BottomTabBar({ activeTab, onSelect, guideTarget }: BottomTabBarP
             className={current ? "tab-item is-current" : "tab-item"}
             aria-current={current ? "page" : undefined}
             onClick={() => onSelect(tab)}
+            {...prefetchTabPointerProps(tab.id)}
           >
             {ICONS[tab.id]}
             <span className="tab-label">{tab.label}</span>

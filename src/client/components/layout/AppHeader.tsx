@@ -9,6 +9,7 @@ import {
   type ShellHeader,
 } from "@/client/lib/app-routes.ts";
 import { historyIdx } from "@/client/lib/history-state.ts";
+import { prefetchPointerProps } from "@/client/lib/route-chunks.ts";
 
 type AppHeaderProps = {
   header: ShellHeader;
@@ -62,13 +63,21 @@ function HeaderLeftSlot({
       );
     case "archive":
       return (
-        <IconButton label="貯蔵庫" onClick={() => navigate("/cellar/archive")}>
+        <IconButton
+          label="貯蔵庫"
+          onClick={() => navigate("/cellar/archive")}
+          {...prefetchPointerProps("/cellar/archive")}
+        >
           <Archive size={20} />
         </IconButton>
       );
     case "day-prev":
       return (
-        <IconButton label="前日" onClick={() => navigate(logDayHref(left.date))}>
+        <IconButton
+          label="前日"
+          onClick={() => navigate(logDayHref(left.date))}
+          {...prefetchPointerProps(logDayHref(left.date))}
+        >
           <ChevronLeft size={22} />
         </IconButton>
       );
@@ -87,25 +96,33 @@ function HeaderRightSlot({
   switch (right.kind) {
     case "plus":
       return (
-        <IconButton label="追加" onClick={() => navigate(right.to)}>
+        <IconButton
+          label="追加"
+          onClick={() => navigate(right.to)}
+          {...prefetchPointerProps(right.to)}
+        >
           <Plus size={20} />
         </IconButton>
       );
     case "batch":
       return (
-        <IconButton label="まとめて追加" onClick={() => navigate(right.to)}>
+        <IconButton
+          label="まとめて追加"
+          onClick={() => navigate(right.to)}
+          {...prefetchPointerProps(right.to)}
+        >
           <Images size={20} />
         </IconButton>
       );
     case "edit":
       return (
-        <Link className="header-text-link" to={right.to}>
+        <Link className="header-text-link" to={right.to} {...prefetchPointerProps(right.to)}>
           編集
         </Link>
       );
     case "text":
       return (
-        <Link className="header-text-link" to={right.to}>
+        <Link className="header-text-link" to={right.to} {...prefetchPointerProps(right.to)}>
           {right.label}
         </Link>
       );
@@ -115,6 +132,7 @@ function HeaderRightSlot({
           label="翌日"
           disabled={right.disabled}
           onClick={() => navigate(logDayHref(right.date))}
+          {...prefetchPointerProps(logDayHref(right.date))}
         >
           <ChevronRight size={22} />
         </IconButton>

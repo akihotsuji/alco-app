@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navigate, Outlet } from "react-router";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { AuthBoot } from "./AuthBoot.tsx";
@@ -11,5 +12,9 @@ export function GuestOnly() {
   if (data) {
     return <Navigate to="/" replace />;
   }
-  return <Outlet />;
+  return (
+    <Suspense fallback={<AuthBoot />}>
+      <Outlet />
+    </Suspense>
+  );
 }
