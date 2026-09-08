@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyViewportOffset,
+  collectGuideMeasureRects,
   guideTipLayout,
   holeFromRect,
   needsGuideFanReveal,
@@ -9,6 +10,20 @@ import {
   unionRects,
   visualViewportOffset,
 } from "./guide-spotlight-layout.ts";
+
+function fakeNode(
+  rect: { top: number; left: number; width: number; height: number },
+  extra: Partial<HTMLElement> = {},
+): HTMLElement {
+  return {
+    tagName: "DIV",
+    className: "",
+    getBoundingClientRect: () => rect,
+    querySelector: () => null,
+    children: [],
+    ...extra,
+  } as unknown as HTMLElement;
+}
 
 describe("pickPreferredGuideTarget", () => {
   it("空状態の主ボタンを FAB より優先する", () => {
@@ -65,6 +80,48 @@ describe("unionRects / viewport offset", () => {
     expect(shouldMeasureGuideContents({ tagName: "BUTTON", className: "home-log-btn" })).toBe(
       false,
     );
+  });
+
+  it("量欄は legend を含みラベルを切らない", () => {
+    const legend = fakeNode({ top: 200, left: 20, width: 72, height: 18 });
+    const input = fakeNode({ top: 226, left: 20, width: 350, height: 48 });
+    const chips = fakeNode({ top: 282, left: 12, width: 366, height: 60 });
+    const fieldset = fakeNode(
+      { top: 210, left: 20, width: 350, height: 140 },
+      {
+        tagName: "FIELDSET",
+        className: "log-form-section",
+        querySelector: () => legend,
+        children: [legend, input, chips] as unknown as HTMLCollection,
+      },
+    );
+    const union = unionRects(collectGuideMeasureRects(fieldset));
+    expect(union).toEqual({ top: 200, left: 12, width: 366, height: 142 });
+    const hole = holeFromRect(union ?? { top: 0, left: 0, width: 0, height: 0 });
+    expect(hole.top).toBeLessThan(200);
+    expect(hole.left).toBeLessThan(12);
+  });
+
+  it("保存バーは余白ではなくボタンを測る", () => {
+    const button = fakeNode({ top: 700, left: 20, width: 350, height: 52 });
+    const bar = fakeNode(
+      { top: 684, left: 20, width: 350, height: 100 },
+      {
+        className: "save-bar",
+        children: [button] as unknown as HTMLCollection,
+      },
+    );
+    expect(collectGuideMeasureRects(bar)).toEqual([{ top: 700, left: 20, width: 350, height: 52 }]);
+  });
+
+  it("記録ボタンは自身の矩形を使う", () => {
+    const button = fakeNode(
+      { top: 400, left: 24, width: 342, height: 52 },
+      { tagName: "BUTTON", className: "home-log-btn" },
+    );
+    expect(collectGuideMeasureRects(button)).toEqual([
+      { top: 400, left: 24, width: 342, height: 52 },
+    ]);
   });
 });
 

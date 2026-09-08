@@ -142,6 +142,10 @@ export function guideTipLayout(
   return { top, left, width, placement, arrowLeft };
 }
 
+function isMeasurable(node: { getBoundingClientRect?: () => DOMRect | GuideRect } | null): boolean {
+  return node !== null && typeof node.getBoundingClientRect === "function";
+}
+
 export function collectGuideMeasureRects(el: HTMLElement): GuideRect[] {
   if (!shouldMeasureGuideContents(el)) {
     const self = el.getBoundingClientRect();
@@ -149,14 +153,14 @@ export function collectGuideMeasureRects(el: HTMLElement): GuideRect[] {
   }
   const parts: HTMLElement[] = [];
   const legend = el.querySelector(":scope > legend");
-  if (legend instanceof HTMLElement) {
-    parts.push(legend);
+  if (isMeasurable(legend)) {
+    parts.push(legend as HTMLElement);
   }
   for (const child of el.children) {
-    if (!(child instanceof HTMLElement) || child === legend) {
+    if (child === legend || !isMeasurable(child)) {
       continue;
     }
-    parts.push(child);
+    parts.push(child as HTMLElement);
   }
   const targets = parts.length > 0 ? parts : [el];
   return targets.map((node) => {
