@@ -166,7 +166,7 @@ describe("保存可否と本数", () => {
     const row = readyRow("a", "サンプル赤", 2);
     expect(batchRowBody(row)).toEqual({
       name: "サンプル赤",
-      drinkType: "wine",
+      drinkType: "wine_red",
       count: 2,
       producer: null,
       origin: null,

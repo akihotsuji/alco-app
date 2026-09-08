@@ -59,7 +59,13 @@ export function guideTourOf(step: GuideStep): GuideTour | null {
 }
 
 export function guideStartStep(tour: GuideTour): GuideStep {
-  return GUIDE_TOUR_STEPS[tour][0];
+  if (tour === "cellar") {
+    return "cellar-add";
+  }
+  if (tour === "notes") {
+    return "notes-create";
+  }
+  return "home-record";
 }
 
 export function guideTourPath(tour: GuideTour): string {

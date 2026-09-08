@@ -81,7 +81,7 @@ describe("drink type", () => {
     const same = applySelectedBottle(state, {
       id: "11111111-1111-4111-8111-111111111111",
       name: "サンプル赤",
-      drinkType: "wine",
+      drinkType: "wine_red",
     });
     expect(same.volumeMl).toBe(150);
     expect(same.bottleName).toBe("サンプル赤");
@@ -102,7 +102,7 @@ describe("drink type", () => {
       { preserveEdits: true },
     );
     expect(later.volumeMl).toBe(150);
-    expect(later.drinkType).toBe("wine");
+    expect(later.drinkType).toBe("wine_red");
     expect(later.bottleId).toBe("11111111-1111-4111-8111-111111111111");
     expect(later.bottleName).toBe("ラガー");
   });
@@ -252,7 +252,7 @@ describe("body", () => {
     const state = { ...initialLogFormState(null, NOW), memo: "  旨い " };
     const body = toCreateDrinkLogBody(state, "11111111-1111-4111-8111-111111111111");
     expect(body).toEqual({
-      drinkType: "wine",
+      drinkType: "wine_red",
       volumeMl: 125,
       abvPercent: 12,
       drunkAt: NOW.toISOString(),
@@ -267,7 +267,7 @@ describe("body", () => {
       )?.bottleId,
     ).toBe("11111111-1111-4111-8111-111111111111");
     expect(toCreateDrinkLogBody({ ...state, memo: "   " }, null)).toEqual({
-      drinkType: "wine",
+      drinkType: "wine_red",
       volumeMl: 125,
       abvPercent: 12,
       drunkAt: NOW.toISOString(),
