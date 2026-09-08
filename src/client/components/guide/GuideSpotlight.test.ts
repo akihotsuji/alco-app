@@ -16,7 +16,8 @@ describe("GuideSpotlight", () => {
     expect(source).toContain("guide-spotlight");
     expect(source).toContain("guide-spotlight-ring");
     expect(source).toContain("data-practice");
-    expect(source).toContain("measureGuideTarget");
+    expect(source).toContain("queryPreferredGuideTarget");
+    expect(source).toContain("visualViewport");
     expect(source).toContain("guideSpotlightPath");
     expect(source).toContain("MutationObserver");
     expect(css).toContain('[data-practice="1"]');
@@ -31,6 +32,8 @@ describe("GuideSpotlight", () => {
     expect(css).toContain("rgb(0 0 0 / 55%)");
     expect(css).toContain("z-index: 50");
     expect(css).toContain("--guide-tip-arrow-x");
+    expect(css).toContain("min-inline-size: 0");
+    expect(css).toContain("scroll-margin-top: 168px");
     expect(css).not.toMatch(/\[data-guide-target\][^{]*\{[^}]*position:\s*relative/);
     expect(css).not.toMatch(/\.guide-spotlight-panel[^{]*\{[^}]*var\(--foreground\)/);
   });
