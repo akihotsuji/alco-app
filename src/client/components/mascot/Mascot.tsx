@@ -1,4 +1,6 @@
 import { useId } from "react";
+import { useMascotLife } from "@/client/hooks/use-mascot-life.ts";
+import type { MascotPresence } from "@/client/lib/mascot-presence.ts";
 
 export const MASCOT_POSES = ["default", "surprised", "rest", "cheer"] as const;
 export type MascotPose = (typeof MASCOT_POSES)[number];
@@ -8,8 +10,22 @@ type MascotProps = {
   size: number;
   /** M-25: `cheer` のときだけ水面が 45% → 60% に 1 回上がる。他のポーズでは無視する */
   pour?: boolean;
+  life?: boolean;
+  lifeId?: string;
+  presence?: MascotPresence;
+  gazeOnMount?: boolean;
+  reactToken?: number;
   "aria-hidden"?: boolean;
 };
+
+function EyeLids({ left, right }: { left: { x: number; y: number; s: number }; right: { x: number; y: number; s: number } }) {
+  return (
+    <g className="mascot-lids" aria-hidden>
+      <rect className="mascot-lid mascot-lid-l" x={left.x} y={left.y} width={left.s} height={left.s} rx={left.s / 2} />
+      <rect className="mascot-lid mascot-lid-r" x={right.x} y={right.y} width={right.s} height={right.s} rx={right.s / 2} />
+    </g>
+  );
+}
 
 /** `pour` が効くのは cheer だけ（character.md 6 章） */
 export function pourApplies(pose: MascotPose, pour: boolean | undefined): boolean {
@@ -129,10 +145,13 @@ function PoseContent({ pose, clipId, pour }: { pose: MascotPose; clipId: string;
             stroke="currentColor"
             strokeWidth="3"
           />
-          <circle cx="49" cy="49" r="5.5" fill="var(--mascot-ink)" />
-          <circle cx="73" cy="46" r="6" fill="var(--mascot-ink)" />
-          <circle cx="51" cy="47" r="1.6" fill="#FFFFFF" />
-          <circle cx="75" cy="44" r="1.8" fill="#FFFFFF" />
+          <g className="mascot-pupils">
+            <circle cx="49" cy="49" r="5.5" fill="var(--mascot-ink)" />
+            <circle cx="73" cy="46" r="6" fill="var(--mascot-ink)" />
+            <circle cx="51" cy="47" r="1.6" fill="#FFFFFF" />
+            <circle cx="75" cy="44" r="1.8" fill="#FFFFFF" />
+          </g>
+          <EyeLids left={{ x: 35, y: 43, s: 26 }} right={{ x: 57, y: 39, s: 30 }} />
         </>
       );
     case "surprised":
@@ -156,10 +175,13 @@ function PoseContent({ pose, clipId, pour }: { pose: MascotPose; clipId: string;
           <BowlOutline />
           <circle cx="47" cy="56" r="15" fill="#FFFFFF" stroke="currentColor" strokeWidth="3" />
           <circle cx="73" cy="53" r="17" fill="#FFFFFF" stroke="currentColor" strokeWidth="3" />
-          <circle cx="42" cy="51" r="4.5" fill="var(--mascot-ink)" />
-          <circle cx="67" cy="47" r="5" fill="var(--mascot-ink)" />
-          <circle cx="43.5" cy="49.5" r="1.4" fill="#FFFFFF" />
-          <circle cx="68.5" cy="45.5" r="1.6" fill="#FFFFFF" />
+          <g className="mascot-pupils">
+            <circle cx="42" cy="51" r="4.5" fill="var(--mascot-ink)" />
+            <circle cx="67" cy="47" r="5" fill="var(--mascot-ink)" />
+            <circle cx="43.5" cy="49.5" r="1.4" fill="#FFFFFF" />
+            <circle cx="68.5" cy="45.5" r="1.6" fill="#FFFFFF" />
+          </g>
+          <EyeLids left={{ x: 32, y: 41, s: 30 }} right={{ x: 56, y: 36, s: 34 }} />
         </>
       );
     default:
@@ -176,10 +198,13 @@ function PoseContent({ pose, clipId, pour }: { pose: MascotPose; clipId: string;
           <BowlOutline />
           <circle cx="48" cy="54" r="13" fill="#FFFFFF" stroke="currentColor" strokeWidth="3" />
           <circle cx="72" cy="52" r="15" fill="#FFFFFF" stroke="currentColor" strokeWidth="3" />
-          <circle cx="50" cy="56" r="5.5" fill="var(--mascot-ink)" />
-          <circle cx="74" cy="54" r="6" fill="var(--mascot-ink)" />
-          <circle cx="52" cy="54" r="1.6" fill="#FFFFFF" />
-          <circle cx="76" cy="52" r="1.8" fill="#FFFFFF" />
+          <g className="mascot-pupils">
+            <circle cx="50" cy="56" r="5.5" fill="var(--mascot-ink)" />
+            <circle cx="74" cy="54" r="6" fill="var(--mascot-ink)" />
+            <circle cx="52" cy="54" r="1.6" fill="#FFFFFF" />
+            <circle cx="76" cy="52" r="1.8" fill="#FFFFFF" />
+          </g>
+          <EyeLids left={{ x: 35, y: 41, s: 26 }} right={{ x: 57, y: 37, s: 30 }} />
         </>
       );
   }
@@ -203,27 +228,62 @@ function GlassStem() {
   );
 }
 
-export function Mascot({ pose = "default", size, pour, "aria-hidden": ariaHidden }: MascotProps) {
+export function Mascot({
+  pose = "default",
+  size,
+  pour,
+  life = false,
+  lifeId = "mascot",
+  presence = "upright",
+  gazeOnMount = true,
+  reactToken = 0,
+  "aria-hidden": ariaHidden,
+}: MascotProps) {
   const clipId = useId();
   const width = (size * 120) / 160;
+  const motion = useMascotLife({
+    id: lifeId,
+    enabled: life,
+    pose,
+    presence,
+    gazeOnMount,
+    reactToken,
+  });
 
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 120 160"
-      width={width}
-      height={size}
-      className="text-foreground"
-      aria-hidden={ariaHidden ?? true}
-      role="presentation"
-      focusable="false"
+    <span
+      ref={motion.rootRef}
+      className="mascot-root"
+      data-action={motion.life.action ?? undefined}
+      data-gaze={motion.life.gaze}
+      data-presence={presence}
+      data-heavy-enter={motion.heavyEnter ? "1" : undefined}
+      data-life={life ? "1" : undefined}
+      onClick={life ? motion.onTap : undefined}
     >
-      <defs>
-        <clipPath id={clipId}>
-          <path d={BOWL} />
-        </clipPath>
-      </defs>
-      <PoseContent pose={pose} clipId={clipId} pour={pourApplies(pose, pour)} />
-    </svg>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 120 160"
+        width={width}
+        height={size}
+        className="text-foreground mascot-svg"
+        aria-hidden={ariaHidden ?? true}
+        role="presentation"
+        focusable="false"
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <path d={BOWL} />
+          </clipPath>
+        </defs>
+        <PoseContent pose={pose} clipId={clipId} pour={pourApplies(pose, pour)} />
+        {presence === "heavy" ? (
+          <g className="mascot-droplets" aria-hidden>
+            <circle cx="98" cy="78" r="2.2" fill="var(--mascot-wine)" />
+            <circle cx="104" cy="90" r="1.6" fill="var(--mascot-wine)" />
+          </g>
+        ) : null}
+      </svg>
+    </span>
   );
 }
