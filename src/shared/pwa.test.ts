@@ -14,6 +14,7 @@ import {
   PWA_START_URL,
   PWA_THEME_COLOR_DARK,
   PWA_THEME_COLOR_LIGHT,
+  PWA_VITE_ENVIRONMENT,
 } from "./pwa.ts";
 
 describe("pwa 契約", () => {
@@ -22,6 +23,7 @@ describe("pwa 契約", () => {
     expect(PWA_SHORT_NAME).toBe("alco");
     expect(PWA_START_URL).toBe("/");
     expect(PWA_DISPLAY).toBe("standalone");
+    expect(PWA_VITE_ENVIRONMENT).toBe("client");
   });
 
   it("テーマカラーが design-system の地色と一致する", () => {

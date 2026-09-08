@@ -1,9 +1,16 @@
-import { registerSW } from "virtual:pwa-register";
+import { PWA_SW_FILENAME } from "@/shared/pwa.ts";
 
-/** 本番ビルドだけ SW を登録する。Vite 開発では HMR を邪魔しない */
+export function shouldRegisterServiceWorker(prod: boolean, hasServiceWorker: boolean): boolean {
+  return prod && hasServiceWorker;
+}
+
+/** 本番ビルドだけ SW を登録する。Vite 開発では HMR を邪魔しない。インライン script は使わない（CSP） */
 export function installServiceWorker(): void {
-  if (!import.meta.env.PROD) {
+  if (!shouldRegisterServiceWorker(import.meta.env.PROD, "serviceWorker" in navigator)) {
     return;
   }
-  registerSW({ immediate: true });
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    window.location.reload();
+  });
+  void navigator.serviceWorker.register(`/${PWA_SW_FILENAME}`);
 }

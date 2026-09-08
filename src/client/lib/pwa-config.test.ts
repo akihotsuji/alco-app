@@ -8,12 +8,14 @@ import {
   PWA_THEME_COLOR_DARK,
   PWA_THEME_COLOR_LIGHT,
 } from "@/shared/pwa.ts";
-import { pwaOptions } from "../../../vite.pwa.ts";
+import { isPwaBuildEnvironment, pwaOptions } from "../../../vite.pwa.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("PWA 設定ファイル", () => {
   it("SW は API を NetworkOnly にし、インライン登録しない", () => {
+    expect(isPwaBuildEnvironment("client")).toBe(true);
+    expect(isPwaBuildEnvironment("alco_app")).toBe(false);
     expect(pwaOptions.injectRegister).toBe(false);
     expect(pwaOptions.registerType).toBe("autoUpdate");
     expect(pwaOptions.filename).toBe(PWA_SW_FILENAME);

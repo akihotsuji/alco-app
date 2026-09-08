@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import type { Plugin } from "vite";
-import { buildPwaIconSvg } from "./src/client/lib/pwa-icon.ts";
 import { PWA_ICON_BACKGROUND, PWA_ICON_DIR, PWA_ICON_FILES } from "./src/shared/pwa.ts";
+import { buildPwaIconSvg } from "./src/shared/pwa-icon.ts";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const mascotPath = join(root, "spec/assets/character/mascot-default.svg");

@@ -1,3 +1,4 @@
+import type { PluginOption } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import {
   isPwaNetworkOnlyPath,
@@ -18,6 +19,7 @@ import {
   PWA_START_URL,
   PWA_SW_FILENAME,
   PWA_THEME_COLOR_LIGHT,
+  PWA_VITE_ENVIRONMENT,
 } from "./src/shared/pwa.ts";
 
 export const pwaOptions = {
@@ -59,6 +61,22 @@ export const pwaOptions = {
   },
 };
 
-export function alcoPwa() {
-  return VitePWA(pwaOptions);
+export function isPwaBuildEnvironment(name: string): boolean {
+  return name === PWA_VITE_ENVIRONMENT;
+}
+
+export function alcoPwa(): PluginOption {
+  const plugins = VitePWA(pwaOptions);
+  const list = Array.isArray(plugins) ? plugins : [plugins];
+  return list.map((plugin) => {
+    if (!plugin || typeof plugin !== "object" || Array.isArray(plugin)) {
+      return plugin;
+    }
+    return {
+      ...plugin,
+      applyToEnvironment(environment) {
+        return isPwaBuildEnvironment(environment.name);
+      },
+    };
+  });
 }

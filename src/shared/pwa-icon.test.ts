@@ -2,14 +2,11 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { PWA_ICON_BACKGROUND, PWA_ICON_LINE, PWA_ICON_SIZE } from "@/shared/pwa.ts";
+import { PWA_ICON_BACKGROUND, PWA_ICON_LINE, PWA_ICON_SIZE } from "./pwa.ts";
 import { buildPwaIconSvg, extractSvgInner } from "./pwa-icon.ts";
 
 const mascot = readFileSync(
-  join(
-    dirname(fileURLToPath(import.meta.url)),
-    "../../../spec/assets/character/mascot-default.svg",
-  ),
+  join(dirname(fileURLToPath(import.meta.url)), "../../spec/assets/character/mascot-default.svg"),
   "utf8",
 );
 

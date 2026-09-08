@@ -81,7 +81,7 @@
 
 ## 6. Service Worker
 
-`vite-plugin-pwa` の `generateSW`。ファイル名 `sw.js`。登録は `virtual:pwa-register`（バンドルされた JS。CSP の `script-src 'self'` を守るためインライン登録は使わない）。
+`vite-plugin-pwa` の `generateSW`。ファイル名 `sw.js`。登録はバンドル JS から `navigator.serviceWorker.register`（CSP の `script-src 'self'` を守るためインライン登録は使わない。`workbox-window` は足さない）。Cloudflare Vite の worker 環境には SW を出さない。
 
 | 対象 | 戦略 | 理由 |
 |---|---|---|

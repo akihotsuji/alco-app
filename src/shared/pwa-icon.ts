@@ -3,7 +3,7 @@ import {
   PWA_ICON_LINE,
   PWA_ICON_MASCOT_HEIGHT_RATIO,
   PWA_ICON_SIZE,
-} from "@/shared/pwa.ts";
+} from "./pwa.ts";
 
 export type PwaIconSvgOptions = {
   background?: string;

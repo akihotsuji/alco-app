@@ -27,6 +27,8 @@ export const PWA_ICON_SIZE = 512;
 export const PWA_ICON_MASCOT_HEIGHT_RATIO = 0.62;
 
 export const PWA_SW_FILENAME = "sw.js";
+/** Cloudflare Vite の worker 環境には SW を出さない */
+export const PWA_VITE_ENVIRONMENT = "client";
 
 export const PWA_ICON_DIR = "pwa";
 
