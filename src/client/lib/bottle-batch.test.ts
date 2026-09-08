@@ -110,6 +110,17 @@ describe("行の編集と AI 印", () => {
     expect(rows[0]?.form.name).toBe("手入力");
   });
 
+  it("品種の AI 印も手入力で外れる", () => {
+    let rows = upsertBatchPhoto([], "a", photo());
+    rows = updateBatchRow(rows, "a", (row) => ({
+      aiMarks: ["variety"],
+      form: { ...row.form, variety: "ピノ" },
+    }));
+    rows = patchBatchRowForm(rows, "a", { variety: "手入力" });
+    expect(rows[0]?.aiMarks).toEqual([]);
+    expect(rows[0]?.form.variety).toBe("手入力");
+  });
+
   it("種類を触ったことを覚え、行のエラーは編集で消える", () => {
     let rows = upsertBatchPhoto([], "a", photo());
     rows = updateBatchRow(rows, "a", { error: "失敗" });

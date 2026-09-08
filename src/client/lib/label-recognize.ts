@@ -32,33 +32,37 @@ function usable<T>(
   return field !== undefined && field.confidence >= AI_RECOGNIZE_MIN_CONFIDENCE;
 }
 
-/** 空欄にだけ入れる。`abvPercent` は捨てる。確度 0.5 未満は捨てる */
+function canFillText(current: string, marked: boolean): boolean {
+  return current.trim() === "" || marked;
+}
+
+/** 空欄、または直前に AI が入った欄は再読取で上書きする。`abvPercent` は捨てる。確度 0.5 未満は捨てる */
 export function applyRecognizeToForm(input: ApplyRecognizeInput): ApplyRecognizeResult {
   const next = { ...input.state };
   const marks = new Set(input.marks);
   const applied: RecognizeMarkField[] = [];
 
-  if (usable(input.fields.name) && next.name.trim() === "") {
+  if (usable(input.fields.name) && canFillText(next.name, marks.has("name"))) {
     next.name = input.fields.name.value;
     marks.add("name");
     applied.push("name");
   }
-  if (usable(input.fields.producer) && next.producer.trim() === "") {
+  if (usable(input.fields.producer) && canFillText(next.producer, marks.has("producer"))) {
     next.producer = input.fields.producer.value;
     marks.add("producer");
     applied.push("producer");
   }
-  if (usable(input.fields.origin) && next.origin.trim() === "") {
+  if (usable(input.fields.origin) && canFillText(next.origin, marks.has("origin"))) {
     next.origin = input.fields.origin.value;
     marks.add("origin");
     applied.push("origin");
   }
-  if (usable(input.fields.variety) && next.variety.trim() === "") {
+  if (usable(input.fields.variety) && canFillText(next.variety, marks.has("variety"))) {
     next.variety = input.fields.variety.value;
     marks.add("variety");
     applied.push("variety");
   }
-  if (usable(input.fields.vintage) && next.vintage.trim() === "") {
+  if (usable(input.fields.vintage) && canFillText(next.vintage, marks.has("vintage"))) {
     next.vintage = String(input.fields.vintage.value);
     marks.add("vintage");
     applied.push("vintage");

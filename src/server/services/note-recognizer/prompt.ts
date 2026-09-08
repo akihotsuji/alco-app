@@ -1,4 +1,5 @@
 import { DRINK_TYPES } from "@/shared/constants.ts";
+import { IDENTITY_INFERENCE_PROMPT } from "../identity-inference-prompt.ts";
 
 /** サーバー固定。ユーザー入力は含めない。ラベルまたはグラス写真から銘柄・種類・年を推測する */
 export const NOTE_RECOGNIZE_SYSTEM_PROMPT = [
@@ -20,8 +21,8 @@ export const NOTE_RECOGNIZE_SYSTEM_PROMPT = [
   "wine=ワイン/wine glass/wine bottle, beer=ビール/beer glass/pint/can, whisky=ウイスキー/rocks glass,",
   "sake=日本酒/ochoko/tokkuri, shochu=焼酎, cocktail=カクテル/cocktail glass, other=不明・その他.",
   "drinkName is the brand, cuvée, or recognizable drink name. Max 100 characters.",
-  "producer is the winery/distillery/brewery. origin is the country of production (e.g. フランス, Japan).",
-  "variety is grape, rice, hop, or malt variety.",
+  "producer is the winery/distillery/brewery.",
+  IDENTITY_INFERENCE_PROMPT,
   "vintage is a 4-digit year from 1800 to 2100. Omit for NV / non-vintage / beer / cocktails without a year.",
   "confidence is 0 to 1.",
 ].join(" ");

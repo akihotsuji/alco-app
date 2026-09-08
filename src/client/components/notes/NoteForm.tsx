@@ -58,6 +58,7 @@ import {
 import type { NotePhotoItem } from "@/client/lib/note-photos.ts";
 import {
   applyRecognizeToNoteForm,
+  latestNoteRecognizeJpeg,
   countNoteRecognizeFields,
   NOTE_RECOGNIZE_BANNER,
   type NoteRecognizeTouched,
@@ -510,6 +511,8 @@ function NoteFormFields({
     null,
   );
   const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
+  const aiMarksRef = useRef(aiMarks);
+  aiMarksRef.current = aiMarks;
   const touchedRef = useRef<NoteRecognizeTouched>({
     drinkName: false,
     drinkType: false,
@@ -535,8 +538,7 @@ function NoteFormFields({
   }, [pendingRecognizeJpeg]);
 
   useEffect(() => {
-    const jpeg =
-      photos.items.find((item) => item.recognizeJpeg)?.recognizeJpeg ?? pendingRecognizeJpeg;
+    const jpeg = latestNoteRecognizeJpeg(photos.items) ?? pendingRecognizeJpeg;
     if (!jpeg || recognizedJpegRef.current === jpeg) {
       return;
     }
@@ -557,9 +559,10 @@ function NoteFormFields({
           state: stateRef.current,
           fields: result.fields,
           touched: touchedRef.current,
+          marks: aiMarksRef.current,
         });
         onUpdateRef.current(applied.next);
-        setAiMarks(new Set(applied.applied));
+        setAiMarks(applied.marks);
         setRecognizeStatus("success");
       })
       .catch(() => {

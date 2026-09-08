@@ -1,4 +1,5 @@
 import { DRINK_TYPES } from "@/shared/constants.ts";
+import { IDENTITY_INFERENCE_PROMPT } from "../identity-inference-prompt.ts";
 
 /** サーバー固定。ユーザー入力（銘柄名など）は含めない */
 export const LABEL_RECOGNIZE_SYSTEM_PROMPT = [
@@ -20,11 +21,11 @@ export const LABEL_RECOGNIZE_SYSTEM_PROMPT = [
   "}",
   `drinkType must be one of: ${DRINK_TYPES.join(", ")}.`,
   "wine=ワイン, beer=ビール, whisky=ウイスキー/ウィスキー, sake=日本酒, shochu=焼酎, cocktail=カクテル, other=その他.",
-  "variety is grape, rice, hop, or malt variety (e.g. Cabernet Sauvignon, 山田錦). Omit if unknown.",
   "vintage is a 4-digit year from 1800 to 2100. Omit for NV / non-vintage.",
   "abvPercent is 0-100 with at most one decimal.",
   "confidence is 0 to 1.",
-  "name is the brand or cuvée. producer is the winery/distillery. origin is the country of production (e.g. フランス, Japan), not a small appellation when both appear.",
+  "name is the brand or cuvée. producer is the winery/distillery.",
+  IDENTITY_INFERENCE_PROMPT,
 ].join(" ");
 
 export const LABEL_RECOGNIZE_USER_PROMPT =

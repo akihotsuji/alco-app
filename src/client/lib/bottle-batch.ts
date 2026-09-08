@@ -123,7 +123,11 @@ export function patchBatchRowForm(
   return updateBatchRow(rows, key, (row) => {
     const touched = (Object.keys(patch) as (keyof BottleFormState)[]).filter(
       (field): field is RecognizeMarkField =>
-        field === "name" || field === "producer" || field === "origin" || field === "vintage",
+        field === "name" ||
+        field === "producer" ||
+        field === "origin" ||
+        field === "variety" ||
+        field === "vintage",
     );
     return {
       form: { ...row.form, ...patch },

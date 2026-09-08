@@ -88,4 +88,54 @@ describe("applyRecognizeToLogForm", () => {
     expect(next).toEqual(state);
     expect(applied).toEqual([]);
   });
+
+  it("再読取は AI が入った識別を上書きし、手入力とボトル由来は残す", () => {
+    const first = applyRecognizeToLogForm({
+      state: initialLogFormState(null, NOW),
+      fields: {
+        drinkName: { value: "一枚目", confidence: 0.9 },
+        origin: { value: "フランス", confidence: 0.8 },
+        variety: { value: "ピノ", confidence: 0.7 },
+      },
+      touched: untouched,
+    });
+    expect(first.next).toMatchObject({
+      drinkName: "一枚目",
+      origin: "フランス",
+      variety: "ピノ",
+    });
+
+    const second = applyRecognizeToLogForm({
+      state: { ...first.next, producer: "手入力生産者", bottleId: null },
+      fields: {
+        drinkName: { value: "二枚目", confidence: 0.9 },
+        origin: { value: "イタリア", confidence: 0.8 },
+        variety: { value: "サンジョヴェーゼ", confidence: 0.7 },
+        producer: { value: "AI生産者", confidence: 0.9 },
+      },
+      touched: { ...untouched, producer: true },
+      marks: first.marks,
+    });
+    expect(second.next.drinkName).toBe("二枚目");
+    expect(second.next.origin).toBe("イタリア");
+    expect(second.next.variety).toBe("サンジョヴェーゼ");
+    expect(second.next.producer).toBe("手入力生産者");
+    expect(second.marks.has("drinkName")).toBe(true);
+
+    const bottled = applyRecognizeToLogForm({
+      state: {
+        ...initialLogFormState(null, NOW),
+        drinkName: "ボトル名",
+        origin: "スペイン",
+      },
+      fields: {
+        drinkName: { value: "AI名", confidence: 0.9 },
+        origin: { value: "フランス", confidence: 0.9 },
+      },
+      touched: untouched,
+      marks: new Set(),
+    });
+    expect(bottled.next.drinkName).toBe("ボトル名");
+    expect(bottled.next.origin).toBe("スペイン");
+  });
 });

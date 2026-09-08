@@ -11,6 +11,7 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
   it("新規だけ推測し、触った欄は上書きしない。編集は変えない", () => {
     expect(source).toContain("startDrinkRecognition");
     expect(source).toContain("applyRecognizeToLogForm");
+    expect(source).toContain("marks: aiMarksRef.current");
     expect(source).toContain("DRINK_RECOGNIZE_BANNER");
     expect(source).toContain("touchedRef.current.drinkType = true");
     expect(source).toContain("touchedRef.current.volumeMl = true");

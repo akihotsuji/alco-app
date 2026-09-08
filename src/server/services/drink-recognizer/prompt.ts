@@ -1,4 +1,5 @@
 import { DRINK_TYPES } from "@/shared/constants.ts";
+import { IDENTITY_INFERENCE_PROMPT } from "../identity-inference-prompt.ts";
 
 /** サーバー固定。ユーザー入力は含めない。ラベル OCR ではなく、グラス/缶/瓶の見た目から推測する */
 export const DRINK_RECOGNIZE_SYSTEM_PROMPT = [
@@ -24,8 +25,9 @@ export const DRINK_RECOGNIZE_SYSTEM_PROMPT = [
   "volumeMl is an integer milliliters from 1 to 5000. Use typical pours:",
   "wine glass ~125, beer can ~350, pint ~500, whisky ~30, sake ~180, shochu ~60, cocktail ~120.",
   "drinkName is the brand, cuvée, or recognizable drink name. Max 100 characters.",
-  "producer is the winery/distillery/brewery. origin is the country of production (e.g. フランス, Japan), not a small appellation when both appear.",
-  "variety is grape, rice, hop, or malt variety. vintage is a 4-digit year from 1800 to 2100. Omit for NV.",
+  "producer is the winery/distillery/brewery.",
+  IDENTITY_INFERENCE_PROMPT,
+  "vintage is a 4-digit year from 1800 to 2100. Omit for NV.",
   "abvPercent is 0-100 with at most one decimal. Use typical values if the container is clear.",
   "confidence is 0 to 1.",
 ].join(" ");

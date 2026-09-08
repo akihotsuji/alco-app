@@ -103,6 +103,8 @@ export function LogNewForm() {
   const savedRef = useRef(false);
   const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | null>(null);
   const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
+  const aiMarksRef = useRef(aiMarks);
+  aiMarksRef.current = aiMarks;
   const touchedRef = useRef<DrinkRecognizeTouched>({
     drinkName: false,
     drinkType: false,
@@ -251,8 +253,9 @@ export function LogNewForm() {
             state: current,
             fields: result.fields,
             touched: touchedRef.current,
+            marks: aiMarksRef.current,
           });
-          setAiMarks(new Set(applied.applied));
+          setAiMarks(applied.marks);
           return applied.next;
         });
         setRecognizeStatus("success");

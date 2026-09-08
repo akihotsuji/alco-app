@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { initialNoteFormState } from "./note-form.ts";
-import { applyRecognizeToNoteForm } from "./note-recognize.ts";
+import { applyRecognizeToNoteForm, latestNoteRecognizeJpeg } from "./note-recognize.ts";
 
 const NOW = new Date("2026-09-08T03:00:00.000Z");
 
@@ -75,5 +75,55 @@ describe("applyRecognizeToNoteForm", () => {
     });
     expect(result.next.drinkType).toBe("beer");
     expect(result.next.vintage).toBe("2018");
+  });
+
+  it("再読取は AI が入った識別を上書きする", () => {
+    const first = applyRecognizeToNoteForm({
+      state: initialNoteFormState(NOW),
+      fields: {
+        drinkName: { value: "一枚目", confidence: 0.9 },
+        origin: { value: "フランス", confidence: 0.8 },
+      },
+      touched: {
+        drinkName: false,
+        drinkType: false,
+        vintage: false,
+        producer: false,
+        origin: false,
+        variety: false,
+      },
+    });
+    const second = applyRecognizeToNoteForm({
+      state: first.next,
+      fields: {
+        drinkName: { value: "二枚目", confidence: 0.9 },
+        origin: { value: "イタリア", confidence: 0.8 },
+        variety: { value: "ネッビオーロ", confidence: 0.7 },
+      },
+      touched: {
+        drinkName: false,
+        drinkType: false,
+        vintage: false,
+        producer: false,
+        origin: false,
+        variety: false,
+      },
+      marks: first.marks,
+    });
+    expect(second.next.drinkName).toBe("二枚目");
+    expect(second.next.origin).toBe("イタリア");
+    expect(second.next.variety).toBe("ネッビオーロ");
+  });
+});
+
+describe("latestNoteRecognizeJpeg", () => {
+  it("最後に付いた認識用 JPEG を使う", () => {
+    const first = new Blob(["a"], { type: "image/jpeg" });
+    const last = new Blob(["b"], { type: "image/jpeg" });
+    expect(
+      latestNoteRecognizeJpeg([{ recognizeJpeg: first }, { recognizeJpeg: last }]),
+    ).toBe(last);
+    expect(latestNoteRecognizeJpeg([{}, { recognizeJpeg: first }])).toBe(first);
+    expect(latestNoteRecognizeJpeg([])).toBeUndefined();
   });
 });
