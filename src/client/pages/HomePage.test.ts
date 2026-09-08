@@ -9,13 +9,11 @@ describe("HomePage 順序", () => {
   it("今日の記録 → 記録操作 → 今週 → マイドリンクの順を維持する", () => {
     const today = source.indexOf("<TodaySummaryCard");
     const actions = source.indexOf("<LogQuickActions");
-    const banner = source.indexOf("<GuideHomeBanner");
     const week = source.indexOf("<HomeWeekStrip");
     const myDrinks = source.indexOf('className="home-mydrinks"');
     expect(today).toBeGreaterThan(-1);
     expect(actions).toBeGreaterThan(today);
-    expect(banner).toBeGreaterThan(actions);
-    expect(week).toBeGreaterThan(banner);
+    expect(week).toBeGreaterThan(actions);
     expect(myDrinks).toBeGreaterThan(week);
   });
 });

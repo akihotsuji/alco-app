@@ -336,7 +336,7 @@ export function CellarList() {
           {showCellarHint ? (
             <p className="empty-state-detail">持っているボトルを、ここに並べて管理します</p>
           ) : null}
-          <Link className={cn(buttonVariants(), "empty-action")} to="/cellar/new?camera=1">
+          <Link className={cn(buttonVariants(), "empty-action")} to="/cellar/new">
             ボトルを追加
           </Link>
         </div>

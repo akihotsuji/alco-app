@@ -11,6 +11,7 @@ const source = readFileSync(
 describe("PracticeLogForm", () => {
   it("練習専用で保存 API と写真を呼ばない", () => {
     expect(source).toContain("練習中・保存されません");
+    expect(source).toContain("2 / 2");
     expect(source).toContain("練習として保存（記録されません）");
     expect(source).toContain("VolumeField");
     expect(source).not.toContain("useCreateDrinkLog");

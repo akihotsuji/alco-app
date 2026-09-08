@@ -163,6 +163,16 @@ export function writeGuidePref(userId: string, status: Exclude<GuideStatus, "uns
   return markGuideStatus(userId, status);
 }
 
+export function guideStepProgress(step: GuideStep): { current: number; total: number } | null {
+  if (step === "home-record") {
+    return { current: 1, total: 2 };
+  }
+  if (step === "practice") {
+    return { current: 2, total: 2 };
+  }
+  return null;
+}
+
 export function nextGuideStep(step: GuideStep, action: "continue" | "skip"): GuideStep | null {
   if (action === "skip") {
     return null;

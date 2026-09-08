@@ -153,10 +153,10 @@ describe("resolveAppRoute", () => {
     expect(header.left).toEqual({ kind: "archive" });
     expect(header.right).toEqual({
       kind: "batch",
-      to: "/cellar/batch?camera=1",
+      to: "/cellar/batch",
     });
     expect(header.titleMuted).toBe("0 本");
-    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new?camera=1", label: "追加" });
+    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new", label: "追加" });
   });
 
   it("まとめて追加は予約セグメントで、戻る＋タブ隠しのフォーム画面", () => {

@@ -1,4 +1,4 @@
-import { Camera, ChevronDown, Minus, Plus, Sparkles, X } from "lucide-react";
+import { Camera, ChevronDown, Images, Minus, Plus, Sparkles, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
@@ -9,7 +9,6 @@ import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.ts
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
-import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottleBatch } from "@/client/hooks/use-bottle-batch.ts";
@@ -150,23 +149,23 @@ export function BottleBatchForm() {
           )}
         </p>
       ) : null}
-      <div className="bottle-batch-add">
-        <Button
+      <div className="photo-action-row bottle-batch-add">
+        <button
           type="button"
-          variant="secondary"
-          className="bottle-batch-capture"
+          className="photo-action"
           disabled={!batch.canAdd || formBusy}
           onClick={() => void batch.addPhoto("camera")}
         >
-          <Camera size={20} aria-hidden />
+          <Camera size={18} aria-hidden />
           {captureLabel}
-        </Button>
+        </button>
         <button
           type="button"
-          className="header-text-link bottle-batch-library"
+          className="photo-action"
           disabled={!batch.canAdd || formBusy}
           onClick={() => void batch.addLibraryPhotos()}
         >
+          <Images size={18} aria-hidden />
           {IMAGE_PICK_LABELS.libraryMultiple}
         </button>
       </div>

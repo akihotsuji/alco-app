@@ -36,7 +36,8 @@ export function PracticeLogForm({ onSaved }: PracticeLogFormProps) {
   return (
     <div className="form-page log-form">
       <p className="guide-practice-banner" role="status">
-        練習中・保存されません
+        <span>練習中・保存されません</span>
+        <span>2 / 2</span>
       </p>
       <p className="form-lead">量を選んで保存。写真はなくても大丈夫です</p>
       <DrinkTypeSelect

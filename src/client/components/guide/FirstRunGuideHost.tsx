@@ -1,4 +1,5 @@
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
+import { GuideHomeSpotlight } from "@/client/components/guide/GuideHomeSpotlight.tsx";
 import { PracticeLogForm } from "@/client/components/guide/PracticeLogForm.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
@@ -35,6 +36,8 @@ export function FirstRunGuideHost() {
           </Button>
         </DialogContent>
       </DialogRoot>
+
+      <GuideHomeSpotlight />
 
       {guide.step === "practice" ? (
         <div className="guide-practice-overlay">

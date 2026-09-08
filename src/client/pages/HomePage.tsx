@@ -4,7 +4,6 @@ import { Link, useSearchParams } from "react-router";
 import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
-import { GuideHomeBanner } from "@/client/components/guide/GuideHomeBanner.tsx";
 import { HomeWeekStrip } from "@/client/components/home/HomeWeekStrip.tsx";
 import { TodaySummaryCard } from "@/client/components/home/TodaySummaryCard.tsx";
 import { LogQuickActions } from "@/client/components/logs/LogQuickActions.tsx";
@@ -153,7 +152,6 @@ export function HomePage() {
           onPrimary={() => haptic("light")}
           onPrimaryIntercept={guide.interceptRecord ? guide.onHomeRecordAction : undefined}
         />
-        <GuideHomeBanner />
       </div>
       {summaryPending ? (
         <div className="skeleton-card home-week-skeleton" role="status">

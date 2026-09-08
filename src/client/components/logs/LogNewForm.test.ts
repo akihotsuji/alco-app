@@ -32,6 +32,8 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("noteFromLogHref");
     expect(source).toContain("TargetBottleChip");
     expect(source).toContain("preserveEdits: true");
+    expect(source).toContain("inheritOwnedPhoto");
+    expect(source).toContain("firstPhotoId");
     expect(edit).toContain("<IdentityFields");
     expect(edit).toContain("<PlaceField");
     expect(edit).not.toContain("requestCurrentPosition");
