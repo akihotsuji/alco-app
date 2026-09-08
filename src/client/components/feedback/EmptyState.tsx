@@ -7,6 +7,7 @@ import { cn } from "@/client/lib/utils.ts";
 type EmptyStateProps = {
   pose: MascotPose;
   message: string;
+  detail?: string;
   actionLabel?: string;
   actionTo?: string;
   actionVariant?: "primary" | "secondary";
@@ -27,6 +28,7 @@ export function shouldPlayEmptyEnter(key: string, registry: Set<string> = played
 export function EmptyState({
   pose,
   message,
+  detail,
   actionLabel,
   actionTo,
   actionVariant = "primary",
@@ -44,6 +46,7 @@ export function EmptyState({
         <Mascot pose={pose} size={96} aria-hidden />
       </span>
       <p className="empty-state-message">{message}</p>
+      {detail ? <p className="empty-state-detail">{detail}</p> : null}
       {actionLabel && actionTo ? (
         <Link className={cn(buttonVariants({ variant }), "empty-action")} to={actionTo}>
           {actionLabel}

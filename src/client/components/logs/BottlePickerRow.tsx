@@ -1,5 +1,6 @@
 import { ChevronRight, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import {
   DialogContent,
   DialogDescription,
@@ -32,6 +33,9 @@ export type PickedBottle = {
 type BottlePickerRowProps = {
   bottleId: string | null;
   bottleName: string | null;
+  label?: string;
+  hint?: string;
+  emptyValue?: string;
   valueLabel?: string;
   clearable?: boolean;
   requireSearch?: boolean;
@@ -42,6 +46,9 @@ type BottlePickerRowProps = {
 export function BottlePickerRow({
   bottleId,
   bottleName,
+  label = "ボトル",
+  hint,
+  emptyValue = "選ぶ",
   valueLabel,
   clearable = false,
   requireSearch = false,
@@ -60,10 +67,13 @@ export function BottlePickerRow({
 
   return (
     <section className="log-form-section">
+      <FieldLabel>{label}</FieldLabel>
+      {hint ? <p className="field-hint">{hint}</p> : null}
       <div className="form-row">
         <button type="button" className="form-row-hit" onClick={() => setOpen(true)}>
-          <span className="form-row-label">ボトル</span>
-          <span className="form-row-value">{valueLabel ?? bottleName ?? "選ぶ"}</span>
+          <span className="form-row-value form-row-value-start">
+            {valueLabel ?? bottleName ?? emptyValue}
+          </span>
           <ChevronRight size={20} className="form-row-chevron" aria-hidden />
         </button>
         {clearable && bottleId ? (

@@ -24,7 +24,7 @@ describe("isValidLogDateParam", () => {
 });
 
 describe("TABS", () => {
-  it("中央タブ「記録」だけ根を持たない（撮影開始の動作。00-common 1.2 (c)）", () => {
+  it("中央タブ「＋ 記録」だけ根を持たない（作成ボタン。00-common 1.2）", () => {
     expect(TABS.map((tab) => tab.id)).toEqual(["home", "cellar", "log", "notes", "settings"]);
     expect(TABS.find((tab) => tab.id === "log")?.root).toBeNull();
     for (const tab of TABS.filter((tab) => tab.id !== "log")) {
@@ -173,7 +173,7 @@ describe("resolveAppRoute", () => {
     const created = resolveAppRoute("/logs/new", NOW);
     expect(created.hideTabBar).toBe(true);
     expect(created.header).toEqual({
-      title: "記録する",
+      title: "お酒を記録",
       left: { kind: "back", fallback: "/logs" },
       right: { kind: "spacer" },
     });
@@ -222,15 +222,21 @@ describe("summary hrefs", () => {
 describe("note hrefs", () => {
   it("bottleId があるとき作成と一覧に引き継ぐ", () => {
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-    expect(noteCreateHref(id)).toBe(`/notes/new?bottleId=${id}&camera=1`);
+    expect(noteCreateHref(id)).toBe(`/notes/new?bottleId=${id}`);
     expect(notesListHref(id)).toBe(`/notes?bottleId=${id}`);
-    expect(noteCreateHref()).toBe("/notes/new?camera=1");
+    expect(noteCreateHref()).toBe("/notes/new");
     const header = resolveAppRoute("/notes", NOW, `?bottleId=${id}`).header;
     expect(header.left).toEqual({ kind: "back", fallback: `/cellar/${id}` });
-    expect(header.right).toEqual({ kind: "spacer" });
-    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toEqual({
-      to: `/notes/new?bottleId=${id}&camera=1`,
-      label: "作成",
+    expect(header.right).toEqual({
+      kind: "create",
+      to: `/notes/new?bottleId=${id}`,
+      label: "+ 作成",
+    });
+    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toBeNull();
+    expect(resolveAppRoute("/notes", NOW).header.right).toEqual({
+      kind: "create",
+      to: "/notes/new",
+      label: "+ 作成",
     });
     expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}`).header.left).toEqual({
       kind: "back",

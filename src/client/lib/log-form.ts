@@ -1,5 +1,6 @@
 import { isApiClientError } from "@/client/lib/api.ts";
 import {
+  BOTTLE_VOLUME_CHIPS,
   calculateAlcoholGrams,
   DRINK_TYPE_PRESETS,
   displayAlcoholGrams,
@@ -49,9 +50,16 @@ export const ABV_STEP = 0.1;
 export const DEFAULT_DRINK_TYPE: DrinkType = "wine";
 
 export const SAVE_LABELS = {
-  idle: "保存する",
+  idle: "記録を保存",
   saving: "保存中",
   photoUploading: "写真を保存中",
+} as const;
+
+export const SAVE_DISABLED_HINTS = {
+  volumeAbv: "量と度数を入力してください",
+  photo: "写真の保存が終わるまでお待ちください",
+  photoError: "写真を再試行するか削除してください",
+  fields: "入力内容を確認してください",
 } as const;
 
 export const FORM_ERROR_MESSAGES = {
@@ -103,6 +111,17 @@ export function clearSelectedBottle(state: LogFormState): LogFormState {
 /** N4 のチップ列。種類の量 + ボトル量 375 / 750 / 1500 */
 export function volumeChipValues(drinkType: DrinkType): number[] {
   return volumeChipsFor(drinkType);
+}
+
+/** 種類のよく使う量（「その他」に隠さない） */
+export function primaryVolumeChips(drinkType: DrinkType): number[] {
+  return [...DRINK_TYPE_PRESETS[drinkType].volumeChips];
+}
+
+/** ボトル量など、種類プリセット以外 */
+export function extraVolumeChips(drinkType: DrinkType): number[] {
+  const primary = new Set(primaryVolumeChips(drinkType));
+  return BOTTLE_VOLUME_CHIPS.filter((chip) => !primary.has(chip));
 }
 
 /** 量チップに無い値（または空）は「手入力」が選択状態になる */
@@ -202,6 +221,43 @@ export function saveButtonLabel(pending: boolean, photo: PhotoSaveStatus): strin
     return SAVE_LABELS.photoUploading;
   }
   return SAVE_LABELS.idle;
+}
+
+export function logSaveDisabledHint(
+  state: LogFormState,
+  errors: LogFormErrors,
+  photo: PhotoSaveStatus,
+): string | null {
+  if (photo === "uploading") {
+    return SAVE_DISABLED_HINTS.photo;
+  }
+  if (photo === "error") {
+    return SAVE_DISABLED_HINTS.photoError;
+  }
+  if (state.volumeMl === null || state.abvPercent === null) {
+    return SAVE_DISABLED_HINTS.volumeAbv;
+  }
+  if (Object.keys(errors).length > 0) {
+    return SAVE_DISABLED_HINTS.fields;
+  }
+  return null;
+}
+
+/** 未操作の必須空欄は赤くしない。不正値と送信後だけ出す */
+export function visibleLogFormErrors(
+  errors: LogFormErrors,
+  options: { submitted: boolean; touched: Partial<Record<LogFormField, boolean>> },
+): LogFormErrors {
+  if (options.submitted) {
+    return errors;
+  }
+  const visible: LogFormErrors = {};
+  for (const [key, message] of Object.entries(errors) as [LogFormField, string | undefined][]) {
+    if (message && options.touched[key]) {
+      visible[key] = message;
+    }
+  }
+  return visible;
 }
 
 /** 送信ボディ。`alcoholG` / `drunkOn` は含めない（サーバー計算） */

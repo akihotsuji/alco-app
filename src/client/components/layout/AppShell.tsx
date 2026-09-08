@@ -10,7 +10,6 @@ import {
 import { LeaveGuardProvider } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { PhotoEdit } from "@/client/components/photo/PhotoEdit.tsx";
-import { useCaptureLog } from "@/client/hooks/use-capture-log.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import {
   addFabForRoute,
@@ -35,7 +34,6 @@ function AppShellFrame() {
   const location = useLocation();
   const navigate = useNavigate();
   const photoEdit = usePhotoEdit();
-  const captureLog = useCaptureLog();
   const reduceMotion = useReducedMotion();
   const { override } = useHeaderOverride();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -63,8 +61,8 @@ function AppShellFrame() {
 
   function onSelectTab(tab: TabDef) {
     if (tab.root === null) {
-      // 中央タブ「記録」は着地せず撮影を始める（(c)）。再タップも毎回ここから
-      captureLog();
+      // 中央タブ「＋ 記録」は着地せず記録フォームを開く。撮影は開始しない
+      navigate("/logs/new");
       return;
     }
     const behavior: ScrollBehavior = reduceMotion ? "auto" : "smooth";

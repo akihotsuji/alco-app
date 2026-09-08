@@ -100,7 +100,7 @@ function ValidLogDayPage({ day }: { day: string }) {
             <p className="log-day-empty">
               {query.data.hasAnyLogs
                 ? "この日の記録はまだありません"
-                : "中央の記録ボタンから写真を撮って記録できます"}
+                : "中央の記録ボタンから記録できます"}
             </p>
           ) : (
             <div className="log-list">

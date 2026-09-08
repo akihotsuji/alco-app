@@ -10,11 +10,11 @@ import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx"
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
-import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
+import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
-import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
+import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import {
   useDeleteDrinkLog,
   useDrinkLog,
@@ -29,18 +29,18 @@ import {
   canSubmitLogForm,
   clearSelectedBottle,
   describeSaveFailure,
-  formatGrams,
   isLogFormDirty,
   type LogFormErrors,
-  liveAlcoholGrams,
+  type LogFormField,
   logFormStateFromDrinkLog,
+  logSaveDisabledHint,
   type PhotoSaveStatus,
   saveButtonLabel,
   toUpdateDrinkLogBody,
   validateLogForm,
+  visibleLogFormErrors,
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
-import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
@@ -83,6 +83,8 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<LogFormErrors>({});
   const [saveState, setSaveState] = useState<MotionState>("idle");
+  const [submitted, setSubmitted] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<LogFormField, boolean>>>({});
   const [discardOpen, setDiscardOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const pendingLeave = useRef<(() => void) | null>(null);
@@ -90,10 +92,10 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   const attachment = attachments.log;
   const photoStatus: PhotoSaveStatus = attachment ? attachment.status : "none";
   const errors = { ...validateLogForm(state, new Date()), ...serverErrors };
+  const visibleErrors = visibleLogFormErrors(errors, { submitted, touched });
   const dirty = isLogFormDirty(state, initial) || attachment !== undefined;
   const canSubmit =
     dirty && canSubmitLogForm(state, errors, photoStatus) && !photoDeleting && !deleteLog.isPending;
-  const grams = liveAlcoholGrams(state);
 
   useEffect(() => {
     if (!dirty || savedRef.current) {
@@ -107,13 +109,17 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
     return () => setGuard(null);
   }, [dirty, setGuard]);
 
-  function update(patch: Partial<typeof state>) {
+  function update(patch: Partial<typeof state>, field?: LogFormField) {
+    if (field) {
+      setTouched((current) => ({ ...current, [field]: true }));
+    }
     setState((current) => ({ ...current, ...patch }));
     setServerErrors({});
     setFormError(null);
   }
 
   function submit() {
+    setSubmitted(true);
     const body = toUpdateDrinkLogBody(state, initial, attachment?.photoId ?? null);
     if (!body || !canSubmit || updateLog.isPending) {
       return;
@@ -199,76 +205,11 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           {formError}
         </p>
       ) : null}
-      {attachment ? (
-        <PhotoTile
-          onClick={() => void startCapture("log")}
-          attachment={attachment}
-          onEdit={() => void editAttachment("log")}
-          onRetry={() => void retryUpload("log")}
-          onClear={() => void clearAttachment("log")}
-          error={errors.photoIds}
-        />
-      ) : existingPhotoId ? (
-        <div className="photo-thumb-row">
-          <div className="photo-thumb photo-thumb-log">
-            <img className="photo-thumb-img" src={photoContentUrl(existingPhotoId)} alt="" />
-          </div>
-          <div className="photo-thumb-actions">
-            <button
-              type="button"
-              className="header-text-link"
-              onClick={() => void startCapture("log")}
-            >
-              編集
-            </button>
-            <button
-              type="button"
-              className="header-text-link"
-              onClick={() => void startCapture("log", { source: "library" })}
-            >
-              {IMAGE_PICK_LABELS.library}
-            </button>
-            <button
-              type="button"
-              className="header-text-link"
-              disabled={photoDeleting}
-              onClick={() => void removeExistingPhoto()}
-            >
-              {photoDeleting ? "削除中" : "削除"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <PhotoTile
-          onClick={() => void startCapture("log")}
-          onLibraryClick={() => void startCapture("log", { source: "library" })}
-        />
-      )}
-      <DrinkTypeChips value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
-      <VolumeField
-        drinkType={state.drinkType}
-        value={state.volumeMl}
-        error={errors.volumeMl}
-        onChange={(volumeMl) => update({ volumeMl })}
-      />
-      <AbvField
-        value={state.abvPercent}
-        error={errors.abvPercent}
-        onChange={(abvPercent) => update({ abvPercent })}
-      />
-      <p className="live-grams" aria-live="polite">
-        ＝ {formatGrams(grams)} g
-      </p>
-      <DrunkAtRow
-        value={state.drunkAt}
-        now={new Date()}
-        error={errors.drunkAt}
-        onChange={(drunkAt) => update({ drunkAt })}
-      />
+      <DrinkTypeSelect value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
       <BottlePickerRow
         bottleId={state.bottleId}
         bottleName={state.bottleName}
-        error={errors.bottleId}
+        error={visibleErrors.bottleId}
         onSelect={(bottle) => {
           setState((current) =>
             bottle ? applySelectedBottle(current, bottle) : clearSelectedBottle(current),
@@ -277,11 +218,44 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           setFormError(null);
         }}
       />
-      <MemoField value={state.memo} error={errors.memo} onChange={(memo) => update({ memo })} />
+      <VolumeField
+        drinkType={state.drinkType}
+        value={state.volumeMl}
+        error={visibleErrors.volumeMl}
+        onChange={(volumeMl) => update({ volumeMl }, "volumeMl")}
+      />
+      <AbvField
+        value={state.abvPercent}
+        volumeMl={state.volumeMl}
+        error={visibleErrors.abvPercent}
+        onChange={(abvPercent) => update({ abvPercent }, "abvPercent")}
+      />
+      <DrunkAtRow
+        value={state.drunkAt}
+        now={new Date()}
+        error={visibleErrors.drunkAt}
+        onChange={(drunkAt) => update({ drunkAt }, "drunkAt")}
+      />
+      <CompactPhotoField
+        onCapture={() => void startCapture("log")}
+        onLibrary={() => void startCapture("log", { source: "library" })}
+        attachment={attachment}
+        existingPreviewUrl={existingPhotoId ? photoContentUrl(existingPhotoId) : null}
+        onEdit={() => (attachment ? void editAttachment("log") : void startCapture("log"))}
+        onRetry={() => void retryUpload("log")}
+        onClear={() => (attachment ? void clearAttachment("log") : void removeExistingPhoto())}
+        error={visibleErrors.photoIds}
+      />
+      <MemoField
+        value={state.memo}
+        error={visibleErrors.memo}
+        onChange={(memo) => update({ memo }, "memo")}
+      />
       <SaveBar
         label={saveButtonLabel(updateLog.isPending, photoStatus)}
         pending={updateLog.isPending}
         disabled={!canSubmit}
+        hint={!canSubmit ? logSaveDisabledHint(state, errors, photoStatus) : null}
         state={updateLog.isPending ? "loading" : saveState}
         onSave={submit}
       />

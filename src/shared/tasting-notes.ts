@@ -61,6 +61,15 @@ export function ratingX10FromStar(star: number): number {
   return star * 10;
 }
 
+/** 星タップ。同じ星の再タップで +0.5。5.0 は上限 */
+export function ratingX10FromStarTap(current: number | null, star: number): number {
+  const integer = ratingX10FromStar(star);
+  if (current === integer && integer < RATING_X10_MAX) {
+    return integer + RATING_X10_STEP;
+  }
+  return integer;
+}
+
 export function ratingStarFill(ratingX10: number): { full: number; half: boolean } {
   return {
     full: Math.floor(ratingX10 / 10),
@@ -252,6 +261,7 @@ export const tastingNoteListItemSchema = z.object({
   bottleId: z.string().nullable(),
   thumbPhotoId: z.string().nullable(),
   photoCount: z.number().int().min(0),
+  taste: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

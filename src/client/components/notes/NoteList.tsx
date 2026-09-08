@@ -58,10 +58,18 @@ function LoadedNoteList() {
   const emptyAll = totalCount === 0;
   const emptyFilter = Boolean(query.data && items.length === 0 && filters.filtered);
   const createTo = noteCreateHref(bottleId);
+  const filterEmptyMessage = filters.q
+    ? "一致するノートがありません"
+    : "該当するノートがありません";
 
   return (
     <div className="note-list">
-      {emptyAll ? null : <NoteToolbar {...filters} />}
+      {emptyAll ? null : (
+        <>
+          {bottleId ? null : <p className="form-lead">香りや味わいを振り返る</p>}
+          <NoteToolbar {...filters} />
+        </>
+      )}
       {query.isPending || (bottleId && bottle.isPending) ? <NoteListSkeleton /> : null}
       {query.isError ? (
         <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />
@@ -69,21 +77,23 @@ function LoadedNoteList() {
       {emptyAll ? (
         <EmptyState
           pose="default"
-          message="テイスティングノートはまだありません。撮って一言から"
-          actionLabel="作成"
+          message="テイスティングノートはまだありません"
+          detail="気になるお酒の味わいを記録してみましょう"
+          actionLabel="ノートを作成"
           actionTo={createTo}
         />
       ) : null}
       {emptyFilter ? (
         <div className="note-filter-empty">
-          <p>該当するノートがありません</p>
+          <p>{filterEmptyMessage}</p>
           <Chip selected={false} onSelect={filters.clearFilters}>
             フィルタを解除
           </Chip>
         </div>
       ) : null}
       {items.length > 0 ? (
-        <div className="note-grid skeleton-fade">
+        <div className="note-card-list skeleton-fade">
+          <h2 className="note-list-heading">最近のノート</h2>
           {items.map((item) => (
             <NoteCard key={item.id} item={item} />
           ))}
@@ -103,9 +113,9 @@ function LoadedNoteList() {
 
 function NoteListSkeleton() {
   return (
-    <div className="note-grid" role="status">
+    <div className="note-card-list" role="status">
       <span className="visually-hidden">読み込み中</span>
-      {["a", "b", "c", "d"].map((key) => (
+      {["a", "b", "c"].map((key) => (
         <div key={key} className="note-card-skeleton" />
       ))}
     </div>

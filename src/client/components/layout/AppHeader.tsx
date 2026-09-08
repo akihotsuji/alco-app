@@ -109,6 +109,12 @@ function HeaderRightSlot({
           {right.label}
         </Link>
       );
+    case "create":
+      return (
+        <Link className="header-create" to={right.to}>
+          {right.label}
+        </Link>
+      );
     case "day-next":
       return (
         <IconButton

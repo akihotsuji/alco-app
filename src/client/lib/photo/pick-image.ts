@@ -11,6 +11,8 @@ export const IMAGE_PICK_LABELS = {
   library: "ライブラリから",
   libraryMultiple: "ライブラリから（複数枚）",
   noteLibrary: "選ぶ",
+  capture: "写真を撮る",
+  captureLibrary: "写真を選ぶ",
 } as const;
 
 export type ImagePickOptions = {

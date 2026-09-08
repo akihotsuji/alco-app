@@ -75,6 +75,7 @@ export function toTastingNoteListItem(
     bottleId: row.bottleId,
     thumbPhotoId,
     photoCount,
+    taste: row.taste,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };

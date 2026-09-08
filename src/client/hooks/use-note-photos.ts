@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
 import {
   type PhotoAttachment,
   type PhotoCollectSession,
@@ -33,8 +32,7 @@ function toItem(key: string, attachment: PhotoAttachment, persisted: boolean): N
   };
 }
 
-export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = [], autoCapture: boolean) {
-  const [searchParams] = useSearchParams();
+export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
   const { startCapture, editFromBlob, retryCollectedUpload, clearAttachment, attachments } =
     usePhotoEdit();
   const [items, setItems] = useState(() => itemsFromNotePhotos(initialPhotos));
@@ -65,16 +63,6 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = [], autoCapt
     },
     [bindKey, startCapture],
   );
-
-  const camera = searchParams.get("camera") === "1";
-  const capturedRef = useRef(false);
-  useEffect(() => {
-    if (!autoCapture || !camera || capturedRef.current) {
-      return;
-    }
-    capturedRef.current = true;
-    void addPhoto();
-  }, [addPhoto, autoCapture, camera]);
 
   useEffect(() => {
     if (attachments.note) {

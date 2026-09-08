@@ -1,4 +1,4 @@
-import { GlassWater, House, NotebookPen, Settings, Wine } from "lucide-react";
+import { House, NotebookPen, Plus, Settings, Wine } from "lucide-react";
 import type { ReactNode } from "react";
 import { TABS, type TabDef, type TabId } from "@/client/lib/app-routes.ts";
 
@@ -10,7 +10,7 @@ type BottomTabBarProps = {
 const ICONS: Record<TabId, ReactNode> = {
   home: <House size={20} aria-hidden />,
   cellar: <Wine size={20} aria-hidden />,
-  log: <GlassWater size={26} aria-hidden />,
+  log: <Plus size={26} aria-hidden />,
   notes: <NotebookPen size={20} aria-hidden />,
   settings: <Settings size={20} aria-hidden />,
 };
@@ -20,13 +20,13 @@ export function BottomTabBar({ activeTab, onSelect }: BottomTabBarProps) {
     <nav className="tab-bar" aria-label="メイン">
       {TABS.map((tab) => {
         if (tab.root === null) {
-          // 中央タブは「動作」（撮影開始）で着地画面を持たないため、現在地ハイライトも aria-current も付けない
+          // 中央タブは「＋ 記録」作成ボタンで着地画面を持たないため、現在地ハイライトも aria-current も付けない
           return (
             <button
               key={tab.id}
               type="button"
               className="tab-center"
-              aria-label={`${tab.label}（写真を撮る）`}
+              aria-label="お酒を記録"
               onClick={() => onSelect(tab)}
             >
               <span className="tab-center-btn">{ICONS[tab.id]}</span>

@@ -6,12 +6,11 @@ import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx"
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { BottlePickerRow, usePrefillBottle } from "@/client/components/logs/BottlePickerRow.tsx";
-import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
+import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
-import { PhotoTile } from "@/client/components/photo/PhotoTile.tsx";
-import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
+import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
 import {
@@ -28,15 +27,16 @@ import {
   canSubmitLogForm,
   clearSelectedBottle,
   describeSaveFailure,
-  formatGrams,
   initialLogFormState,
   isLogFormDirty,
   type LogFormErrors,
-  liveAlcoholGrams,
+  type LogFormField,
+  logSaveDisabledHint,
   type PhotoSaveStatus,
   saveButtonLabel,
   toCreateDrinkLogBody,
   validateLogForm,
+  visibleLogFormErrors,
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
@@ -48,18 +48,22 @@ const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真�
 
 /**
  * `log-new`（spec/screen-designs/03-log.md）。種類 → 保存の 2 タップを守り、写真・メモは任意の上乗せ。
- * ボトル行（N8）は 4-02 で有効（spec/features/drink-log.md 3.8）。
+ * 撮影は「写真を撮る」「写真を選ぶ」の明示タップだけ。`?camera=1` では起動しない。
  */
 export function LogNewForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { setGuard } = useLeaveGuard();
-  const { releaseAttachment, editAttachment, pendingRecognizeJpeg } = usePhotoEdit();
-  const { startCapture, attachments, retryUpload, clearAttachment } = useCaptureOnCameraQuery(
-    "log",
-    true,
-  );
+  const {
+    releaseAttachment,
+    editAttachment,
+    pendingRecognizeJpeg,
+    startCapture,
+    attachments,
+    retryUpload,
+    clearAttachment,
+  } = usePhotoEdit();
   const create = useCreateDrinkLog();
 
   // 「いま」は開いた時点で固定する（N7 の既定値。ユーザーが変えられる）
@@ -70,6 +74,8 @@ export function LogNewForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<LogFormErrors>({});
   const [saveState, setSaveState] = useState<MotionState>("idle");
+  const [submitted, setSubmitted] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<LogFormField, boolean>>>({});
   const [discardOpen, setDiscardOpen] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const pendingLeave = useRef<(() => void) | null>(null);
@@ -86,9 +92,9 @@ export function LogNewForm() {
   const attachment = attachments.log;
   const photoStatus: PhotoSaveStatus = attachment ? attachment.status : "none";
   const errors: LogFormErrors = { ...validateLogForm(state, new Date()), ...serverErrors };
+  const visibleErrors = visibleLogFormErrors(errors, { submitted, touched });
   const canSubmit = canSubmitLogForm(state, errors, photoStatus);
   const dirty = isLogFormDirty(state, initial) || attachment !== undefined;
-  const grams = liveAlcoholGrams(state);
 
   // 前回開いたときの未紐付け写真が残っていたら破棄する（ブラウザ戻りで確認を通らなかった分）。
   // 中央タブ / ホームのカメラで撮って「使う」した直後（handoff）はその写真が本命なので消さない
@@ -170,13 +176,17 @@ export function LogNewForm() {
       });
   }, [attachment?.recognizeJpeg, pendingRecognizeJpeg]);
 
-  function update(patch: Partial<typeof state>) {
+  function update(patch: Partial<typeof state>, field?: LogFormField) {
+    if (field) {
+      setTouched((current) => ({ ...current, [field]: true }));
+    }
     setState((current) => ({ ...current, ...patch }));
     setServerErrors({});
     setFormError(null);
   }
 
   function submit() {
+    setSubmitted(true);
     const body = toCreateDrinkLogBody(state, attachment?.photoId ?? null);
     if (!body || !canSubmit || create.isPending) {
       return;
@@ -230,38 +240,13 @@ export function LogNewForm() {
 
   return (
     <div className="form-page log-form">
+      <p className="form-lead">飲んだ量を残す</p>
       {formError ? (
         <p className="form-error" role="alert">
           {formError}
         </p>
       ) : null}
-      <PhotoTile
-        onClick={() => void startCapture("log")}
-        onLibraryClick={() => void startCapture("log", { source: "library" })}
-        attachment={attachment}
-        onEdit={() => void editAttachment("log")}
-        onRetry={() => void retryUpload("log")}
-        onClear={() => {
-          recognizedJpegRef.current = null;
-          setRecognizeStatus(null);
-          void clearAttachment("log");
-        }}
-        error={attachment ? errors.photoIds : undefined}
-      />
-      {recognizeStatus ? (
-        <p className="bottle-batch-recognize" role="status">
-          {recognizeStatus === "loading" ? (
-            <span className="recognize-spinner" aria-hidden />
-          ) : null}
-          {DRINK_RECOGNIZE_BANNER[recognizeStatus]}
-        </p>
-      ) : null}
-      {!attachment && errors.photoIds ? (
-        <p className="field-error" role="alert">
-          {errors.photoIds}
-        </p>
-      ) : null}
-      <DrinkTypeChips
+      <DrinkTypeSelect
         value={state.drinkType}
         onChange={(drinkType) => {
           touchedRef.current.drinkType = true;
@@ -272,38 +257,10 @@ export function LogNewForm() {
           setFormError(null);
         }}
       />
-      <VolumeField
-        key={`volume-${state.drinkType}`}
-        drinkType={state.drinkType}
-        value={state.volumeMl}
-        error={errors.volumeMl}
-        onChange={(volumeMl) => {
-          touchedRef.current.volumeMl = true;
-          update({ volumeMl });
-        }}
-      />
-      <AbvField
-        key={`abv-${state.drinkType}`}
-        value={state.abvPercent}
-        error={errors.abvPercent}
-        onChange={(abvPercent) => {
-          touchedRef.current.abvPercent = true;
-          update({ abvPercent });
-        }}
-      />
-      <p className="live-grams" aria-live="polite">
-        ＝ {formatGrams(grams)} g
-      </p>
-      <DrunkAtRow
-        value={state.drunkAt}
-        now={now}
-        error={errors.drunkAt}
-        onChange={(drunkAt) => update({ drunkAt })}
-      />
       <BottlePickerRow
         bottleId={state.bottleId}
         bottleName={state.bottleName}
-        error={errors.bottleId}
+        error={visibleErrors.bottleId}
         onSelect={(bottle) => {
           if (bottle) {
             touchedRef.current.drinkType = true;
@@ -315,11 +272,57 @@ export function LogNewForm() {
           setFormError(null);
         }}
       />
-      <MemoField value={state.memo} error={errors.memo} onChange={(memo) => update({ memo })} />
+      <VolumeField
+        key={`volume-${state.drinkType}`}
+        drinkType={state.drinkType}
+        value={state.volumeMl}
+        error={visibleErrors.volumeMl}
+        onChange={(volumeMl) => {
+          touchedRef.current.volumeMl = true;
+          update({ volumeMl }, "volumeMl");
+        }}
+      />
+      <AbvField
+        key={`abv-${state.drinkType}`}
+        value={state.abvPercent}
+        volumeMl={state.volumeMl}
+        error={visibleErrors.abvPercent}
+        onChange={(abvPercent) => {
+          touchedRef.current.abvPercent = true;
+          update({ abvPercent }, "abvPercent");
+        }}
+      />
+      <DrunkAtRow
+        value={state.drunkAt}
+        now={now}
+        error={visibleErrors.drunkAt}
+        onChange={(drunkAt) => update({ drunkAt }, "drunkAt")}
+      />
+      <CompactPhotoField
+        onCapture={() => void startCapture("log")}
+        onLibrary={() => void startCapture("log", { source: "library" })}
+        attachment={attachment}
+        onEdit={() => void editAttachment("log")}
+        onRetry={() => void retryUpload("log")}
+        onClear={() => {
+          recognizedJpegRef.current = null;
+          setRecognizeStatus(null);
+          void clearAttachment("log");
+        }}
+        error={visibleErrors.photoIds}
+        recognizeStatus={recognizeStatus}
+        recognizeMessage={recognizeStatus ? DRINK_RECOGNIZE_BANNER[recognizeStatus] : undefined}
+      />
+      <MemoField
+        value={state.memo}
+        error={visibleErrors.memo}
+        onChange={(memo) => update({ memo }, "memo")}
+      />
       <SaveBar
         label={saveButtonLabel(false, photoStatus)}
         pending={create.isPending}
         disabled={!canSubmit}
+        hint={!canSubmit ? logSaveDisabledHint(state, errors, photoStatus) : null}
         state={create.isPending ? "loading" : saveState}
         onSave={submit}
       />

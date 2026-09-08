@@ -6,6 +6,7 @@ import {
   applySelectedBottle,
   canSubmitLogForm,
   describeSaveFailure,
+  extraVolumeChips,
   FORM_ERROR_MESSAGES,
   formatAbv,
   formatDrunkAtLabel,
@@ -16,12 +17,16 @@ import {
   isManualVolume,
   liveAlcoholGrams,
   logFormStateFromDrinkLog,
+  logSaveDisabledHint,
+  primaryVolumeChips,
+  SAVE_DISABLED_HINTS,
   SAVE_LABELS,
   saveButtonLabel,
   stepAbv,
   toCreateDrinkLogBody,
   toUpdateDrinkLogBody,
   validateLogForm,
+  visibleLogFormErrors,
   volumeChipValues,
 } from "./log-form.ts";
 
@@ -100,6 +105,13 @@ describe("volume chips", () => {
     expect(isManualVolume("wine", 125)).toBe(false);
     expect(isManualVolume("wine", 130)).toBe(true);
     expect(isManualVolume("wine", null)).toBe(true);
+  });
+
+  it("種類のよく使う量とその他（ボトル量）を分ける。125 を一律にしない", () => {
+    expect(primaryVolumeChips("wine")).toEqual([125, 150]);
+    expect(primaryVolumeChips("beer")).toEqual([200, 350, 500]);
+    expect(extraVolumeChips("wine")).toEqual([375, 750, 1500]);
+    expect(extraVolumeChips("beer")).toEqual([375, 750, 1500]);
   });
 });
 
@@ -190,6 +202,20 @@ describe("validation", () => {
     expect(saveButtonLabel(false, "uploading")).toBe(SAVE_LABELS.photoUploading);
     expect(saveButtonLabel(true, "uploading")).toBe(SAVE_LABELS.saving);
     expect(saveButtonLabel(false, "ready")).toBe(SAVE_LABELS.idle);
+    expect(SAVE_LABELS.idle).toBe("記録を保存");
+    expect(logSaveDisabledHint({ ...base, volumeMl: null }, {}, "none")).toBe(
+      SAVE_DISABLED_HINTS.volumeAbv,
+    );
+    expect(logSaveDisabledHint(base, {}, "uploading")).toBe(SAVE_DISABLED_HINTS.photo);
+  });
+
+  it("未操作の不正値は赤くせず、触ったあと・送信後だけ出す", () => {
+    const errors = { volumeMl: DRINK_LOG_MESSAGES.volumeMl };
+    expect(visibleLogFormErrors(errors, { submitted: false, touched: {} })).toEqual({});
+    expect(visibleLogFormErrors(errors, { submitted: false, touched: { volumeMl: true } })).toEqual(
+      errors,
+    );
+    expect(visibleLogFormErrors(errors, { submitted: true, touched: {} })).toEqual(errors);
   });
 });
 

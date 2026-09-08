@@ -1,5 +1,6 @@
 import { Camera, Images } from "lucide-react";
 import { useState } from "react";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import {
   DialogContent,
@@ -41,32 +42,36 @@ export function NotePhotoStrip({
   const selected = items.find((item) => item.key === menuKey) ?? null;
 
   return (
-    <section className="note-photo-strip">
+    <section className="note-photo-strip log-form-section">
       <div className="note-photo-strip-header">
-        <span className="field-label">写真</span>
+        <FieldLabel optional>写真</FieldLabel>
         <span className="note-photo-strip-count">
           {items.length} / {NOTE_PHOTO_STRIP_MAX}
         </span>
       </div>
-      <div className="note-photo-strip-scroller">
-        <button type="button" className="note-photo-capture" disabled={!canAdd} onClick={onAdd}>
-          <Camera size={22} aria-hidden />
-          撮る
+      <div className="photo-action-row">
+        <button type="button" className="photo-action" disabled={!canAdd} onClick={onAdd}>
+          <Camera size={18} aria-hidden />
+          {IMAGE_PICK_LABELS.capture}
         </button>
-        <button type="button" className="note-photo-capture" disabled={!canAdd} onClick={onLibrary}>
-          <Images size={22} aria-hidden />
-          {IMAGE_PICK_LABELS.noteLibrary}
+        <button type="button" className="photo-action" disabled={!canAdd} onClick={onLibrary}>
+          <Images size={18} aria-hidden />
+          {IMAGE_PICK_LABELS.captureLibrary}
         </button>
-        {items.map((item, index) => (
-          <NotePhotoThumb
-            key={item.key}
-            item={item}
-            index={index}
-            onOpen={() => setMenuKey(item.key)}
-            onRetry={() => onRetry(item.key)}
-          />
-        ))}
       </div>
+      {items.length > 0 ? (
+        <div className="note-photo-strip-scroller">
+          {items.map((item, index) => (
+            <NotePhotoThumb
+              key={item.key}
+              item={item}
+              index={index}
+              onOpen={() => setMenuKey(item.key)}
+              onRetry={() => onRetry(item.key)}
+            />
+          ))}
+        </div>
+      ) : null}
       {!canAdd ? <p className="field-hint">{NOTE_PHOTO_LIMIT_MESSAGE}</p> : null}
       {error ? (
         <p className="field-error" role="alert">
@@ -144,7 +149,7 @@ function NotePhotoThumb({
     <div className="note-photo-thumb">
       <button type="button" className="note-photo-thumb-button" onClick={onOpen}>
         <img src={item.previewUrl} alt="" className="photo-thumb-img" loading="lazy" />
-        <span className="sr-only">写真 {index + 1}</span>
+        <span className="visually-hidden">写真 {index + 1}</span>
       </button>
       {item.status === "uploading" ? (
         <span className="photo-tile-progress" role="status">
