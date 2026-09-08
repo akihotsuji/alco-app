@@ -4,6 +4,7 @@ import type { AppBatchDb } from "@/db/index.ts";
 import { bottles, photos, tastingNotes } from "@/db/schema.ts";
 import { escapeLike } from "@/shared/bottles.ts";
 import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
+import { resolveIdentityFields } from "@/shared/identity.ts";
 import {
   type CreateTastingNoteInput,
   normalizeNoteText,
@@ -46,6 +47,9 @@ export function toTastingNote(
     drinkName: row.drinkName,
     drinkType: row.drinkType,
     vintage: row.vintage,
+    producer: row.producer,
+    origin: row.origin,
+    variety: row.variety,
     tastedOn: row.tastedOn,
     ratingX10: row.ratingX10,
     bottleId: row.bottleId,
@@ -253,7 +257,7 @@ export async function createTastingNote(input: {
 
   let drinkName = body.drinkName ?? "";
   let drinkType = body.drinkType;
-  let bottle: BottleSnap | null = null;
+  let bottle: Awaited<ReturnType<typeof requireOwnBottle>> | null = null;
   const bottleId = body.bottleId ?? null;
   if (bottleId) {
     bottle = await requireOwnBottle(db, userId, bottleId);
@@ -269,6 +273,7 @@ export async function createTastingNote(input: {
     });
   }
 
+  const identity = resolveIdentityFields(body, bottle);
   const photoRows = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
   const id = crypto.randomUUID();
   const row: NoteRow = {
@@ -277,7 +282,10 @@ export async function createTastingNote(input: {
     bottleId,
     drinkName,
     drinkType,
-    vintage: body.vintage ?? null,
+    vintage: identity.vintage,
+    producer: identity.producer,
+    origin: identity.origin,
+    variety: identity.variety,
     tastedOn: body.tastedOn,
     appearance: normalizeNoteText(body.appearance),
     aroma: normalizeNoteText(body.aroma),
@@ -447,11 +455,12 @@ export async function updateTastingNote(input: {
   let drinkName = current.drinkName;
   let drinkType = current.drinkType;
   let bottleId = current.bottleId;
+  let bottleSnap: Awaited<ReturnType<typeof requireOwnBottle>> | null = null;
   if (body.bottleId) {
-    const bottle = await requireOwnBottle(db, userId, body.bottleId);
-    drinkName = bottle.name;
-    drinkType = bottle.drinkType;
-    bottleId = bottle.id;
+    bottleSnap = await requireOwnBottle(db, userId, body.bottleId);
+    drinkName = bottleSnap.name;
+    drinkType = bottleSnap.drinkType;
+    bottleId = bottleSnap.id;
   } else if (body.bottleId === null) {
     bottleId = null;
     if (!body.drinkName || !body.drinkType) {
@@ -482,10 +491,22 @@ export async function updateTastingNote(input: {
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
+  const identity = resolveIdentityFields(
+    body,
+    bottleSnap ?? {
+      producer: current.producer,
+      origin: current.origin,
+      variety: current.variety,
+      vintage: current.vintage,
+    },
+  );
 
   const patch = {
     ...(body.tastedOn === undefined ? {} : { tastedOn: body.tastedOn }),
-    ...(body.vintage === undefined ? {} : { vintage: body.vintage }),
+    ...(body.vintage === undefined && !bottleSnap ? {} : { vintage: identity.vintage }),
+    ...(body.producer === undefined && !bottleSnap ? {} : { producer: identity.producer }),
+    ...(body.origin === undefined && !bottleSnap ? {} : { origin: identity.origin }),
+    ...(body.variety === undefined && !bottleSnap ? {} : { variety: identity.variety }),
     ...(body.ratingX10 === undefined ? {} : { ratingX10: body.ratingX10 }),
     ...(body.appearance === undefined ? {} : { appearance: normalizeNoteText(body.appearance) }),
     ...(body.aroma === undefined ? {} : { aroma: normalizeNoteText(body.aroma) }),

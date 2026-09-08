@@ -9,9 +9,14 @@ export const DRINK_RECOGNIZE_BANNER = {
 } as const;
 
 export type DrinkRecognizeTouched = {
+  drinkName: boolean;
   drinkType: boolean;
   volumeMl: boolean;
   abvPercent: boolean;
+  producer: boolean;
+  origin: boolean;
+  variety: boolean;
+  vintage: boolean;
 };
 
 export type ApplyDrinkRecognizeInput = {
@@ -22,13 +27,26 @@ export type ApplyDrinkRecognizeInput = {
 
 export type ApplyDrinkRecognizeResult = {
   next: LogFormState;
-  applied: Array<"drinkType" | "volumeMl" | "abvPercent">;
+  applied: Array<
+    | "drinkName"
+    | "drinkType"
+    | "volumeMl"
+    | "abvPercent"
+    | "producer"
+    | "origin"
+    | "variety"
+    | "vintage"
+  >;
 };
 
 function usable<T>(
   field: { value: T; confidence: number } | undefined,
 ): field is { value: T; confidence: number } {
   return field !== undefined && field.confidence >= AI_RECOGNIZE_MIN_CONFIDENCE;
+}
+
+function empty(value: string): boolean {
+  return value.trim().length === 0;
 }
 
 /**
@@ -41,6 +59,27 @@ export function applyRecognizeToLogForm(
   const next = { ...input.state };
   const applied: ApplyDrinkRecognizeResult["applied"] = [];
   const lockType = input.touched.drinkType || Boolean(input.state.bottleId);
+
+  if (usable(input.fields.drinkName) && empty(next.drinkName) && !input.touched.drinkName) {
+    next.drinkName = input.fields.drinkName.value;
+    applied.push("drinkName");
+  }
+  if (usable(input.fields.producer) && empty(next.producer) && !input.touched.producer) {
+    next.producer = input.fields.producer.value;
+    applied.push("producer");
+  }
+  if (usable(input.fields.origin) && empty(next.origin) && !input.touched.origin) {
+    next.origin = input.fields.origin.value;
+    applied.push("origin");
+  }
+  if (usable(input.fields.variety) && empty(next.variety) && !input.touched.variety) {
+    next.variety = input.fields.variety.value;
+    applied.push("variety");
+  }
+  if (usable(input.fields.vintage) && empty(next.vintage) && !input.touched.vintage) {
+    next.vintage = String(input.fields.vintage.value);
+    applied.push("vintage");
+  }
 
   if (usable(input.fields.drinkType) && !lockType) {
     next.drinkType = input.fields.drinkType.value;

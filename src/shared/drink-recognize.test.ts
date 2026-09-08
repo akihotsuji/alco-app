@@ -22,6 +22,19 @@ describe("pickDrinkRecognizeFields", () => {
     });
   });
 
+  it("name を品名として受け取り、識別欄の検証落ちは省く", () => {
+    const fields = pickDrinkRecognizeFields({
+      name: { value: "サンプル赤", confidence: 0.9 },
+      producer: { value: "ワイナリー", confidence: 0.8 },
+      vintage: { value: 1200, confidence: 0.9 },
+      drinkType: { value: "wine", confidence: 0.7 },
+    });
+    expect(fields.drinkName).toEqual({ value: "サンプル赤", confidence: 0.9 });
+    expect(fields.producer).toEqual({ value: "ワイナリー", confidence: 0.8 });
+    expect(fields.vintage).toBeUndefined();
+    expect(fields.drinkType?.value).toBe("wine");
+  });
+
   it("未知の種類・量の範囲外は捨てる", () => {
     expect(
       pickDrinkRecognizeFields({

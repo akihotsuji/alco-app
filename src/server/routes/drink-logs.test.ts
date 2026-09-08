@@ -66,13 +66,23 @@ async function uploadPhoto(app: Ctx["app"], cookie: string) {
   return photoMetaSchema.parse(await res.json());
 }
 
-async function seedBottle(ctx: Ctx, id: string, userId: string, name: string) {
+async function seedBottle(
+  ctx: Ctx,
+  id: string,
+  userId: string,
+  name: string,
+  extra: { producer?: string; origin?: string; variety?: string; vintage?: number } = {},
+) {
   const now = new Date();
   await ctx.db.insert(bottles).values({
     id,
     userId,
     name,
     drinkType: "beer",
+    producer: extra.producer ?? null,
+    origin: extra.origin ?? null,
+    variety: extra.variety ?? null,
+    vintage: extra.vintage ?? null,
     createdAt: now,
     updatedAt: now,
   });
@@ -119,6 +129,13 @@ describe("POST /api/drink-logs", () => {
     expect(body.abvPercent).toBe(12);
     expect(body.alcoholG).toBe(12);
     expect(body.drinkName).toBeNull();
+    expect(body.producer).toBeNull();
+    expect(body.origin).toBeNull();
+    expect(body.variety).toBeNull();
+    expect(body.vintage).toBeNull();
+    expect(body.placeName).toBeNull();
+    expect(body.placeLat).toBeNull();
+    expect(body.placeLng).toBeNull();
     expect(body.memo).toBeNull();
     expect(body.myDrinkId).toBeNull();
     expect(body.bottleId).toBeNull();
@@ -290,6 +307,84 @@ describe("POST /api/drink-logs", () => {
     });
     expect(res.status).toBe(201);
     expect(drinkLogSchema.parse(await res.json()).drinkName).toBe("サンプル赤");
+  });
+
+  it("品名・識別・場所を保存し、座標は片方だけなら 400", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const created = drinkLogSchema.parse(
+      await (
+        await postLog(ctx.app, a.cookie, {
+          ...BASE,
+          drinkName: "手入力赤",
+          producer: "ワイナリー",
+          origin: "フランス",
+          variety: "ピノ",
+          vintage: 2019,
+          placeName: "居酒屋 山田",
+          placeLat: 35.681,
+          placeLng: 139.767,
+        })
+      ).json(),
+    );
+    expect(created.drinkName).toBe("手入力赤");
+    expect(created.producer).toBe("ワイナリー");
+    expect(created.origin).toBe("フランス");
+    expect(created.variety).toBe("ピノ");
+    expect(created.vintage).toBe(2019);
+    expect(created.placeName).toBe("居酒屋 山田");
+    expect(created.placeLat).toBe(35.681);
+    expect(created.placeLng).toBe(139.767);
+
+    const half = await postLog(ctx.app, a.cookie, { ...BASE, placeLat: 35.6 });
+    expect(half.status).toBe(400);
+    expect((await fields(half)).placeLat).toBeDefined();
+
+    const got = drinkLogSchema.parse(
+      await (
+        await ctx.app.request(`/api/drink-logs/${created.id}`, { headers: { Cookie: a.cookie } })
+      ).json(),
+    );
+    expect(got.placeName).toBe("居酒屋 山田");
+
+    const b = await session(ctx.app, "b@example.com");
+    expect(
+      (await ctx.app.request(`/api/drink-logs/${created.id}`, { headers: { Cookie: b.cookie } }))
+        .status,
+    ).toBe(404);
+  });
+
+  it("ボトル選択時は識別をスナップショットし、ボディがあれば上書きする", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    await seedBottle(ctx, OWN_BOTTLE, a.userId, "サンプル赤", {
+      producer: "瓶の生産者",
+      origin: "イタリア",
+      variety: "サンジョベーゼ",
+      vintage: 2018,
+    });
+    const snapped = drinkLogSchema.parse(
+      await (await postLog(ctx.app, a.cookie, { ...BASE, bottleId: OWN_BOTTLE })).json(),
+    );
+    expect(snapped.drinkName).toBe("サンプル赤");
+    expect(snapped.producer).toBe("瓶の生産者");
+    expect(snapped.origin).toBe("イタリア");
+    expect(snapped.variety).toBe("サンジョベーゼ");
+    expect(snapped.vintage).toBe(2018);
+
+    const overridden = drinkLogSchema.parse(
+      await (
+        await postLog(ctx.app, a.cookie, {
+          ...BASE,
+          bottleId: OWN_BOTTLE,
+          producer: "手の生産者",
+          vintage: 2020,
+        })
+      ).json(),
+    );
+    expect(overridden.producer).toBe("手の生産者");
+    expect(overridden.origin).toBe("イタリア");
+    expect(overridden.vintage).toBe(2020);
   });
 });
 

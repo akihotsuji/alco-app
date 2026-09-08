@@ -23,7 +23,7 @@ export function createWorkersAiNoteRecognizer(ai: Ai): LabelRecognizer {
           },
         ],
         guided_json: NOTE_RECOGNIZE_GUIDED_JSON_SCHEMA,
-        max_tokens: 300,
+        max_tokens: 500,
         temperature: 0,
       });
     },

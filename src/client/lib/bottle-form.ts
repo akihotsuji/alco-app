@@ -1,5 +1,6 @@
 import { isApiClientError } from "@/client/lib/api.ts";
 import { FORM_ERROR_MESSAGES, type PhotoSaveStatus } from "@/client/lib/log-form.ts";
+import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import {
   BOTTLE_COUNT_MAX,
   BOTTLE_COUNT_MIN,
@@ -217,9 +218,10 @@ export function resolveCreateStoredOn(
   state: BottleFormState,
   storedOnTouched: boolean,
   now: Date = new Date(),
+  capturedAt?: string | null,
 ): string | null {
   if (!storedOnTouched) {
-    return tokyoToday(now);
+    return capturedAt ? capturedAtToCalendarDate(capturedAt, now) : tokyoToday(now);
   }
   return state.storedOn.trim() || null;
 }
@@ -255,13 +257,13 @@ function optionalFields(state: BottleFormState): {
 export function toCreateBottleBody(
   state: BottleFormState,
   photoId: string | null,
-  options: { now?: Date; storedOnTouched?: boolean } = {},
+  options: { now?: Date; storedOnTouched?: boolean; capturedAt?: string | null } = {},
 ): CreateBottleInput | null {
   const now = options.now ?? new Date();
   const storedOnTouched = options.storedOnTouched ?? false;
   const resolved = {
     ...state,
-    storedOn: resolveCreateStoredOn(state, storedOnTouched, now) ?? "",
+    storedOn: resolveCreateStoredOn(state, storedOnTouched, now, options.capturedAt) ?? "",
   };
   if (
     !canSubmitBottleForm(resolved, validateBottleForm(resolved, now), photoId ? "ready" : "none")

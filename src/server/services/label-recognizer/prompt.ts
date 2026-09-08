@@ -24,7 +24,7 @@ export const LABEL_RECOGNIZE_SYSTEM_PROMPT = [
   "vintage is a 4-digit year from 1800 to 2100. Omit for NV / non-vintage.",
   "abvPercent is 0-100 with at most one decimal.",
   "confidence is 0 to 1.",
-  "name is the brand or cuvée. producer is the winery/distillery. origin is region or country.",
+  "name is the brand or cuvée. producer is the winery/distillery. origin is the country of production (e.g. フランス, Japan), not a small appellation when both appear.",
 ].join(" ");
 
 export const LABEL_RECOGNIZE_USER_PROMPT =

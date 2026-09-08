@@ -1,44 +1,40 @@
 import { z } from "zod";
-import { BOTTLE_VINTAGE_MAX, BOTTLE_VINTAGE_MIN } from "./bottles.ts";
 import { DEFAULT_LABEL_RECOGNIZE_PROVIDER, LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
 import { drinkTypeSchema } from "./drink-logs.ts";
-import { extractModelPayload, stripControlChars } from "./label-recognize.ts";
-import { NOTE_DRINK_NAME_MAX_LENGTH } from "./tasting-notes.ts";
+import { pickIdentityRecognizeFields } from "./identity-recognize.ts";
+import { extractModelPayload } from "./label-recognize.ts";
 
 /**
  * `POST /api/tasting-notes/recognize` の契約。
- * 正本: spec/api-design.md 4.6 / spec/features/tasting-note.md
+ * 正本: spec/api-design.md 4.6 / spec/features/register-identity.md 6
  */
 
 const confidenceSchema = z.number().min(0).max(1);
-
-const drinkNameCandidateSchema = z.object({
-  value: z
-    .string()
-    .transform(stripControlChars)
-    .pipe(z.string().min(1).max(NOTE_DRINK_NAME_MAX_LENGTH)),
-  confidence: confidenceSchema,
-});
 
 const drinkTypeCandidateSchema = z.object({
   value: drinkTypeSchema,
   confidence: confidenceSchema,
 });
 
-const vintageCandidateSchema = z.object({
-  value: z.coerce.number().int().min(BOTTLE_VINTAGE_MIN).max(BOTTLE_VINTAGE_MAX),
-  confidence: confidenceSchema,
-});
-
-export const noteRecognizeFieldKeys = ["drinkName", "drinkType", "vintage"] as const;
+export const noteRecognizeFieldKeys = [
+  "drinkName",
+  "drinkType",
+  "vintage",
+  "producer",
+  "origin",
+  "variety",
+] as const;
 
 export type NoteRecognizeFieldKey = (typeof noteRecognizeFieldKeys)[number];
 
 export const noteRecognizeFieldsSchema = z
   .object({
-    drinkName: drinkNameCandidateSchema.optional(),
+    drinkName: z.object({ value: z.string(), confidence: confidenceSchema }).optional(),
     drinkType: drinkTypeCandidateSchema.optional(),
-    vintage: vintageCandidateSchema.optional(),
+    vintage: z.object({ value: z.number().int(), confidence: confidenceSchema }).optional(),
+    producer: z.object({ value: z.string(), confidence: confidenceSchema }).optional(),
+    origin: z.object({ value: z.string(), confidence: confidenceSchema }).optional(),
+    variety: z.object({ value: z.string(), confidence: confidenceSchema }).optional(),
   })
   .strict();
 
@@ -69,18 +65,10 @@ export function pickNoteRecognizeFields(raw: unknown): NoteRecognizeFields {
     return {};
   }
   const source = asRecord(record.fields) ?? record;
-  const fields: NoteRecognizeFields = {};
-  const drinkName = drinkNameCandidateSchema.safeParse(source.drinkName);
-  if (drinkName.success) {
-    fields.drinkName = drinkName.data;
-  }
+  const fields: NoteRecognizeFields = { ...pickIdentityRecognizeFields(source) };
   const drinkType = drinkTypeCandidateSchema.safeParse(source.drinkType);
   if (drinkType.success) {
     fields.drinkType = drinkType.data;
-  }
-  const vintage = vintageCandidateSchema.safeParse(source.vintage);
-  if (vintage.success) {
-    fields.vintage = vintage.data;
   }
   return fields;
 }

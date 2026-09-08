@@ -103,6 +103,16 @@ describe("toCreate / toUpdate", () => {
     expect(resolveCreateStoredOn({ ...opened, storedOn: "2026-08-01" }, true, nextDay)).toBe(
       "2026-08-01",
     );
+    expect(resolveCreateStoredOn(opened, false, nextDay, "2026-08-15T12:00:00.000Z")).toBe(
+      "2026-08-15",
+    );
+    expect(
+      toCreateBottleBody({ ...opened, name: "赤" }, null, {
+        now: nextDay,
+        storedOnTouched: false,
+        capturedAt: "2026-08-15T12:00:00.000Z",
+      })?.storedOn,
+    ).toBe("2026-08-15");
   });
 
   it("編集は変わった欄だけ。写真削除は空配列。空の保管欄は埋めない", () => {

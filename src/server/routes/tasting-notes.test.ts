@@ -117,6 +117,59 @@ describe("POST /api/tasting-notes", () => {
     expect(cleared.vintage).toBeNull();
   });
 
+  it("識別3項目は任意。ボトル省略時はボトルからコピーし、ボディがあれば採用する", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const hand = tastingNoteSchema.parse(
+      await (
+        await postNote(ctx.app, a.cookie, {
+          ...HAND,
+          producer: "手の生産者",
+          origin: "日本",
+          variety: "山田錦",
+        })
+      ).json(),
+    );
+    expect(hand.producer).toBe("手の生産者");
+    expect(hand.origin).toBe("日本");
+    expect(hand.variety).toBe("山田錦");
+
+    await seedBottle(ctx, OWN_BOTTLE, a.userId, "棚の赤", "sealed", "beer", {
+      producer: "瓶の生産者",
+      origin: "フランス",
+      variety: "ピノ",
+      vintage: 2017,
+    });
+    const snapped = tastingNoteSchema.parse(
+      await (
+        await postNote(ctx.app, a.cookie, {
+          bottleId: OWN_BOTTLE,
+          tastedOn: TODAY,
+          ratingX10: 40,
+        })
+      ).json(),
+    );
+    expect(snapped.producer).toBe("瓶の生産者");
+    expect(snapped.origin).toBe("フランス");
+    expect(snapped.variety).toBe("ピノ");
+    expect(snapped.vintage).toBe(2017);
+
+    const overridden = tastingNoteSchema.parse(
+      await (
+        await postNote(ctx.app, a.cookie, {
+          bottleId: OWN_BOTTLE,
+          tastedOn: TODAY,
+          ratingX10: 40,
+          producer: "上書き",
+          vintage: 2021,
+        })
+      ).json(),
+    );
+    expect(overridden.producer).toBe("上書き");
+    expect(overridden.origin).toBe("フランス");
+    expect(overridden.vintage).toBe(2021);
+  });
+
   it("評価 3.3 / 未来日 / 7 枚は 400。ノートは作らない", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");

@@ -6,6 +6,8 @@ import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
+import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
@@ -17,6 +19,7 @@ import { RatingField } from "@/client/components/notes/RatingField.tsx";
 import { TastedOnRow } from "@/client/components/notes/TastedOnRow.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle } from "@/client/hooks/use-bottles.ts";
+import { useDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { useNotePhotos } from "@/client/hooks/use-note-photos.ts";
 import {
   useCreateTastingNote,
@@ -41,6 +44,7 @@ import {
   type NoteFormField,
   type NoteFormState,
   noteDetailOpen,
+  noteFormStateFromDrinkLog,
   noteFormStateFromNote,
   noteSaveButtonLabel,
   noteSaveDisabledHint,
@@ -58,11 +62,12 @@ import {
   type NoteRecognizeTouched,
 } from "@/client/lib/note-recognize.ts";
 import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
+import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import { startNoteRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
-import { BOTTLE_FIELD_LABELS } from "@/shared/bottles.ts";
+import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 import type { TastingNote } from "@/shared/tasting-notes.ts";
 import { NOTE_DRINK_NAME_MAX_LENGTH } from "@/shared/tasting-notes.ts";
 
@@ -72,8 +77,15 @@ const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真�
 
 export function NoteNewForm() {
   const [searchParams] = useSearchParams();
+  const fromLog = searchParams.get("fromLog");
   const bottleId = searchParams.get("bottleId");
   const formOrigin = parseFormOrigin(searchParams.get("from"));
+  if (fromLog) {
+    if (!isUuid(fromLog)) {
+      return <NotFoundPage />;
+    }
+    return <NoteNewWithLog logId={fromLog} />;
+  }
   if (bottleId && !isUuid(bottleId)) {
     return <NotFoundPage />;
   }
@@ -81,6 +93,21 @@ export function NoteNewForm() {
     return <NoteNewWithBottle bottleId={bottleId} formOrigin={formOrigin} />;
   }
   return <NoteNewFields />;
+}
+
+function NoteNewWithLog({ logId }: { logId: string }) {
+  const query = useDrinkLog(logId);
+  if (query.isPending) {
+    return <DetailSkeleton />;
+  }
+  if (query.isError) {
+    return isApiClientError(query.error) && query.error.code === "not_found" ? (
+      <NotFoundPage />
+    ) : (
+      <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />
+    );
+  }
+  return <NoteNewFields keepPrefillDate prefill={noteFormStateFromDrinkLog(query.data)} />;
 }
 
 function NoteNewWithBottle({
@@ -110,6 +137,9 @@ function NoteNewWithBottle({
         drinkType: query.data.drinkType,
         status: query.data.status,
         vintage: query.data.vintage,
+        producer: query.data.producer,
+        origin: query.data.origin,
+        variety: query.data.variety,
       })}
     />
   );
@@ -118,9 +148,11 @@ function NoteNewWithBottle({
 function NoteNewFields({
   prefill,
   formOrigin = null,
+  keepPrefillDate = false,
 }: {
   prefill?: NoteFormState;
   formOrigin?: ReturnType<typeof parseFormOrigin>;
+  keepPrefillDate?: boolean;
 }) {
   const navigate = useNavigate();
   const { setGuard } = useLeaveGuard();
@@ -221,6 +253,7 @@ function NoteNewFields({
       pending={create.isPending}
       saveState={create.isPending ? "loading" : saveState}
       photos={photos}
+      keepPrefillDate={keepPrefillDate}
       onUpdate={update}
       onSave={submit}
       discardOpen={discardOpen}
@@ -379,6 +412,7 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
         pending={updateNote.isPending}
         saveState={updateNote.isPending ? "loading" : saveState}
         photos={photos}
+        keepPrefillDate
         onUpdate={update}
         onSave={submit}
         discardOpen={discardOpen}
@@ -418,6 +452,7 @@ function NoteFormFields({
   pending,
   saveState,
   photos,
+  keepPrefillDate = false,
   onUpdate,
   onSave,
   discardOpen,
@@ -444,6 +479,7 @@ function NoteFormFields({
     removePhoto: (key: string) => Promise<void>;
     makeFirst: (key: string) => void;
   };
+  keepPrefillDate?: boolean;
   onUpdate: (patch: Partial<NoteFormState>, field?: NoteFormField) => void;
   onSave: () => void;
   discardOpen: boolean;
@@ -455,11 +491,17 @@ function NoteFormFields({
   const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | "failure" | null>(
     null,
   );
+  const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
   const touchedRef = useRef<NoteRecognizeTouched>({
     drinkName: false,
     drinkType: false,
     vintage: false,
+    producer: false,
+    origin: false,
+    variety: false,
   });
+  const dateTouchedRef = useRef(keepPrefillDate);
+  const appliedCapturedAtRef = useRef<string | null>(null);
   const recognizedJpegRef = useRef<Blob | null>(null);
   const recognizeRequestRef = useRef(0);
   const stateRef = useRef(state);
@@ -493,13 +535,13 @@ function NoteFormFields({
           setRecognizeStatus("failure");
           return;
         }
-        onUpdateRef.current(
-          applyRecognizeToNoteForm({
-            state: stateRef.current,
-            fields: result.fields,
-            touched: touchedRef.current,
-          }).next,
-        );
+        const applied = applyRecognizeToNoteForm({
+          state: stateRef.current,
+          fields: result.fields,
+          touched: touchedRef.current,
+        });
+        onUpdateRef.current(applied.next);
+        setAiMarks(new Set(applied.applied));
         setRecognizeStatus("success");
       })
       .catch(() => {
@@ -509,6 +551,32 @@ function NoteFormFields({
         setRecognizeStatus("failure");
       });
   }, [pendingRecognizeJpeg, photos.items]);
+
+  useEffect(() => {
+    const capturedAt = photos.items.find((item) => item.capturedAt)?.capturedAt;
+    if (!capturedAt || appliedCapturedAtRef.current === capturedAt) {
+      return;
+    }
+    if (dateTouchedRef.current) {
+      appliedCapturedAtRef.current = capturedAt;
+      return;
+    }
+    appliedCapturedAtRef.current = capturedAt;
+    onUpdateRef.current({ tastedOn: capturedAtToCalendarDate(capturedAt, new Date()) });
+  }, [photos.items]);
+
+  function markIdentity(field: keyof NoteRecognizeTouched, value: string) {
+    touchedRef.current[field] = true;
+    setAiMarks((current) => {
+      if (!current.has(field)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(field);
+      return next;
+    });
+    onUpdate({ [field]: value }, field);
+  }
 
   return (
     <div className="form-page log-form">
@@ -539,19 +607,20 @@ function NoteFormFields({
       ) : null}
       <section className="log-form-section">
         <FieldLabel htmlFor="note-drink-name" required>
-          銘柄名
+          {IDENTITY_FIELD_LABELS.drinkName}
         </FieldLabel>
-        <Input
-          id="note-drink-name"
-          value={state.drinkName}
-          maxLength={NOTE_DRINK_NAME_MAX_LENGTH}
-          placeholder="例：Planeta"
-          aria-invalid={errors.drinkName ? true : undefined}
-          onChange={(event) => {
-            touchedRef.current.drinkName = true;
-            onUpdate({ drinkName: event.target.value }, "drinkName");
-          }}
-        />
+        <FieldWithAiMark marked={aiMarks.has("drinkName")}>
+          <Input
+            id="note-drink-name"
+            value={state.drinkName}
+            maxLength={NOTE_DRINK_NAME_MAX_LENGTH}
+            placeholder="例：Planeta"
+            aria-invalid={errors.drinkName ? true : undefined}
+            onChange={(event) => {
+              markIdentity("drinkName", event.target.value);
+            }}
+          />
+        </FieldWithAiMark>
         {errors.drinkName ? (
           <p className="field-error" role="alert">
             {errors.drinkName}
@@ -566,45 +635,6 @@ function NoteFormFields({
           touchedRef.current.drinkType = true;
           onUpdate({ drinkType }, "drinkType");
         }}
-      />
-      <section className="log-form-section">
-        <FieldLabel htmlFor="note-vintage">{BOTTLE_FIELD_LABELS.vintage}</FieldLabel>
-        <Input
-          id="note-vintage"
-          value={state.vintage}
-          inputMode="numeric"
-          placeholder="NV"
-          aria-invalid={errors.vintage ? true : undefined}
-          onChange={(event) => {
-            touchedRef.current.vintage = true;
-            onUpdate({ vintage: event.target.value }, "vintage");
-          }}
-        />
-        {errors.vintage ? (
-          <p className="field-error" role="alert">
-            {errors.vintage}
-          </p>
-        ) : null}
-      </section>
-      <TastedOnRow
-        value={state.tastedOn}
-        now={new Date()}
-        error={errors.tastedOn}
-        onChange={(tastedOn) => onUpdate({ tastedOn }, "tastedOn")}
-      />
-      <RatingField
-        value={state.ratingX10}
-        error={errors.ratingX10}
-        onChange={(ratingX10) => onUpdate({ ratingX10 }, "ratingX10")}
-      />
-      <NoteTextFields
-        taste={state.taste}
-        appearance={state.appearance}
-        aroma={state.aroma}
-        finish={state.finish}
-        errors={errors}
-        defaultOpen={noteDetailOpen(state)}
-        onChange={(field, value) => onUpdate({ [field]: value }, field)}
       />
       <BottlePickerRow
         placement="optional"
@@ -621,6 +651,46 @@ function NoteFormFields({
             onUpdate(clearSelectedBottle(state));
           }
         }}
+      />
+      <IdentityFields
+        idPrefix="note"
+        values={{
+          vintage: state.vintage,
+          variety: state.variety,
+          producer: state.producer,
+          origin: state.origin,
+        }}
+        errors={{
+          vintage: errors.vintage,
+          variety: errors.variety,
+          producer: errors.producer,
+          origin: errors.origin,
+        }}
+        aiMarks={aiMarks}
+        onChange={(field, value) => markIdentity(field, value)}
+      />
+      <TastedOnRow
+        value={state.tastedOn}
+        now={new Date()}
+        error={errors.tastedOn}
+        onChange={(tastedOn) => {
+          dateTouchedRef.current = true;
+          onUpdate({ tastedOn }, "tastedOn");
+        }}
+      />
+      <RatingField
+        value={state.ratingX10}
+        error={errors.ratingX10}
+        onChange={(ratingX10) => onUpdate({ ratingX10 }, "ratingX10")}
+      />
+      <NoteTextFields
+        taste={state.taste}
+        appearance={state.appearance}
+        aroma={state.aroma}
+        finish={state.finish}
+        errors={errors}
+        defaultOpen={noteDetailOpen(state)}
+        onChange={(field, value) => onUpdate({ [field]: value }, field)}
       />
       <SaveBar
         label={noteSaveButtonLabel(pending, photoStatus)}

@@ -6,6 +6,7 @@ import {
   logCreateHref,
   logFormHrefs,
   noteCreateHref,
+  noteFromLogHref,
   notesListHref,
   parentTabOf,
   resolveAppRoute,
@@ -248,6 +249,7 @@ describe("note hrefs", () => {
       fallback: `/cellar/${id}`,
     });
     expect(noteCreateHref(id, "opened")).toBe(`/notes/new?bottleId=${id}&from=opened`);
+    expect(noteFromLogHref(id)).toBe(`/notes/new?fromLog=${id}`);
   });
 });
 

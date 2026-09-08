@@ -1,3 +1,4 @@
+import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { decodeImage } from "@/client/lib/photo/decode-image.ts";
 import { supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
 import { type ProcessedPhoto, processPhoto } from "@/client/lib/photo/process.ts";
@@ -11,9 +12,10 @@ export async function processCellarFile(
   file: File,
   onRecognizeJpeg?: (jpeg: Blob) => void,
 ): Promise<ProcessedPhoto> {
+  const capturedAt = (await capturedAtFromFile(file)) ?? undefined;
   const source = await decodeImage(file);
   try {
-    return await processPhoto({
+    const processed = await processPhoto({
       source,
       sourceWidth: source.width,
       sourceHeight: source.height,
@@ -26,6 +28,7 @@ export async function processCellarFile(
       cutoutOn: getCutoutPref() && supportsBackgroundRemoval(),
       onRecognizeJpeg,
     });
+    return { ...processed, capturedAt };
   } finally {
     source.close();
   }

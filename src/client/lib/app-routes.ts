@@ -366,6 +366,10 @@ export function isUuidParam(value: string): boolean {
   return UUID_RE.test(value);
 }
 
+export function noteFromLogHref(logId: string): string {
+  return `/notes/new?fromLog=${encodeURIComponent(logId)}`;
+}
+
 export function noteCreateHref(
   bottleId?: string | null,
   from?: "opened" | "detail" | null,

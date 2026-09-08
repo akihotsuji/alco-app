@@ -13,12 +13,44 @@ describe("applyRecognizeToNoteForm", () => {
         drinkType: { value: "wine", confidence: 0.8 },
         vintage: { value: 2020, confidence: 0.49 },
       },
-      touched: { drinkName: false, drinkType: false, vintage: false },
+      touched: {
+        drinkName: false,
+        drinkType: false,
+        vintage: false,
+        producer: false,
+        origin: false,
+        variety: false,
+      },
     });
     expect(result.next.drinkName).toBe("手入力");
     expect(result.next.drinkType).toBe("wine");
     expect(result.next.vintage).toBe("");
     expect(result.applied).toEqual(["drinkType"]);
+  });
+
+  it("識別 3 項目も空欄にだけ入れる", () => {
+    const result = applyRecognizeToNoteForm({
+      state: initialNoteFormState(NOW),
+      fields: {
+        producer: { value: "生産者", confidence: 0.8 },
+        origin: { value: "フランス", confidence: 0.7 },
+        variety: { value: "ピノ", confidence: 0.6 },
+      },
+      touched: {
+        drinkName: false,
+        drinkType: false,
+        vintage: false,
+        producer: false,
+        origin: false,
+        variety: false,
+      },
+    });
+    expect(result.next).toMatchObject({
+      producer: "生産者",
+      origin: "フランス",
+      variety: "ピノ",
+    });
+    expect(result.applied).toEqual(["producer", "origin", "variety"]);
   });
 
   it("ボトル選択中は種類を変えない", () => {
@@ -32,7 +64,14 @@ describe("applyRecognizeToNoteForm", () => {
         drinkType: { value: "wine", confidence: 0.95 },
         vintage: { value: 2018, confidence: 0.8 },
       },
-      touched: { drinkName: false, drinkType: false, vintage: false },
+      touched: {
+        drinkName: false,
+        drinkType: false,
+        vintage: false,
+        producer: false,
+        origin: false,
+        variety: false,
+      },
     });
     expect(result.next.drinkType).toBe("beer");
     expect(result.next.vintage).toBe("2018");

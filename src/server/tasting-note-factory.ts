@@ -102,6 +102,7 @@ export async function seedOwnedBottle(
   name: string,
   status: BottleStatus = "sealed",
   drinkType: DrinkType = "beer",
+  extra: { producer?: string; origin?: string; variety?: string; vintage?: number } = {},
 ) {
   const now = new Date();
   await ctx.db.insert(bottles).values({
@@ -110,6 +111,10 @@ export async function seedOwnedBottle(
     name,
     drinkType,
     status,
+    producer: extra.producer ?? null,
+    origin: extra.origin ?? null,
+    variety: extra.variety ?? null,
+    vintage: extra.vintage ?? null,
     createdAt: now,
     updatedAt: now,
   });

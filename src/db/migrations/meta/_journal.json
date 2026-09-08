@@ -36,6 +36,13 @@
       "when": 1788835401679,
       "tag": "0004_add_bottle_variety_and_note_vintage",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788844385251,
+      "tag": "0005_add_register_identity_and_place",
+      "breakpoints": true
     }
   ]
 }

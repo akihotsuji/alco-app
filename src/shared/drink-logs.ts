@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { ABV_PERCENT_MAX, ABV_PERCENT_MIN, VOLUME_ML_MAX, VOLUME_ML_MIN } from "./alcohol.ts";
 import { DRINK_TYPES } from "./constants.ts";
+import { IDENTITY_MESSAGES, optionalIdentityText, optionalVintage } from "./identity.ts";
 import { photoMetaSchema } from "./photos.ts";
+import {
+  addPlacePairIssue,
+  optionalPlaceLat,
+  optionalPlaceLng,
+  optionalPlaceName,
+  placeCoordsArePaired,
+} from "./place.ts";
 import { addCalendarDays, parseCalendarDate, TOKYO_TIME_ZONE } from "./tokyo-date.ts";
 
 /**
@@ -33,6 +41,9 @@ export const DRINK_LOG_MESSAGES = {
   filter: "日付または期間を指定してください",
   limit: "件数は1以上100以下で指定してください",
   cursor: "ページ情報が正しくありません",
+  drinkName: IDENTITY_MESSAGES.text,
+  identity: IDENTITY_MESSAGES.text,
+  vintage: IDENTITY_MESSAGES.vintage,
 } as const;
 
 /** 小数第 1 位まで（`multipleOf` は浮動小数で誤判定するため refine で見る） */
@@ -70,30 +81,33 @@ export const memoSchema = z
 
 const referenceId = z.string().uuid();
 
+const drinkNameSchema = z
+  .string({ error: DRINK_LOG_MESSAGES.drinkName })
+  .max(DRINK_NAME_MAX_LENGTH, { error: DRINK_LOG_MESSAGES.drinkName });
+
+function refinePlacePair(
+  body: { placeLat?: number | null; placeLng?: number | null },
+  context: z.RefinementCtx,
+) {
+  if (!placeCoordsArePaired(body)) {
+    addPlacePairIssue(context);
+  }
+}
+
 export const createDrinkLogSchema = z
   .object({
     drinkType: drinkTypeSchema,
     volumeMl: volumeMlSchema,
     abvPercent: abvPercentSchema,
     drunkAt: drunkAtSchema.optional(),
-    memo: memoSchema.nullable().optional(),
-    myDrinkId: referenceId.nullable().optional(),
-    bottleId: referenceId.nullable().optional(),
-    photoIds: z
-      .array(referenceId)
-      .max(DRINK_LOG_PHOTO_MAX, { error: DRINK_LOG_MESSAGES.photoIdsMax })
-      .optional(),
-  })
-  .strict();
-
-export type CreateDrinkLogInput = z.infer<typeof createDrinkLogSchema>;
-
-export const updateDrinkLogSchema = z
-  .object({
-    drinkType: drinkTypeSchema.optional(),
-    volumeMl: volumeMlSchema.optional(),
-    abvPercent: abvPercentSchema.optional(),
-    drunkAt: drunkAtSchema.optional(),
+    drinkName: drinkNameSchema.nullable().optional(),
+    producer: optionalIdentityText,
+    origin: optionalIdentityText,
+    variety: optionalIdentityText,
+    vintage: optionalVintage,
+    placeName: optionalPlaceName,
+    placeLat: optionalPlaceLat,
+    placeLng: optionalPlaceLng,
     memo: memoSchema.nullable().optional(),
     myDrinkId: referenceId.nullable().optional(),
     bottleId: referenceId.nullable().optional(),
@@ -103,7 +117,35 @@ export const updateDrinkLogSchema = z
       .optional(),
   })
   .strict()
-  .refine((body) => Object.keys(body).length > 0, { error: DRINK_LOG_MESSAGES.patchEmpty });
+  .superRefine(refinePlacePair);
+
+export type CreateDrinkLogInput = z.infer<typeof createDrinkLogSchema>;
+
+export const updateDrinkLogSchema = z
+  .object({
+    drinkType: drinkTypeSchema.optional(),
+    volumeMl: volumeMlSchema.optional(),
+    abvPercent: abvPercentSchema.optional(),
+    drunkAt: drunkAtSchema.optional(),
+    drinkName: drinkNameSchema.nullable().optional(),
+    producer: optionalIdentityText,
+    origin: optionalIdentityText,
+    variety: optionalIdentityText,
+    vintage: optionalVintage,
+    placeName: optionalPlaceName,
+    placeLat: optionalPlaceLat,
+    placeLng: optionalPlaceLng,
+    memo: memoSchema.nullable().optional(),
+    myDrinkId: referenceId.nullable().optional(),
+    bottleId: referenceId.nullable().optional(),
+    photoIds: z
+      .array(referenceId)
+      .max(DRINK_LOG_PHOTO_MAX, { error: DRINK_LOG_MESSAGES.photoIdsMax })
+      .optional(),
+  })
+  .strict()
+  .refine((body) => Object.keys(body).length > 0, { error: DRINK_LOG_MESSAGES.patchEmpty })
+  .superRefine(refinePlacePair);
 
 export type UpdateDrinkLogInput = z.infer<typeof updateDrinkLogSchema>;
 
@@ -210,10 +252,17 @@ export const drinkLogItemSchema = z.object({
   drunkOn: z.string(),
   drinkType: drinkTypeSchema,
   drinkName: z.string().nullable(),
+  producer: z.string().nullable(),
+  origin: z.string().nullable(),
+  variety: z.string().nullable(),
+  vintage: z.number().int().nullable(),
   volumeMl: z.number().int(),
   abvPercent: z.number(),
   alcoholG: z.number(),
   memo: z.string().nullable(),
+  placeName: z.string().nullable(),
+  placeLat: z.number().nullable(),
+  placeLng: z.number().nullable(),
   myDrinkId: z.string().nullable(),
   bottleId: z.string().nullable(),
   thumbPhotoId: z.string().nullable(),

@@ -1,8 +1,23 @@
 import { z } from "zod";
 import { BOTTLE_STATUSES, DRINK_TYPES, type DrinkType, PHOTO_KINDS } from "./constants.ts";
 import { drinkTypeSchema } from "./drink-logs.ts";
+import {
+  IDENTITY_FIELD_LABELS,
+  IDENTITY_TEXT_MAX_LENGTH,
+  normalizeOptionalText,
+  VINTAGE_MAX,
+  VINTAGE_MIN,
+  vintageSchema,
+} from "./identity.ts";
 import { photoMetaSchema } from "./photos.ts";
 import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
+
+export {
+  normalizeOptionalText,
+  VINTAGE_MAX as BOTTLE_VINTAGE_MAX,
+  VINTAGE_MIN as BOTTLE_VINTAGE_MIN,
+  vintageSchema,
+};
 
 /**
  * ボトルの入力スキーマ。クライアントとサーバーで同じものを使う。
@@ -10,12 +25,10 @@ import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
  */
 
 export const BOTTLE_NAME_MAX_LENGTH = 100;
-export const BOTTLE_TEXT_MAX_LENGTH = 100;
+export const BOTTLE_TEXT_MAX_LENGTH = IDENTITY_TEXT_MAX_LENGTH;
 export const BOTTLE_MEMO_MAX_LENGTH = 2000;
 export const BOTTLE_COUNT_MIN = 1;
 export const BOTTLE_COUNT_MAX = 12;
-export const BOTTLE_VINTAGE_MIN = 1800;
-export const BOTTLE_VINTAGE_MAX = 2100;
 export const BOTTLE_PHOTO_MAX = 1;
 export const BOTTLE_SEARCH_MAX_LENGTH = 100;
 
@@ -28,7 +41,7 @@ export const BOTTLE_MESSAGES = {
   name: `1文字以上${BOTTLE_NAME_MAX_LENGTH}文字以内で入力してください`,
   drinkType: "種類を選んでください",
   text: `${BOTTLE_TEXT_MAX_LENGTH}文字以内で入力してください`,
-  vintage: `${BOTTLE_VINTAGE_MIN}以上${BOTTLE_VINTAGE_MAX}以下のビンテージを入力してください`,
+  vintage: `${VINTAGE_MIN}以上${VINTAGE_MAX}以下のヴィンテージを入力してください`,
   purchasedOn: "日付の形式が正しくありません",
   purchasedOnFuture: "未来の日付は指定できません",
   storedOn: "日付の形式が正しくありません",
@@ -46,8 +59,11 @@ export const BOTTLE_MESSAGES = {
 } as const;
 
 export const BOTTLE_FIELD_LABELS = {
-  vintage: "ビンテージ",
-  variety: "品種",
+  name: IDENTITY_FIELD_LABELS.name,
+  vintage: IDENTITY_FIELD_LABELS.vintage,
+  variety: IDENTITY_FIELD_LABELS.variety,
+  origin: IDENTITY_FIELD_LABELS.origin,
+  producer: IDENTITY_FIELD_LABELS.producer,
   storedOn: "保管日",
   storage: "保管場所",
   purchasedOn: "購入日",
@@ -79,12 +95,6 @@ export const bottleTextSchema = z
 export const bottleMemoSchema = z
   .string({ error: BOTTLE_MESSAGES.memo })
   .max(BOTTLE_MEMO_MAX_LENGTH, { error: BOTTLE_MESSAGES.memo });
-
-export const vintageSchema = z
-  .number({ error: BOTTLE_MESSAGES.vintage })
-  .int({ error: BOTTLE_MESSAGES.vintage })
-  .min(BOTTLE_VINTAGE_MIN, { error: BOTTLE_MESSAGES.vintage })
-  .max(BOTTLE_VINTAGE_MAX, { error: BOTTLE_MESSAGES.vintage });
 
 function bottleCalendarDateSchema(invalid: string, future: string) {
   return z
@@ -269,15 +279,6 @@ export function emptyCountsByType(): CountsByType {
     cocktail: 0,
     other: 0,
   };
-}
-
-/** 前後空白を除いて空なら null（cellar.md 4.1） */
-export function normalizeOptionalText(value: string | null | undefined): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
 }
 
 export function formatBottleCount(count: number): string {
