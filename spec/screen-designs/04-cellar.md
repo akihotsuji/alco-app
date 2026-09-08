@@ -350,7 +350,7 @@
 | T3 | 開栓する | Button 主（棚のとき） | 確認なし。即時 `POST /api/bottles/:id/consume`。押下 M-01 / M-02。送信中はラベル「開栓中」+ `disabled` + 水位線（M-04）。2xx で **即** `/cellar` へ戻り（M-05。ボタン側の成功表示は無し）、トースト「開栓しました  取り消す」5 秒（`cheer` + 水面 M-25）。`haptic("success")`。取り消す = `POST /api/bottles/:id/restore`。失敗は水位線フェードアウト + ラベル復帰（M-06）+ 汎用文 | `POST /api/bottles/:id/consume` |
 | T4 | セラーに戻す | Button 副（貯蔵庫のとき） | T5 の上。即時 `POST /api/bottles/:id/restore` → 棚の詳細へ。トースト「セラーに戻しました」（`cheer` + M-25）。**記録は消さない** | `POST /api/bottles/:id/restore` |
 | T5 | プロパティ | 行リスト | 順: 銘柄名 / 種類 / ビンテージ（無ければ「NV」）/ 産地 / 生産者 / 購入日 / 価格 / 購入場所 / 保管日 / 保管場所 / メモ。銘柄名・種類・ビンテージ以外は値が空の行を出さない。品種列は持たない | data-model 6.3 |
-| T6 | ノート節 | 見出し + 行 + 「書く ›」 | 最新 3 件。「すべて（N）›」→ `/notes?bottleId=`。「書く」→ `/notes/new?bottleId=&camera=1` | `GET /api/tasting-notes?bottleId=&limit=3` |
+| T6 | ノート節 | 見出し + 行 + 「書く ›」 | 最新 3 件。「すべて（N）›」→ `/notes?bottleId=`。「書く」→ `/notes/new?bottleId=`（撮影しない） | `GET /api/tasting-notes?bottleId=&limit=3` |
 | T7 | 記録節 | 見出し + 行 | このボトルに紐付く記録 最新 3 件（記録画面から付けたもの）。行 → `log-edit`。無ければ節ごと出さない | `GET /api/drink-logs?bottleId=&limit=3` |
 | T8 | 編集 | ヘッダー右 | `/cellar/:bottleId/edit` | — |
 

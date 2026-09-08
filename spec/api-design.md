@@ -581,7 +581,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 **共通オブジェクト:** data-model 6.4。API の評価は **`ratingX10`**（10〜50、5 刻み）。UI 表示は `/ 10`。`tastedOn` は JST 日。
 
-詳細・作成応答に `photos` メタ配列を含める。一覧は `photoCount` と先頭 1 枚の `thumbPhotoId`。一覧応答にフィルタ前の `totalCount`（`bottleId` 指定時はそのボトルの総数）を含める。詳細・作成・更新応答に `bottle: { id, name, status } | null` を含める（削除済みは null。画面 V3 の「セラーの / 貯蔵庫の」）。行の形は [features/tasting-note.md](features/tasting-note.md) 8 章。
+詳細・作成応答に `photos` メタ配列を含める。一覧は `photoCount` と先頭 1 枚の `thumbPhotoId` に加え、カード用の短い感想 `taste`（無ければ null）。一覧応答にフィルタ前の `totalCount`（`bottleId` 指定時はそのボトルの総数）を含める。詳細・作成・更新応答に `bottle: { id, name, status } | null` を含める（削除済みは null。画面 V3 の「セラーの / 貯蔵庫の」）。行の形は [features/tasting-note.md](features/tasting-note.md) 8 章。
 
 #### GET /api/tasting-notes
 
