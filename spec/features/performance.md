@@ -58,7 +58,8 @@
 
 先読み:
 
-- 起動直後: セッション Cookie の有無だけで login か home を 1 本だけ先読みする（認可には使わない）
+- 起動直後: `boot-prefetch.ts` を **別エントリ**（本番は main より前の `<script type="module">`）として読む。メイン JS の解析を待たず、**開いたパス**の chunk を `import()` する（`/login` なら login だけ。`/` なら shell + home）。セッション Cookie は httpOnly なので JS からは見ない
+- 同じ script が `GET /api/auth/get-session` を先に飛ばす。`/` ではホームが待つ summary（day/week）と my-drinks も先に飛ばし、Hono RPC / Better Auth が応答を使い切る（楽観的更新ではない）
 - タブ / FAB / ヘッダー / ホームの導線: `pointerenter` と `focus` で行き先の chunk を先読み
 - 中央タブ「記録」は `logForm` と `photoEdit`
 
@@ -142,7 +143,7 @@ Vite が 500 kB 超を警告。ボトルネックは **初期 JS 1 本に全画�
 
 ## 8. セキュリティ
 
-- 先読みの Cookie 判定は「名前があるか」だけ。トークンを読まない・ログに出さない
+- 先読みはパスだけ見る。セッション Cookie（httpOnly）を読まない・ログに出さない
 - 計測拡張を本番バンドルに残さない
 - 既存の認可・CSP・`/api/*` NetworkOnly は変えない
 

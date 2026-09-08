@@ -29,6 +29,7 @@
     "vite.cutout-assets.ts",
     "vite.pwa.ts",
     "vite.pwa-icons.ts",
+    "vite.boot-prefetch.ts",
     "vite.alias.ts",
     "vitest.config.ts"
   ]

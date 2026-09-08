@@ -7,6 +7,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const app = readFileSync(join(here, "App.tsx"), "utf8");
 const lazyPages = readFileSync(join(here, "pages/lazy-pages.tsx"), "utf8");
 const main = readFileSync(join(here, "main.tsx"), "utf8");
+const html = readFileSync(join(here, "../../index.html"), "utf8");
+const boot = readFileSync(join(here, "boot-prefetch.ts"), "utf8");
 
 describe("ルート分割", () => {
   it("App は画面を静的 import せず lazy-pages 経由にする", () => {
@@ -23,6 +25,15 @@ describe("ルート分割", () => {
     expect(lazyPages).toContain('import("@/client/pages/notes/NotePages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/summary/SummaryPages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/logs/LogFormPage.tsx")');
-    expect(main).toContain("prefetchInitialRoute()");
+    expect(main).not.toContain("prefetchInitialRoute()");
+    expect(html).toContain("/src/client/boot-prefetch.ts");
+    expect(boot).toContain("prefetchInitialRoute()");
+    expect(boot).not.toMatch(/^import /m);
+  });
+
+  it("ゲスト画面の初期 JS から ToastProvider を外す", () => {
+    const guestOnly = readFileSync(join(here, "auth/GuestOnly.tsx"), "utf8");
+    expect(guestOnly).not.toContain("ToastProvider");
+    expect(app).not.toContain("ToastProvider");
   });
 });

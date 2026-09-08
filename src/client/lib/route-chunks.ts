@@ -1,5 +1,4 @@
 import type { TabId } from "@/client/lib/app-routes.ts";
-import { hasSessionCookie } from "@/client/lib/session-cookie.ts";
 
 export const routeChunks = {
   shell: () => import("@/client/layout/AuthenticatedLayout.tsx"),
@@ -19,11 +18,19 @@ export const routeChunks = {
 
 export type RouteChunkId = keyof typeof routeChunks;
 
-export function initialRouteChunkIds(cookie: string): readonly RouteChunkId[] {
-  if (hasSessionCookie(cookie)) {
+/** パスだけ見る。セッション Cookie は httpOnly なので JS からは使えない */
+export function initialRouteChunkIds(pathname: string): readonly RouteChunkId[] {
+  if (pathname === "/login") {
+    return ["login"];
+  }
+  if (pathname === "/signup") {
+    return ["signup"];
+  }
+  const page = chunkIdForPath(pathname) ?? "home";
+  if (page === "home") {
     return ["shell", "home"];
   }
-  return ["login"];
+  return ["shell", page];
 }
 
 export function tabChunkIds(tabId: TabId): readonly RouteChunkId[] {
@@ -93,9 +100,9 @@ export function prefetchTabChunk(tabId: TabId): void {
   }
 }
 
-/** セッション Cookie の有無だけで、最初に出す画面の chunk を先読みする */
-export function prefetchInitialRoute(cookie = document.cookie): void {
-  for (const id of initialRouteChunkIds(cookie)) {
+/** 開いたパスの chunk を、セッション確認と並行して先読みする */
+export function prefetchInitialRoute(pathname = window.location.pathname): void {
+  for (const id of initialRouteChunkIds(pathname)) {
     prefetchRouteChunk(id);
   }
 }

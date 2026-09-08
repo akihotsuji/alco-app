@@ -23,10 +23,12 @@ describe("chunkIdForPath", () => {
 });
 
 describe("initialRouteChunkIds", () => {
-  it("セッション Cookie があるときだけ shell と home を先読みする", () => {
-    expect(initialRouteChunkIds("")).toEqual(["login"]);
-    expect(initialRouteChunkIds("theme=light")).toEqual(["login"]);
-    expect(initialRouteChunkIds("better-auth.session_token=1")).toEqual(["shell", "home"]);
+  it("開いたパスの画面だけを先読みする（httpOnly Cookie は見ない）", () => {
+    expect(initialRouteChunkIds("/login")).toEqual(["login"]);
+    expect(initialRouteChunkIds("/signup")).toEqual(["signup"]);
+    expect(initialRouteChunkIds("/")).toEqual(["shell", "home"]);
+    expect(initialRouteChunkIds("/cellar")).toEqual(["shell", "cellar"]);
+    expect(initialRouteChunkIds("/logs/new")).toEqual(["shell", "logForm"]);
   });
 });
 
