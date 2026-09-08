@@ -9,6 +9,7 @@ import { shouldPlayEmptyEnter } from "@/client/components/feedback/EmptyState.ts
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
+import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
@@ -112,6 +113,8 @@ export function CellarList() {
   const reduceMotion = useReducedMotion();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const guide = useFirstRunGuide();
+  const [showCellarHint] = useState(() => !guide.cellarHintSeen);
   const locLeft = consumeLeftEvent(location.state);
   const locPlaced = placedBottleEvent(location.state);
   if (locLeft) {
@@ -164,6 +167,11 @@ export function CellarList() {
   const fetching = view === "type" ? typeMeta.isFetching : oneQuery.isFetching;
   const filteredOut = Boolean(filters.q || (view === "one" && filters.drinkType));
   const emptyInventory = actualCount === 0;
+  useEffect(() => {
+    if (emptyInventory && !guide.cellarHintSeen) {
+      guide.markHintSeen("cellarHintSeen");
+    }
+  }, [emptyInventory, guide]);
   const emptyFilter = Boolean(
     actualCount !== undefined &&
       actualCount > 0 &&
@@ -325,6 +333,9 @@ export function CellarList() {
             <div className="shelf-board" />
           </div>
           <p className="empty-state-message">ボトルはまだありません。撮って 1 本目を並べましょう</p>
+          {showCellarHint ? (
+            <p className="empty-state-detail">持っているボトルを、ここに並べて管理します</p>
+          ) : null}
           <Link className={cn(buttonVariants(), "empty-action")} to="/cellar/new?camera=1">
             ボトルを追加
           </Link>
