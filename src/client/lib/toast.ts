@@ -8,6 +8,7 @@ export const TOAST_MESSAGES = {
   returned: "セラーに戻しました",
   deleted: "削除しました",
   saveFailed: "保存できませんでした。もう一度試してください",
+  updateAvailable: "新しいバージョンがあります",
 } as const;
 
 const SUCCESS_WITH_CHEER = new Set<string>([

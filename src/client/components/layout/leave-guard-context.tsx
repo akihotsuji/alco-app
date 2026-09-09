@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useRef } from "react";
+import { setLeaveGuardRegistered } from "@/client/lib/leave-guard-state.ts";
 
 /**
  * 「戻る」を横取りして確認を挟むための小さな契約。フォーム画面が未保存のときだけ guard を登録し、
@@ -21,6 +22,7 @@ export function LeaveGuardProvider({ children }: { children: ReactNode }) {
 
   const setGuard = useCallback((guard: LeaveGuard | null) => {
     guardRef.current = guard;
+    setLeaveGuardRegistered(guard !== null);
   }, []);
 
   const requestLeave = useCallback((proceed: () => void) => {

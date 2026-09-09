@@ -43,7 +43,8 @@
 | 入力ズーム | `input` / `textarea` / `select` を `max(16px, 1em)`。本文は既に 16px |
 | 文字の自動拡大 | `html` に `text-size-adjust: 100%` |
 | 横スクロール | `html` / `body` に `overflow-x: clip` |
-| ラバーバンド | `overscroll-behavior-y: none`（`html` / `body`）。一覧は `contain` |
+| ラバーバンド | `overscroll-behavior-y: none`（`html` / `body`）。一覧は `contain`。引っ張り更新後の空画面は CSS 抑制だけでは直さない（[features/pwa.md](features/pwa.md)） |
+| 縦スクロール | シェルを `100dvh` で閉じ、`.app-content` だけが縦に動く。document に逃がすと、PWA 再起動や document の overflow lock のあと「中身は見えるが指で動けない」になる |
 | 短い横向き | 高さ 500px 以下で `photo-edit` と空状態の余白だけ詰める。タブ高さは変えない |
 
 `viewport-fit=cover` と `interactive-widget=resizes-content` は `index.html` 既存。

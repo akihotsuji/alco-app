@@ -1,7 +1,6 @@
 import type { PluginOption } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import {
-  isPwaNetworkOnlyPath,
   PWA_BACKGROUND_COLOR,
   PWA_DESCRIPTION,
   PWA_DISPLAY,
@@ -26,7 +25,7 @@ export const pwaOptions = {
   registerType: "autoUpdate" as const,
   injectRegister: false as const,
   filename: PWA_SW_FILENAME,
-  includeAssets: [PWA_ICON_FILES.appleTouch],
+  includeAssets: [PWA_ICON_FILES.appleTouch, "boot.css", "boot-guard.js"],
   manifest: {
     id: PWA_ID,
     name: PWA_NAME,
@@ -47,8 +46,43 @@ export const pwaOptions = {
     navigateFallbackDenylist: [...PWA_NAVIGATE_FALLBACK_DENYLIST],
     runtimeCaching: [
       {
-        urlPattern: ({ url }: { url: URL }) => isPwaNetworkOnlyPath(url.pathname),
+        // SW に閉じた関数にする。外部 import 名だけ残すと実行時に未定義になる
+        urlPattern: ({ url }: { url: URL }) => {
+          const pathname = url.pathname;
+          return pathname === "/api" || pathname.startsWith("/api/");
+        },
         handler: "NetworkOnly" as const,
+      },
+      {
+        urlPattern: ({ request, url }: { request: Request; url: URL }) => {
+          const pathname = url.pathname;
+          if (pathname === "/api" || pathname.startsWith("/api/")) {
+            return false;
+          }
+          return (
+            request.destination === "script" ||
+            request.destination === "style" ||
+            pathname.endsWith(".js") ||
+            pathname.endsWith(".css")
+          );
+        },
+        handler: "NetworkOnly" as const,
+        options: {
+          plugins: [
+            {
+              fetchDidSucceed: async ({ response }: { response: Response }) => {
+                const type = response.headers.get("content-type") ?? "";
+                if (type.includes("text/html")) {
+                  return new Response("Not found", {
+                    status: 404,
+                    headers: { "content-type": "text/plain; charset=utf-8" },
+                  });
+                }
+                return response;
+              },
+            },
+          ],
+        },
       },
     ],
     cleanupOutdatedCaches: true,
