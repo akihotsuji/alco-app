@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { signUpAsNewUser } from "./helpers/auth.ts";
 
-async function swSnapshot(page: import("@playwright/test").Page) {
+async function waitForActiveSw(page: import("@playwright/test").Page) {
+  await page.waitForFunction(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    return registration?.active?.state === "activated";
+  });
   return page.evaluate(async () => {
     const ready = await navigator.serviceWorker.ready;
     return {
@@ -24,12 +28,12 @@ test("初回起動と再読み込みで空画面にならない", async ({ page,
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
   await expect(page.locator("#root")).not.toBeEmpty();
-  const first = await swSnapshot(page);
+  const first = await waitForActiveSw(page);
   expect(first.active).toBe("activated");
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
-  const again = await swSnapshot(page);
+  const again = await waitForActiveSw(page);
   expect(again.active).toBe("activated");
   expect(again.controller).toBe(true);
 });
@@ -72,13 +76,8 @@ test("認証 GET の失敗は再試行でき、ログインへ自動遷移しな
 
 test("セッション切れはログインへ戻す", async ({ page }) => {
   await signUpAsNewUser(page);
-  await page.route("**/api/auth/get-session", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: "null",
-    }),
-  );
+  // SW 制御下では page.route が get-session を掴めないことがある。Cookie 消失が期限切れ相当
+  await page.context().clearCookies();
   await page.reload();
   await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
 });
@@ -86,7 +85,7 @@ test("セッション切れはログインへ戻す", async ({ page }) => {
 test("オフライン再起動で空画面にならない", async ({ page, context }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
-  await swSnapshot(page);
+  await waitForActiveSw(page);
   await context.setOffline(true);
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(
