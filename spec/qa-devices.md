@@ -45,6 +45,7 @@
 | 横スクロール | `html` / `body` に `overflow-x: clip` |
 | ラバーバンド | `overscroll-behavior-y: none`（`html` / `body`）。一覧は `contain`。引っ張り更新後の空画面は CSS 抑制だけでは直さない（[features/pwa.md](features/pwa.md)） |
 | 縦スクロール | シェルを `100dvh` で閉じ、`.app-content` だけが縦に動く。document に逃がすと、PWA 再起動や document の overflow lock のあと「中身は見えるが指で動けない」になる |
+| 起動 CSS | `boot.css` は `data-theme` が付いたら html/body の色を手放す。OS ダークのままアプリをライトにすると、残った起動色で設定ラベル・副ボタン名が消える |
 | 短い横向き | 高さ 500px 以下で `photo-edit` と空状態の余白だけ詰める。タブ高さは変えない |
 
 `viewport-fit=cover` と `interactive-widget=resizes-content` は `index.html` 既存。

@@ -101,6 +101,12 @@ describe("device chrome CSS / HTML / README", () => {
     expect(ruleBlock(".app-dialog-panel")).toContain("var(--safe-left)");
   });
 
+  it("設定行とフォームは inherit せずトークン色で、作成画面は縮まない", () => {
+    expect(ruleBlock(".settings-row")).toContain("color: var(--foreground)");
+    expect(ruleBlock(".form-row")).toContain("color: var(--foreground)");
+    expect(ruleBlock(".form-page")).toContain("flex: 1 0 auto");
+  });
+
   it("高さは 100dvh で、入力は 16px 未満にしない", () => {
     expect(css).toContain("height: 100dvh");
     expect(css).not.toMatch(/min-height:\s*100vh\s*;/);

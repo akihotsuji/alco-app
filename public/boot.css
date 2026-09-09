@@ -1,9 +1,15 @@
-/* JS / 本 CSS が来る前の地色と起動文言。トークンが無いとき用のフォールバック色 */
+/* JS / 本 CSS が来る前の地色と起動文言。
+   html/body/#root に色を残すと、レイヤー無しのため本 CSS（@layer base）より強く、
+   OS ダーク × アプリライトで本文が地色と同色になり消える。data-theme が付いたら手放す。 */
 html,
-body,
-#root,
-.auth-boot {
+body {
   margin: 0;
+}
+
+html:not([data-theme]),
+html:not([data-theme]) body,
+html:not([data-theme]) #root,
+html:not([data-theme]) .auth-boot {
   min-height: 100dvh;
   background: #e6e0d6;
   color: #2b261f;
@@ -12,12 +18,12 @@ body,
 }
 
 @media (prefers-color-scheme: dark) {
-  html,
-  body,
-  #root,
-  .auth-boot {
+  html:not([data-theme]),
+  html:not([data-theme]) body,
+  html:not([data-theme]) #root,
+  html:not([data-theme]) .auth-boot {
     background: #2c2926;
-    color: #e6e0d6;
+    color: #f4ede4;
   }
 }
 

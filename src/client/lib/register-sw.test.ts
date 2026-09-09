@@ -20,6 +20,7 @@ describe("installServiceWorker", () => {
     expect(source).toContain("PWA_SW_FILENAME");
     expect(PWA_SW_FILENAME).toBe("sw.js");
     expect(source).toContain("serviceWorker.register");
+    expect(source).toContain('updateViaCache: "none"');
     expect(source).not.toContain("virtual:pwa-register");
     expect(source).not.toContain("workbox-window");
     expect(source).not.toContain("window.location.reload");
@@ -43,7 +44,7 @@ describe("installServiceWorker", () => {
         listener = next;
       },
     });
-    expect(register).toHaveBeenCalledWith("/sw.js");
+    expect(register).toHaveBeenCalledWith("/sw.js", { updateViaCache: "none" });
     listener?.();
     await Promise.resolve();
     expect(onRegisterError).toHaveBeenCalledTimes(1);

@@ -23,6 +23,15 @@
   Content-Type: application/wasm
   X-Content-Type-Options: nosniff
 
+# SPA の HTML（/ と /settings などの fallback）は再検証する。
+# 古い index が新しいハッシュ付き JS/CSS を指すと表示が壊れる。
+/*
+  Cache-Control: no-cache
+
+# ハッシュ付き資産は中身が変わったら URL が変わるので長くキャッシュしてよい
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
 # 6-01: SW は HTTP キャッシュさせない（古い SW が残るとデプロイ後に壊れる）
 /sw.js
   Cache-Control: no-cache

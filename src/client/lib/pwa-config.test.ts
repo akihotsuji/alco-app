@@ -70,6 +70,8 @@ describe("PWA 設定ファイル", () => {
     expect(headers).toContain("/boot-guard.js");
     expect(headers).toContain("/boot.css");
     expect(headers).toContain("Cache-Control: no-cache");
+    expect(headers).toMatch(/\/\*\n  Cache-Control: no-cache/);
+    expect(headers).toMatch(/\/assets\/\*\n  Cache-Control: public, max-age=31536000, immutable/);
     expect(headers).toContain("manifest-src 'self'");
     const csp = headers.split("\n").find((line) => line.includes("Content-Security-Policy:"));
     expect(csp).toBeTruthy();
