@@ -28,7 +28,7 @@ Cloudflare は wrangler の **`env.dev`** と **`env.production`** で分ける�
 | `env.production` | D1 | `alco-app-prod` | `DB` |
 | `env.production` | R2 | `alco-app-photos-prod`（非公開） | `PHOTOS` |
 
-ID は `wrangler.jsonc` のみに書く。本番のデプロイ・migrate・シークレット投入は 7-02 / 7-03。
+ID は `wrangler.jsonc` のみに書く。シークレットの置き場は [spec/secrets.md](spec/secrets.md)。本番デプロイは 7-02。
 
 ## 起動
 
@@ -45,7 +45,7 @@ pnpm dev
 - `/` … ログイン後の空ホーム
 - `/api/health` … `{ "ok": true }`（公開エンドポイント。仕様は [spec/features/health.md](spec/features/health.md)）
 
-初回は `.dev.vars.example` をコピーして `.dev.vars` を作り、`BETTER_AUTH_SECRET` を入れる（値は git に含めない）。ローカル D1 へ初回マイグレーション（`0000_init`）を適用する:
+初回は `.dev.vars.example` をコピーして `.dev.vars` を作り、`BETTER_AUTH_SECRET` を入れる（値は git に含めない。置き場は [spec/secrets.md](spec/secrets.md)）。ローカル D1 へ初回マイグレーション（`0000_init`）を適用する:
 
 ```powershell
 pnpm db:migrate:local

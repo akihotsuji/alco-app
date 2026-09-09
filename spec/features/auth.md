@@ -48,5 +48,8 @@
 
 ## シークレット
 
+置き場と投入手順の正本は [secrets.md](../secrets.md)。
+
 - `BETTER_AUTH_SECRET` は `.dev.vars` / `wrangler secret` のみ。値はコード・spec・チャットに書かない
 - `.dev.vars.example` はキー名のみ
+- 本番と dev で別の値にする（7-03）

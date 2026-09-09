@@ -244,7 +244,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] 本番用リソース作成: Workers環境分離（wranglerのenv機能）、本番D1・本番R2 → [features/production-env.md](features/production-env.md)（7-01。2026-09-09。デプロイ・migrate・secret は未実施）
 - [x] GitHub Actions: mainマージ→dev自動デプロイ（開発 Phase で 7-02 の dev 側を先行。正本は [features/dev-deploy-ci.md](features/dev-deploy-ci.md)）
 - [ ] GitHub Actions デプロイパイプライン: タグ/手動承認→本番デプロイ
-- [ ] シークレット管理の整理（wrangler secret / GitHub Secrets、`.dev.vars`はコミット禁止）
+- [x] シークレット管理の整理（wrangler secret / GitHub Secrets、`.dev.vars`はコミット禁止）→ [secrets.md](secrets.md)（7-03。2026-09-09。本番 Auth secret の投入はオーナー）
 - [ ] D1日次バックアップ（D1のTime Travel確認＋定期エクスポートをGitHub Actionsで実行）
 - [ ] 監視: Workers Logsの確認手順、エラー通知（Sentry無料枠 or Cloudflare通知）
 - [ ] 独自ドメイン設定（任意。当面 `*.workers.dev` でも可）

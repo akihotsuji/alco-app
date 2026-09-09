@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 7 本番リリース |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-09。インベントリと検査。本番 `BETTER_AUTH_SECRET` 投入はオーナー） |
 | 要件 | wrangler secret / GitHub Secrets、`.dev.vars` コミット禁止 |
 | ソース | Phase 7 シークレット管理 |
 
@@ -72,9 +72,9 @@ Auth secret は環境ごとに変える（dev 漏洩が本番セッションを�
 
 ## 8. 受け入れ条件
 
-- [ ] キー名一覧がある
-- [ ] `.dev.vars` が git に含まれない
-- [ ] コードに秘密値がない
+- [x] キー名一覧がある（[spec/secrets.md](../../spec/secrets.md)）
+- [x] `.dev.vars` が git に含まれない
+- [x] コードに秘密値がない
 - [ ] 本番と dev で Auth secret が別（オーナー確認。値は見せない）
 
 ## 9. セキュリティ観点
@@ -84,6 +84,7 @@ security.mdc シークレット節そのもの。ログ禁止、spec 禁止。
 ## 10. 関連ファイル / 関連spec
 
 - [.cursor/rules/security.mdc](../../.cursor/rules/security.mdc)
+- [spec/secrets.md](../../spec/secrets.md)
 - [02-deploy-pipeline.md](02-deploy-pipeline.md)
 
 ## 11. リスク・注意点
