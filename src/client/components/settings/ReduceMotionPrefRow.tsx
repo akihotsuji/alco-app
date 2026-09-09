@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useOsPrefersReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { getReduceMotionPref, setReduceMotionPref } from "@/client/lib/preferences.ts";
+import { preventPointerFocus } from "@/client/lib/prevent-pointer-focus.ts";
 import { REDUCE_MOTION_PREFS, type ReduceMotionPref } from "@/shared/constants.ts";
 
 const LABELS: Record<ReduceMotionPref, string> = {
@@ -30,9 +31,17 @@ export function ReduceMotionPrefRow() {
             >
               <input
                 type="radio"
-                className="visually-hidden"
+                className="settings-segment-radio"
                 name="reduce-motion"
                 checked={selected}
+                onPointerDown={(event) => {
+                  preventPointerFocus(event);
+                  select(value);
+                }}
+                onMouseDown={preventPointerFocus}
+                onPointerUp={(event) => {
+                  event.currentTarget.blur();
+                }}
                 onChange={() => select(value)}
               />
               {LABELS[value]}
