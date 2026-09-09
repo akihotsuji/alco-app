@@ -29,7 +29,7 @@
 - 期限切れは延長して復活させない。保護 API は 401 `{ "error": "unauthorized" }`。Cookie の失効ヘッダーがあれば転送する
 - 既存セッションは設定変更だけでは 30 日に置き換わらない（一括 UPDATE はしない）。次回のセッション確認で延長条件を満たせば、その時点から 30 日になる
 - `baseURL` は `BETTER_AUTH_URL`、未設定なら `CANONICAL_ORIGIN`、それも無ければリクエスト origin。本番 URL を dev に書かない。本番の正は `https://sake-shiori.com`（[custom-domain.md](custom-domain.md)）
-- ログイン試行のレート制限は Better Auth 標準（有効のまま。2-01 スキーマに `rate_limit` が無いためストレージはメモリ）。オフにしない
+- ログイン試行のレート制限は Better Auth 標準（有効のまま。2-01 スキーマに `rate_limit` が無いためストレージはメモリ）。オフにしない。`/sign-up` `/sign-in` の既定は 10 秒 3 回。HTTP（ローカル Vite / E2E）だけ同一 IP の連続登録用に上限を緩める。本番 HTTPS は既定のまま
 - クライアントの `redirect` はアプリ内相対パスのみ（`/` 始まり、`//` とスキーム不可）
 - **API が 401 を返したら**（期限切れ・別端末での失効）クライアントは `endSession()` でサインアウトし、セッション store が空になった `RequireAuth` が query キャッシュを捨てて `/login?redirect=` へ送る（2-04。[02-tech-stack.md](../02-tech-stack.md) 「クライアントのデータ取得」）。ログアウトも同じ経路。ネットワーク障害や 5xx は期限切れと扱わない
 - **`GET /api/auth/get-session` の通信失敗と未ログインは分ける**。失敗（タイムアウト・ネットワーク・5xx）ではログインへ送らず、起動画面の再試行に留める。待ち時間が長いだけでもログアウト扱いにしない

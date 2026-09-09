@@ -25,6 +25,21 @@ export type CreateAuthOptions = {
   useSecureCookies: boolean;
 };
 
+/** Better Auth 既定の sign-up/sign-in は 10 秒 3 回。E2E は同一 IP から連続登録するため HTTP だけ緩める。 */
+export function authRateLimitConfig(useSecureCookies: boolean) {
+  return {
+    enabled: true as const,
+    ...(useSecureCookies
+      ? {}
+      : {
+          customRules: {
+            "/sign-up/email": { window: 10, max: 100 },
+            "/sign-in/email": { window: 10, max: 100 },
+          },
+        }),
+  };
+}
+
 export function createAuth(options: CreateAuthOptions) {
   return betterAuth({
     database: drizzleAdapter(options.db, {
@@ -46,9 +61,7 @@ export function createAuth(options: CreateAuthOptions) {
       disableSessionRefresh: false,
     },
     // 2-01 の Auth スキーマに rate_limit が無いため、ストレージはメモリ（標準）
-    rateLimit: {
-      enabled: true,
-    },
+    rateLimit: authRateLimitConfig(options.useSecureCookies),
     advanced: {
       useSecureCookies: options.useSecureCookies,
       defaultCookieAttributes: {
