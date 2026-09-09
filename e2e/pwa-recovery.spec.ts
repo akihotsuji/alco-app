@@ -130,3 +130,55 @@ test("未保存フォームがあるときの更新通知で入力が消えな�
   await page.getByRole("button", { name: "キャンセル" }).click();
   await expect(name).toHaveValue("更新中の下書き");
 });
+
+test("長いフォームは .app-content でスクロールし、document lock でも止まらない", async ({
+  page,
+}) => {
+  await signUpAsNewUser(page);
+  await page.goto("/logs/new");
+  await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
+
+  const before = await page.evaluate(() => {
+    const content = document.querySelector(".app-content");
+    const doc = document.scrollingElement;
+    return {
+      contentScroll: content?.scrollHeight ?? 0,
+      contentClient: content?.clientHeight ?? 0,
+      docScroll: doc?.scrollHeight ?? 0,
+      docClient: doc?.clientHeight ?? 0,
+    };
+  });
+  expect(before.contentScroll).toBeGreaterThan(before.contentClient + 8);
+  expect(before.docScroll - before.docClient).toBeLessThanOrEqual(8);
+
+  const moved = await page.evaluate(() => {
+    const content = document.querySelector(".app-content");
+    if (!content) {
+      return false;
+    }
+    content.scrollTop = 220;
+    return content.scrollTop >= 220;
+  });
+  expect(moved).toBe(true);
+
+  const locked = await page.evaluate(() => {
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    const content = document.querySelector(".app-content");
+    if (!content) {
+      return false;
+    }
+    content.scrollTop = 320;
+    return content.scrollTop >= 320;
+  });
+  expect(locked).toBe(true);
+
+  await page.mouse.wheel(0, 400);
+  const afterWheel = await page.evaluate(() => {
+    return document.querySelector(".app-content")?.scrollTop ?? 0;
+  });
+  expect(afterWheel).toBeGreaterThan(0);
+
+  await page.getByRole("textbox", { name: /品名/ }).fill("スクロール後の入力");
+  await expect(page.getByRole("textbox", { name: /品名/ })).toHaveValue("スクロール後の入力");
+});

@@ -102,7 +102,7 @@ describe("device chrome CSS / HTML / README", () => {
   });
 
   it("高さは 100dvh で、入力は 16px 未満にしない", () => {
-    expect(css).toContain("min-height: 100dvh");
+    expect(css).toContain("height: 100dvh");
     expect(css).not.toMatch(/min-height:\s*100vh\s*;/);
     expect(css).toContain("font-size: max(16px, 1em)");
     expect(css).toMatch(/text-size-adjust:\s*100%/);

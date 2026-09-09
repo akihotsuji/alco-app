@@ -108,6 +108,8 @@ Workers Static Assets の `_headers` で `/sw.js` に `Cache-Control: no-cache` 
 
 起動・失敗時の画面は [screen-designs/00-common.md](../screen-designs/00-common.md) 2.10。認証の通信失敗は [auth.md](auth.md)。
 
+引っ張り更新のあとに地色だけになる現象と、再起動後に中身は見えるが縦スクロールできない現象は別経路。後者は `.app-content` がスクロール容器になっていないレイアウト（または document 側の overflow lock）を疑う。`overscroll-behavior-y: none` の削除や `overflow: auto !important` の一括適用では直さない。
+
 ---
 
 ## 7. iOS / Apple
