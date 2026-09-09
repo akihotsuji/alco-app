@@ -50,5 +50,6 @@
 - [data-model.md](data-model.md) — ER図・Drizzleスキーマ設計
 - [api-design.md](api-design.md) — APIエンドポイント・認可ルール
 - [features/alcohol-calculation.md](features/alcohol-calculation.md) — 純アルコール量計算・グラスプリセット
+- [legal.md](legal.md) — 利用規約・プライバシーポリシー（草案。8-01）
 - [../roadmap/README.md](../roadmap/README.md) — フェーズ・タスクごとの仕様書・手順書
 - [qa-devices.md](qa-devices.md) — iOS / Android 実機 QA（6-05）

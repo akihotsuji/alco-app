@@ -207,3 +207,16 @@ export const aiUsage = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.usedOn] })],
 );
+
+// サインアップ時の規約・PP 同意（8-01）。Better Auth の user は触らない
+export const legalConsents = sqliteTable(
+  "legal_consents",
+  {
+    id: text("id").primaryKey(),
+    userId: userIdColumn(),
+    documentVersion: text("document_version").notNull(),
+    acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }).notNull(),
+    ...timestampColumns(),
+  },
+  (table) => [uniqueIndex("legal_consents_user_uidx").on(table.userId)],
+);

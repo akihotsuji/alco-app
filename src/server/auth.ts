@@ -1,15 +1,18 @@
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as authSchema from "@/db/auth-schema.ts";
 import { type AppDb, createD1Db } from "@/db/index.ts";
 import type * as schema from "@/db/schema.ts";
+import { legalConsents } from "@/db/schema.ts";
 import {
   AUTH_PASSWORD_MAX_LENGTH,
   AUTH_PASSWORD_MIN_LENGTH,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
 } from "@/shared/auth.ts";
+import { LEGAL_VERSION, signupLegalAcceptanceSchema } from "@/shared/legal.ts";
 import { readAuthSecret, resolveAuthBaseURL } from "./env.ts";
 
 export type AuthDb = AppDb | LibSQLDatabase<typeof schema>;
@@ -62,6 +65,39 @@ export function createAuth(options: CreateAuthOptions) {
     },
     telemetry: {
       enabled: false,
+    },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-up/email") {
+          return;
+        }
+        const parsed = signupLegalAcceptanceSchema.safeParse(ctx.body);
+        if (!parsed.success) {
+          throw new APIError("BAD_REQUEST", {
+            message: "利用規約への同意が必要です",
+          });
+        }
+      }),
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user, ctx) => {
+            if (ctx?.path !== "/sign-up/email") {
+              return;
+            }
+            const now = new Date();
+            await options.db.insert(legalConsents).values({
+              id: crypto.randomUUID(),
+              userId: user.id,
+              documentVersion: LEGAL_VERSION,
+              acceptedAt: now,
+              createdAt: now,
+              updatedAt: now,
+            });
+          },
+        },
+      },
     },
   });
 }

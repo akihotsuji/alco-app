@@ -1,11 +1,15 @@
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { legalConsents, user } from "@/db/schema.ts";
+import { LEGAL_VERSION } from "@/shared/legal.ts";
 import {
   cookieHeaderFrom,
   createTestApp,
   createTestUserPair,
   signIn,
   signUp,
+  signUpWithBody,
   updateUserName,
 } from "./test-helpers.ts";
 
@@ -196,6 +200,49 @@ describe("認証 API", () => {
       email: "empty-name@example.com",
       name: "",
     });
+  });
+
+  it("同意なしのサインアップは 400 でユーザーを作らない", async () => {
+    const { app, db } = await createTestApp();
+    const res = await signUpWithBody(app, {
+      name: "A",
+      email: "no-legal@example.com",
+      password: "password1",
+    });
+    expect(res.status).toBe(400);
+    const users = await db.select({ email: user.email }).from(user);
+    expect(users).toEqual([]);
+  });
+
+  it("旧版への同意は 400", async () => {
+    const { app } = await createTestApp();
+    const res = await signUpWithBody(app, {
+      name: "A",
+      email: "old-legal@example.com",
+      password: "password1",
+      acceptedLegal: true,
+      legalVersion: "2010-01-01",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("同意ありのサインアップは legal_consents に現行版を残す", async () => {
+    const { app, db } = await createTestApp();
+    const signUpRes = await signUp(app, {
+      name: "同意",
+      email: "legal@example.com",
+      password: "password1",
+    });
+    expect(signUpRes.status).toBe(200);
+    const me = meSchema.parse(
+      await (
+        await app.request("/api/me", { headers: { Cookie: cookieHeaderFrom(signUpRes) } })
+      ).json(),
+    );
+    const rows = await db.select().from(legalConsents).where(eq(legalConsents.userId, me.id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.documentVersion).toBe(LEGAL_VERSION);
+    expect(rows[0]?.userId).toBe(me.id);
   });
 
   it("ログアウト後は GET /api/me が 401 になる", async () => {

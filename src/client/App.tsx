@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { GuestOnly } from "./auth/GuestOnly.tsx";
 import { RequireAuth } from "./auth/RequireAuth.tsx";
@@ -11,6 +12,8 @@ import {
   BottleNewPage,
   CellarPage,
   HomePage,
+  LegalPrivacyPage,
+  LegalTermsPage,
   LogDayPage,
   LogEditPage,
   LoginPage,
@@ -33,6 +36,22 @@ export function App() {
     <QueryProvider>
       <BrowserRouter>
         <Routes>
+          <Route
+            path="/terms"
+            element={
+              <Suspense fallback={<main className="legal-page" />}>
+                <LegalTermsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/privacy"
+            element={
+              <Suspense fallback={<main className="legal-page" />}>
+                <LegalPrivacyPage />
+              </Suspense>
+            }
+          />
           <Route element={<GuestOnly />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />

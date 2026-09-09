@@ -6,6 +6,8 @@ describe("chunkIdForPath", () => {
     expect(chunkIdForPath("/")).toBe("home");
     expect(chunkIdForPath("/login")).toBe("login");
     expect(chunkIdForPath("/signup")).toBe("signup");
+    expect(chunkIdForPath("/terms")).toBe("legal");
+    expect(chunkIdForPath("/privacy")).toBe("legal");
     expect(chunkIdForPath("/summary/week")).toBe("summary");
     expect(chunkIdForPath("/summary/month")).toBe("summary");
     expect(chunkIdForPath("/logs")).toBe("logDay");
@@ -26,6 +28,7 @@ describe("initialRouteChunkIds", () => {
   it("開いたパスの画面だけを先読みする（httpOnly Cookie は見ない）", () => {
     expect(initialRouteChunkIds("/login")).toEqual(["login"]);
     expect(initialRouteChunkIds("/signup")).toEqual(["signup"]);
+    expect(initialRouteChunkIds("/terms")).toEqual(["legal"]);
     expect(initialRouteChunkIds("/")).toEqual(["shell", "home"]);
     expect(initialRouteChunkIds("/cellar")).toEqual(["shell", "cellar"]);
     expect(initialRouteChunkIds("/logs/new")).toEqual(["shell", "logForm"]);

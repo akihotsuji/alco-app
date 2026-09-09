@@ -20,7 +20,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 |---|---|---|
 | プレフィックス | アプリ API は `/api`。Hono の `basePath` は使わず、各ルートに `/api` を書く | 既存 `GET /api/health` と一致。RPC の型を浅く保つ |
 | Auth マウント | Better Auth `basePath` 既定の **`/api/auth`**。`app.all("/api/auth/*", (c) => auth.handler(c.req.raw))` | [公式 Hono 統合](https://www.better-auth.com/docs/integrations/hono)。独自トークンは作らない |
-| 公開エンドポイント | **`GET /api/health`** と **`/api/auth/*` のみ** | 2026-09-04 オーナー承認。追加は仕様更新＋再承認 |
+| 公開エンドポイント | **`GET /api/health`** と **`/api/auth/*` のみ**。法務ページ `/terms` `/privacy` は SPA ルートであり `/api/*` ではない（8-01） | 2026-09-04 オーナー承認。追加は仕様更新＋再承認 |
 | バリデーションエラー | **400** でフィールドエラーを返す。内部パス・Zod コードパスは出さない | フォーム UX。情報漏えい防止 |
 | 存在 / 権限 | 存在しない ID と他人の ID は **同じ 404・同じ本文** | IDOR・存在推測防止（security.mdc） |
 | ページング | **`limit`（既定 50、最大 100）+ 不透明 `cursor`**。offset は使わない | 個人利用で十分。日付降順と相性が良い |
@@ -94,7 +94,7 @@ Better Auth 配下のうち、本アプリが使う操作（パスは `basePath`
 
 | 操作 | 公式エンドポイント（相対） | MVP |
 |---|---|---|
-| サインアップ | `POST /sign-up/email` | 使う |
+| サインアップ | `POST /sign-up/email` | 使う。8-01 から `acceptedLegal: true` と現行 `legalVersion` が必須。無ければ 400。同意は `legal_consents` に保存 |
 | ログイン | `POST /sign-in/email` | 使う |
 | ログアウト | `POST /sign-out` | 使う |
 | セッション取得 | `GET /get-session` | 使う（サーバー MW でも使用） |

@@ -75,6 +75,7 @@ describe("signupFormSchema", () => {
         name: "",
         email: "user@example.com",
         password: "1234567",
+        acceptedLegal: true,
       }).success,
     ).toBe(false);
     expect(
@@ -82,7 +83,16 @@ describe("signupFormSchema", () => {
         name: "表示名",
         email: "user@example.com",
         password: "12345678",
+        acceptedLegal: true,
       }).success,
     ).toBe(true);
+    expect(
+      signupFormSchema.safeParse({
+        name: "表示名",
+        email: "user@example.com",
+        password: "12345678",
+        acceptedLegal: false,
+      }).success,
+    ).toBe(false);
   });
 });

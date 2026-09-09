@@ -1,4 +1,6 @@
+import { ChevronRight } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { endSession } from "@/client/auth/end-session.ts";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
@@ -21,6 +23,7 @@ import {
   setComposeMascotPref,
 } from "@/client/lib/preferences.ts";
 import { APP_VERSION } from "@/shared/constants.ts";
+import { legalHref } from "@/shared/legal.ts";
 import { PWA_NAME } from "@/shared/pwa.ts";
 
 export function SettingsPage() {
@@ -135,6 +138,18 @@ export function SettingsPage() {
         >
           ログアウト
         </button>
+      </section>
+
+      <section className="settings-section">
+        <h2 className="settings-heading">このアプリ</h2>
+        <Link className="settings-row" to={legalHref("/terms", "settings")}>
+          <span>利用規約</span>
+          <ChevronRight size={20} className="settings-chevron" aria-hidden />
+        </Link>
+        <Link className="settings-row" to={legalHref("/privacy", "settings")}>
+          <span>プライバシーポリシー</span>
+          <ChevronRight size={20} className="settings-chevron" aria-hidden />
+        </Link>
       </section>
 
       <p className="settings-note">

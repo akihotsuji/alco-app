@@ -20,6 +20,19 @@ export const SignupPage = lazy(async () => {
   return { default: Page };
 });
 
+const LegalDocumentPage = lazy(async () => {
+  const { LegalPage: Page } = await import("@/client/pages/LegalPage.tsx");
+  return { default: Page };
+});
+
+export function LegalTermsPage() {
+  return <LegalDocumentPage kind="terms" />;
+}
+
+export function LegalPrivacyPage() {
+  return <LegalDocumentPage kind="privacy" />;
+}
+
 export const SummaryWeekPage = lazy(async () => {
   const { SummaryWeekPage: Page } = await import("@/client/pages/summary/SummaryPages.tsx");
   return { default: Page };

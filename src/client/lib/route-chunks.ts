@@ -5,6 +5,7 @@ export const routeChunks = {
   home: () => import("@/client/pages/HomePage.tsx"),
   login: () => import("@/client/pages/LoginPage.tsx"),
   signup: () => import("@/client/pages/SignupPage.tsx"),
+  legal: () => import("@/client/pages/LegalPage.tsx"),
   summary: () => import("@/client/pages/summary/SummaryPages.tsx"),
   logDay: () => import("@/client/pages/logs/LogDayPage.tsx"),
   logForm: () => import("@/client/pages/logs/LogFormPage.tsx"),
@@ -25,6 +26,9 @@ export function initialRouteChunkIds(pathname: string): readonly RouteChunkId[] 
   }
   if (pathname === "/signup") {
     return ["signup"];
+  }
+  if (pathname === "/terms" || pathname === "/privacy") {
+    return ["legal"];
   }
   const page = chunkIdForPath(pathname) ?? "home";
   if (page === "home") {
@@ -62,6 +66,9 @@ export function chunkIdForPath(pathname: string): RouteChunkId | null {
   }
   if (pathname === "/signup") {
     return "signup";
+  }
+  if (pathname === "/terms" || pathname === "/privacy") {
+    return "legal";
   }
   if (pathname.startsWith("/summary/")) {
     return "summary";

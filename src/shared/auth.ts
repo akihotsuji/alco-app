@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { signupLegalAcceptanceSchema } from "./legal.ts";
 
 export const AUTH_PASSWORD_MIN_LENGTH = 8;
 export const AUTH_PASSWORD_MAX_LENGTH = 128;
@@ -24,6 +25,7 @@ export const signupFormSchema = z.object({
   name: displayNameSchema,
   email: emailSchema,
   password: z.string().min(AUTH_PASSWORD_MIN_LENGTH).max(AUTH_PASSWORD_MAX_LENGTH),
+  acceptedLegal: signupLegalAcceptanceSchema.shape.acceptedLegal,
 });
 
 export type LoginForm = z.infer<typeof loginFormSchema>;

@@ -42,6 +42,8 @@ describe("a11y baseline（6-04）", () => {
     expect(read("src/client/components/logs/VolumeField.tsx")).toContain("aria-invalid");
     expect(read("src/client/components/logs/AbvField.tsx")).toContain("aria-invalid");
     expect(read("src/client/pages/LoginPage.tsx")).toContain("aria-invalid");
+    expect(read("src/client/pages/LegalPage.tsx")).not.toContain("dangerouslySetInnerHTML");
+    expect(read("src/client/pages/SignupPage.tsx")).toContain('htmlFor="signup-legal"');
     const day = read("src/client/pages/logs/LogDayPage.tsx");
     expect(day).toContain("useHighlightRow");
     expect(day.slice(day.indexOf("function LogDayRow"))).not.toContain("aria-live");
