@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  PROD_CANONICAL_HOST,
+  PROD_CANONICAL_ORIGIN,
+  PROD_WWW_HOST,
+} from "@/shared/prod-canonical.ts";
 
 const repoRoot = path.join(import.meta.dirname, "../..");
 const wranglerSource = readFileSync(path.join(repoRoot, "wrangler.jsonc"), "utf8");
@@ -22,8 +27,17 @@ type R2Binding = {
   bucket_name: string;
 };
 
+type WranglerRoute = {
+  pattern: string;
+  custom_domain?: boolean;
+};
+
 type WranglerEnv = {
   name: string;
+  workers_dev?: boolean;
+  vars?: Record<string, string>;
+  routes?: WranglerRoute[];
+  assets?: { run_worker_first?: boolean | string[] };
   ai?: { binding: string };
   d1_databases?: D1Binding[];
   r2_buckets?: R2Binding[];
@@ -102,6 +116,22 @@ describe("wrangler.jsonc env split", () => {
     expect(production.ai?.binding).toBe("AI");
     expect(dev.triggers?.crons).toEqual(["0 18 * * *"]);
     expect(production.triggers?.crons).toEqual(["0 18 * * *"]);
+  });
+
+  it("attaches only production to the public apex and www", () => {
+    const { dev, production } = wrangler.env;
+
+    expect(dev.routes).toBeUndefined();
+    expect(dev.vars?.CANONICAL_ORIGIN).toBeUndefined();
+    expect(dev.workers_dev).not.toBe(false);
+
+    expect(production.workers_dev).toBe(true);
+    expect(production.vars?.CANONICAL_ORIGIN).toBe(PROD_CANONICAL_ORIGIN);
+    expect(production.assets?.run_worker_first).toBe(true);
+    expect(production.routes).toEqual([
+      { pattern: PROD_CANONICAL_HOST, custom_domain: true },
+      { pattern: PROD_WWW_HOST, custom_domain: true },
+    ]);
   });
 
   it("does not store secret values in wrangler.jsonc", () => {

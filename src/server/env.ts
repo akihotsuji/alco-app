@@ -1,3 +1,5 @@
+import { readCanonicalOrigin } from "./canonical-redirect.ts";
+
 /** `.dev.vars` / `wrangler secret` のキー。値はここに書かない。 */
 const AUTH_SECRET_KEY = "BETTER_AUTH_SECRET";
 const AUTH_URL_KEY = "BETTER_AUTH_URL";
@@ -19,6 +21,10 @@ export function resolveAuthBaseURL(env: object, requestUrl: string): string {
   const configured = readOptionalString(env, AUTH_URL_KEY);
   if (configured) {
     return configured.replace(/\/$/, "");
+  }
+  const canonical = readCanonicalOrigin(env);
+  if (canonical) {
+    return canonical;
   }
   return new URL(requestUrl).origin;
 }

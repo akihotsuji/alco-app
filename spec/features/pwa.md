@@ -2,7 +2,7 @@
 
 実装: Phase 6-01。要件は [01-requirements.md](../01-requirements.md) 非機能「PWA」、技術は [02-tech-stack.md](../02-tech-stack.md)、手順は [roadmap/phase-06-pwa-quality/01-vite-plugin-pwa.md](../../roadmap/phase-06-pwa-quality/01-vite-plugin-pwa.md)。アイコンの見た目は [character.md](../character.md)、色は [design-system.md](../design-system.md)。
 
-- 状態: **6-01 済み**（表示名は仮称のまま）
+- 状態: **6-01 済み**（マニフェスト表示名は仮称 `alco-app` のまま。公開名称は さけしおり。[custom-domain.md](custom-domain.md)）
 - 実機でのホーム追加確認は 6-05（[qa-devices.md](../qa-devices.md)。手順は README）
 
 ---
@@ -114,7 +114,7 @@ SW 登録は `updateViaCache: "none"`（ブラウザが `sw.js` を HTTP キャ�
 
 `boot.css` は `html:not([data-theme])` のときだけ地色と文字色を付ける。OS の `prefers-color-scheme` を `data-theme` 付きの html/body/#root に残さない（本 CSS より強く、設定行のラベルが地色に溶ける）。
 
-`run_worker_first` は `/api/*` に加え `/assets/*`。ハッシュ付き資産が無いときは Worker が 404 を返し、SPA の HTML を JS として渡さない。
+`run_worker_first` は `/api/*` に加え `/assets/*`。ハッシュ付き資産が無いときは Worker が 404 を返し、SPA の HTML を JS として渡さない。本番だけホスト正規化のため `true`（全パスが Worker 先）。非 API は ASSETS へ戻す（[custom-domain.md](custom-domain.md)）。
 
 起動・失敗時の画面は [screen-designs/00-common.md](../screen-designs/00-common.md) 2.10。認証の通信失敗は [auth.md](auth.md)。
 

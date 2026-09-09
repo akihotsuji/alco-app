@@ -5,6 +5,7 @@ import type { AppBatchDb } from "@/db/index.ts";
 import { createD1Db } from "@/db/index.ts";
 import type { AppEnv } from "./app-env.ts";
 import { type Auth, createAuthFromEnv } from "./auth.ts";
+import { canonicalRedirectResponse } from "./canonical-redirect.ts";
 import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
 import { createBottlesRoute } from "./routes/bottles.ts";
@@ -20,7 +21,7 @@ import { createWorkersAiRecognizer } from "./services/label-recognizer/workers-a
 import { createWorkersAiNoteRecognizer } from "./services/note-recognizer/workers-ai.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
-import { isHashedAssetPath, serveHashedAsset } from "./static-assets.ts";
+import { envAssets, isHashedAssetPath, serveHashedAsset } from "./static-assets.ts";
 
 export type CreateAppOptions = {
   auth?: Auth;
@@ -34,9 +35,9 @@ export type CreateAppOptions = {
 
 /**
  * Worker が返すのは `/api/*` の JSON（と写真バイナリ）と、存在しない `/assets/*` の 404。
- * 残りの SPA の HTML / JS / CSS は静的アセット配信（`run_worker_first: ["/api/*", "/assets/*"]`）。
- * そちらの CSP は `public/_headers`。
- * API 応答はスクリプトも埋め込みも要らないため全面禁止にする。
+ * 残りの SPA は静的アセット配信。dev は `run_worker_first: ["/api/*", "/assets/*"]`。
+ * 本番はホスト正規化のため `run_worker_first: true` にし、非 API は ASSETS へ渡す。
+ * SPA の CSP は `public/_headers`。API 応答はスクリプトも埋め込みも要らないため全面禁止にする。
  */
 const apiSecureHeaders = secureHeaders({
   contentSecurityPolicy: {
@@ -127,13 +128,28 @@ export async function handleScheduled(env: Env, nowMs = Date.now()) {
   });
 }
 
-export default {
-  fetch: (request: Request, env: Env, ctx: ExecutionContext) => {
-    if (isHashedAssetPath(new URL(request.url).pathname)) {
-      return serveHashedAsset(request, env);
-    }
+export async function handleFetch(request: Request, env: Env, ctx: ExecutionContext) {
+  const redirected = canonicalRedirectResponse(request.url, env);
+  if (redirected) {
+    return redirected;
+  }
+
+  const pathname = new URL(request.url).pathname;
+  if (isHashedAssetPath(pathname)) {
+    return serveHashedAsset(request, env);
+  }
+  if (pathname === "/api" || pathname.startsWith("/api/")) {
     return app.fetch(request, env, ctx);
-  },
+  }
+  const assets = envAssets(env);
+  if (assets) {
+    return assets.fetch(request);
+  }
+  return app.fetch(request, env, ctx);
+}
+
+export default {
+  fetch: handleFetch,
   scheduled: (controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
     ctx.waitUntil(handleScheduled(env, controller.scheduledTime));
   },

@@ -35,11 +35,12 @@
 | キー | local | Workers `env.dev` | Workers `env.production` | GitHub Actions |
 |---|---|---|---|---|
 | `BETTER_AUTH_SECRET` | `.dev.vars` | wrangler secret | wrangler secret | 置かない |
-| `BETTER_AUTH_URL` | 省略可（`.dev.vars`）。未設定ならリクエスト origin | 省略可 | 省略可（7-06 まで origin） | 置かない |
+| `BETTER_AUTH_URL` | 省略可（`.dev.vars`）。未設定ならリクエスト origin | 置かない（本番 URL を書かない） | 省略可。未設定なら `CANONICAL_ORIGIN` | 置かない |
 | `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml` / `deploy-prod.yml`） |
 | `CLOUDFLARE_ACCOUNT_ID` | 使わない | — | — | Actions（同上） |
 
 - `database_id` は secret ではない。`wrangler.jsonc` のみ（[production-env.md](features/production-env.md)）
+- 本番の公開オリジンは `CANONICAL_ORIGIN`（wrangler `vars`。秘密ではない。[custom-domain.md](features/custom-domain.md)）
 - E2E / CI の `BETTER_AUTH_SECRET` はジョブ内で使い捨て生成する。GitHub Secrets にも本番 wrangler secret にもしない（[e2e.md](features/e2e.md)）
 - アプリコードは `src/server/env.ts` のキー名だけで読む。値は `.dev.vars` / wrangler secret から入る
 
@@ -137,5 +138,6 @@ rg -n "BEGIN PRIVATE|sk_live_|sk_test_|ghp_|BETTER_AUTH_SECRET=" --glob "!roadma
 - [auth.md](features/auth.md)
 - [dev-deploy-ci.md](features/dev-deploy-ci.md)
 - [production-env.md](features/production-env.md)
+- [custom-domain.md](features/custom-domain.md)
 - [dev-deploy.md](dev-deploy.md)
 - [.cursor/rules/security.mdc](../.cursor/rules/security.mdc)

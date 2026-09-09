@@ -30,4 +30,25 @@ describe("resolveAuthBaseURL", () => {
       "https://app.example",
     );
   });
+
+  it("BETTER_AUTH_URL が無ければ CANONICAL_ORIGIN を使う", () => {
+    expect(
+      resolveAuthBaseURL(
+        { CANONICAL_ORIGIN: "https://sake-shiori.com/" },
+        "https://other.example/",
+      ),
+    ).toBe("https://sake-shiori.com");
+  });
+
+  it("BETTER_AUTH_URL は CANONICAL_ORIGIN より優先する", () => {
+    expect(
+      resolveAuthBaseURL(
+        {
+          BETTER_AUTH_URL: "https://override.example",
+          CANONICAL_ORIGIN: "https://sake-shiori.com",
+        },
+        "https://other.example/",
+      ),
+    ).toBe("https://override.example");
+  });
 });
