@@ -33,7 +33,7 @@
 | 画像抽出 | 公式 `env.AI.run` 例どおり Generate Content（`contents` / `parts`）。画像は Image Understanding と同じ `inlineData` |
 | 構造化 | Gemini `responseMimeType` + `responseSchema`。平坦な JSON（文字列・数値だけ）も業務層で `{ value, confidence }` に直す。Llama の `guided_json` は流用しない |
 | 検索 | `tools: [{ googleSearch: {} }]`。プロファイルが `supportsSearch` のときだけ送る |
-| 思考量 | `thinkingConfig.thinkingLevel: "minimal"` を送る。思考で JSON が欠けるのを避ける。`maxOutputTokens` は 4096 |
+| 思考量 | `thinkingConfig.thinkingLevel: "low"` を送る。3.7 Flash が受け付けるのは `low` / `medium` / `high` のみで、`minimal` は 400（Gateway `7003: User Input Error`）になる。`maxOutputTokens` は 4096 |
 | 検証区分 | Gemini プロファイルは `mock-only`。Llama は既存本番経路 `production-llama` |
 
 公式: [Cloudflare Models](https://developers.cloudflare.com/ai/models/google/gemini-3.7-flash/)、[Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/)、[Google Gemini 3.7 Flash](https://ai.google.dev/gemini-api/docs/models)。
@@ -168,4 +168,6 @@
 - Gateway にリクエストは届きトークン 0 なら、モデル実行前の失敗（課金・形式・認可）
 - 切り分けは Workers Logs の `[drink-recognize] ok=false reason=`。クライアントは `upstream_error` だけ
 - `ok=true fieldCount=0` は課金成功のあと JSON が業務形に落ちたとき。`[drink-recognize] parse` の finishReason / payloadKeys / thinkingTokens を見る
+- `reason=AiGatewayError:2021: Insufficient AI Gateway credits` は Unified Billing のクレジット不足。ダッシュボードで補充する
+- `reason=AiGatewayError:7003: User Input Error` は Gemini がリクエスト本文を 400 で拒否したとき（モデルが受け付けない `thinkingLevel`、`responseSchema` に未対応キーなど）。`profiles.ts` の値を公式表と照合する
 - 応急は `AI_RECOGNITION_PROFILE=workers-ai-llama` にして再デプロイ（手入力は継続できる）

@@ -31,7 +31,11 @@ export type ModelProfile = {
   structuredOutputStyle: StructuredOutputStyle;
   supportsSearch: boolean;
   supportsThinking: boolean;
-  thinkingLevel?: "minimal" | "low" | "medium" | "high";
+  /**
+   * Gemini 3.7 Flash が受け付けるのは low / medium / high のみ。
+   * minimal は 3.6 Flash 以前専用で、3.7 に送ると 400（Gateway 7003）になる
+   */
+  thinkingLevel?: "low" | "medium" | "high";
   /** true のとき generationConfig.thinkingConfig を送る */
   emitThinkingConfig: boolean;
   timeoutMs: number;
@@ -54,7 +58,7 @@ export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
     structuredOutputStyle: "gemini-response-schema",
     supportsSearch: true,
     supportsThinking: true,
-    thinkingLevel: "minimal",
+    thinkingLevel: "low",
     emitThinkingConfig: true,
     timeoutMs: 25_000,
     lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_TIMEOUT_MS,
