@@ -1101,6 +1101,11 @@ input:focus-visible {
   padding-bottom: 0;
 }
 
+/* タブ無しの .app-content が flex 列でも、入力がビューポート高さに合わせて潰されない */
+.form-page > * {
+  flex-shrink: 0;
+}
+
 .recognize-banner {
   display: flex;
   align-items: flex-start;

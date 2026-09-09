@@ -105,6 +105,7 @@ describe("device chrome CSS / HTML / README", () => {
     expect(ruleBlock(".settings-row")).toContain("color: var(--foreground)");
     expect(ruleBlock(".form-row")).toContain("color: var(--foreground)");
     expect(ruleBlock(".form-page")).toContain("flex: 1 0 auto");
+    expect(ruleBlock(".form-page > *")).toContain("flex-shrink: 0");
   });
 
   it("高さは 100dvh で、入力は 16px 未満にしない", () => {

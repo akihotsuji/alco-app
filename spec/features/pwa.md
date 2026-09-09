@@ -107,7 +107,7 @@ Workers Static Assets の `_headers` で次を付ける。
 | パス | Cache-Control | 理由 |
 |---|---|---|
 | `/*`（HTML / SPA fallback） | `no-cache` | デプロイ後に古い `index.html` が新しいハッシュ付き JS/CSS を指すと、ラベルやボタン名が消える |
-| `/assets/*` | `public, max-age=31536000, immutable` | ファイル名にハッシュがある。中身が変わったら URL が変わる |
+| `/assets/*` | `! Cache-Control` のあと `public, max-age=31536000, immutable` | ファイル名にハッシュがある。中身が変わったら URL が変わる。`/*` と両方当たると値がカンマ結合されるため先に外す |
 | `/sw.js` / `/boot-guard.js` / `/boot.css` | `no-cache` | 古い SW や起動 CSS が残るとデプロイ後に壊れる |
 
 SW 登録は `updateViaCache: "none"`（ブラウザが `sw.js` を HTTP キャッシュから使わない）。

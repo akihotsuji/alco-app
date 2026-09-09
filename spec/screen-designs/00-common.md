@@ -73,7 +73,7 @@
 - **縦スクロールの主体は `.app-content`**。`html` / `body` / `#root` / `.app-shell` はビューポート高さで閉じ、document に内容を伸ばさない。`.app-content` は `min-height: 0` + `overflow-y: auto`（flex 子の `min-height: auto` だと中身と同じ高さになり、見た目はあるのに指で動けなくなる）
 - `overscroll-behavior-y: none` は引っ張り更新の抑制であり、通常の縦スクロール禁止ではない。これを消すだけでスクロール不能は直さない
 - 作成・編集画面の主ボタンは下部固定バー（高さ 52px + 余白 16px + safe-area）。キーボード表示時も **ビューポート下端に残す**（`position: sticky; bottom: 0` + `100dvh`）
-- 作成・編集の `.form-page` は `flex-shrink: 0`（`flex: 1 0 auto`）。タブ無しの `.app-content` が flex 列でも入力が潰れて保存バーに重ならない
+- 作成・編集の `.form-page` は `flex-shrink: 0`（`flex: 1 0 auto`）。直下の子も `flex-shrink: 0`。タブ無しの `.app-content` が flex 列でも入力が潰れて保存バーに重ならない
 - コンテンツ最下部には保存バー分の余白を足し、最後の入力が隠れないようにする
 
 ### 1.5 セーフエリアとビューポート（6-05）
