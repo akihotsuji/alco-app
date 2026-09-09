@@ -23,6 +23,7 @@ import {
   setComposeMascotPref,
 } from "@/client/lib/preferences.ts";
 import { APP_VERSION } from "@/shared/constants.ts";
+import { PWA_NAME } from "@/shared/pwa.ts";
 
 export function SettingsPage() {
   const me = useMe();
@@ -144,7 +145,9 @@ export function SettingsPage() {
         </button>
       </section>
 
-      <p className="settings-note">alco-app {APP_VERSION}</p>
+      <p className="settings-note">
+        {PWA_NAME} {APP_VERSION}
+      </p>
 
       <Dialog
         open={confirmOpen}

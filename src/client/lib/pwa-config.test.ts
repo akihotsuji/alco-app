@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   PWA_DISPLAY,
+  PWA_NAME,
+  PWA_SHORT_NAME,
   PWA_SW_FILENAME,
   PWA_THEME_COLOR_DARK,
   PWA_THEME_COLOR_LIGHT,
@@ -19,6 +21,8 @@ describe("PWA 設定ファイル", () => {
     expect(pwaOptions.injectRegister).toBe(false);
     expect(pwaOptions.registerType).toBe("autoUpdate");
     expect(pwaOptions.filename).toBe(PWA_SW_FILENAME);
+    expect(pwaOptions.manifest.name).toBe(PWA_NAME);
+    expect(pwaOptions.manifest.short_name).toBe(PWA_SHORT_NAME);
     expect(pwaOptions.manifest.display).toBe(PWA_DISPLAY);
     expect(pwaOptions.workbox.skipWaiting).toBe(true);
     expect(pwaOptions.workbox.clientsClaim).toBe(true);
@@ -53,7 +57,8 @@ describe("PWA 設定ファイル", () => {
     expect(html).toContain('name="mobile-web-app-capable"');
     expect(html).toContain('name="apple-mobile-web-app-title"');
     expect(html).toContain('content="yes"');
-    expect(html).toContain('content="alco"');
+    expect(html).toContain(`content="${PWA_NAME}"`);
+    expect(html).toContain(`<title>${PWA_NAME}</title>`);
     expect(html).toContain(`content="${PWA_THEME_COLOR_LIGHT}"`);
     expect(html).toContain(`content="${PWA_THEME_COLOR_DARK}"`);
     expect(html).toContain('rel="apple-touch-icon"');

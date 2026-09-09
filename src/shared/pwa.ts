@@ -3,8 +3,8 @@
  * マニフェスト・SW・テーマカラー・アイコン生成が同じ値を使う。
  */
 
-export const PWA_NAME = "alco-app";
-export const PWA_SHORT_NAME = "alco";
+export const PWA_NAME = "さけしおり";
+export const PWA_SHORT_NAME = "さけしおり";
 export const PWA_DESCRIPTION = "お酒の記録・セラー・テイスティングノート";
 export const PWA_LANG = "ja";
 export const PWA_START_URL = "/";
@@ -18,10 +18,10 @@ export const PWA_THEME_COLOR_LIGHT = "#E6E0D6";
 export const PWA_THEME_COLOR_DARK = "#2C2926";
 export const PWA_BACKGROUND_COLOR = PWA_THEME_COLOR_LIGHT;
 
-/** アイコン地。ライトの --primary。テーマでは変えない */
-export const PWA_ICON_BACKGROUND = "#7A3538";
-/** primary 地で輪郭が見えるようにする線色（ライトの --primary-fg） */
-export const PWA_ICON_LINE = "#FFF8F4";
+/** アイコン地。ライトの --background。キャラのワイン色と溶ける primary は使わない */
+export const PWA_ICON_BACKGROUND = "#E6E0D6";
+/** クリーム地でグラス輪郭が見える線色（ライトの --foreground） */
+export const PWA_ICON_LINE = "#2B261F";
 export const PWA_ICON_SIZE = 512;
 /** マスク可能セーフゾーン（内側 80%）に収める */
 export const PWA_ICON_MASCOT_HEIGHT_RATIO = 0.62;

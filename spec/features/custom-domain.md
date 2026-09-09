@@ -29,7 +29,6 @@
 - **dev**（`alco-app-dev`）へのカスタムドメイン。`workers.dev` のまま
 - 本番 `workers.dev` の無効化（閉じない。リダイレクトする）
 - メール（MX）。パスワードリセットは Phase 8
-- 画面・PWA の表示名「alco-app」の差し替え（仮称のまま。名称変更は別タスク）
 - アカウント ID・`workers.dev` URL の文書化（禁止）
 
 ---

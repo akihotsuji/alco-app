@@ -32,7 +32,7 @@ export async function generatePwaIcons(outDir = pwaIconOutputDir()): Promise<voi
       .resize(180, 180)
       .png()
       .toFile(join(outDir, basename(PWA_ICON_FILES.appleTouch))),
-    // ソース既にセーフゾーン内。maskable は同絵を primary 地のまま出す
+    // ソース既にセーフゾーン内。maskable は同絵をクリーム地のまま出す
     sharp(source)
       .resize(512, 512)
       .flatten({ background: { r, g, b } })
