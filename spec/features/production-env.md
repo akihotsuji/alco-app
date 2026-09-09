@@ -26,8 +26,9 @@ wrangler の **`env.production`** で、dev とデータを混ぜない本番 Wo
 - 本番 D1 への migrate
 - `BETTER_AUTH_SECRET` などシークレットの投入（手順は [secrets.md](../secrets.md)）
 - GitHub 本番デプロイパイプライン（7-02）
-- 独自ドメイン（7-06）
 - シークレット値・アカウント ID・`workers.dev` URL の文書化（禁止）
+
+独自ドメインは [custom-domain.md](custom-domain.md)（7-06）。
 
 ---
 
@@ -43,6 +44,7 @@ ID・アカウント情報はここに書かない。`database_id` は `wrangler
 | R2 | `alco-app-photos-dev`（binding `PHOTOS`、非公開） | `alco-app-photos-prod`（binding `PHOTOS`、非公開） |
 | Workers AI | binding `AI` | binding `AI`（同じ名前） |
 | Cron | `0 18 * * *`（JST 3:00） | 同じ |
+| 公開ホスト | `workers.dev`（開発用。残す） | `https://sake-shiori.com`（[custom-domain.md](custom-domain.md)） |
 | アカウント | 同じ Cloudflare アカウントの別リソース（2026-09-09） | 同左 |
 
 トップレベル（デフォルト env）の Worker 名は `alco-app`。D1 / R2 は置かない。無引数の `wrangler deploy` は本番も dev も向かない。
@@ -57,7 +59,7 @@ ID・アカウント情報はここに書かない。`database_id` は `wrangler
 - 別 R2
 - 別 Worker 名
 - 別 `BETTER_AUTH_SECRET`（置き場は [secrets.md](../secrets.md)。7-01 では入れない）
-- 別 Cookie ドメイン（カスタムドメインは 7-06）
+- 別 Cookie ドメイン（本番の正は `sake-shiori.com`。[custom-domain.md](custom-domain.md)）
 
 ---
 
@@ -89,6 +91,7 @@ pnpm exec wrangler deploy --env production
 - `env.dev` と `env.production` の Worker / D1 / R2 名が違う
 - トップレベルに D1 / R2 が無い
 - 設定に secret 値のキーが無い
+- 本番だけ `CANONICAL_ORIGIN` と apex / www の custom domain がある（7-06）
 
 ---
 
@@ -97,3 +100,4 @@ pnpm exec wrangler deploy --env production
 - [02-tech-stack.md](../02-tech-stack.md) 環境
 - [dev-deploy-ci.md](dev-deploy-ci.md)（main → `env.dev`）
 - [02-deploy-pipeline.md](../../roadmap/phase-07-production-release/02-deploy-pipeline.md)
+- [custom-domain.md](custom-domain.md)

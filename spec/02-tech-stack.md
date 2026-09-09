@@ -193,6 +193,7 @@ alco-app/
 | D1（本番） | 名前 `alco-app-prod`、binding **`DB`** |
 | R2（本番） | 名前 `alco-app-photos-prod`、binding **`PHOTOS`**、非公開 |
 | アカウント | dev と同じ Cloudflare アカウントの別リソース（2026-09-09） |
+| 公開ホスト（本番） | `https://sake-shiori.com`（7-06。[custom-domain.md](features/custom-domain.md)） |
 | 詳細 | [features/production-env.md](features/production-env.md)（7-01） |
 
 コードからは `env.DB` / `env.PHOTOS` で参照する。
@@ -220,6 +221,6 @@ alco-app/
 | D1 | 5GB・500万行読取/日 | テキスト中心のデータなので余裕 |
 | R2 | 10GB保存 | 加工済み写真(〜300KB/枚)で3万枚以上。記録・ノート・セラーを合わせても個人利用で年 300MB 程度 |
 | GitHub | Free | Actions無料枠 |
-| 独自ドメイン | 約1,000〜2,000円/年（任意） | 当面は無料の `*.workers.dev` でも可 |
+| 独自ドメイン | 約1,000〜2,000円/年 | 本番は `sake-shiori.com`（[custom-domain.md](features/custom-domain.md)）。dev は `workers.dev` のまま |
 
-**合計: 0円/月**（独自ドメインを取る場合のみ年千円台）。画像処理を端末内に置いたことで、写真機能を足しても増えない。
+**合計: 年千円台**（ドメイン更新）。画像処理を端末内に置いたことで、写真機能を足しても月額は増えない。

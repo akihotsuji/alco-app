@@ -27,7 +27,7 @@
 - 確認経路: ブラウザは `authClient.useSession()` → `GET /api/auth/get-session`（Better Auth handler が Set-Cookie を返す）。保護 API は認証 MW が `auth.api.getSession({ returnHeaders: true })` し、返った Set-Cookie を Hono 応答へ append する（内部呼び出しのヘッダーは自動では乗らない）
 - 期限切れは延長して復活させない。保護 API は 401 `{ "error": "unauthorized" }`。Cookie の失効ヘッダーがあれば転送する
 - 既存セッションは設定変更だけでは 30 日に置き換わらない（一括 UPDATE はしない）。次回のセッション確認で延長条件を満たせば、その時点から 30 日になる
-- `baseURL` は `BETTER_AUTH_URL`、未設定ならリクエスト origin。本番 URL を dev に書かない
+- `baseURL` は `BETTER_AUTH_URL`、未設定なら `CANONICAL_ORIGIN`、それも無ければリクエスト origin。本番 URL を dev に書かない。本番の正は `https://sake-shiori.com`（[custom-domain.md](custom-domain.md)）
 - ログイン試行のレート制限は Better Auth 標準（有効のまま。2-01 スキーマに `rate_limit` が無いためストレージはメモリ）。オフにしない
 - クライアントの `redirect` はアプリ内相対パスのみ（`/` 始まり、`//` とスキーム不可）
 - **API が 401 を返したら**（期限切れ・別端末での失効）クライアントは `endSession()` でサインアウトし、セッション store が空になった `RequireAuth` が query キャッシュを捨てて `/login?redirect=` へ送る（2-04。[02-tech-stack.md](../02-tech-stack.md) 「クライアントのデータ取得」）。ログアウトも同じ経路。ネットワーク障害や 5xx は期限切れと扱わない

@@ -28,7 +28,7 @@ Phase 7-02 の本番側。dev 自動デプロイは先行済み（[dev-deploy-ci
 - PR / Preview デプロイ
 - `BETTER_AUTH_SECRET` の投入（Worker の wrangler secret。GitHub には置かない。[secrets.md](../secrets.md)）
 - Git の長期ブランチ `dev`
-- 独自ドメイン（7-06）
+- 独自ドメインのゾーン作成そのもの（購入はオーナー。設定は [custom-domain.md](custom-domain.md)）
 
 ---
 
