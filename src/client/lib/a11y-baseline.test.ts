@@ -72,6 +72,11 @@ describe("a11y baseline（6-04）", () => {
     expect(biome).toContain('"a11y"');
     expect(biome).toContain('"recommended": true');
     expect(read("src/client/styles.css")).toContain("min-width: var(--tap-min)");
+    // outline-none が --tw-outline-style:none のまま残ると ring が見えない
+    expect(read("src/client/styles.css")).toContain(".app-btn:focus-visible");
+    expect(read("src/client/styles.css")).toContain("input:focus-visible");
+    expect(read("src/client/components/ui/input.tsx")).toContain("focus-visible:outline-solid");
+    expect(read("src/client/components/ui/button.tsx")).toContain("focus-visible:outline-solid");
     expect(read("src/client/styles.css")).toContain(".note-star-button");
     // 見える統計を短い aria-label で上書きしない（label-content-name-mismatch）
     expect(read("src/client/components/home/TodaySummaryCard.tsx")).not.toContain("aria-label");

@@ -9,7 +9,7 @@ import { cn } from "@/client/lib/utils.ts";
  * `.btn-soft` が担う。時間・イージングはモーショントークンのみ（その場の duration は書かない）。
  */
 export const buttonVariants = cva(
-  "app-btn inline-flex items-center justify-center font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:pointer-events-none",
+  "app-btn inline-flex items-center justify-center font-semibold outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:pointer-events-none",
   {
     variants: {
       variant: {

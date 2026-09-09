@@ -473,7 +473,9 @@ html[data-theme="dark"] {
 .tab-center:focus-visible,
 .switch:focus-visible,
 .app-toast-action:focus-visible,
-.app-dialog-panel:focus-visible {
+.app-dialog-panel:focus-visible,
+.app-btn:focus-visible,
+input:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
