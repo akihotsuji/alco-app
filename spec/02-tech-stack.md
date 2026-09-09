@@ -154,7 +154,7 @@ alco-app/
 | 起動（dev） | `CI` が `main` の push で成功した `workflow_run`、または `workflow_dispatch` |
 | 起動（本番） | タグ `vX.Y.Z` または `main` の `workflow_dispatch`。どちらも GitHub Environment `production` の承認後 |
 | 対象（dev） | `pnpm build` → リモート D1 migrate → `wrangler deploy --env dev` |
-| 対象（本番） | 対象 SHA の `CI` success → `pnpm build` → 本番 D1 migrate → `wrangler deploy --env production` |
+| 対象（本番） | 対象 SHA の `CI` success → `CLOUDFLARE_ENV=production pnpm build` → 本番 D1 migrate → `wrangler deploy --env production` |
 | シークレット | 置き場の正本は [secrets.md](secrets.md)。GitHub Secrets は `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`（値はリポジトリに書かない）。`BETTER_AUTH_SECRET` は Worker の wrangler secret |
 | 認証 | 公式の wrangler / Workers Builds は当面 API トークン。OIDC は使わない |
 | 禁止 | 素の `wrangler deploy`、`pull_request` / `pull_request_target` でのデプロイ、PR Preview、ログへの `workers.dev` URL |

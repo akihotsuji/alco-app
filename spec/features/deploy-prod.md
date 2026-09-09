@@ -19,7 +19,7 @@ Phase 7-02 の本番側。dev 自動デプロイは先行済み（[dev-deploy-ci
 - `.github/workflows/deploy-prod.yml`
 - タグ `vX.Y.Z`（例 `v1.0.0`）
 - `workflow_dispatch`（ref は `main` のみ）
-- デプロイ前の CI 成功確認、`pnpm build`、本番 D1 migrate、`wrangler deploy --env production`
+- デプロイ前の CI 成功確認、`CLOUDFLARE_ENV=production pnpm build`、本番 D1 migrate、`wrangler deploy --env production`
 - 公開 Actions ログから `workers.dev` URL を除去する
 
 **対象外**
@@ -54,7 +54,7 @@ Phase 7-02 の本番側。dev 自動デプロイは先行済み（[dev-deploy-ci
 1. 対象 commit を checkout
 2. 同じ SHA でワークフロー `CI` が `success` であることを確認（失敗ならデプロイしない）
 3. `pnpm install --frozen-lockfile`
-4. `pnpm build`
+4. `CLOUDFLARE_ENV=production pnpm build`（Vite プラグインが `env.production` 向けに `dist/` を作る。未設定だと `dev` になり、`wrangler deploy --env production` が拒否する）
 5. `pnpm exec wrangler d1 migrations apply alco-app-prod --remote --env production`（失敗したらデプロイしない）
 6. `pnpm exec wrangler deploy --env production`（既存の wrangler secret は消さない）
 
@@ -115,7 +115,7 @@ git push origin v1.0.0
 
 ## 7. テスト
 
-- `src/ci/deploy-prod-workflow.test.ts`: 起動条件、`--env production`、migrate が deploy より前、CI 成功確認、secret の echo 禁止、PR から起動しない
+- `src/ci/deploy-prod-workflow.test.ts`: 起動条件、`CLOUDFLARE_ENV=production` で build、`--env production`、migrate が deploy より前、CI 成功確認、secret の echo 禁止、PR から起動しない
 - `src/ci/require-ci-success.test.ts`: `CI` 成功以外は拒否
 
 ---
