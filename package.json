@@ -20,7 +20,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:pwa": "playwright test -c playwright.pwa.config.ts"
+    "test:e2e:pwa": "playwright test -c playwright.pwa.config.ts",
+    "probe:alert": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/ci/probe-error-alert.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.9.1",

@@ -14,7 +14,7 @@
 ## 2. 前提条件
 
 - 7-04 のリハーサル結果
-- 7-05 の Logs / 通知
+- 7-05 の Logs / 通知（正本は [monitoring.md](../../spec/features/monitoring.md)）
 - 7-02 のデプロイ方法
 
 ## 3. スコープ

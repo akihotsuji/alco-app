@@ -8,6 +8,7 @@ const repoRoot = path.join(import.meta.dirname, "../..");
 const INVENTORY_KEYS = [
   "BETTER_AUTH_SECRET",
   "BETTER_AUTH_URL",
+  "ALERT_WEBHOOK_URL",
   "CLOUDFLARE_API_TOKEN",
   "CLOUDFLARE_ACCOUNT_ID",
 ] as const;
@@ -80,6 +81,8 @@ describe("secret inventory", () => {
     const example = readTracked(".dev.vars.example");
     expect(example).toMatch(/^BETTER_AUTH_SECRET=$/m);
     expect(example).not.toMatch(/^BETTER_AUTH_SECRET=.+$/m);
+    expect(example).toContain("ALERT_WEBHOOK_URL=");
+    expect(example).not.toMatch(/^ALERT_WEBHOOK_URL=.+$/m);
     expect(example).not.toContain("CLOUDFLARE_API_TOKEN");
     expect(example).not.toContain("CLOUDFLARE_ACCOUNT_ID");
   });
@@ -91,6 +94,7 @@ describe("secret inventory", () => {
     }
     expect(spec).not.toMatch(/BETTER_AUTH_SECRET\s*=\s*[0-9a-fA-F]{16,}/);
     expect(spec).not.toMatch(/CLOUDFLARE_API_TOKEN\s*=\s*[A-Za-z0-9_-]{16,}/);
+    expect(spec).not.toMatch(/ALERT_WEBHOOK_URL\s*=\s*https?:\/\//);
   });
 
   it("does not commit secret-looking assignments in tracked files", () => {

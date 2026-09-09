@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { app } from "@/server/index.ts";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { app, handleScheduled } from "@/server/index.ts";
+import { resetErrorAlertCooldownForTests } from "@/server/services/error-alert.ts";
 
 describe("GET /api/health", () => {
   it("{ ok: true } を返す", async () => {
@@ -26,5 +27,39 @@ describe("未定義パス", () => {
     const res = await app.request("/not-a-real-route");
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "not_found" });
+  });
+});
+
+describe("handleScheduled", () => {
+  afterEach(() => {
+    resetErrorAlertCooldownForTests();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("GC 失敗は scheduled_error を送り、例外は握りつぶさない", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchSpy);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      handleScheduled({
+        ALERT_WEBHOOK_URL: "https://alert.example/hook",
+      } as Env),
+    ).rejects.toThrow();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const posted = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body)) as {
+      kind: string;
+      method: string;
+      path: string;
+      errorName: string;
+      worker: string;
+    };
+    expect(posted.kind).toBe("scheduled_error");
+    expect(posted.method).toBe("CRON");
+    expect(posted.path).toBe("scheduled");
+    expect(posted.worker).toBe("alco-app-dev");
+    expect(posted.errorName).toMatch(/^[A-Za-z][A-Za-z0-9]{0,63}$/);
   });
 });

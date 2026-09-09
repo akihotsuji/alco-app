@@ -45,7 +45,7 @@
 | 追加暗号化 | しない | R2 の既定 SSE（at rest）に依存。鍵を GitHub Secrets に増やさない |
 | 時刻 | `0 17 * * *` UTC（JST 02:00） | export は対象 D1 をブロックする。夜間に実行する |
 | 対象 DB | 日次は `alco-app-prod` と `alco-app-dev` | ドッグフードは dev。本番も同じジョブで取る |
-| 失敗通知 | Actions の失敗メール。詳細な監視は 7-05 | 最低限「失敗したら分かる」 |
+| 失敗通知 | Actions の失敗メール。確認手順は [monitoring.md](monitoring.md) | 最低限「失敗したら分かる」 |
 
 ---
 

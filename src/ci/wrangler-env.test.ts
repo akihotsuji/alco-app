@@ -32,8 +32,16 @@ type WranglerRoute = {
   custom_domain?: boolean;
 };
 
+type ObservabilityConfig = {
+  enabled?: boolean;
+  head_sampling_rate?: number;
+  logs?: { invocation_logs?: boolean; head_sampling_rate?: number };
+  traces?: { enabled?: boolean; head_sampling_rate?: number };
+};
+
 type WranglerEnv = {
   name: string;
+  observability?: ObservabilityConfig;
   workers_dev?: boolean;
   vars?: Record<string, string>;
   routes?: WranglerRoute[];
@@ -46,6 +54,7 @@ type WranglerEnv = {
 
 type WranglerConfig = {
   name: string;
+  observability?: ObservabilityConfig;
   d1_databases?: D1Binding[];
   r2_buckets?: R2Binding[];
   env: {
@@ -139,6 +148,18 @@ describe("wrangler.jsonc env split", () => {
       { pattern: PROD_CANONICAL_HOST, custom_domain: true },
       { pattern: PROD_WWW_HOST, custom_domain: true },
     ]);
+  });
+
+  it("enables Workers Logs and traces on both named envs", () => {
+    const expected = {
+      enabled: true,
+      head_sampling_rate: 1,
+      logs: { invocation_logs: true, head_sampling_rate: 1 },
+      traces: { enabled: true, head_sampling_rate: 1 },
+    };
+    expect(wrangler.observability).toEqual(expected);
+    expect(wrangler.env.dev.observability).toEqual(expected);
+    expect(wrangler.env.production.observability).toEqual(expected);
   });
 
   it("does not store secret values in wrangler.jsonc", () => {

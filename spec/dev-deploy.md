@@ -44,7 +44,7 @@ pnpm exec wrangler deploy --env dev
 
 ## 失敗時のログ
 
-`pnpm exec wrangler tail --env dev` で Workers の実行ログを見る。サーバーはメソッドとパスだけを出す実装なので、Cookie・セッショントークン・パスワードがログに出ないことを確認する。本文やクエリを足して調べない。
+正本は [features/monitoring.md](features/monitoring.md)。`pnpm exec wrangler tail --env dev` で Workers の実行ログを見る。サーバーはメソッドとパスだけを出す実装なので、Cookie・セッショントークン・パスワードがログに出ないことを確認する。本文やクエリを足して調べない。
 
 ## 了解事項
 
