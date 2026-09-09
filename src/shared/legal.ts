@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 /** 規約・PP の現行版。サインアップ同意と公開ページが同じ値を使う。 */
-export const LEGAL_VERSION = "2026-09-09";
-export const LEGAL_EFFECTIVE_ON = "2026-09-09";
+export const LEGAL_VERSION = "2026-09-10";
+export const LEGAL_EFFECTIVE_ON = "2026-09-10";
 export const LEGAL_DRAFT_NOTICE = "一般公開準備の草案です。法的な確定は運営者の承認後です。";
 
 export const LEGAL_VERSION_MAX_LENGTH = 32;

@@ -4,6 +4,8 @@ import { z } from "zod";
 export const API_ERROR_CODES = [
   "validation_error",
   "unauthorized",
+  "age_required",
+  "age_restricted",
   "not_found",
   "payload_too_large",
   "unsupported_media_type",

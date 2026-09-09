@@ -14,6 +14,7 @@ function read(rel: string): string {
 const FORMS = [
   "src/client/pages/LoginPage.tsx",
   "src/client/pages/SignupPage.tsx",
+  "src/client/pages/AgePage.tsx",
   "src/client/components/logs/LogNewForm.tsx",
   "src/client/components/logs/LogEditForm.tsx",
   "src/client/components/logs/VolumeField.tsx",
@@ -44,6 +45,7 @@ describe("a11y baseline（6-04）", () => {
     expect(read("src/client/pages/LoginPage.tsx")).toContain("aria-invalid");
     expect(read("src/client/pages/LegalPage.tsx")).not.toContain("dangerouslySetInnerHTML");
     expect(read("src/client/pages/SignupPage.tsx")).toContain('htmlFor="signup-legal"');
+    expect(read("src/client/pages/AgePage.tsx")).toContain('htmlFor="age-birth-on"');
     const day = read("src/client/pages/logs/LogDayPage.tsx");
     expect(day).toContain("useHighlightRow");
     expect(day.slice(day.indexOf("function LogDayRow"))).not.toContain("aria-live");

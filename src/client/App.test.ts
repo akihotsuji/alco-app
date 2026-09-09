@@ -20,7 +20,10 @@ describe("ルート分割", () => {
     expect(app).not.toContain("PhotoEditProvider");
     expect(app).not.toContain("AppShell");
     expect(lazyPages).toContain('import("@/client/layout/AuthenticatedLayout.tsx")');
+    expect(lazyPages).toContain('import("@/client/pages/AgePage.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/HomePage.tsx")');
+    expect(app).toContain("RequireAgeVerified");
+    expect(app).toContain('path="/age"');
     expect(lazyPages).toContain('import("@/client/pages/cellar/CellarPages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/notes/NotePages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/summary/SummaryPages.tsx")');

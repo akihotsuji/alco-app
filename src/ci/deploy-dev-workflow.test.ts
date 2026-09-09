@@ -71,6 +71,7 @@ describe("ci.yml", () => {
   it("runs Playwright Chromium without production secrets", () => {
     expect(ci).toMatch(/^\s+e2e:/m);
     expect(ci).toContain("playwright install --with-deps chromium");
+    expect(ci).toContain("google-chrome.list");
     expect(ci).toContain("pnpm test:e2e");
     expect(ci).toContain("openssl rand -hex 32");
     expect(ci).toContain("retention-days: 3");

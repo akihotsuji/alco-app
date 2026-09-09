@@ -17,6 +17,7 @@ src/server/
   errors.ts             # ApiError と code ↔ status 対応表
   validation.ts         # validate(target, schema): zod-validator の共通ラッパー
   middleware/auth.ts    # PUBLIC_API_ROUTES と createAuthGuard
+  middleware/age.ts     # 年齢確認（exempt 以外の機能 API）
   middleware/error.ts   # errorHandler / notFoundHandler
   routes/<resource>.ts  # リソース単位の Hono。パスは index.ts で `/api/<resource>` に mount
   services/             # 複数ルートで共有する業務ロジック（DB 操作・集計）。ルートに SQL を書き溜めない
@@ -34,7 +35,8 @@ src/server/
 - ハンドラは **`c.get("user").id` のみ**を所有者キーにする。ボディ・クエリ・パスの `userId` を読まない。Zod スキーマにも `userId` を置かない（送られてきたら `.strict()` で 400）
 - 一覧・詳細・更新・削除・集計・写真配信はすべて `eq(table.userId, user.id)` を条件に含める
 - 更新・削除は `and(eq(table.id, id), eq(table.userId, user.id))`。「存在確認してから更新」にしない
-- 他人の ID・存在しない ID・他人の参照 ID（`myDrinkId` / `bottleId` / `photoIds`）は **同じ 404** `throw new ApiError("not_found")`。403 を使わない
+- 他人の ID・存在しない ID・他人の参照 ID（`myDrinkId` / `bottleId` / `photoIds`）は **同じ 404** `throw new ApiError("not_found")`。IDOR に 403 は使わない
+- 年齢ゲートだけ 403 を使う（未確認 `age_required`、未満 `age_restricted`）。`middleware/age.ts` が機能 API に掛ける。`GET /api/me` と `POST /api/me/age-verification` は対象外
 - 公開ルートのハンドラで `c.get("user")` を読まない（未設定）
 
 ## 入力検証

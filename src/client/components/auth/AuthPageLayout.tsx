@@ -14,6 +14,7 @@ type AuthPageLayoutProps = {
   submittingLabel: string;
   children: ReactNode;
   footer: ReactNode;
+  hideSubmit?: boolean;
 };
 
 export function AuthPageLayout({
@@ -26,6 +27,7 @@ export function AuthPageLayout({
   submittingLabel,
   children,
   footer,
+  hideSubmit = false,
 }: AuthPageLayoutProps) {
   return (
     <main className="auth-page">
@@ -41,9 +43,11 @@ export function AuthPageLayout({
               </p>
             ) : null}
             {children}
-            <Button className="mt-2" type="submit" disabled={!canSubmit}>
-              {submitting ? submittingLabel : submitLabel}
-            </Button>
+            {hideSubmit ? null : (
+              <Button className="mt-2" type="submit" disabled={!canSubmit}>
+                {submitting ? submittingLabel : submitLabel}
+              </Button>
+            )}
             {footer}
           </form>
         </CardContent>

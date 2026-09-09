@@ -32,12 +32,17 @@ describe("meQueryOptions", () => {
     expect(meQueryOptions().queryKey).toEqual(queryKeys.me);
   });
 
-  it("ログイン済みなら自分の { id, email, name } を返す", async () => {
+  it("ログイン済みなら自分の { id, email, name, ageVerified } を返す", async () => {
     const { client } = await createSignedInClient();
     const queryClient = createQueryClient();
 
     const me = await queryClient.fetchQuery(meQueryOptions(client));
-    expect(me).toEqual({ id: expect.any(String), email: "a@example.com", name: "ユーザーA" });
+    expect(me).toEqual({
+      id: expect.any(String),
+      email: "a@example.com",
+      name: "ユーザーA",
+      ageVerified: false,
+    });
     expect(queryClient.getQueryData(queryKeys.me)).toEqual(me);
   });
 

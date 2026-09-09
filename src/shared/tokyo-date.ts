@@ -53,6 +53,15 @@ export function formatCalendarDate(parts: CalendarDate): string {
   return `${parts.year}-${month}-${day}`;
 }
 
+/** 暦年としての加減。2 月 29 日は先の年にその日が無ければ 2 月 28 日。 */
+export function addCalendarYears(value: string, years: number): string {
+  const parsed = requireCalendarDate(value);
+  const year = parsed.year + years;
+  const lastDay = new Date(Date.UTC(year, parsed.month, 0)).getUTCDate();
+  const day = Math.min(parsed.day, lastDay);
+  return formatCalendarDate({ year, month: parsed.month, day });
+}
+
 /** 暦日としての加減。タイムゾーンを持たない YYYY-MM-DD 同士の計算に使う。 */
 export function addCalendarDays(value: string, days: number): string {
   const parsed = requireCalendarDate(value);

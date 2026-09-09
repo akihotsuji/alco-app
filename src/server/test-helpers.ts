@@ -51,11 +51,15 @@ const testUserSchema = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string(),
+  ageVerified: z.boolean(),
 });
 
 export type TestUser = z.infer<typeof testUserSchema> & {
   cookie: string;
 };
+
+/** 既存 API テスト用。JST 当日で確実に満 20 歳以上。 */
+export const TEST_VERIFIED_BIRTH_ON = "1990-01-15";
 
 // Better Auth のレート制限ストアはモジュール共有（メモリ）。テスト間で 429 を踏まないよう
 // アプリごとに別クライアント IP を名乗る
@@ -173,7 +177,39 @@ export async function updateUserName(app: TestApp, cookie: string | undefined, n
   });
 }
 
-export async function createTestUser(app: TestApp, input: TestUserInput): Promise<TestUser> {
+export async function verifyTestUserAge(
+  app: TestApp,
+  cookie: string,
+  birthOn = TEST_VERIFIED_BIRTH_ON,
+): Promise<void> {
+  const response = await app.request("/api/me/age-verification", {
+    method: "POST",
+    headers: { Cookie: cookie, "Content-Type": "application/json" },
+    body: JSON.stringify({ birthOn }),
+  });
+  if (!response.ok) {
+    throw new Error("テストユーザーの年齢確認に失敗しました");
+  }
+}
+
+async function fetchTestUser(app: TestApp, cookie: string): Promise<TestUser> {
+  const meResponse = await app.request("/api/me", {
+    headers: { Cookie: cookie },
+  });
+  if (!meResponse.ok) {
+    throw new Error("作成したテストユーザーを取得できませんでした");
+  }
+  return {
+    ...testUserSchema.parse(await meResponse.json()),
+    cookie,
+  };
+}
+
+/** サインアップのみ。年齢未確認。機能 API の 403 テスト用。 */
+export async function createUnverifiedTestUser(
+  app: TestApp,
+  input: TestUserInput,
+): Promise<TestUser> {
   const signUpResponse = await signUp(app, input);
   if (!signUpResponse.ok) {
     throw new Error("テストユーザーの作成に失敗しました");
@@ -184,17 +220,14 @@ export async function createTestUser(app: TestApp, input: TestUserInput): Promis
     throw new Error("テストユーザーのセッション Cookie を取得できませんでした");
   }
 
-  const meResponse = await app.request("/api/me", {
-    headers: { Cookie: cookie },
-  });
-  if (!meResponse.ok) {
-    throw new Error("作成したテストユーザーを取得できませんでした");
-  }
+  return fetchTestUser(app, cookie);
+}
 
-  return {
-    ...testUserSchema.parse(await meResponse.json()),
-    cookie,
-  };
+/** 既存の API テスト向け。サインアップ後に年齢確認済みにする。 */
+export async function createTestUser(app: TestApp, input: TestUserInput): Promise<TestUser> {
+  const user = await createUnverifiedTestUser(app, input);
+  await verifyTestUserAge(app, user.cookie);
+  return fetchTestUser(app, user.cookie);
 }
 
 /** リソース API の IDOR テストで使う、別セッションの 2 ユーザーを順番に作成する。 */

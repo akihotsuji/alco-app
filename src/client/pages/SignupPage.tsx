@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { ageGatePath } from "@/client/auth/age-path.ts";
 import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
 import { hrefWithRedirect } from "@/client/auth/login-path.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
@@ -9,12 +10,7 @@ import { Input } from "@/client/components/ui/input.tsx";
 import { Label } from "@/client/components/ui/label.tsx";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { cn } from "@/client/lib/utils.ts";
-import {
-  AUTH_NAME_MAX_LENGTH,
-  AUTH_PASSWORD_MIN_LENGTH,
-  resolveSafeRedirect,
-  signupFormSchema,
-} from "@/shared/auth.ts";
+import { AUTH_NAME_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH, signupFormSchema } from "@/shared/auth.ts";
 import { LEGAL_VERSION, legalHref } from "@/shared/legal.ts";
 
 export function SignupPage() {
@@ -63,7 +59,7 @@ export function SignupPage() {
       );
       return;
     }
-    navigate(resolveSafeRedirect(redirectQuery), { replace: true });
+    navigate(ageGatePath(redirectQuery), { replace: true });
   }
 
   return (

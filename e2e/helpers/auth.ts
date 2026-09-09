@@ -36,7 +36,14 @@ export async function signUpAsNewUser(
   await page.getByRole("textbox", { name: /パスワード/ }).fill(user.password);
   await page.getByLabel("利用規約とプライバシーポリシーに同意する").check();
   await page.getByRole("button", { name: "登録する" }).click();
-  await page.waitForURL("/");
+  const ageHeading = page.getByRole("heading", { name: "年齢確認" });
+  const alert = page.getByRole("alert");
+  await expect(ageHeading.or(alert)).toBeVisible({ timeout: 30_000 });
+  if (!(await ageHeading.isVisible())) {
+    throw new Error(`サインアップ後に年齢確認へ進めない: ${await alert.textContent()}`);
+  }
+  await page.getByLabel("生年月日").fill("1990-01-15");
+  await page.getByRole("button", { name: "確認する" }).click();
   // 招待ダイアログが開くと背面の「ホーム」見出しは a11y ツリーから外れる
   await dismissFirstRunGuide(page);
   await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();

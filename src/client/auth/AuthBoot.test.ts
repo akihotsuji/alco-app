@@ -23,5 +23,6 @@ describe("AuthBoot", () => {
     expect(requireAuth).toContain("boot.variant");
     expect(requireAuth).toContain('boot.kind === "guest"');
     expect(guestOnly).toContain("boot.variant");
+    expect(guestOnly).toContain("resolveGuestOnlyContent");
   });
 });

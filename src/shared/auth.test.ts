@@ -32,6 +32,8 @@ describe("resolveSafeRedirect", () => {
     expect(resolveSafeRedirect("/logs?date=2026-09-05")).toBe("/logs?date=2026-09-05");
     expect(resolveSafeRedirect("/login")).toBe("/");
     expect(resolveSafeRedirect("/signup?x=1")).toBe("/");
+    expect(resolveSafeRedirect("/age")).toBe("/");
+    expect(resolveSafeRedirect("/age?redirect=%2Flogs")).toBe("/");
   });
 });
 

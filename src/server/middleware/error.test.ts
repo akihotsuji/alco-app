@@ -86,7 +86,24 @@ describe("errorHandler", () => {
     expect(JSON.stringify(body)).not.toContain("Malformed JSON");
   });
 
-  it("対応表にないステータス（403 等）は 500 internal_error にし、403 を出さない", async () => {
+  it("ApiError の年齢ゲートは 403 をそのまま返す", async () => {
+    const app = new Hono<AppEnv>();
+    app.onError(errorHandler);
+    app.get("/age-required", () => {
+      throw new ApiError("age_required");
+    });
+    app.get("/age-restricted", () => {
+      throw new ApiError("age_restricted");
+    });
+    const required = await app.request("/age-required");
+    expect(required.status).toBe(403);
+    expect(await required.json()).toEqual({ error: "age_required" });
+    const restricted = await app.request("/age-restricted");
+    expect(restricted.status).toBe(403);
+    expect(await restricted.json()).toEqual({ error: "age_restricted" });
+  });
+
+  it("対応表にないステータス（汎用 HTTP 403 等）は 500 internal_error にし、403 を出さない", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const res = await buildApp().request("/http-403");
     expect(res.status).toBe(500);

@@ -6,6 +6,7 @@ import { LEGAL_VERSION } from "@/shared/legal.ts";
 import {
   cookieHeaderFrom,
   createTestApp,
+  createTestUser,
   createTestUserPair,
   signIn,
   signUp,
@@ -17,6 +18,7 @@ const meSchema = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string(),
+  ageVerified: z.boolean(),
 });
 
 describe("認証 API", () => {
@@ -50,6 +52,7 @@ describe("認証 API", () => {
       id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
       email: "a@example.com",
       name: "ユーザーA",
+      ageVerified: false,
     });
   });
 
@@ -93,6 +96,7 @@ describe("認証 API", () => {
       id: userA.id,
       email: userA.email,
       name: userA.name,
+      ageVerified: true,
     });
     expect(userA.id).not.toBe(userB.id);
   });
@@ -131,7 +135,7 @@ describe("認証 API", () => {
     expect(await res.json()).toEqual({ error: "unauthorized" });
   });
 
-  it("認証済みの未定義 /api/* は共通形式の 404", async () => {
+  it("認証済みでも年齢未確認の未定義 /api/* は 403（ルートの存在を漏らさない）", async () => {
     const { app } = await createTestApp();
     const signUpRes = await signUp(app, {
       name: "A",
@@ -141,6 +145,20 @@ describe("認証 API", () => {
     expect(signUpRes.status).toBe(200);
     const res = await app.request("/api/not-a-real-route", {
       headers: { Cookie: cookieHeaderFrom(signUpRes) },
+    });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "age_required" });
+  });
+
+  it("年齢確認済みの未定義 /api/* は共通形式の 404", async () => {
+    const { app } = await createTestApp();
+    const user = await createTestUser(app, {
+      name: "A",
+      email: "verified-404@example.com",
+      password: "password1",
+    });
+    const res = await app.request("/api/not-a-real-route", {
+      headers: { Cookie: user.cookie },
     });
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "not_found" });
