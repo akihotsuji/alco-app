@@ -221,7 +221,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] Playwright E2E: 主要導線のスモークテスト（ログイン→記録→サマリー確認、ボトル登録→ノート作成）をCIに組み込み → [features/e2e.md](features/e2e.md)（6-02）
 - [x] パフォーマンス改善: バンドルサイズ確認、コード分割、画像遅延読み込み（Lighthouseモバイルで計測）→ [features/performance.md](features/performance.md)（6-03。2026-09-08）
 - [x] アクセシビリティ最低限対応: タップ領域サイズ、コントラスト、フォームラベル、**reduced motion の検証**（OS 設定と「動きを減らす」の両方で移動・水位線が止まり、情報が欠けない。[motion-design.md](motion-design.md) 6.8 / 10.6）→ [features/a11y.md](features/a11y.md)（6-04。2026-09-09）
-- [ ] iOS Safari / Android Chrome での実機動作確認と表示崩れ修正
+- [ ] iOS Safari / Android Chrome での実機動作確認と表示崩れ修正 → [qa-devices.md](qa-devices.md)（6-05。2026-09-09 チェックリストと先回り修正済み。ホーム追加のオーナー確認は未実施）
 
 ### rules / skills
 

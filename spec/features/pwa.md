@@ -2,8 +2,8 @@
 
 実装: Phase 6-01。要件は [01-requirements.md](../01-requirements.md) 非機能「PWA」、技術は [02-tech-stack.md](../02-tech-stack.md)、手順は [roadmap/phase-06-pwa-quality/01-vite-plugin-pwa.md](../../roadmap/phase-06-pwa-quality/01-vite-plugin-pwa.md)。アイコンの見た目は [character.md](../character.md)、色は [design-system.md](../design-system.md)。
 
-- 状態: **本 PR で追加**（6-01 実行。表示名は仮称のまま）
-- 実機でのホーム追加確認は 6-05。本タスクはビルド成果とデスクトップ Chrome の installability
+- 状態: **6-01 済み**（表示名は仮称のまま）
+- 実機でのホーム追加確認は 6-05（[qa-devices.md](../qa-devices.md)。手順は README）
 
 ---
 
@@ -107,7 +107,7 @@ Workers Static Assets の `_headers` で `/sw.js` に `Cache-Control: no-cache` 
 | `apple-mobile-web-app-status-bar-style` | `default`（`theme-color` に合わせる） |
 | `apple-touch-icon` | `/pwa/apple-touch-icon.png` |
 
-iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主。実機確認は 6-05。
+iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主。実機確認は [qa-devices.md](../qa-devices.md)。
 
 ---
 
@@ -117,7 +117,7 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 - Background Sync / Periodic Background Sync
 - プッシュ通知
 - ストア申請
-- iOS 向け `apple-touch-startup-image` の全解像度（スプラッシュは `background_color` + アイコン。不足は 6-05 で判断）
+- iOS 向け `apple-touch-startup-image` の全解像度（6-05 で作らないと確定。スプラッシュは `background_color` + アイコン）
 
 ---
 

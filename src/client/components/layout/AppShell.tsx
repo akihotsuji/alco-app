@@ -23,6 +23,7 @@ import {
   resolveAppRoute,
   type TabDef,
 } from "@/client/lib/app-routes.ts";
+import { appShellClassName } from "@/client/lib/device-chrome.ts";
 import { isGuidePracticeStep } from "@/client/lib/first-run-guide.ts";
 
 export const REDUCE_MOTION_ATTR = "data-reduce-motion";
@@ -94,7 +95,7 @@ function AppShellFrame() {
   }
 
   return (
-    <div className={hideTabs ? "app-shell app-shell-no-tabs" : "app-shell"}>
+    <div className={appShellClassName({ hideTabs, hideHeader: route.hideHeader })}>
       {route.hideHeader ? null : <AppHeader header={header} />}
       <div ref={contentRef} className={addFab ? "app-content has-add-fab" : "app-content"}>
         <Suspense fallback={<CardSkeleton />}>

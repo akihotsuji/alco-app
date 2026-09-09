@@ -33,7 +33,7 @@ export function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          "app-dialog-panel fixed right-5 left-5 z-40 flex flex-col gap-4 rounded-[var(--radius-card)] bg-background p-6 text-foreground shadow-outset outline-none",
+          "app-dialog-panel fixed z-40 flex flex-col gap-4 rounded-[var(--radius-card)] bg-background p-6 text-foreground shadow-outset outline-none",
           className,
         )}
         {...props}

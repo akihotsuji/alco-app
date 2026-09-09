@@ -65,6 +65,11 @@
   --tab-h: 72px;
   --tab-center-size: 60px;
   --tab-center-lift: 12px;
+  --page-pad-x: 20px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   --mascot-wine: #8e2f3c;
   --mascot-wine-light: #b34a5a;
   --mascot-ink: #1f1b17;
@@ -414,6 +419,10 @@ html[data-theme="dark"] {
     line-height: 1.5;
     color: var(--foreground);
     background: var(--background);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: clip;
+    overscroll-behavior-y: none;
   }
 
   body {
@@ -421,11 +430,14 @@ html[data-theme="dark"] {
     min-height: 100dvh;
     background: var(--background);
     color: var(--foreground);
+    overflow-x: clip;
+    overscroll-behavior-y: none;
   }
 
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+    touch-action: manipulation;
   }
 
   /* Chrome のオートフィル白塗りでニューモルが壊れないようにする */
@@ -441,6 +453,16 @@ html[data-theme="dark"] {
   }
 }
 
+/*
+  6-05: iOS Safari は 16px 未満の input フォーカスでページをズームする。
+  クラス付きの量・度数欄（20px）より詳細度は低い。
+*/
+input,
+textarea,
+select {
+  font-size: max(16px, 1em);
+}
+
 #root {
   min-height: 100dvh;
 }
@@ -448,6 +470,17 @@ html[data-theme="dark"] {
 .auth-boot {
   min-height: 100dvh;
   background: var(--background);
+}
+
+.auth-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: calc(var(--space-5) + var(--safe-top)) calc(var(--space-5) + var(--safe-right))
+    calc(var(--space-5) + var(--safe-bottom)) calc(var(--space-5) + var(--safe-left));
 }
 
 .auth-password {
@@ -488,8 +521,9 @@ input:focus-visible {
 }
 
 .app-header {
-  height: var(--header-h);
-  padding: 0 var(--space-4);
+  height: calc(var(--header-h) + var(--safe-top));
+  padding: var(--safe-top) calc(var(--space-4) + var(--safe-right)) 0
+    calc(var(--space-4) + var(--safe-left));
   display: grid;
   grid-template-columns: var(--tap-min) 1fr var(--tap-min);
   align-items: center;
@@ -552,19 +586,22 @@ input:focus-visible {
 
 .app-content {
   flex: 1;
+  overflow-x: clip;
   overflow-y: auto;
-  padding: var(--space-2) 20px calc(var(--tab-h) + 12px + env(safe-area-inset-bottom));
+  overscroll-behavior-y: contain;
+  padding: var(--space-2) calc(var(--page-pad-x) + var(--safe-right))
+    calc(var(--tab-h) + 12px + var(--safe-bottom)) calc(var(--page-pad-x) + var(--safe-left));
 }
 
 .app-content.has-add-fab {
-  padding-bottom: calc(var(--tab-h) + 12px + 52px + 16px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--tab-h) + 12px + 52px + 16px + var(--safe-bottom));
 }
 
 /* 00-common 1.4。タブより上・トーストより下。primary にはしない */
 .add-fab {
   position: fixed;
-  right: 20px;
-  bottom: calc(var(--tab-h) + 16px + env(safe-area-inset-bottom));
+  right: calc(var(--page-pad-x) + var(--safe-right));
+  bottom: calc(var(--tab-h) + 16px + var(--safe-bottom));
   z-index: 12;
 }
 
@@ -574,14 +611,18 @@ input:focus-visible {
   flex-direction: column;
 }
 
+.app-shell-no-header .app-content {
+  padding-top: calc(var(--space-2) + var(--safe-top));
+}
+
 .tab-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 10;
-  height: calc(var(--tab-h) + env(safe-area-inset-bottom));
-  padding: 12px 4px env(safe-area-inset-bottom);
+  height: calc(var(--tab-h) + var(--safe-bottom));
+  padding: 12px calc(4px + var(--safe-right)) var(--safe-bottom) calc(4px + var(--safe-left));
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
@@ -713,9 +754,9 @@ input:focus-visible {
 
 .app-toast {
   position: fixed;
-  left: 20px;
-  right: 20px;
-  bottom: calc(var(--tab-h) + 12px + 16px + env(safe-area-inset-bottom));
+  left: calc(var(--page-pad-x) + var(--safe-left));
+  right: calc(var(--page-pad-x) + var(--safe-right));
+  bottom: calc(var(--tab-h) + 12px + 16px + var(--safe-bottom));
   z-index: 25;
   pointer-events: auto;
   min-height: 52px;
@@ -745,7 +786,7 @@ input:focus-visible {
 }
 
 .app-toast-no-tabs {
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  bottom: calc(24px + var(--safe-bottom));
 }
 
 .app-toast-message {
@@ -802,12 +843,15 @@ input:focus-visible {
   （src/client/lib/keyboard-inset.ts）ぶん持ち上げ、残りの高さに収まるよう中身をスクロールさせる。
 */
 .app-dialog-panel {
-  bottom: calc(var(--space-5) + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px));
+  left: calc(var(--page-pad-x) + var(--safe-left));
+  right: calc(var(--page-pad-x) + var(--safe-right));
+  bottom: calc(var(--space-5) + var(--safe-bottom) + var(--keyboard-inset, 0px));
   --dialog-gap: calc(var(--space-5) * 2);
   max-height: calc(
     100dvh -
     var(--dialog-gap) -
-    env(safe-area-inset-bottom) -
+    var(--safe-top) -
+    var(--safe-bottom) -
     var(--keyboard-inset, 0px)
   );
   overflow-y: auto;
@@ -958,7 +1002,7 @@ input:focus-visible {
   bottom: var(--keyboard-inset, 0px);
   z-index: 1;
   margin-top: auto;
-  padding: 16px 0 calc(16px + env(safe-area-inset-bottom));
+  padding: 16px var(--safe-right) calc(16px + var(--safe-bottom)) var(--safe-left);
   background: var(--background);
 }
 
@@ -1920,8 +1964,9 @@ input:focus-visible {
 }
 
 .photo-edit-bar {
-  height: var(--header-h);
-  padding: 0 var(--space-4);
+  height: calc(var(--header-h) + var(--safe-top));
+  padding: var(--safe-top) calc(var(--space-4) + var(--safe-right)) 0
+    calc(var(--space-4) + var(--safe-left));
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1941,8 +1986,21 @@ input:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-4);
+  padding: var(--space-4) calc(var(--space-4) + var(--safe-right)) var(--space-4)
+    calc(var(--space-4) + var(--safe-left));
   background: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .photo-edit-body {
+    padding: var(--space-2) calc(var(--space-2) + var(--safe-right)) var(--space-2)
+      calc(var(--space-2) + var(--safe-left));
+  }
+
+  .empty-state,
+  .cellar-empty {
+    padding-block: var(--space-3);
+  }
 }
 
 .photo-edit-frame {
@@ -2042,11 +2100,13 @@ input:focus-visible {
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px 12px;
-  padding: 0 var(--space-4) var(--space-3);
+  padding: 0 calc(var(--space-4) + var(--safe-right)) var(--space-3)
+    calc(var(--space-4) + var(--safe-left));
 }
 
 .photo-edit-note {
-  margin: 0 var(--space-4) var(--space-2);
+  margin: 0 calc(var(--space-4) + var(--safe-right)) var(--space-2)
+    calc(var(--space-4) + var(--safe-left));
   color: var(--muted);
   font-size: 13px;
   text-align: center;
@@ -2949,7 +3009,7 @@ input:focus-visible {
 }
 
 .mydrink-form {
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(100px + var(--safe-bottom));
 }
 
 .mydrink-delete {
@@ -4368,7 +4428,7 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  width: min(320px, calc(100vw - 32px));
+  width: min(320px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
   padding: var(--space-3);
   border-radius: var(--radius-card);
   background: var(--background);

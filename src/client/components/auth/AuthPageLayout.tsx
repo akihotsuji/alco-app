@@ -27,7 +27,7 @@ export function AuthPageLayout({
   footer,
 }: AuthPageLayoutProps) {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 py-6">
+    <main className="auth-page">
       <Mascot pose="default" size={120} aria-hidden />
       <p className="mb-6 text-[13px] font-semibold text-muted">alco-app</p>
       <Card className="w-full max-w-[360px] p-6">

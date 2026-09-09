@@ -21,7 +21,7 @@
 ## セッション
 
 - Cookie: **httpOnly / sameSite=Lax / secure（HTTPS のみ）**。DB セッション（Better Auth 標準）。JWT へは移行しない
-- 有効期間: **30 日**（`session.expiresIn = 60 * 60 * 24 * 30`）
+- 有効期間: **30 日**（`session.expiresIn = 60 * 60 * 24 * 30`）。6-05 でも延長しない。iOS ITP でログインが飛ぶ実測が出たら別 PR（[qa-devices.md](../qa-devices.md)）
 - 期限更新の間隔: **1 日**（`session.updateAge = 60 * 60 * 24`）。自動延長は有効（`disableSessionRefresh: false`）
 - 延長の意味: 毎日定時に足す／期限に 1 日を加算する、ではない。**前回の更新から 1 日以上経過し、まだ期限内のセッションを確認したとき**、その時点から 30 日後へ `expiresAt` と Cookie の `Max-Age` を書き換える。1 日未満の確認では延長しない
 - 確認経路: ブラウザは `authClient.useSession()` → `GET /api/auth/get-session`（Better Auth handler が Set-Cookie を返す）。保護 API は認証 MW が `auth.api.getSession({ returnHeaders: true })` し、返った Set-Cookie を Hono 応答へ append する（内部呼び出しのヘッダーは自動では乗らない）
