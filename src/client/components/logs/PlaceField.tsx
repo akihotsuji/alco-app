@@ -1,4 +1,5 @@
 import { MapPin } from "lucide-react";
+import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import {
@@ -45,6 +46,7 @@ export function PlaceField({
         maxLength={PLACE_NAME_MAX_LENGTH}
         placeholder="店名など"
         aria-invalid={error ? true : undefined}
+        aria-describedby={fieldDescribedBy("log-place-name", error)}
         onChange={(event) => onChangeName(event.target.value)}
       />
       {recorded ? <p className="place-recorded">{PLACE_UI.recorded}</p> : null}
@@ -54,11 +56,7 @@ export function PlaceField({
           {placeMapsLinkLabel(place)}
         </a>
       ) : null}
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id="log-place-name" error={error} />
     </section>
   );
 }

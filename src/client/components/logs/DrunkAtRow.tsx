@@ -1,4 +1,5 @@
 import { Calendar, ChevronRight } from "lucide-react";
+import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { formatDrunkAtLabel } from "@/client/lib/log-form.ts";
 import { DRUNK_AT_FUTURE_TOLERANCE_MS } from "@/shared/drink-logs.ts";
@@ -31,8 +32,10 @@ export function DrunkAtRow({ value, now, error, onChange }: DrunkAtRowProps) {
         <input
           type="datetime-local"
           className="form-row-native"
+          id="log-drunk-at"
           aria-label="飲んだ日時"
           aria-invalid={error ? true : undefined}
+          aria-describedby={fieldDescribedBy("log-drunk-at", error)}
           value={local}
           max={max}
           step={60}
@@ -44,11 +47,7 @@ export function DrunkAtRow({ value, now, error, onChange }: DrunkAtRowProps) {
           }}
         />
       </div>
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id="log-drunk-at" error={error} />
     </section>
   );
 }

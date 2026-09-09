@@ -1,4 +1,5 @@
 import { Calendar, ChevronRight } from "lucide-react";
+import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { formatMonthDay, isTokyoToday, tokyoToday } from "@/shared/tokyo-date.ts";
 
@@ -23,18 +24,16 @@ export function TastedOnRow({ value, now, error, onChange }: TastedOnRowProps) {
         <input
           type="date"
           className="form-row-native"
+          id="note-tasted-on"
           aria-label="飲んだ日"
           aria-invalid={error ? true : undefined}
+          aria-describedby={fieldDescribedBy("note-tasted-on", error)}
           value={value}
           max={today}
           onChange={(event) => onChange(event.target.value)}
         />
       </div>
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id="note-tasted-on" error={error} />
     </section>
   );
 }

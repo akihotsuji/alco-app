@@ -4,11 +4,14 @@ import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx"
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
+import { useFocusTrap } from "@/client/hooks/use-focus-trap.ts";
+import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { BOTTLE_BATCH_MESSAGES } from "@/client/lib/bottle-batch.ts";
+import { MOTION_MS } from "@/client/lib/motion.ts";
 import { applyPreset } from "@/client/lib/photo/apply-preset.ts";
 import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import { cutoutFailedUserMessage } from "@/client/lib/photo/cutout-result.ts";
-import { prefersReducedMotion, supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
+import { supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
 import {
   aspectForKind,
   clampScale,
@@ -67,6 +70,8 @@ export function PhotoEdit() {
   const [mascotPose, setMascotPose] = useState<PhotoMascotPose>("default");
   const filterSupported = useMemo(() => supportsCanvasFilter(), []);
   const cutoutSupported = kind === "cellar" && supportsBackgroundRemoval();
+  const reduceMotion = useReducedMotion();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ distance: number; scale: number } | null>(null);
@@ -97,10 +102,12 @@ export function PhotoEdit() {
       setMascotMounted(true);
       return;
     }
-    const delay = prefersReducedMotion() ? 0 : 200;
+    const delay = reduceMotion ? 0 : MOTION_MS.state;
     const timer = window.setTimeout(() => setMascotMounted(false), delay);
     return () => window.clearTimeout(timer);
-  }, [mascotOn]);
+  }, [mascotOn, reduceMotion]);
+
+  useFocusTrap(open, dialogRef);
 
   useEffect(() => {
     if (!source) {
@@ -323,7 +330,13 @@ export function PhotoEdit() {
   }
 
   return (
-    <div className="photo-edit" role="dialog" aria-modal="true" aria-label="写真を編集">
+    <div
+      ref={dialogRef}
+      className="photo-edit"
+      role="dialog"
+      aria-modal="true"
+      aria-label="写真を編集"
+    >
       <header className="photo-edit-bar">
         <IconButton label="閉じる" onClick={closePhotoEdit}>
           <X size={20} />
@@ -353,7 +366,7 @@ export function PhotoEdit() {
           )}
           {kind !== "cellar" && source && !decodeError && mascotMounted ? (
             <span
-              className={`photo-edit-mascot${reducedMotionClass()}${mascotOn ? "" : " is-off"}`}
+              className={`photo-edit-mascot${reduceMotion ? " is-instant" : ""}${mascotOn ? "" : " is-off"}`}
               style={{ opacity: mascotOn ? 1 : 0 }}
             >
               <Mascot pose={mascotPose} size={64} aria-hidden />
@@ -459,10 +472,4 @@ function distanceBetween(a: { x: number; y: number }, b: { x: number; y: number 
 
 function clampOffset(value: number): number {
   return Math.min(1, Math.max(-1, value));
-}
-
-function reducedMotionClass(): string {
-  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
-    ? " is-instant"
-    : "";
 }

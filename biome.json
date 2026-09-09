@@ -35,7 +35,10 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "a11y": {
+        "recommended": true
+      }
     }
   },
   "css": {

@@ -3,6 +3,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  blendRgbaOverHex,
+  contrastMeetsBody,
+  contrastRatio,
+  hexContrastRatio,
+  parseHexColor,
+  WCAG_BODY_MIN,
+} from "@/shared/contrast.ts";
+import {
   DARK_COLOR_TOKENS,
   LIGHT_COLOR_TOKENS,
   MOTION_TOKENS,
@@ -153,6 +161,51 @@ describe("design tokens", () => {
       .map((m) => m[0])
       .filter((m) => !m.endsWith("0.01ms"));
     expect(rawDurations).toEqual([]);
+  });
+
+  it("本文・muted・主ボタン・休肝・danger が 4.5:1 以上（ライト／ダーク）", () => {
+    const pairs: { fg: string; bg: string }[] = [
+      { fg: LIGHT_COLOR_TOKENS["--foreground"], bg: LIGHT_COLOR_TOKENS["--background"] },
+      { fg: LIGHT_COLOR_TOKENS["--muted"], bg: LIGHT_COLOR_TOKENS["--background"] },
+      { fg: LIGHT_COLOR_TOKENS["--primary-fg"], bg: LIGHT_COLOR_TOKENS["--primary"] },
+      { fg: LIGHT_COLOR_TOKENS["--primary"], bg: LIGHT_COLOR_TOKENS["--background"] },
+      { fg: LIGHT_COLOR_TOKENS["--rest"], bg: LIGHT_COLOR_TOKENS["--background"] },
+      { fg: LIGHT_COLOR_TOKENS["--danger-fg"], bg: LIGHT_COLOR_TOKENS["--danger"] },
+      { fg: DARK_COLOR_TOKENS["--foreground"], bg: DARK_COLOR_TOKENS["--background"] },
+      { fg: DARK_COLOR_TOKENS["--muted"], bg: DARK_COLOR_TOKENS["--background"] },
+      { fg: DARK_COLOR_TOKENS["--primary-fg"], bg: DARK_COLOR_TOKENS["--primary"] },
+      { fg: DARK_COLOR_TOKENS["--primary"], bg: DARK_COLOR_TOKENS["--background"] },
+      { fg: DARK_COLOR_TOKENS["--danger-fg"], bg: DARK_COLOR_TOKENS["--danger"] },
+      { fg: DARK_COLOR_TOKENS["--rest"], bg: DARK_COLOR_TOKENS["--background"] },
+    ];
+    for (const pair of pairs) {
+      const ratio = hexContrastRatio(pair.fg, pair.bg);
+      expect(contrastMeetsBody(ratio), `${pair.fg} on ${pair.bg} = ${ratio}`).toBe(true);
+    }
+    expect(hexContrastRatio("#c47878", DARK_COLOR_TOKENS["--background"])).toBeLessThan(
+      WCAG_BODY_MIN,
+    );
+  });
+
+  it("水位線 --fill-tint（白 14%）の上でも主ボタン文字が 4.5:1", () => {
+    const overlay = { r: 255, g: 255, b: 255, a: 0.14 };
+    const lightFill = blendRgbaOverHex(overlay, LIGHT_COLOR_TOKENS["--primary"]);
+    const darkFill = blendRgbaOverHex(overlay, DARK_COLOR_TOKENS["--primary"]);
+    expect(
+      contrastRatio(parseHexColor(LIGHT_COLOR_TOKENS["--primary-fg"]), lightFill),
+    ).toBeGreaterThan(WCAG_BODY_MIN);
+    expect(
+      contrastRatio(parseHexColor(DARK_COLOR_TOKENS["--primary-fg"]), darkFill),
+    ).toBeGreaterThan(WCAG_BODY_MIN);
+  });
+
+  it("reduced motion はフェードだけ残し、無限ループはスピナーのみ", () => {
+    expect(css).toContain("transition-duration: var(--dur-toast-out) !important");
+    expect(css).toContain('html[data-reduce-motion="1"] .app-toast');
+    expect(css).toContain('html[data-reduce-motion="1"] .log-row-enter');
+    const loops = [...css.matchAll(/animation:\s*([^;]*infinite[^;]*)/g)].map((m) => m[1]);
+    expect(loops.length).toBeGreaterThan(0);
+    expect(loops.every((value) => value?.includes("photo-spin"))).toBe(true);
   });
 
   it("1-07 / 1-08 追補トークンがある", () => {

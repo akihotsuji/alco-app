@@ -37,12 +37,7 @@ export function TodaySummaryCard({
   return (
     <Card className="home-today-card shadow-outset-sm">
       <div className="home-today-layout">
-        <Link
-          className="home-today-link"
-          to="/logs"
-          aria-label="今日の記録を見る"
-          {...prefetchPointerProps("/logs")}
-        >
+        <Link className="home-today-link" to="/logs" {...prefetchPointerProps("/logs")}>
           <div className="home-today-head">
             <span className="home-today-title">今日の記録</span>
             <span className={statusClass}>{homeTodayStatusLabel(status)}</span>

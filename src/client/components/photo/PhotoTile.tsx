@@ -65,7 +65,11 @@ export function PhotoTile({
               削除
             </button>
           ) : null}
-          {error ? <p className="field-error">{error}</p> : null}
+          {error ? (
+            <p className="field-error" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
       </div>
     );

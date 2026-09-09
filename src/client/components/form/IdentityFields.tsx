@@ -1,3 +1,4 @@
+import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
@@ -104,14 +105,11 @@ function IdentityInput({
           inputMode={inputMode}
           placeholder={placeholder}
           aria-invalid={error ? true : undefined}
+          aria-describedby={fieldDescribedBy(id, error)}
           onChange={(event) => onChange(event.target.value)}
         />
       </FieldWithAiMark>
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id={id} error={error} />
     </section>
   );
 }

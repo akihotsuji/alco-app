@@ -86,7 +86,7 @@ alco-app/
 | パスエイリアス | `@/` → `src/`。`tsconfig.json` の `paths` と `vite.alias.ts`（Vite / Vitest で共有。0-06） |
 | Workers 型 | `wrangler types --env dev` が生成する `worker-configuration.d.ts` を `compilerOptions.types` に入れる。`@cloudflare/workers-types` は使わない |
 | 型の再生成 | `wrangler.jsonc` 変更後は `pnpm cf-typegen`。生成ファイルはコミットする（中身は binding 名と runtime 型のみ。秘密は含めない） |
-| Lint / Format | **Biome のみ**（ESLint / Prettier は入れない） |
+| Lint / Format | **Biome のみ**（ESLint / Prettier は入れない）。a11y は Biome 推奨ルールを明示（`eslint-plugin-jsx-a11y` は重複するため入れない。6-04） |
 | 対象 / 除外 | 対象は `src/` とルートの設定ファイル、`e2e/`、`playwright.config.ts`。`spec/`・`roadmap/`・`dist`・`.wrangler`・生成型ファイルは対象外 |
 | フォーマット | インデント 2 スペース、二重引用符、セミコロンあり、行長 100、`organizeImports` 有効 |
 | scripts | `pnpm typecheck`（`tsc --noEmit`）/ `pnpm lint`（`biome check .`）/ `pnpm format`（`biome check --write .`） |

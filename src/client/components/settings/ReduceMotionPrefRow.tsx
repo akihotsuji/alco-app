@@ -18,25 +18,29 @@ export function ReduceMotionPrefRow() {
   }
 
   return (
-    <div className="settings-row settings-row-stack">
-      <span>動きを減らす</span>
+    <fieldset className="settings-row settings-row-stack settings-fieldset">
+      <legend className="settings-legend">動きを減らす</legend>
       <div className="settings-segment">
         {REDUCE_MOTION_PREFS.map((value) => {
           const selected = pref === value;
           return (
-            <button
+            <label
               key={value}
-              type="button"
-              aria-pressed={selected}
               className={selected ? "settings-segment-option is-on" : "settings-segment-option"}
-              onClick={() => select(value)}
             >
+              <input
+                type="radio"
+                className="visually-hidden"
+                name="reduce-motion"
+                checked={selected}
+                onChange={() => select(value)}
+              />
               {LABELS[value]}
-            </button>
+            </label>
           );
         })}
       </div>
       {osReduce ? <span className="settings-caption">端末の設定で動きが減っています</span> : null}
-    </div>
+    </fieldset>
   );
 }

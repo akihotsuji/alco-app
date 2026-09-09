@@ -86,6 +86,8 @@ export function SignupPage() {
         autoComplete="name"
         maxLength={AUTH_NAME_MAX_LENGTH}
         value={name}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? "auth-form-error" : undefined}
         onChange={(event) => setName(event.target.value)}
       />
       <Label htmlFor="signup-email">メール</Label>
@@ -95,6 +97,8 @@ export function SignupPage() {
         type="email"
         autoComplete="email"
         value={email}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? "auth-form-error" : undefined}
         onChange={(event) => setEmail(event.target.value)}
         required
       />
@@ -104,6 +108,8 @@ export function SignupPage() {
         autoComplete="new-password"
         minLength={AUTH_PASSWORD_MIN_LENGTH}
         value={password}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? "auth-form-error" : undefined}
         onChange={setPassword}
       />
     </AuthPageLayout>

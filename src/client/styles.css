@@ -472,7 +472,10 @@ html[data-theme="dark"] {
 .tab-item:focus-visible,
 .tab-center:focus-visible,
 .switch:focus-visible,
-.app-toast-action:focus-visible {
+.app-toast-action:focus-visible,
+.app-dialog-panel:focus-visible,
+.app-btn:focus-visible,
+input:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
@@ -488,7 +491,7 @@ html[data-theme="dark"] {
   height: var(--header-h);
   padding: 0 var(--space-4);
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: var(--tap-min) 1fr var(--tap-min);
   align-items: center;
   gap: var(--space-2);
   background: var(--background);
@@ -506,8 +509,17 @@ html[data-theme="dark"] {
 }
 
 .app-header-spacer {
-  width: 40px;
-  height: 40px;
+  width: var(--tap-min);
+  height: var(--tap-min);
+}
+
+.app-header-title:focus {
+  outline: none;
+}
+
+.app-header-title:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .app-header-title {
@@ -1813,7 +1825,7 @@ html[data-theme="dark"] {
   gap: 2px;
   margin-left: auto;
   padding: 0 var(--space-2);
-  min-height: 40px;
+  min-height: var(--tap-min);
   border: none;
   background: transparent;
   color: var(--muted);
@@ -3055,6 +3067,9 @@ html[data-theme="dark"] {
 }
 
 .settings-segment-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: var(--tap-min);
   padding: 0 var(--space-2);
   border: none;
@@ -3064,6 +3079,7 @@ html[data-theme="dark"] {
   color: inherit;
   font: inherit;
   font-size: 13px;
+  cursor: pointer;
 }
 
 .settings-segment-option.is-on {
@@ -3072,7 +3088,8 @@ html[data-theme="dark"] {
   font-weight: 600;
 }
 
-.settings-segment-option:focus-visible {
+.settings-segment-option:focus-visible,
+.settings-segment-option:focus-within {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
@@ -3406,11 +3423,15 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
 }
 
 .note-star-button {
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   padding: 0;
   border: none;
   background: transparent;
   color: inherit;
   line-height: 0;
+  display: grid;
+  place-items: center;
 }
 
 .note-star-button:focus-visible {

@@ -35,7 +35,7 @@ export function AuthPageLayout({
           <form className="flex flex-col" onSubmit={onSubmit} noValidate>
             <h1 className="mb-4 text-2xl font-semibold leading-[1.3]">{title}</h1>
             {error ? (
-              <p className="mb-4 text-danger" role="alert">
+              <p id="auth-form-error" className="mb-4 text-danger" role="alert">
                 {error}
               </p>
             ) : null}

@@ -1,3 +1,4 @@
+import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { RatingStars } from "@/client/components/notes/RatingStars.tsx";
 import { haptic } from "@/client/lib/haptic.ts";
@@ -56,9 +57,11 @@ export function RatingField({ value, error, guideTarget, onChange }: RatingField
             min={1}
             max={5}
             step={0.5}
+            id="note-rating"
             placeholder="未選択"
             value={value === null ? "" : String(value / 10)}
             aria-invalid={error ? true : undefined}
+            aria-describedby={fieldDescribedBy("note-rating", error)}
             onChange={(event) => {
               const parsed = parseRatingInput(event.target.value);
               if (parsed !== undefined) {
@@ -71,11 +74,7 @@ export function RatingField({ value, error, guideTarget, onChange }: RatingField
       <p className="field-hint" aria-live="polite">
         {value === null ? "タップして評価" : `${formatRatingX10(value)}`}
       </p>
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id="note-rating" error={error} />
     </fieldset>
   );
 }
