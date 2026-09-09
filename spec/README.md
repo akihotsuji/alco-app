@@ -33,6 +33,8 @@
 | [features/deploy-prod.md](features/deploy-prod.md) | タグ / 承認で `env.production` へデプロイ | 7-02（2026-09-09） |
 | [features/d1-backup.md](features/d1-backup.md) | D1 Time Travel 確認と日次 export（非公開 R2。14 日） | 7-04（2026-09-09） |
 | [features/monitoring.md](features/monitoring.md) | Workers Logs とエラー通知（ウェブフック + Actions メール） | 7-05（2026-09-09） |
+| [legal.md](legal.md) | 利用規約・PP の草案とデータマップ | 8-01（2026-09-09。承認待ち） |
+| [features/legal.md](features/legal.md) | 公開ページ・サインアップ同意・`legal_consents` | 8-01 |
 | [features/e2e.md](features/e2e.md) | Playwright E2E（記録→サマリー、ボトル→ノート。CI Chromium） | 6-02 |
 | [qa-devices.md](qa-devices.md) | iOS Safari / Android Chrome の実機 QA（セーフエリア・PWA 追加・入力ズーム） | 6-05（オーナー実機確認待ち） |
 | [security-audit-release.md](security-audit-release.md) | リリース前の全体セキュリティ監査（Critical / High ゼロ。R2 ダッシュボード目視はオーナー） | 7-07（2026-09-09） |

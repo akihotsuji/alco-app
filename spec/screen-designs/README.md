@@ -34,6 +34,7 @@ Phase 1-07 の成果物。**全画面の要素・機能・状態・遷移・イ�
 | [06-settings.md](06-settings.md) | `settings` | 2-05 / 3-07 |
 | [07-photo-capture.md](07-photo-capture.md) | `photo-edit`（撮影 → 編集 → 合成 → アップロード。記録・セラー・ノート共通） | 2-08 |
 | [08-first-run-guide.md](08-first-run-guide.md) | 初回ガイド（招待・練習。ルートなし） | 2026-09-08 |
+| [09-legal.md](09-legal.md) | `legal-terms` `legal-privacy` | 8-01 |
 
 ---
 

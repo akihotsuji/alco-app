@@ -14,7 +14,7 @@ description: alco-appのD1（SQLite）スキーマ変更手順。Drizzleスキ�
 |---|---|
 | `src/shared/constants.ts` | `DRINK_TYPES` / `BOTTLE_STATUSES` / `PHOTO_KINDS`。DB の CHECK と Zod enum の共通ソース |
 | `src/db/auth-schema.ts` | Better Auth CLI の生成物（`user` / `session` / `account` / `verification`）。**手で編集しない** |
-| `src/db/schema.ts` | アプリ 6 テーブル（`drink_logs` / `my_drinks` / `bottles` / `tasting_notes` / `photos` / `ai_usage`）。`auth-schema.ts` を re-export する |
+| `src/db/schema.ts` | アプリ 7 テーブル（`drink_logs` / `my_drinks` / `bottles` / `tasting_notes` / `photos` / `ai_usage` / `legal_consents`）。`auth-schema.ts` を re-export する |
 | `drizzle.config.ts` | drizzle-kit 設定。`out` は `wrangler.jsonc` の `migrations_dir`（`src/db/migrations`）と一致させる |
 | `src/db/migrations/*.sql` | 生成されたマイグレーション。wrangler がファイル名順に適用する |
 | `src/db/migrations/meta/` | drizzle-kit の journal / snapshot。**必ずコミットする**（Biome の対象外） |

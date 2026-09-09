@@ -75,7 +75,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 領域 | テーブル | 管理 |
 |---|---|---|
 | 認証 | `user`, `session`, `account`, `verification` | **Auth ライブラリ管理**。`npx auth@latest generate`（Phase 2-02） |
-| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos` | 本ドキュメント。Phase 2-01 で Drizzle 定義 |
+| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents` | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01 |
 
 Auth コアの列はライブラリ版に従う。以下は実装時の参照用であり、**列名・追加列を凍結しない**。プラグイン追加で増える可能性がある。
 
@@ -107,6 +107,7 @@ erDiagram
     user ||--o{ tasting_notes : owns
     user ||--o{ photos : owns
     user ||--o{ ai_usage : "daily count"
+    user ||--o| legal_consents : "signup consent"
     my_drinks ||--o{ drink_logs : "optional ref"
     bottles ||--o{ drink_logs : "optional (consume / manual)"
     bottles ||--o{ tasting_notes : "optional"
@@ -233,6 +234,15 @@ erDiagram
         text user_id PK_FK
         text used_on PK
         integer count
+    }
+
+    legal_consents {
+        text id PK
+        text user_id FK
+        text document_version
+        integer accepted_at
+        integer created_at
+        integer updated_at
     }
 ```
 
@@ -492,6 +502,22 @@ CHECK (
 - 上限はアプリ定数（初期値 **30 回 / 日 / ユーザー**）。超過は 429 `rate_limited`
 - 画像・結果・プロンプトは保存しない。行は 30 日で削除（未紐付け写真 GC と同じ日次ジョブ）
 
+### 6.7 legal_consents（8-01）
+
+サインアップ時の利用規約・プライバシーポリシー同意。Better Auth の `user` は触らない。
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | UUID v4 |
+| userId | user_id | text | NO | FK → user.id CASCADE、UNIQUE | 1 ユーザー 1 行 |
+| documentVersion | document_version | text | NO | ≦32 | 同意した文書版（サーバー定数） |
+| acceptedAt | accepted_at | integer | NO | | 同意日時（UTC ms）。サーバーが付与 |
+| createdAt / updatedAt | created_at / updated_at | integer | NO | | |
+
+- 新規サインアップだけ必須。既存ユーザー（同意行なし）はアプリを継続利用できる
+- 更新時の再同意ゲートは持たない（将来）
+- クライアントが送る時刻は使わない
+
 ---
 
 ## 7. インデックス
@@ -515,6 +541,7 @@ CHECK (
 | `photos_note_sort_idx` | photos | `tasting_note_id`, `sort_order` | ノートギャラリー |
 | `photos_log_idx` | photos | `drink_log_id` | 記録サムネ |
 | `photos_r2_key_uidx` | photos | `r2_key` UNIQUE | キー衝突防止 |
+| `legal_consents_user_uidx` | legal_consents | `user_id` UNIQUE | ユーザーあたり 1 同意 |
 
 名前検索（銘柄・生産者）は個人規模では `user_id` 絞り込み + `LIKE` で足りる。全文検索インデックスは作らない。
 
@@ -528,7 +555,7 @@ CHECK (
 
 | 親 | 子 | ON DELETE | 理由 |
 |---|---|---|---|
-| `user.id` | アプリ 6 テーブル（`ai_usage` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない（削除 UI は将来） |
+| `user.id` | アプリ 7 テーブル（`ai_usage` / `legal_consents` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない（削除 UI は将来） |
 | `my_drinks.id` | `drink_logs.my_drink_id` | SET NULL | 過去ログを残す |
 | `bottles.id` | `drink_logs.bottle_id` | SET NULL | 記録と `drink_name` スナップショットを残す |
 | `bottles.id` | `tasting_notes.bottle_id` | SET NULL | ノートとスナップショットを残す |
@@ -570,7 +597,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 ## 10. Drizzle スキーマ草案
 
-Phase 2-01 の実装メモ。**実装済み（1-07 改訂を含む）**: 正は [`src/db/schema.ts`](../src/db/schema.ts)（アプリ 6 テーブル。`ai_usage` を含む）と [`src/db/auth-schema.ts`](../src/db/auth-schema.ts)（Better Auth CLI 生成物）。enum 配列は [`src/shared/constants.ts`](../src/shared/constants.ts) から import し、CHECK 制約も drizzle-kit 経由（`check()`）で生成する。以下の草案は設計時の参考として残す。差分が出たら実装側を正とし、本表を更新する。
+Phase 2-01 の実装メモ。**実装済み（1-07 改訂を含む）**: 正は [`src/db/schema.ts`](../src/db/schema.ts)（アプリ 7 テーブル。`ai_usage` / `legal_consents` を含む）と [`src/db/auth-schema.ts`](../src/db/auth-schema.ts)（Better Auth CLI 生成物）。enum 配列は [`src/shared/constants.ts`](../src/shared/constants.ts) から import し、CHECK 制約も drizzle-kit 経由（`check()`）で生成する。以下の草案は設計時の参考として残す。差分が出たら実装側を正とし、本表を更新する。
 
 ```ts
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
