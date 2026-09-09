@@ -27,7 +27,7 @@ test("ボトルを登録してからノートを作成し、詳細がボトル�
   await page.getByRole("button", { name: new RegExp(BOTTLE_NAME) }).click();
 
   await expect(page.locator("#note-drink-name")).toHaveValue(BOTTLE_NAME);
-  await page.getByRole("button", { name: "評価 4" }).click();
+  await page.getByRole("radio", { name: "評価 4" }).click();
 
   const save = page.getByRole("button", { name: "ノートを保存" });
   await expect(save).toBeEnabled();
