@@ -1,3 +1,4 @@
+import type { AppSqliteDb } from "@/db/index.ts";
 import {
   DRINK_EXTRACT_PROMPT_VERSION,
   DRINK_LOOKUP_PROMPT_VERSION,
@@ -7,9 +8,7 @@ import {
 } from "@/shared/ai-recognition.ts";
 import { AI_RECOGNIZE_DAILY_LIMIT, AI_RECOGNIZE_OVERALL_TIMEOUT_MS } from "@/shared/constants.ts";
 import type { DrinkRecognizeFields, DrinkRecognizeResponse } from "@/shared/drink-recognize.ts";
-import type { AppSqliteDb } from "@/db/index.ts";
 import { ApiError } from "../../errors.ts";
-import { refundAiUsage, tryConsumeAiUsage } from "../ai-usage.ts";
 import type { RecognitionAdapter } from "../ai-recognition/adapter.ts";
 import { sha256Hex } from "../ai-recognition/bytes.ts";
 import {
@@ -33,13 +32,14 @@ import {
 import { createAdapterForProfile } from "../ai-recognition/factory.ts";
 import {
   MODEL_PROFILES,
+  type ModelProfile,
+  RecognitionConfigError,
   readAiRecognizeDailyLimit,
   readGatewayCollectLog,
   readGatewayId,
-  RecognitionConfigError,
-  type ModelProfile,
 } from "../ai-recognition/profiles.ts";
 import { mergeUsage, normalizeTokenUsage } from "../ai-recognition/usage.ts";
+import { refundAiUsage, tryConsumeAiUsage } from "../ai-usage.ts";
 import { ImageInspectFailure, inspectImageBytes } from "../image-inspect.ts";
 import type { LabelRecognizer } from "../label-recognizer/index.ts";
 import { RecognizeTimeoutError } from "../label-recognizer/recognize.ts";

@@ -66,7 +66,9 @@ export function CompactPhotoField({
                 <ContentPhoto
                   src={previewUrl}
                   className="photo-thumb-img"
-                  size={ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile}
+                  size={
+                    ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile
+                  }
                   loading="eager"
                 />
               </button>
@@ -74,7 +76,9 @@ export function CompactPhotoField({
               <ContentPhoto
                 src={previewUrl}
                 className="photo-thumb-img"
-                size={ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile}
+                size={
+                  ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile
+                }
                 loading="eager"
               />
             )}

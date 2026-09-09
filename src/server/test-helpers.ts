@@ -5,10 +5,10 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { z } from "zod";
 import * as schema from "@/db/schema.ts";
+import { WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
 import { createAuth } from "./auth.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
-import { WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 
 const TEST_AUTH_SECRET = "test-only-not-a-production-secret!!";

@@ -16,11 +16,7 @@ type PhotoViewerProps = {
 };
 
 function hasViewerFlag(state: unknown): boolean {
-  return (
-    typeof state === "object" &&
-    state !== null &&
-    Reflect.get(state, HISTORY_FLAG) === true
-  );
+  return typeof state === "object" && state !== null && Reflect.get(state, HISTORY_FLAG) === true;
 }
 
 function stripViewerFlag(state: unknown): unknown {
@@ -35,13 +31,7 @@ function stripViewerFlag(state: unknown): unknown {
 /**
  * 写真全体の拡大表示。ピンチとパン、閉じる、Escape、Android 戻るに対応する。
  */
-export function PhotoViewer({
-  open,
-  src,
-  alt,
-  checkerboard = false,
-  onClose,
-}: PhotoViewerProps) {
+export function PhotoViewer({ open, src, alt, checkerboard = false, onClose }: PhotoViewerProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -52,9 +42,7 @@ export function PhotoViewer({
   const [ty, setTy] = useState(0);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStart = useRef<{ dist: number; scale: number } | null>(null);
-  const panStart = useRef<{ x: number; y: number; tx: number; ty: number } | null>(
-    null,
-  );
+  const panStart = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
 
   useFocusTrap(open, dialogRef);
 

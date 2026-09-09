@@ -146,7 +146,7 @@ export function lockInheritedRecognizeFields(
   state: LogFormState,
   options: { lockDrinkType?: boolean; lockVolume?: boolean } = {},
 ): void {
-  if (options.lockDrinkType || Boolean(state.bottleId)) {
+  if (options.lockDrinkType || state.bottleId) {
     touched.drinkType = true;
   }
   if (options.lockVolume) {

@@ -1,7 +1,7 @@
 import { AI_RECOGNIZE_RETRY_LIMIT } from "@/shared/constants.ts";
 import type { RecognitionAdapter } from "./adapter.ts";
 import { bytesToBase64 } from "./bytes.ts";
-import { RecognitionConfigError, type ModelProfile } from "./profiles.ts";
+import { type ModelProfile, RecognitionConfigError } from "./profiles.ts";
 import { extractGroundingSources, normalizeTokenUsage } from "./usage.ts";
 
 type GeminiPart = Record<string, unknown>;

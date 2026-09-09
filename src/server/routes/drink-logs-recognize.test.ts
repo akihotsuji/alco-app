@@ -2,7 +2,11 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { aiUsage } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
-import { AI_RECOGNIZE_DAILY_LIMIT, PHOTO_MAX_BYTES, WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
+import {
+  AI_RECOGNIZE_DAILY_LIMIT,
+  PHOTO_MAX_BYTES,
+  WORKERS_AI_VISION_MODEL,
+} from "@/shared/constants.ts";
 import { drinkRecognizeResponseSchema } from "@/shared/drink-recognize.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { makeHtml, makeJpeg, makePng } from "../image-fixtures.ts";

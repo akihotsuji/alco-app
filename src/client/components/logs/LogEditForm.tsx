@@ -29,7 +29,6 @@ import {
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
-import { haptic } from "@/client/lib/haptic.ts";
 import {
   applyRecognizeToLogForm,
   countDrinkRecognizeFields,
@@ -37,7 +36,7 @@ import {
   type DrinkRecognizeTouched,
   lockInheritedRecognizeFields,
 } from "@/client/lib/drink-recognize.ts";
-import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
+import { haptic } from "@/client/lib/haptic.ts";
 import {
   applySelectedBottle,
   canSubmitLogForm,
@@ -56,6 +55,7 @@ import {
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
+import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import { DRINK_NAME_MAX_LENGTH, type DrinkLog } from "@/shared/drink-logs.ts";

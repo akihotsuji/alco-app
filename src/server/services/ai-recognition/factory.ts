@@ -3,9 +3,9 @@ import type { RecognitionAdapter } from "./adapter.ts";
 import { createGeminiGatewayAdapter } from "./gemini-adapter.ts";
 import {
   isAiBinding,
+  type ModelProfile,
   RecognitionConfigError,
   resolveModelProfile,
-  type ModelProfile,
 } from "./profiles.ts";
 import { createWorkersAiAdapter } from "./workers-ai-adapter.ts";
 

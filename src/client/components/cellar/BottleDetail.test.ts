@@ -56,4 +56,3 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).not.toContain("bottle-lightbox");
   });
 });
-

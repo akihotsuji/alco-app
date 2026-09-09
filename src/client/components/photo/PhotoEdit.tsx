@@ -22,11 +22,7 @@ import {
   type RemoveBackgroundProgress,
   supportsBackgroundRemoval,
 } from "@/client/lib/photo/remove-background.ts";
-import {
-  getComposeMascotPref,
-  getCutoutPref,
-  setCutoutPref,
-} from "@/client/lib/preferences.ts";
+import { getComposeMascotPref, getCutoutPref, setCutoutPref } from "@/client/lib/preferences.ts";
 import type { PhotoMascotPose } from "@/shared/constants.ts";
 
 const PREVIEW_DEBOUNCE_MS = 500;
@@ -156,16 +152,7 @@ export function PhotoEdit() {
       previewGen.current += 1;
       controller.abort();
     };
-  }, [
-    cutoutOn,
-    cutoutSupported,
-    kind,
-    offsetX,
-    offsetY,
-    open,
-    scale,
-    source,
-  ]);
+  }, [cutoutOn, cutoutSupported, kind, offsetX, offsetY, open, scale, source]);
 
   const drawPreview = useCallback(() => {
     const canvas = canvasRef.current;

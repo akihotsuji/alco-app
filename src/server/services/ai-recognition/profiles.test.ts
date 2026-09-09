@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GEMINI_37_FLASH_MODEL_ID, WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
-import { RecognitionConfigError, readProfileKey, resolveModelProfile } from "./profiles.ts";
 import { recognitionCacheKey } from "./cache.ts";
+import { RecognitionConfigError, readProfileKey, resolveModelProfile } from "./profiles.ts";
 
 describe("resolveModelProfile", () => {
   it("未設定なら酒記録は Gemini 3.7 Flash、セラーとノートは Llama", () => {
@@ -14,9 +14,9 @@ describe("resolveModelProfile", () => {
     const env = { AI_RECOGNITION_PROFILE: "workers-ai-llama" };
     expect(readProfileKey(env, "drink")).toBe("workers-ai-llama");
     expect(resolveModelProfile(env, "drink").modelId).toBe(WORKERS_AI_VISION_MODEL);
-    expect(resolveModelProfile({ AI_RECOGNITION_PROFILE: "gemini-3.7-flash" }, "drink").modelId).toBe(
-      GEMINI_37_FLASH_MODEL_ID,
-    );
+    expect(
+      resolveModelProfile({ AI_RECOGNITION_PROFILE: "gemini-3.7-flash" }, "drink").modelId,
+    ).toBe(GEMINI_37_FLASH_MODEL_ID);
   });
 
   it("不明な設定は設定エラー", () => {
@@ -50,8 +50,14 @@ describe("recognitionCacheKey", () => {
     };
     expect(recognitionCacheKey(base)).not.toBe(recognitionCacheKey({ ...base, userId: "user-b" }));
     expect(recognitionCacheKey(base)).not.toBe(
-      recognitionCacheKey({ ...base, profile: "workers-ai-llama", modelId: WORKERS_AI_VISION_MODEL }),
+      recognitionCacheKey({
+        ...base,
+        profile: "workers-ai-llama",
+        modelId: WORKERS_AI_VISION_MODEL,
+      }),
     );
-    expect(recognitionCacheKey(base)).not.toBe(recognitionCacheKey({ ...base, searchEnabled: false }));
+    expect(recognitionCacheKey(base)).not.toBe(
+      recognitionCacheKey({ ...base, searchEnabled: false }),
+    );
   });
 });

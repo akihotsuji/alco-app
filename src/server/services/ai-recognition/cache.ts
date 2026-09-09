@@ -71,9 +71,13 @@ export function getInflightRecognition(key: string): Promise<DrinkCacheValue> | 
 
 export function setInflightRecognition(key: string, promise: Promise<DrinkCacheValue>): void {
   inflight.set(key, promise);
-  void promise.finally(() => {
-    inflight.delete(key);
-  });
+  void promise
+    .finally(() => {
+      inflight.delete(key);
+    })
+    .catch(() => {
+      // 呼び出し側が catch する。ここでは未処理拒否を残さない。
+    });
 }
 
 /** テスト用 */

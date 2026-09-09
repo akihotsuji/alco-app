@@ -14,8 +14,8 @@ import { historyHasFlag, withHistoryFlag } from "@/client/lib/history-state.ts";
 import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
 import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
-import { processLogFile } from "@/client/lib/photo/process-file.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
+import { processLogFile } from "@/client/lib/photo/process-file.ts";
 
 export type PhotoEditContextKind = "log" | "cellar" | "note";
 

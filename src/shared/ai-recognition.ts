@@ -53,7 +53,10 @@ export const recognizeSourceSchema = z
   .object({
     url: z.string().url().max(500),
     title: z.string().max(200).optional(),
-    supports: z.array(z.enum(["origin", "variety"])).max(2).optional(),
+    supports: z
+      .array(z.enum(["origin", "variety"]))
+      .max(2)
+      .optional(),
   })
   .strict();
 

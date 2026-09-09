@@ -23,4 +23,3 @@ describe("LogDayPage D10", () => {
     expect(source).toContain("写真を拡大");
   });
 });
-

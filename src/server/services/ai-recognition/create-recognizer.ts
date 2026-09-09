@@ -1,4 +1,9 @@
 import type { AiRecognitionTask } from "@/shared/ai-recognition.ts";
+import {
+  DRINK_RECOGNIZE_GUIDED_JSON_SCHEMA,
+  DRINK_RECOGNIZE_SYSTEM_PROMPT,
+  DRINK_RECOGNIZE_USER_PROMPT,
+} from "../drink-recognizer/prompt.ts";
 import type { LabelRecognizer } from "../label-recognizer/index.ts";
 import {
   LABEL_RECOGNIZE_GUIDED_JSON_SCHEMA,
@@ -11,17 +16,12 @@ import {
   NOTE_RECOGNIZE_USER_PROMPT,
 } from "../note-recognizer/prompt.ts";
 import {
-  DRINK_RECOGNIZE_GUIDED_JSON_SCHEMA,
-  DRINK_RECOGNIZE_SYSTEM_PROMPT,
-  DRINK_RECOGNIZE_USER_PROMPT,
-} from "../drink-recognizer/prompt.ts";
-import {
   DRINK_EXTRACT_GEMINI_SCHEMA,
   DRINK_EXTRACT_SYSTEM_PROMPT,
   DRINK_EXTRACT_USER_PROMPT,
 } from "./drink-extract.ts";
 import { resolveRecognitionSetup } from "./factory.ts";
-import { readGatewayCollectLog, readGatewayId, RecognitionConfigError } from "./profiles.ts";
+import { RecognitionConfigError, readGatewayCollectLog, readGatewayId } from "./profiles.ts";
 
 function taskPrompts(
   task: AiRecognitionTask,

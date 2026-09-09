@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { type PhotoEditParams, segmentationKeyFor } from "./process.ts";
 import { fitToLongEdge } from "./geometry.ts";
+import { type PhotoEditParams, segmentationKeyFor } from "./process.ts";
 
 function params(overrides: Partial<PhotoEditParams> = {}): PhotoEditParams {
   return {

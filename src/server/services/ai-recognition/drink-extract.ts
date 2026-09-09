@@ -8,10 +8,7 @@ import {
   type RecognizeSource,
 } from "@/shared/ai-recognition.ts";
 import { DRINK_TYPES } from "@/shared/constants.ts";
-import {
-  type DrinkRecognizeFields,
-  pickDrinkRecognizeFields,
-} from "@/shared/drink-recognize.ts";
+import { type DrinkRecognizeFields, pickDrinkRecognizeFields } from "@/shared/drink-recognize.ts";
 import { extractModelPayload } from "@/shared/label-recognize.ts";
 import { countryFromVerifiedAppellation } from "@/shared/verified-origin.ts";
 import { isHttpUrl } from "./usage.ts";
@@ -108,12 +105,18 @@ export const DRINK_EXTRACT_GEMINI_SCHEMA = {
     drinkName: textProperty,
     producer: textProperty,
     vintage: intProperty,
-    printedOrigin: { type: "OBJECT", properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } } },
+    printedOrigin: {
+      type: "OBJECT",
+      properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } },
+    },
     printedVariety: {
       type: "OBJECT",
       properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } },
     },
-    appellation: { type: "OBJECT", properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } } },
+    appellation: {
+      type: "OBJECT",
+      properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } },
+    },
     origin: textProperty,
     variety: textProperty,
     drinkType: textProperty,
@@ -126,8 +129,14 @@ export const DRINK_LOOKUP_GEMINI_SCHEMA = {
   type: "OBJECT",
   properties: {
     matched: { type: "BOOLEAN" },
-    origin: { type: "OBJECT", properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } } },
-    variety: { type: "OBJECT", properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } } },
+    origin: {
+      type: "OBJECT",
+      properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } },
+    },
+    variety: {
+      type: "OBJECT",
+      properties: { value: { type: "STRING" }, excerpt: { type: "STRING" } },
+    },
     sources: {
       type: "ARRAY",
       items: {
@@ -288,7 +297,9 @@ export function selectDrinkAutofillFields(
   if (lookup?.matched) {
     if (!fields.origin && lookup.origin) {
       fields.origin = { value: lookup.origin, confidence: 0.8 };
-      sources.push(...lookup.sources.filter((item) => (item.supports ?? ["origin"]).includes("origin")));
+      sources.push(
+        ...lookup.sources.filter((item) => (item.supports ?? ["origin"]).includes("origin")),
+      );
     }
     if (!fields.variety && lookup.variety) {
       fields.variety = { value: lookup.variety, confidence: 0.8 };

@@ -84,7 +84,11 @@ describe("a11y baseline（6-04）", () => {
     // 見える統計を短い aria-label で上書きしない（label-content-name-mismatch）
     expect(read("src/client/components/home/TodaySummaryCard.tsx")).not.toContain("aria-label");
     const dayRow = read("src/client/pages/logs/LogDayPage.tsx");
-    expect(dayRow.slice(dayRow.indexOf("function LogDayRow"))).not.toContain("aria-label");
+    const logDayRow = dayRow.slice(dayRow.indexOf("function LogDayRow"));
+    expect(
+      logDayRow.replace(/aria-label="写真を拡大"/g, ""),
+      "日次行は見える銘柄テキストがある。行全体を短い aria-label で上書きしない（写真ボタンは可）",
+    ).not.toContain("aria-label");
   });
 
   it("自作モーダルにフォーカストラップ。photo-edit は設定の reduced motion を見る", () => {
