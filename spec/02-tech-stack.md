@@ -181,12 +181,16 @@ alco-app/
 
 | 項目 | 決定 |
 |---|---|
-| wrangler env | Phase 0 から **`env.dev`**。トップレベル（デフォルト env）を dev 扱いにしない。Phase 7 で `env.production` を追加 |
-| コマンド | 日常は `pnpm dev`（内部で `CLOUDFLARE_ENV=dev`）。確認・デプロイは `wrangler dev --env dev` / `wrangler deploy --env dev`。本番は `--env production` |
+| wrangler env | **`env.dev`** と **`env.production`**。トップレベル（デフォルト env）をどちらの実リソースにもしない。コマンドは `--env` を必須にする |
+| コマンド | 日常は `pnpm dev`（内部で `CLOUDFLARE_ENV=dev`）。確認・デプロイは `wrangler dev --env dev` / `wrangler deploy --env dev`。本番は `--env production`（7-01 ではデプロイしない） |
 | Worker 名（dev） | `alco-app-dev`（`env.dev.name`） |
 | D1（dev） | 名前 `alco-app-dev`、binding **`DB`** |
 | R2（dev） | 名前 `alco-app-photos-dev`、binding **`PHOTOS`**、非公開 |
-| 本番リソース | Phase 7。名前は `alco-app-prod` / `alco-app-photos-prod` を予定 |
+| Worker 名（本番） | `alco-app-prod`（`env.production.name`） |
+| D1（本番） | 名前 `alco-app-prod`、binding **`DB`** |
+| R2（本番） | 名前 `alco-app-photos-prod`、binding **`PHOTOS`**、非公開 |
+| アカウント | dev と同じ Cloudflare アカウントの別リソース（2026-09-09） |
+| 詳細 | [features/production-env.md](features/production-env.md)（7-01） |
 
 コードからは `env.DB` / `env.PHOTOS` で参照する。
 

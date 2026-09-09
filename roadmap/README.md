@@ -18,6 +18,7 @@
 | **Phase 5.5（2026-09-07 追加）** | Phase 5完了直後に、Phase 3〜5を主利用実機で探索し、1問題1Issue・同時着手1件で安定化する。既知の [#48 セラー登録時の写真処理](https://github.com/akihotsuji/alco-app/issues/48) を先頭の追跡Issueとする |
 | **FIX（2026-08-13）** | 招待制は採用しない。UIはOS外観設定に追従（ライト／ダーク）。グラスプリセットは種類ごとの一般量をデフォルト、記録ごとに修正可。日付境界は Asia/Tokyo |
 | **FIX（2026-08-15）** | Cloudflare: D1 `alco-app-dev` / R2 `alco-app-photos-dev`（非公開）。binding は `DB` / `PHOTOS`。wrangler は最初から `env.dev`（`--env dev`）。本番は Phase 7 で `env.production` |
+| **FIX（2026-09-09）** | 本番は dev と同じアカウントの別リソース。Worker / D1 `alco-app-prod`、R2 `alco-app-photos-prod`（非公開）。`wrangler.jsonc` の `env.production`。デプロイ・migrate・secret は 7-02 / 7-03 |
 | **FIX（2026-09-04）** | 下部タブは一旦 5 つ。見た目は **ニューモーフィズム**。数値・API・可視性は下表の追記どおり |
 | **FIX（2026-09-06）** | **モーション**は [spec/motion-design.md](../spec/motion-design.md) を全採用（状態変化の瞬間だけ動く `M-01`〜`M-32`、開栓は「少し凝った」段階、記録成功は A + B + C、haptic 既定 OFF + 設定スイッチ、X1〜X8）。ダークの `--primary` / `--score` / `--ring` を `#CC8484` に。共通基盤は 3-02 に同梱 |
 | **FIX（2026-09-06。中央タブ）** | **中央タブの挙動は (c) 撮影開始**。タップで記録用 `photo-edit`、「使う」で写真付き `log-new`、キャンセルは元の画面。着地画面・現在地ハイライトなし。写真なし記録はホームの「記録する」。日別（`/logs`）はホーム配下（今日カード / 週マス / 保存後 / 週サマリーの行から入る。主ボタン群は置かない）。(a) 今日の日別 / (b) 直接 `log-new` は不採用。正本は [spec/screen-designs/README.md](../spec/screen-designs/README.md) と [spec/screens.md](../spec/screens.md)。実装: 中央タブとホームのカメラは完了（2026-09-06 `feature/center-tab-camera`）、今日カード / 「今週 ›」は 3-03、日別は 3-05 |
@@ -88,7 +89,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 |---|---|
 | D1 / R2（dev） | `alco-app-dev` / `alco-app-photos-dev`（R2 は非公開） |
 | binding | D1 = `DB`、R2 = `PHOTOS` |
-| wrangler env | **`env.dev` で分ける**。トップレベルを dev 扱いにしない。コマンドは `--env dev`。Phase 7 で `env.production` を追加 |
+| wrangler env | **`env.dev` と `env.production` で分ける**。トップレベルをどちらにもしない。コマンドは `--env` を必須にする |
 
 ## 凡例
 
@@ -110,7 +111,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 完了（5-01〜5-05。5-05 は 2026-09-07） |
 | Phase 5.5 実機検証・機能安定化 | [phase-05-5-device-hardening](phase-05-5-device-hardening/00-phase.md) | Phase 3〜5の実機探索、Issue化、1件ずつ修正 | 未着手（Phase 5完了直後） |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
-| Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 未着手 |
+| Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 進行中（7-01 完了） |
 | Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 未着手 |
 
 ## ロードマップ ↔ ファイル対応表
@@ -216,7 +217,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 7-01 | 本番用リソース作成 | [01-prod-resources.md](phase-07-production-release/01-prod-resources.md) | 未着手 |
+| 7-01 | 本番用リソース作成 | [01-prod-resources.md](phase-07-production-release/01-prod-resources.md) | 完了（2026-09-09） |
 | 7-02 | GitHub Actions デプロイパイプライン | [02-deploy-pipeline.md](phase-07-production-release/02-deploy-pipeline.md) | 未着手 |
 | 7-03 | シークレット管理の整理 | [03-secret-management.md](phase-07-production-release/03-secret-management.md) | 未着手 |
 | 7-04 | D1日次バックアップ | [04-d1-backup.md](phase-07-production-release/04-d1-backup.md) | 未着手 |
