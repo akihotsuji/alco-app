@@ -33,6 +33,15 @@ function rootBlock(source: string): string {
   return match[1];
 }
 
+/** 正本: 設定「外観」で解決された `html[data-theme="light"]` */
+function lightBlock(source: string): string {
+  const match = source.match(/html\[data-theme="light"\]\s*\{([\s\S]*?)\n\}/);
+  if (!match?.[1]) {
+    throw new Error('html[data-theme="light"] ブロックが見つかりません');
+  }
+  return match[1];
+}
+
 /** 正本: 設定「外観」で解決された `html[data-theme="dark"]` */
 function darkBlock(source: string): string {
   const match = source.match(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/);
@@ -74,6 +83,27 @@ describe("design tokens", () => {
     const block = rootBlock(css);
     for (const [name, value] of Object.entries(LIGHT_COLOR_TOKENS)) {
       expect(tokenValue(block, name)).toBe(value);
+    }
+  });
+
+  it("ライトの色トークンが html[data-theme=light] でも一致する", () => {
+    const block = lightBlock(css);
+    for (const name of [
+      "--background",
+      "--surface",
+      "--foreground",
+      "--muted",
+      "--primary",
+      "--primary-fg",
+      "--danger",
+      "--danger-fg",
+      "--rest",
+      "--score",
+      "--ring",
+      "--neu-light",
+      "--neu-dark",
+    ] as const) {
+      expect(tokenValue(block, name)).toBe(LIGHT_COLOR_TOKENS[name]);
     }
   });
 

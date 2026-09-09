@@ -102,7 +102,17 @@
 - 古い SW が残って壊れたときの外し方は README
 - 通常の復旧では Cookie / IndexedDB / localStorage / 全キャッシュを一括削除しない
 
-Workers Static Assets の `_headers` で `/sw.js` に `Cache-Control: no-cache` を付ける（デフォルトの must-revalidate でも再検証されるが、SW 更新を明示する）。`/boot-guard.js` と `/boot.css` も同様。
+Workers Static Assets の `_headers` で次を付ける。
+
+| パス | Cache-Control | 理由 |
+|---|---|---|
+| `/*`（HTML / SPA fallback） | `no-cache` | デプロイ後に古い `index.html` が新しいハッシュ付き JS/CSS を指すと、ラベルやボタン名が消える |
+| `/assets/*` | `! Cache-Control` のあと `public, max-age=31536000, immutable` | ファイル名にハッシュがある。中身が変わったら URL が変わる。`/*` と両方当たると値がカンマ結合されるため先に外す |
+| `/sw.js` / `/boot-guard.js` / `/boot.css` | `no-cache` | 古い SW や起動 CSS が残るとデプロイ後に壊れる |
+
+SW 登録は `updateViaCache: "none"`（ブラウザが `sw.js` を HTTP キャッシュから使わない）。
+
+`boot.css` は `html:not([data-theme])` のときだけ地色と文字色を付ける。OS の `prefers-color-scheme` を `data-theme` 付きの html/body/#root に残さない（本 CSS より強く、設定行のラベルが地色に溶ける）。
 
 `run_worker_first` は `/api/*` に加え `/assets/*`。ハッシュ付き資産が無いときは Worker が 404 を返し、SPA の HTML を JS として渡さない。
 
@@ -150,6 +160,7 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 - [ ] 192 / 512 / maskable / Apple touch の PNG がある
 - [ ] SW が `/api/` を NetworkOnly にし、`/models/` を precache しない
 - [ ] 存在しない `/assets/*.js` が HTML ではなく 404 を返す
+- [ ] `boot.css` が `data-theme` 付きの html/body に色を残さない。SW 登録は `updateViaCache: "none"`
 - [ ] 起動中に「読み込み中」が見え、失敗時に説明と再試行がある
 - [ ] 初回インストールで不要な再読み込みをしない。更新再読み込みはループしない
 - [ ] lint / typecheck / test がパスする

@@ -11,7 +11,7 @@ export function installServiceWorker(
   deps: {
     prod?: boolean;
     hasServiceWorker?: boolean;
-    register?: (url: string) => Promise<unknown>;
+    register?: (url: string, options?: RegistrationOptions) => Promise<unknown>;
     addControllerChangeListener?: (listener: () => void) => void;
     hadControllerAtStart?: boolean;
     onRegisterError?: (error: unknown) => void;
@@ -43,8 +43,11 @@ export function installServiceWorker(
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
   }
 
-  const register = deps.register ?? ((url: string) => navigator.serviceWorker.register(url));
-  void register(`/${PWA_SW_FILENAME}`).catch((error: unknown) => {
+  const register =
+    deps.register ??
+    ((url: string, options?: RegistrationOptions) =>
+      navigator.serviceWorker.register(url, options));
+  void register(`/${PWA_SW_FILENAME}`, { updateViaCache: "none" }).catch((error: unknown) => {
     deps.onRegisterError?.(error);
   });
 }
