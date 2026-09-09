@@ -580,6 +580,13 @@ describe("PATCH /api/drink-logs/:id", () => {
 });
 
 describe("GET /api/drink-logs/:id", () => {
+  it("未認証は 401", async () => {
+    const { app } = await createTestApp();
+    const res = await app.request(`/api/drink-logs/${MISSING}`);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
+  });
+
   it("本人は 200、他人は 404、不正 ID は 400", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");

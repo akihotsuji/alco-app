@@ -1,4 +1,4 @@
-import { type TokenUsage, unknownTokenUsage } from "@/shared/ai-recognition.ts";
+import { isHttpsSourceUrl, type TokenUsage, unknownTokenUsage } from "@/shared/ai-recognition.ts";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -76,7 +76,7 @@ export function extractGroundingSources(output: unknown): Array<{ url: string; t
     const row = asRecord(chunk);
     const web = row ? asRecord(row.web) : null;
     const uri = web && typeof web.uri === "string" ? web.uri : null;
-    if (!uri || !isHttpUrl(uri)) {
+    if (!uri || !isHttpsSourceUrl(uri)) {
       continue;
     }
     sources.push({
@@ -85,13 +85,4 @@ export function extractGroundingSources(output: unknown): Array<{ url: string; t
     });
   }
   return sources;
-}
-
-export function isHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:";
-  } catch {
-    return false;
-  }
 }

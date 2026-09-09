@@ -49,9 +49,19 @@ export const tokenUsageSchema = z
 
 export type TokenUsage = z.infer<typeof tokenUsageSchema>;
 
+/** 認識出典。javascript: や userinfo 付きは拒否。http も採用しない */
+export function isHttpsSourceUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 export const recognizeSourceSchema = z
   .object({
-    url: z.string().url().max(500),
+    url: z.string().max(500).refine(isHttpsSourceUrl),
     title: z.string().max(200).optional(),
     supports: z
       .array(z.enum(["origin", "variety"]))

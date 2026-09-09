@@ -3,6 +3,7 @@ import {
   canAutofillVariety,
   type EvidenceKind,
   isEvidenceKind,
+  isHttpsSourceUrl,
   isPhotoSubject,
   type PhotoSubject,
   type RecognizeSource,
@@ -11,7 +12,7 @@ import { DRINK_TYPES } from "@/shared/constants.ts";
 import { type DrinkRecognizeFields, pickDrinkRecognizeFields } from "@/shared/drink-recognize.ts";
 import { extractModelPayload } from "@/shared/label-recognize.ts";
 import { countryFromVerifiedAppellation } from "@/shared/verified-origin.ts";
-import { isHttpUrl, normalizeTokenUsage } from "./usage.ts";
+import { normalizeTokenUsage } from "./usage.ts";
 
 const DEFAULT_LOOSE_CONFIDENCE = 0.8;
 
@@ -336,7 +337,7 @@ function readCitedSources(raw: unknown, groundedUrls: Set<string>): RecognizeSou
   const sources: RecognizeSource[] = [];
   for (const item of raw) {
     const row = asRecord(item);
-    if (!row || typeof row.url !== "string" || !isHttpUrl(row.url)) {
+    if (!row || typeof row.url !== "string" || !isHttpsSourceUrl(row.url)) {
       continue;
     }
     if (!groundedUrls.has(row.url)) {
