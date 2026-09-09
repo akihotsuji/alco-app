@@ -77,7 +77,23 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          set -euo pipefail
+          # ubuntu-latest に入っている google-chrome apt が Hash Sum mismatch すると
+          # playwright install --with-deps の apt-get update が exit 100 になる。
+          # Playwright の Chromium 依存パッケージにはこのリポジトリは不要。
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
+            /etc/apt/sources.list.d/google-chrome.list.save
+          sudo rm -f /etc/apt/sources.list.d/google-chrome*.list
+          for attempt in 1 2 3; do
+            if pnpm exec playwright install --with-deps chromium; then
+              exit 0
+            fi
+            echo "playwright install --with-deps chromium failed (attempt ${attempt})"
+            sudo rm -rf /var/lib/apt/lists/*
+            sleep $((attempt * 10))
+          done
+          exit 1
 
       - name: Prepare local auth secret
         run: |
