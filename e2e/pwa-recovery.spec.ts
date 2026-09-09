@@ -3,8 +3,18 @@ import { signUpAsNewUser } from "./helpers/auth.ts";
 
 async function waitForActiveSw(page: import("@playwright/test").Page) {
   await page.waitForFunction(async () => {
-    const registration = await navigator.serviceWorker.getRegistration();
-    return registration?.active?.state === "activated";
+    const ready = await navigator.serviceWorker.ready;
+    const worker = ready.active;
+    if (!worker) {
+      return false;
+    }
+    if (worker.state === "activated") {
+      return true;
+    }
+    await new Promise<void>((resolve) => {
+      worker.addEventListener("statechange", () => resolve(), { once: true });
+    });
+    return (await navigator.serviceWorker.ready).active?.state === "activated";
   });
   return page.evaluate(async () => {
     const ready = await navigator.serviceWorker.ready;

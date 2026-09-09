@@ -39,7 +39,7 @@ export default defineConfig({
       `CLOUDFLARE_VITE_FORCE_LOCAL=true pnpm exec wrangler dev --env dev --ip ${HOST} --port ${PORT} --local`,
     ].join(" && "),
     url: `${baseURL}/api/health`,
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 240_000,
     env: {
       ...process.env,
