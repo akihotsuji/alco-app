@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 7 本番リリース |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-09） |
 | 要件 | 障害時確認、バックアップ復元。ロールバック文書化（Phase 7 DoD） |
 | ソース | Phase 7「→ spec/operations.md」 |
 
@@ -74,11 +74,11 @@ pnpm exec wrangler rollback --env production
 
 ## 8. 受け入れ条件
 
-- [ ] `spec/operations.md` がある
-- [ ] 復元手順がリハーサルと一致
-- [ ] ロールバックが書いてある（Phase 7 DoD）
-- [ ] 秘密値がない
-- [ ] spec/README 更新
+- [x] `spec/operations.md` がある
+- [x] 復元手順が [d1-backup.md](../../spec/features/d1-backup.md) のリハーサル記録と一致
+- [x] ロールバックが書いてある（Phase 7 DoD）
+- [x] 秘密値がない
+- [x] spec/README 更新
 
 ## 9. セキュリティ観点
 

@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 7 本番リリース |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-09。初回本番デプロイと実機スモークはオーナー） |
 | 要件 | 本番稼働、dev 分離 |
 | ソース | Phase 7「→ spec/release-checklist.md」 |
 
@@ -76,11 +76,11 @@ spec に含める節:
 
 ## 8. 受け入れ条件
 
-- [ ] `spec/release-checklist.md` がある
-- [ ] 初回リリースで実施した
-- [ ] 本番 URL でアプリが動く（Phase 7 DoD）
-- [ ] spec/README 更新
-- [ ] スキルがある
+- [x] `spec/release-checklist.md` がある
+- [x] エージェント実施分（監査・ローカル CI・ドキュメント）を記録した。初回本番デプロイは未実施（オーナー）
+- [ ] 本番 URL でアプリが動く（Phase 7 DoD。Deploy prod 後）
+- [x] spec/README 更新
+- [x] スキルがある（`.cursor/skills/release/SKILL.md`）
 
 ## 9. セキュリティ観点
 

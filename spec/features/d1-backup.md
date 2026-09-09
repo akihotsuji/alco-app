@@ -20,7 +20,7 @@
 - `.github/workflows/backup-d1.yml`（`schedule` + `workflow_dispatch`）
 - `wrangler d1 export --remote` の成果を gzip して R2 へ置く
 - 保持 14 日（R2 lifecycle）
-- 復元手順の下書き（7-09 の `spec/operations.md` に統合する）
+- 復元手順の正本は [operations.md](../operations.md)（本ファイル 7 章は要約）
 - 一時 D1 への import リハーサル（本番・dev を上書きしない）
 
 **対象外**
@@ -111,7 +111,7 @@ Time Travel は短い窓の誤操作向け。14 日超や「DB ごと消した�
 
 ---
 
-## 7. 復元手順（下書き。7-09 で operations へ）
+## 7. 復元手順（要約。正本は [operations.md](../operations.md) 5 章）
 
 **本番 D1 を直接上書きしない。** 先に一時 DB で中身を確認する。
 

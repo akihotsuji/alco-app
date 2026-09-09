@@ -1,6 +1,6 @@
 # dev 環境デプロイ（3-07）
 
-飲酒記録が使える状態を Cloudflare の **dev Workers** に載せる手順。**日常の更新は GitHub Actions**（`main` マージ後に `env.dev` へ自動デプロイ）。手動 wrangler はフォールバック。本番分離と本番デプロイは Phase 7。後で [operations.md](operations.md)（Phase 7）へ統合する。
+飲酒記録が使える状態を Cloudflare の **dev Workers** に載せる手順。**日常の更新は GitHub Actions**（`main` マージ後に `env.dev` へ自動デプロイ）。手動 wrangler はフォールバック。本番分離と本番デプロイは Phase 7。障害・ロールバック・D1 復元の正本は [operations.md](operations.md)。
 
 自動デプロイの正本は [features/dev-deploy-ci.md](features/dev-deploy-ci.md)。
 
