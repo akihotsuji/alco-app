@@ -140,6 +140,36 @@ export function applyRecognizeToLogForm(
   return { next, applied, marks };
 }
 
+/** ボトルから埋まった欄と、編集時の既存値を AI 上書きから守る */
+export function lockInheritedRecognizeFields(
+  touched: DrinkRecognizeTouched,
+  state: LogFormState,
+  options: { lockDrinkType?: boolean; lockVolume?: boolean } = {},
+): void {
+  if (options.lockDrinkType || Boolean(state.bottleId)) {
+    touched.drinkType = true;
+  }
+  if (options.lockVolume) {
+    touched.volumeMl = true;
+    touched.abvPercent = true;
+  }
+  if (state.drinkName.trim()) {
+    touched.drinkName = true;
+  }
+  if (state.producer.trim()) {
+    touched.producer = true;
+  }
+  if (state.origin.trim()) {
+    touched.origin = true;
+  }
+  if (state.variety.trim()) {
+    touched.variety = true;
+  }
+  if (state.vintage.trim()) {
+    touched.vintage = true;
+  }
+}
+
 export function countDrinkRecognizeFields(fields: DrinkRecognizeFields): number {
   return (Object.keys(fields) as (keyof DrinkRecognizeFields)[]).filter(
     (key) => fields[key] !== undefined,

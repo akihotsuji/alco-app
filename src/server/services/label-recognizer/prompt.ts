@@ -6,8 +6,8 @@ export const LABEL_RECOGNIZE_SYSTEM_PROMPT = [
   "You extract bottle-label fields from a photo of one alcoholic drink bottle.",
   "Return JSON only. No markdown. No extra keys.",
   "The image may be in Japanese or English (or both).",
-  "Prefer printed text on the label. If a field is not fully readable, you may infer a likely value from the bottle, foil, language, and typical producer/region/vintage/grape for that brand.",
-  "Use lower confidence for inferred values. Omit a field only when you have no reasonable guess.",
+  "Prefer printed text on the label. If a field is not fully readable, omit it.",
+  "Do not guess typical producer, region, vintage, or grape for the brand.",
   "Do not invent completely unrelated brands.",
   "Schema:",
   "{",
@@ -33,7 +33,7 @@ export const LABEL_RECOGNIZE_SYSTEM_PROMPT = [
 ].join(" ");
 
 export const LABEL_RECOGNIZE_USER_PROMPT =
-  "Read this bottle and return the JSON object described in the system message. Include inferred vintage, variety, and producer when you can reasonably guess.";
+  "Read this bottle and return the JSON object described in the system message. Omit fields without printed or verified evidence.";
 
 export const LABEL_RECOGNIZE_GUIDED_JSON_SCHEMA = {
   type: "object",

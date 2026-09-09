@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyRecognizeToLogForm } from "./drink-recognize.ts";
+import { applyRecognizeToLogForm, lockInheritedRecognizeFields } from "./drink-recognize.ts";
 import { initialLogFormState } from "./log-form.ts";
 
 const NOW = new Date("2026-09-05T04:05:00.000Z");
@@ -137,5 +137,23 @@ describe("applyRecognizeToLogForm", () => {
     });
     expect(bottled.next.drinkName).toBe("ボトル名");
     expect(bottled.next.origin).toBe("スペイン");
+  });
+
+  it("ボトルから埋まった欄を触った扱いにする", () => {
+    const touched = { ...untouched };
+    lockInheritedRecognizeFields(
+      touched,
+      {
+        ...initialLogFormState(null, NOW),
+        drinkName: "ボトル名",
+        origin: "イタリア",
+        bottleId: "11111111-1111-4111-8111-111111111111",
+      },
+      { lockDrinkType: true },
+    );
+    expect(touched.drinkName).toBe(true);
+    expect(touched.origin).toBe(true);
+    expect(touched.drinkType).toBe(true);
+    expect(touched.variety).toBe(false);
   });
 });

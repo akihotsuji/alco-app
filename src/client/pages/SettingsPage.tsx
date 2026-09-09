@@ -16,10 +16,8 @@ import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { needsGuideFanReveal } from "@/client/lib/guide-spotlight-layout.ts";
 import {
   getCellarRecognizePref,
-  getColorCorrectionPref,
   getComposeMascotPref,
   setCellarRecognizePref,
-  setColorCorrectionPref,
   setComposeMascotPref,
 } from "@/client/lib/preferences.ts";
 import { APP_VERSION } from "@/shared/constants.ts";
@@ -32,7 +30,6 @@ export function SettingsPage() {
   const fanAnchorRef = useRef<HTMLDivElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [composeMascot, setComposeMascot] = useState(getComposeMascotPref);
-  const [colorCorrection, setColorCorrection] = useState(getColorCorrectionPref);
   const [recognize, setRecognize] = useState(getCellarRecognizePref);
 
   useLayoutEffect(() => {
@@ -74,27 +71,19 @@ export function SettingsPage() {
 
       <section className="settings-section">
         <h2 className="settings-heading">写真</h2>
-        <div className="settings-row">
-          <span>写真にキャラを入れる（既定）</span>
-          <Switch
-            label="写真にキャラを入れる（既定）"
-            checked={composeMascot}
-            onChange={(value) => {
-              setComposeMascot(value);
-              setComposeMascotPref(value);
-            }}
-          />
-        </div>
-        <div className="settings-row">
-          <span>色補正を掛ける（既定）</span>
-          <Switch
-            label="色補正を掛ける（既定）"
-            checked={colorCorrection}
-            onChange={(value) => {
-              setColorCorrection(value);
-              setColorCorrectionPref(value);
-            }}
-          />
+        <div className="settings-row settings-row-stack">
+          <span className="settings-row-main">
+            <span>写真にキャラを入れる（既定）</span>
+            <Switch
+              label="写真にキャラを入れる（既定）"
+              checked={composeMascot}
+              onChange={(value) => {
+                setComposeMascot(value);
+                setComposeMascotPref(value);
+              }}
+            />
+          </span>
+          <span className="settings-caption">新しい写真に合成します。過去の写真は変えません</span>
         </div>
       </section>
 
@@ -112,13 +101,16 @@ export function SettingsPage() {
               }}
             />
           </span>
-          <span className="settings-caption">写真を Cloudflare の AI に送ります</span>
+          <span className="settings-caption">写真を Cloudflare Workers AI に送ります</span>
         </div>
       </section>
 
       <section className="settings-section">
         <h2 className="settings-heading">記録</h2>
         <RecordLocationPrefRow />
+        <p className="settings-caption settings-privacy">
+          写真からの自動入力では、画像を Cloudflare 経由の外部 AI に送ります
+        </p>
       </section>
 
       <section className="settings-section">

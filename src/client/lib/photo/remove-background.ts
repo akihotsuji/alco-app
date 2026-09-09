@@ -9,7 +9,6 @@ import {
   PHOTO_CUTOUT_ORT_WASM_PATH,
   PHOTO_CUTOUT_SHADOW,
 } from "@/shared/constants.ts";
-import { applyPreset, type ColorPreset } from "./apply-preset.ts";
 import {
   applyAlphaMask,
   flattenMaskOutput,
@@ -153,14 +152,13 @@ export async function segmentBottle(
 }
 
 /**
- * マスクを元画像へ当て、色補正（周辺減光なし）→ 2:3 キャンバスへ下端揃え + 落ち影で置く。
+ * マスクを元画像へ当て、2:3 キャンバスへ下端揃え + 落ち影で置く。色補正はしない。
  * 推論とは独立なので、キャッシュしたマスクから何度でも作れる。
  */
 export function composeBottleCutout(input: {
   source: HTMLCanvasElement;
   mask: Uint8Array;
   modelSize: number;
-  preset: ColorPreset;
   output: { width: number; height: number };
 }): HTMLCanvasElement {
   const scaled = scaleMask(input.mask, input.modelSize, input.source.width, input.source.height);
@@ -175,11 +173,10 @@ export function composeBottleCutout(input: {
   const image = cutCtx.getImageData(0, 0, cut.width, cut.height);
   applyAlphaMask(image.data, scaled);
   cutCtx.putImageData(image, 0, 0);
-  const colored = applyPreset(cut, input.preset, { vignette: false });
   const dest = document.createElement("canvas");
   dest.width = input.output.width;
   dest.height = input.output.height;
-  paintCutoutOnCanvas(colored, dest);
+  paintCutoutOnCanvas(cut, dest);
   return dest;
 }
 

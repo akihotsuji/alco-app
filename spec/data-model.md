@@ -49,7 +49,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 写真の所有者 | `bottle_id` / `tasting_note_id` / `drink_log_id` は **最大 1 つ**（CHECK）。3 つとも NULL は未紐付け | 排他を 3 way に拡張 |
 | 未紐付け写真 | 作成 24 時間で GC（Cron Trigger 日次）。R2 と D1 の両方を消す | 「使う」直後にアップロードするため放棄分が出る |
 | 写真枚数 | 記録 1 / ボトル 1 / ノート **6**（確定） | 5-01 の「提案 6」を確定 |
-| 写真の中身 | 加工後（比率・色補正・キャラ合成済み）の画像 **1 枚だけ**。元画像は保存しない | R2 を倍にしない（[07-photo-capture.md](screen-designs/07-photo-capture.md)） |
+| 写真の中身 | 加工後（向き補正・必要なら切り抜き・キャラ合成済み）の画像 **1 枚だけ**。元画像は保存しない。色補正はしない | R2 を倍にしない（[07-photo-capture.md](screen-designs/07-photo-capture.md)） |
 | 写真の種別 | `photos.kind`: `photo`（長方形 JPEG）/ `cutout`（背景除去済み透過 WebP。セラーのみ）。サーバーが画像ヘッダから判定 | 棚で描き方を分ける（2026-09-05） |
 | ラベル読み取り | **テーブルを持たない**。`POST /api/bottles/recognize` は候補を返すだけで保存しない。利用回数の上限はユーザーごとに日次でカウント（`ai_usage` テーブル、下記 6.6） | Workers AI 無料枠の保護 |
 

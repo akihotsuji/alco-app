@@ -1,6 +1,6 @@
 # 07 写真の撮影・編集・合成（`photo-edit`）
 
-記録・セラー・ノートで共通の **写真パイプライン**。実装は 2-08（基盤）。呼び出し側は [03-log.md](03-log.md) / [04-cellar.md](04-cellar.md) / [05-notes.md](05-notes.md)。キャラクター合成の数値は [../character.md](../character.md) 5 章。
+記録・セラー・ノートの **写真パイプライン**。酒記録は撮影後に `photo-edit` を開かない。セラー・ノートは従来どおりオーバーレイで切り抜き・位置を調整する。実装は 2-08（基盤）。呼び出し側は [03-log.md](03-log.md) / [04-cellar.md](04-cellar.md) / [05-notes.md](05-notes.md)。キャラクター合成の数値は [../character.md](../character.md) 5 章。認識は [../features/ai-recognition.md](../features/ai-recognition.md)。
 
 モック: [photo-edit.png](../wireframes/mocks/photo-edit.png)
 
@@ -10,17 +10,17 @@
 
 | 項目 | 決定 | 理由 |
 |---|---|---|
-| 取り込み | **2 経路**。基本は撮影（`<input type="file" accept="image/*" capture="environment">`）。保存済み写真の選択は別ボタン（同じ `input`、**`capture` なし**）。記録・セラー・ノートのフォームと `photo-edit` で両方出せる。3 画面とも「写真を撮る」「写真を選ぶ」を同じ大きさで横並びにし、フォーム内の明示タップだけ（中央タブは撮影しない。記録・ノートの `?camera=1` は無視）。ホームに撮影開始のボタンは置かない。セラー追加のアプリ内導線は `?camera=1` を付けない（ディープリンクだけ撮影から）。`getUserMedia` は使わない。独自の「カメラを開きますか？」確認は出さない | iOS の `capture` はライブラリを出さない。Android の `capture` なしはカメラを出さない端末がある。1 つの OS 選択 UI に任せると片方を失う |
+| 取り込み | **2 経路**。基本は撮影（`<input type="file" accept="image/*" capture="environment">`）。保存済み写真の選択は別ボタン（同じ `input`、**`capture` なし**）。3 画面とも「写真を撮る」「写真を選ぶ」を同じ大きさで横並びにし、フォーム内の明示タップだけ（中央タブは撮影しない。記録・ノートの `?camera=1` は無視）。**酒記録は確定後に `photo-edit` を開かない**。ホームに撮影開始のボタンは置かない。セラー追加のアプリ内導線は `?camera=1` を付けない（ディープリンクだけ撮影から）。`getUserMedia` は使わない。独自の「カメラを開きますか？」確認は出さない | iOS の `capture` はライブラリを出さない。Android の `capture` なしはカメラを出さない端末がある。1 つの OS 選択 UI に任せると片方を失う |
 | 処理場所 | **すべてクライアント（Canvas 2D）**。サーバーは受け取って検証・保存だけ | Workers で画像処理をしない（CPU 時間・無料枠）。Cloudflare Images は有料のため使わない |
 | 出力 | JPEG、長辺 **1280px**、品質 **0.82**、EXIF なし（Canvas 再エンコードで自然に落ちる） | 1 枚 150〜300KB。R2 無料枠 10GB で 3 万枚以上 |
 | 保存枚数 | **加工後 1 枚だけ**。元画像は保存しない | 容量を倍にしない。やり直しは撮り直し |
-| 比率 | 文脈で固定: 記録・ノート **4:5**、セラー **2:3** | 一覧の見た目を揃える |
-| 色補正 | プリセット `table` / `cellar` を既定 ON。OFF 可（設定で既定変更） | 「いい感じに加工」の MVP 範囲 |
-| キャラ合成 | 記録・ノートのみ。右下。4 ポーズから編集画面オープン時に抽選。グローなし。既定 ON | 2026-09-08 |
+| 比率 | ノート・セラーの編集は固定: ノート **4:5**、セラー **2:3**。**酒記録の保存画像は全体を保持**し、サムネ比率は画面側で `object-fit` | 記録はラベル欠けを避ける。一覧の見た目は CSS |
+| 色補正 | **廃止**。旧 `photo.filter` が残っていても再有効化しない | 誤った色味の焼き込みを止める |
+| キャラ合成 | 記録・ノートのみ。右下。4 ポーズから処理開始時に抽選。グローなし。設定 S3 を自動適用。酒記録では撮影ごとに選ばない | 2026-09-09 |
 | 背景除去（切り抜き） | **セラーのみ、MVP**（2026-09-05 決定）。ブラウザ WASM（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`）。トグル「切り抜く」既定 ON。出力は透過 WebP、`photos.kind = cutout`。失敗・未対応では長方形 JPEG（`kind = photo`）にフォールバック | ガラス棚に本物のシルエットで立たせる |
-| ラベル読み取り | セラーは切り抜く**前**の 2:3 JPEG を `POST /api/bottles/recognize` へ。記録はキャラ合成**前**の 4:5 JPEG を `POST /api/drink-logs/recognize` へ。ノートは同じ JPEG を `POST /api/tasting-notes/recognize` へ（品名・種類・識別 4 項目。空欄と直前の AI 値は再読取で上書き。生産国・品種はラベル情報から推測。画像は保存しない）。撮影日は EXIF → `File.lastModified` で日付欄の既定にする（AI には送らない） | [04-cellar.md](04-cellar.md) B2 / [03-log.md](03-log.md) N1 / [05-notes.md](05-notes.md) N1 / [register-identity.md](../features/register-identity.md) |
+| ラベル読み取り | セラーは切り抜く**前**の 2:3 JPEG を `POST /api/bottles/recognize` へ。記録はキャラ合成**前**の **全体 JPEG** を `POST /api/drink-logs/recognize` へ。ノートは切り抜き後・合成前の 4:5 JPEG を `POST /api/tasting-notes/recognize` へ。画像は保存しない。撮影日は EXIF → `File.lastModified` で日付欄の既定（AI には送らない） | [04-cellar.md](04-cellar.md) B2 / [03-log.md](03-log.md) N1 / [05-notes.md](05-notes.md) N1 / [ai-recognition.md](../features/ai-recognition.md) |
 | HEIC | iOS の `capture` 撮影は JPEG で来る。ライブラリ選択で HEIC が来た場合、Safari は `<img>` でデコードできるので Canvas 経由で JPEG 化される。デコードできないブラウザでは「この形式は使えません。JPEG / PNG を選んでください」 | サーバーは常に JPEG を受ける |
-| アップロード時期 | 「使う」を押した直後に **未紐付けで `POST /api/photos`**。フォーム保存時に `photoIds` で紐付け | 保存ボタン押下を速くする。放棄分はサーバー GC（24h） |
+| アップロード時期 | 酒記録は撮影確定直後。セラー・ノートは「使う」直後。**未紐付けで `POST /api/photos`**。フォーム保存時に `photoIds` で紐付け | 保存ボタン押下を速くする。放棄分はサーバー GC（24h） |
 | 上限 | サーバー 1 枚 **1MB**（413）。クライアント出力は通常 300KB 以下 | 実体検証はサーバー（magic bytes + サイズ） |
 
 ---
@@ -40,7 +40,7 @@
 │ │                              │  │
 │ │                   [Mascot]   │  │  合成 ON のとき右下（4 ポーズから抽選。グローなし）
 │ └──────────────────────────────┘  │
-│ [✓ 色補正: 食卓]  [✓ キャラを入れる]│  トグル Chip（セラーではキャラ非表示）
+│ [✓ 切り抜く]                         │  セラーのみ。記録は本画面を開かない
 │                                  │
 │ [           使う              ]  │  Button 主
 └──────────────────────────────────┘
@@ -54,8 +54,8 @@
 | P2 | 撮り直す | テキストボタン | 撮影を開き直す（`capture="environment"`） |
 | P2b | ライブラリから | テキストボタン | 保存済み写真を選ぶ（`capture` なし）。P2 の左 |
 | P3 | プレビュー | Canvas / `<img>` + 枠 | 比率枠に `cover`。1 本指ドラッグで平行移動、2 本指ピンチで 1.0〜3.0 倍。枠外は `--foreground` 60% で暗く |
-| P4 | 色補正トグル | Chip（✓） | ラベル: 記録・ノート「色補正: 食卓」、セラー「色補正: セラー」。ON/OFF でプレビュー即反映 |
-| P5 | キャラトグル | Chip（✓） | 記録・ノートのみ。ON でプレビュー右下に抽選したポーズ（短辺 22%。グローなし）。セラーでは **表示しない** |
+| P4 | （廃止） | — | 色補正トグル |
+| P5 | （廃止） | — | キャラトグル。設定 S3 を処理開始時に読む。ノートのプレビューは設定どおり合成結果を見せる |
 | P5b | 切り抜きトグル | Chip（✓） | **セラーのみ**、既定 ON。ON のときプレビュー背景を市松にして切り抜き結果を見せる（処理中はマスコット `surprised` + 「この写真を切り抜いています」、初回は「初回のみ数十 MB を取得します」）。失敗時は**今回の編集画面だけ**自動で OFF。読み込み／初期化失敗は「切り抜きの読み込みに失敗しました。長方形のまま保存します」、被写体を切り抜けなかったときは「うまく抜けませんでした。長方形のまま保存します」。`photo.cutout` は変更しない |
 | P6 | 使う | Button 主 | 合成 → 画像化（cutout は WebP、他は JPEG）→ アップロード開始 → 閉じる。呼び出し元にサムネと `photoId`（アップロード中は進捗）。セラーでは切り抜く前の JPEG も呼び出し元へ渡す（読み取り用。保存しない）。まとめて追加では **同じタップ**で次のカメラを開き、今の写真は裏で処理する（OS キャンセルでループ終了） |
 | P6b | 連続撮影の件数 | テキスト | まとめて追加で 1 本以上裏に積んだとき「N 本を裏で処理しています」 |
@@ -66,26 +66,27 @@
 
 ```
 File → createImageBitmap（EXIF orientation 補正）
-     → トリミング（比率・位置・拡縮）→ 長辺 1280 にリサイズ
-     → [記録・ノート] filter（プリセット。OFF なら none）→ composeMascot → JPEG 0.82
-     → [セラー] 未補正キャンバスを保持（`preparePhoto`）
-                 → filter + 周辺減光した JPEG を recognize 用に保持（メモリのみ）
+     → [記録] 長辺 1280 に全体リサイズ（切り抜きなし）
+            → 合成前 JPEG を recognize 用に保持 → 設定どおり composeMascot → JPEG
+     → [ノート] トリミング（4:5）→ 合成前 JPEG → composeMascot → JPEG 0.82
+     → [セラー] トリミング（2:3）→ 未補正キャンバス（`preparePhoto`）
+                 → 切り抜く前 JPEG を recognize 用に保持（色補正なし）
                     → 「使う」ではこの時点で呼び出し元へ渡し、ラベル読み取りを **背景除去を待たずに** 始める
-                 → [切り抜き ON] 未補正で segmentBottle（WASM）→ マスク cleanup・品質判定 → マスクをキャッシュ
-                                 → 色補正（周辺減光なし）→ 2:3 透過キャンバスに下端から 4% + 落ち影 → WebP 0.9
-                                 → 失敗なら filter + 周辺減光の JPEG にフォールバック（理由 `CutoutFailureReason` を保持）
-                 → [切り抜き OFF] filter + 周辺減光 JPEG
+                 → [切り抜き ON] segmentBottle（WASM）→ マスク cleanup・品質判定 → マスクをキャッシュ
+                                 → 2:3 透過キャンバスに下端から 4% + 落ち影 → WebP 0.9
+                                 → 失敗なら切り抜く前 JPEG にフォールバック（理由 `CutoutFailureReason` を保持）
+                 → [切り抜き OFF] 切り抜く前 JPEG
      → POST /api/photos（multipart: file, 任意 bottleId / tastingNoteId / drinkLogId）
 ```
 
 - トリミング・リサイズ・合成・落ち影の座標計算は **純粋関数**にし単体テスト（比率 4:5 / 2:3、拡縮 1.0 / 3.0、短辺 22% の位置、切り抜きの下端揃え）
 - 背景除去は `src/client/lib/photo/remove-background.ts` に隔離する。モデルと ORT WASM は同一オリジン `/models/`（CDN は使わない）
 - 背景除去の実行条件: WebAssembly SIMD が使えること。使えない端末はトグルを非表示にし常に長方形
-- 推論は **同一画像・同一編集条件（比率・位置・拡縮）で原則 1 回**。プレビューで求めたマスクを「使う」で再利用し、色補正の切替ではマスクを使い回す（Issue #48）
+- 推論は **同一画像・同一編集条件（比率・位置・拡縮）で原則 1 回**。プレビューで求めたマスクを「使う」で再利用する（Issue #48）
 - 推論は端末内で **実行中 1 件 + pending 最新 1 件**。パン・ズームを繰り返しても古い依頼は置き換え、タイムアウトした推論が終わるまで次を始めない
 - 失敗理由は `unsupported / model_download / session_init / timeout / inference / invalid_output / invalid_mask / empty_mask / encode / superseded / unknown` を機械可読に保持する。UI は読み込み／初期化失敗と切り抜けなかったの 2 種だけ出す。詳細（理由・工程時間・安全な例外名）は `sessionStorage` の `photo.cutout.diag` とメモリ上の `getRecentPhotoMetrics`。開発ビルドだけ `console.debug` する。画像・Cookie・トークンは書かない
 - マスクの後処理: 薄い alpha（背景残り）を 0、確かな alpha を 255 にし小さな連結成分を消す。品質判定は「被写体がほぼ無い」「ほぼ全面が被写体」「左右両端まで被写体」だけを失敗にし、縦横比・中心位置は記録にとどめる（閾値は `PHOTO_CUTOUT_MASK`。実機評価で調整）
-- `filter` は Canvas 2D の `ctx.filter`。未対応ブラウザ（古い Safari）では色補正をスキップし、トグルを無効化して「この端末では色補正を使えません」
+- 色補正用の `ctx.filter` は使わない
 - メモリ: 4000×3000 の元画像は `createImageBitmap` の `resizeWidth` で先に縮める
 
 ### 状態
@@ -107,8 +108,7 @@ File → createImageBitmap（EXIF orientation 補正）
 
 | キー | 既定 | 用途 |
 |---|---|---|
-| `photo.mascot` | `true` | キャラトグルの初期値（設定画面 S3 と同じ値） |
-| `photo.filter` | `true` | 色補正トグルの初期値（S4） |
+| `photo.mascot` | `true` | キャラ合成の既定（設定画面 S3 と同じ値） |
 | `photo.cutout` | `true` | 切り抜きトグルの初期値（セラー） |
 | `cellar.recognize` | `true` | ラベル自動読み取り（設定画面 S5） |
 
@@ -134,12 +134,12 @@ File → createImageBitmap（EXIF orientation 補正）
 
 ## 受け入れチェック（2-08）
 
-- [ ] 撮影（`capture="environment"`）と「写真を選ぶ / ライブラリから」（`capture` なし）の 2 経路があり、どちらも `photo-edit` が開く。記録・セラー・ノートは明示タップのみ（同じ大きさで横並び）。ホームに撮影開始のボタンは無い。セラー `?camera=1` はディープリンク用
-- [ ] 比率 4:5 / 2:3 の枠、ドラッグ・ピンチ、色補正トグル、キャラトグル（セラーでは非表示）、切り抜きトグル（セラーのみ）
+- [ ] 撮影（`capture="environment"`）と「写真を選ぶ / ライブラリから」（`capture` なし）の 2 経路がある。**酒記録は `photo-edit` を開かず詳細入力へ進む**。セラー・ノートは明示タップで `photo-edit`。ホームに撮影開始のボタンは無い。セラー `?camera=1` はディープリンク用
+- [ ] セラー・ノートは比率 4:5 / 2:3 の枠、ドラッグ・ピンチ、切り抜きトグル（セラーのみ）。色補正トグルとキャラトグルは無い
 - [ ] 切り抜きが透過 WebP（`kind = cutout`）で保存され、失敗時に長方形 JPEG へフォールバックする。初回モデル DL の進捗が出る。処理中はマスコットと「この写真を切り抜いています」で、今この画像を変換していることが分かる
 - [ ] 出力が JPEG 長辺 1280、品質 0.82、EXIF なし。キャラは右下 短辺 22%・余白 4%。背後の白いグローは無い。ポーズは 4 つのうち編集画面オープン時に 1 つ
 - [ ] 「使う」直後に未紐付けアップロード、フォーム保存で `photoIds` 紐付け。まとめて追加では同じタップで次の撮影が開き、「N 本を裏で処理しています」が出る
 - [ ] サーバー: magic bytes、1MB、SVG/GIF 415、他人の紐付け先 404、未紐付け 24h GC
 - [ ] 座標計算・合成の純粋関数に単体テスト
-- [ ] 設定の既定（`photo.mascot` / `photo.filter`）が反映される
+- [ ] 設定の既定（`photo.mascot`）が新規写真へ自動適用される。旧 `photo.filter` では補正が戻らない
 - [ ] 上バーが `safe-area-inset-top`、保存バーが `safe-area-inset-bottom` を避ける（6-05）

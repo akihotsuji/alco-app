@@ -39,9 +39,17 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(context).toContain("pickImage(source)");
   });
 
+  it("色補正 UI は出さず、酒記録は photo-edit を挟まない", () => {
+    expect(source).not.toContain("色補正");
+    expect(source).not.toContain("getColorCorrectionPref");
+    expect(context).toContain('if (nextKind === "log")');
+    expect(context).toContain("processLogFile");
+    expect(context).toContain("ingestLogPhoto");
+  });
+
   it("切り抜く前の JPEG を先に呼び出し元へ渡し、ラベル読み取りを背景除去と並列に始められる", () => {
     expect(source).toContain(
-      'kind === "cellar" || kind === "log" || kind === "note" ? offerRecognizeJpeg : undefined',
+      'kind === "cellar" || kind === "note" ? offerRecognizeJpeg : undefined',
     );
     expect(context).toContain("pendingRecognizeJpeg");
     expect(context).toContain("offerRecognizeJpeg");

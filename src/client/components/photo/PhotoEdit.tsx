@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { type PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
@@ -8,10 +8,8 @@ import { useFocusTrap } from "@/client/hooks/use-focus-trap.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { BOTTLE_BATCH_MESSAGES } from "@/client/lib/bottle-batch.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
-import { applyPreset } from "@/client/lib/photo/apply-preset.ts";
 import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import { cutoutFailedUserMessage } from "@/client/lib/photo/cutout-result.ts";
-import { supportsCanvasFilter } from "@/client/lib/photo/filter-support.ts";
 import {
   aspectForKind,
   clampScale,
@@ -19,21 +17,14 @@ import {
   outputSizeForAspect,
 } from "@/client/lib/photo/geometry.ts";
 import { IMAGE_PICK_LABELS, pickImage } from "@/client/lib/photo/pick-image.ts";
-import {
-  presetForKind,
-  processPhoto,
-  previewCutout as renderCutoutPreview,
-} from "@/client/lib/photo/process.ts";
+import { processPhoto, previewCutout as renderCutoutPreview } from "@/client/lib/photo/process.ts";
 import {
   type RemoveBackgroundProgress,
   supportsBackgroundRemoval,
 } from "@/client/lib/photo/remove-background.ts";
 import {
-  getColorCorrectionPref,
   getComposeMascotPref,
   getCutoutPref,
-  setColorCorrectionPref,
-  setComposeMascotPref,
   setCutoutPref,
 } from "@/client/lib/preferences.ts";
 import type { PhotoMascotPose } from "@/shared/constants.ts";
@@ -58,7 +49,6 @@ export function PhotoEdit() {
   const [scale, setScale] = useState(1);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
-  const [filterOn, setFilterOn] = useState(getColorCorrectionPref);
   const [mascotOn, setMascotOn] = useState(getComposeMascotPref);
   const [cutoutOn, setCutoutOn] = useState(getCutoutPref);
   const [processing, setProcessing] = useState(false);
@@ -68,7 +58,6 @@ export function PhotoEdit() {
   const [cutoutMessage, setCutoutMessage] = useState<string | null>(null);
   const [mascotMounted, setMascotMounted] = useState(getComposeMascotPref);
   const [mascotPose, setMascotPose] = useState<PhotoMascotPose>("default");
-  const filterSupported = useMemo(() => supportsCanvasFilter(), []);
   const cutoutSupported = kind === "cellar" && supportsBackgroundRemoval();
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -84,7 +73,6 @@ export function PhotoEdit() {
     setScale(1);
     setOffsetX(0);
     setOffsetY(0);
-    setFilterOn(filterSupported ? getColorCorrectionPref() : false);
     const nextMascot = getComposeMascotPref();
     setMascotOn(nextMascot);
     setMascotMounted(nextMascot);
@@ -95,7 +83,7 @@ export function PhotoEdit() {
     setCutoutProgress(null);
     setPreviewCutout(null);
     setCutoutMessage(null);
-  }, [open, filterSupported]);
+  }, [open]);
 
   useEffect(() => {
     if (mascotOn) {
@@ -143,7 +131,6 @@ export function PhotoEdit() {
         scale,
         offsetX,
         offsetY,
-        filterOn: filterOn && filterSupported,
         onCutoutProgress: setCutoutProgress,
         signal: controller.signal,
       }).then((preview) => {
@@ -172,8 +159,6 @@ export function PhotoEdit() {
   }, [
     cutoutOn,
     cutoutSupported,
-    filterOn,
-    filterSupported,
     kind,
     offsetX,
     offsetY,
@@ -214,13 +199,10 @@ export function PhotoEdit() {
       return;
     }
     rawCtx.drawImage(source, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, raw.width, raw.height);
-    const framed = filterOn && filterSupported ? applyPreset(raw, presetForKind(kind, true)) : raw;
-    ctx.drawImage(framed, 0, 0);
+    ctx.drawImage(raw, 0, 0);
   }, [
     aspect,
     cutoutOn,
-    filterOn,
-    filterSupported,
     kind,
     offsetX,
     offsetY,
@@ -240,7 +222,6 @@ export function PhotoEdit() {
   }
 
   const ratioClass = kind === "cellar" ? "photo-edit-frame-bottle" : "photo-edit-frame-log";
-  const filterLabel = kind === "cellar" ? "色補正: セラー" : "色補正: 食卓";
   const busy = processing || cutoutBusy;
 
   async function onUse() {
@@ -261,14 +242,12 @@ export function PhotoEdit() {
         scale,
         offsetX,
         offsetY,
-        filterOn: filterOn && filterSupported,
         mascotOn: kind !== "cellar" && mascotOn,
         mascotPose,
         cutoutOn: kind === "cellar" && cutoutOn && cutoutSupported,
         onCutoutProgress: setCutoutProgress,
         // 背景除去を待たずにラベル読み取りを始められるよう、切り抜く前の JPEG を先に渡す
-        onRecognizeJpeg:
-          kind === "cellar" || kind === "log" || kind === "note" ? offerRecognizeJpeg : undefined,
+        onRecognizeJpeg: kind === "cellar" || kind === "note" ? offerRecognizeJpeg : undefined,
       });
       if (processed.cutout?.status === "failed") {
         // 一時的な失敗。`photo.cutout` はユーザーがトグルを操作したときだけ変える
@@ -392,27 +371,7 @@ export function PhotoEdit() {
         </p>
       ) : null}
       {cutoutMessage ? <p className="photo-edit-note">{cutoutMessage}</p> : null}
-      {!filterSupported ? <p className="photo-edit-note">この端末では色補正を使えません</p> : null}
       <div className="photo-edit-toggles">
-        <Chip
-          label={filterLabel}
-          checked={filterOn}
-          disabled={!filterSupported}
-          onChange={(value) => {
-            setFilterOn(value);
-            setColorCorrectionPref(value);
-          }}
-        />
-        {kind !== "cellar" ? (
-          <Chip
-            label="キャラを入れる"
-            checked={mascotOn}
-            onChange={(value) => {
-              setMascotOn(value);
-              setComposeMascotPref(value);
-            }}
-          />
-        ) : null}
         {kind === "cellar" && cutoutSupported ? (
           <Chip
             label="切り抜く"

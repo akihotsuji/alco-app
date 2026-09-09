@@ -26,6 +26,15 @@ describe("SettingsPage S11 / S12", () => {
     expect(source).not.toContain("alco-app");
   });
 
+  it("色補正設定は出さず、外部 AI への送信を書く", () => {
+    expect(source).not.toContain("色補正");
+    expect(source).not.toContain("getColorCorrectionPref");
+    expect(source).toContain("新しい写真に合成します。過去の写真は変えません");
+    expect(source).toContain("写真を Cloudflare Workers AI に送ります");
+    expect(source).toContain("Cloudflare 経由の外部 AI");
+    expect(source).not.toContain("Gemini 3.7");
+  });
+
   it("記録節に現在地を記録するがある", () => {
     expect(source).toContain("記録");
     expect(source).toContain("RecordLocationPrefRow");

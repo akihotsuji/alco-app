@@ -5,8 +5,8 @@ import { IDENTITY_INFERENCE_PROMPT } from "../identity-inference-prompt.ts";
 export const NOTE_RECOGNIZE_SYSTEM_PROMPT = [
   "You estimate tasting-note fields from a photo of a drink, glass, can, or bottle label.",
   "Return JSON only. No markdown. No extra keys.",
-  "Prefer printed label text. If a field is not fully readable, infer a likely value from the glass, bottle, and typical brand/type/vintage.",
-  "Use lower confidence for inferred values. Omit a field only when you have no reasonable guess.",
+  "Prefer printed label text. If a field is not fully readable, omit it.",
+  "Do not guess typical brand, origin, or variety.",
   "Do not invent completely unrelated brands. Do not encourage drinking.",
   "Schema:",
   "{",
@@ -32,7 +32,7 @@ export const NOTE_RECOGNIZE_SYSTEM_PROMPT = [
 ].join(" ");
 
 export const NOTE_RECOGNIZE_USER_PROMPT =
-  "Guess the drink name, type, vintage, producer, country of origin, and variety from this photo and return the JSON object described in the system message.";
+  "Extract the drink name, type, vintage, producer, country of origin, and variety from this photo when evidence exists. Return the JSON object described in the system message.";
 
 export const NOTE_RECOGNIZE_GUIDED_JSON_SCHEMA = {
   type: "object",

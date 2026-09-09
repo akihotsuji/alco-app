@@ -49,4 +49,11 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).toContain("BOTTLE_FIELD_LABELS.storedOn");
     expect(source).toContain("BOTTLE_FIELD_LABELS.storage");
   });
+
+  it("写真拡大は共通 PhotoViewer で、切り抜きは市松のまま", () => {
+    expect(source).toContain("PhotoViewer");
+    expect(source).toContain("checkerboard");
+    expect(source).not.toContain("bottle-lightbox");
+  });
 });
+

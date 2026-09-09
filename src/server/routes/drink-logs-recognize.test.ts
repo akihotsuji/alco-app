@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { aiUsage } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
-import { AI_RECOGNIZE_DAILY_LIMIT, PHOTO_MAX_BYTES } from "@/shared/constants.ts";
+import { AI_RECOGNIZE_DAILY_LIMIT, PHOTO_MAX_BYTES, WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
 import { drinkRecognizeResponseSchema } from "@/shared/drink-recognize.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { makeHtml, makeJpeg, makePng } from "../image-fixtures.ts";
@@ -69,6 +69,12 @@ describe("POST /api/drink-logs/recognize", () => {
     expect(res.status).toBe(200);
     const body = drinkRecognizeResponseSchema.parse(await res.json());
     expect(body.provider).toBe("workers-ai");
+    expect(body.profile).toBe("workers-ai-llama");
+    expect(body.modelId).toBe(WORKERS_AI_VISION_MODEL);
+    expect(body.usage.inputTokens).toBeNull();
+    expect(body.usage.outputTokens).toBeNull();
+    expect(body.searchUsed).toBe(false);
+    expect(body.sources).toEqual([]);
     expect(body.remainingToday).toBe(AI_RECOGNIZE_DAILY_LIMIT - 1);
     expect(body.fields.drinkType?.value).toBe("beer");
     expect(body.fields.volumeMl?.value).toBe(350);
@@ -154,6 +160,24 @@ describe("POST /api/drink-logs/recognize", () => {
     const a = await session(ctx.app, "a@example.com");
     const res = await postRecognize(ctx.app, a.cookie, makeJpeg(200, 250));
     expect(res.status).toBe(502);
+    expect(await usageCount(ctx, a.userId)).toBe(0);
+  });
+
+  it("未設定モデルは 503 で手入力を止めない。回数は加算しない", async () => {
+    const ctx = await createTestApp({
+      drinkRecognizer: {
+        provider: "gemini",
+        profile: "",
+        modelId: "",
+        recognize: async () => {
+          throw new Error("should not run");
+        },
+      },
+    });
+    const a = await session(ctx.app, "a@example.com");
+    const res = await postRecognize(ctx.app, a.cookie, makeJpeg(200, 250));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "misconfigured" });
     expect(await usageCount(ctx, a.userId)).toBe(0);
   });
 

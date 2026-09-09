@@ -14,6 +14,9 @@ type CompactPhotoFieldProps = {
   onEdit?: () => void;
   onRetry?: () => void;
   onClear?: () => void;
+  onPreview?: () => void;
+  /** edit = photo-edit。retake = 酒記録（中間画面なし） */
+  actions?: "edit" | "retake";
   error?: string | null;
   recognizeStatus?: "loading" | "success" | null;
   recognizeMessage?: string;
@@ -23,6 +26,7 @@ type CompactPhotoFieldProps = {
 
 /**
  * 記録フォームのコンパクトな写真欄。明示タップ以外では撮影しない。
+ * 写真タップは拡大。撮り直し・選び直し・削除・再試行は別操作。
  */
 export function CompactPhotoField({
   optional = true,
@@ -34,6 +38,8 @@ export function CompactPhotoField({
   onEdit,
   onRetry,
   onClear,
+  onPreview,
+  actions = "edit",
   error,
   recognizeStatus,
   recognizeMessage,
@@ -50,12 +56,28 @@ export function CompactPhotoField({
       {previewUrl ? (
         <div className="photo-thumb-row">
           <div className={`photo-thumb photo-thumb-${ratio}`}>
-            <ContentPhoto
-              src={previewUrl}
-              className="photo-thumb-img"
-              size={ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile}
-              loading="eager"
-            />
+            {onPreview ? (
+              <button
+                type="button"
+                className="photo-thumb-preview"
+                onClick={onPreview}
+                aria-label="写真を拡大"
+              >
+                <ContentPhoto
+                  src={previewUrl}
+                  className="photo-thumb-img"
+                  size={ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile}
+                  loading="eager"
+                />
+              </button>
+            ) : (
+              <ContentPhoto
+                src={previewUrl}
+                className="photo-thumb-img"
+                size={ratio === "bottle" ? PHOTO_DISPLAY_SIZE.bottleTile : PHOTO_DISPLAY_SIZE.logTile}
+                loading="eager"
+              />
+            )}
             {attachment?.status === "uploading" ? (
               <span className="photo-tile-progress" role="status">
                 アップロード中
@@ -69,9 +91,20 @@ export function CompactPhotoField({
             ) : null}
           </div>
           <div className="photo-thumb-actions">
-            <button type="button" className="header-text-link" onClick={onEdit ?? onCapture}>
-              編集
-            </button>
+            {actions === "retake" ? (
+              <>
+                <button type="button" className="header-text-link" onClick={onCapture}>
+                  撮り直す
+                </button>
+                <button type="button" className="header-text-link" onClick={onLibrary}>
+                  {IMAGE_PICK_LABELS.captureLibrary}
+                </button>
+              </>
+            ) : (
+              <button type="button" className="header-text-link" onClick={onEdit ?? onCapture}>
+                編集
+              </button>
+            )}
             {onClear ? (
               <button type="button" className="header-text-link" onClick={onClear}>
                 削除

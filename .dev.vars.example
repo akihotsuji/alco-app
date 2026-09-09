@@ -5,3 +5,10 @@ BETTER_AUTH_SECRET=
 # BETTER_AUTH_URL=
 # 未設定なら実行時エラーのウェブフックは送らない。値はチャットに貼らない
 # ALERT_WEBHOOK_URL=
+# 認識モデル。未設定なら wrangler.jsonc の vars（酒記録は gemini-3.7-flash）
+# AI_RECOGNITION_PROFILE=gemini-3.7-flash
+# AI_LABEL_RECOGNITION_PROFILE=workers-ai-llama
+# AI_NOTE_RECOGNITION_PROFILE=workers-ai-llama
+# AI_GATEWAY_ID=default
+# AI_GATEWAY_COLLECT_LOG=0
+# AI_RECOGNIZE_DAILY_LIMIT=30

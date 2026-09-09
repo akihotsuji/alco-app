@@ -15,11 +15,9 @@ import { meRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
-import { createWorkersAiDrinkRecognizer } from "./services/drink-recognizer/workers-ai.ts";
+import { createTaskRecognizer } from "./services/ai-recognition/create-recognizer.ts";
 import { reportUnexpectedError } from "./services/error-alert.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
-import { createWorkersAiRecognizer } from "./services/label-recognizer/workers-ai.ts";
-import { createWorkersAiNoteRecognizer } from "./services/note-recognizer/workers-ai.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
 import { envAssets, isHashedAssetPath, serveHashedAsset } from "./static-assets.ts";
@@ -91,18 +89,19 @@ export function createApp(options: CreateAppOptions = {}) {
   const photosRoute = createPhotosRoute(routeDeps);
   const drinkLogsRoute = createDrinkLogsRoute({
     ...routeDeps,
-    getDrinkRecognizer: (c) => options.drinkRecognizer ?? createWorkersAiDrinkRecognizer(c.env.AI),
+    getDrinkRecognizer: (c) => options.drinkRecognizer ?? createTaskRecognizer(c.env, "drink"),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
+    getEnv: (c) => c.env,
   });
   const myDrinksRoute = createMyDrinksRoute(routeDeps);
   const bottlesRoute = createBottlesRoute({
     ...routeDeps,
-    getLabelRecognizer: (c) => options.labelRecognizer ?? createWorkersAiRecognizer(c.env.AI),
+    getLabelRecognizer: (c) => options.labelRecognizer ?? createTaskRecognizer(c.env, "label"),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
   });
   const tastingNotesRoute = createTastingNotesRoute({
     ...routeDeps,
-    getNoteRecognizer: (c) => options.noteRecognizer ?? createWorkersAiNoteRecognizer(c.env.AI),
+    getNoteRecognizer: (c) => options.noteRecognizer ?? createTaskRecognizer(c.env, "note"),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
   });
 

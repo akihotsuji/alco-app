@@ -25,6 +25,7 @@
 | [features/health.md](features/health.md) | 公開 `GET /api/health`（認証なし） | 作成済み（0-04） |
 | [features/alcohol-calculation.md](features/alcohol-calculation.md) | 純アルコール量計算・グラスプリセット・休肝日 | 承認済み（1-06。2026-09-04） |
 | [features/drink-log.md](features/drink-log.md) | 飲酒記録（入力・編集・日別・マイドリンク・週/月サマリー・ホーム）の画面項目・バリデーション・API・エッジケース | 承認済み（3-01。2026-09-06） |
+| [features/ai-recognition.md](features/ai-recognition.md) | 酒記録の AI 補完（Gemini 3.7 Flash / プロファイル切替 / 根拠 / 検索） | 実装中（2026-09-09） |
 | [features/cellar.md](features/cellar.md) | セラー（棚・貯蔵庫・追加・詳細・開栓・復元・切り抜き・ラベル読み取り）の画面項目・バリデーション・API・エッジケース | 承認済み（4-01） |
 | [features/tasting-note.md](features/tasting-note.md) | テイスティングノート（撮って評価と一言・写真グリッド・セラー連携）の画面項目・バリデーション・API・エッジケース | 承認済み（5-01 #46）。5-02 CRUD 実装済み |
 | [features/pwa.md](features/pwa.md) | PWA（manifest・スタンドアロン・アイコン生成・SW は API を NetworkOnly） | 6-01（2026-09-08） |

@@ -51,14 +51,11 @@ function flagPref(key: string, fallback: boolean) {
 }
 
 const composeMascot = flagPref(PHOTO_PREF_KEYS.mascot, true);
-const colorCorrection = flagPref(PHOTO_PREF_KEYS.filter, true);
 const cutout = flagPref(PHOTO_PREF_KEYS.cutout, true);
 const cellarRecognize = flagPref(PHOTO_PREF_KEYS.recognize, true);
 
 export const getComposeMascotPref = composeMascot.get;
 export const setComposeMascotPref = composeMascot.set;
-export const getColorCorrectionPref = colorCorrection.get;
-export const setColorCorrectionPref = colorCorrection.set;
 export const getCutoutPref = cutout.get;
 export const setCutoutPref = cutout.set;
 export const getCellarRecognizePref = cellarRecognize.get;

@@ -141,6 +141,10 @@ export function extractModelPayload(output: unknown): unknown {
   if (!record) {
     return output;
   }
+  const geminiText = geminiCandidateText(record);
+  if (geminiText !== null) {
+    return parseJsonText(geminiText);
+  }
   if (typeof record.response === "string") {
     return parseJsonText(record.response);
   }
@@ -157,6 +161,27 @@ export function extractModelPayload(output: unknown): unknown {
     }
   }
   return record;
+}
+
+function geminiCandidateText(record: Record<string, unknown>): string | null {
+  const candidates = record.candidates;
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return null;
+  }
+  const first = asRecord(candidates[0]);
+  const content = first ? asRecord(first.content) : null;
+  const parts = content?.parts;
+  if (!Array.isArray(parts)) {
+    return null;
+  }
+  const texts: string[] = [];
+  for (const part of parts) {
+    const row = asRecord(part);
+    if (row && typeof row.text === "string" && row.text.trim()) {
+      texts.push(row.text);
+    }
+  }
+  return texts.length > 0 ? texts.join("\n") : null;
 }
 
 function parseJsonText(text: string): unknown {

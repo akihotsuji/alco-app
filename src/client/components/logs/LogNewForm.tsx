@@ -19,6 +19,7 @@ import { MemoField } from "@/client/components/logs/MemoField.tsx";
 import { PlaceField } from "@/client/components/logs/PlaceField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
+import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
@@ -29,6 +30,7 @@ import {
   countDrinkRecognizeFields,
   DRINK_RECOGNIZE_BANNER,
   type DrinkRecognizeTouched,
+  lockInheritedRecognizeFields,
 } from "@/client/lib/drink-recognize.ts";
 import { requestCurrentPosition } from "@/client/lib/geolocation.ts";
 import { haptic } from "@/client/lib/haptic.ts";
@@ -74,7 +76,6 @@ export function LogNewForm() {
   const { setGuard } = useLeaveGuard();
   const {
     releaseAttachment,
-    editAttachment,
     pendingRecognizeJpeg,
     startCapture,
     attachments,
@@ -103,6 +104,7 @@ export function LogNewForm() {
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
   const aiMarksRef = useRef(aiMarks);
   aiMarksRef.current = aiMarks;
@@ -218,10 +220,12 @@ export function LogNewForm() {
       }
       setState((current) => {
         const preserveEdits = !fromBottle || shouldPreserveBottlePrefill(current, initial);
-        if (!preserveEdits) {
-          touchedRef.current.drinkType = true;
-        }
-        return applySelectedBottle(current, bottle, { preserveEdits });
+        const next = applySelectedBottle(current, bottle, { preserveEdits });
+        lockInheritedRecognizeFields(touchedRef.current, next, {
+          lockDrinkType: true,
+          lockVolume: !preserveEdits,
+        });
+        return next;
       });
     },
     () => setServerErrors({ bottleId: DRINK_LOG_MESSAGES.bottleNotFound }),
@@ -245,7 +249,7 @@ export function LogNewForm() {
     setRecognizeStatus("loading");
     void startDrinkRecognition(jpeg)
       .then((result) => {
-        if (requestId !== recognizeRequestRef.current) {
+        if (requestId !== recognizeRequestRef.current || savedRef.current) {
           return;
         }
         if (countDrinkRecognizeFields(result.fields) === 0) {
@@ -265,12 +269,18 @@ export function LogNewForm() {
         setRecognizeStatus("success");
       })
       .catch(() => {
-        if (requestId !== recognizeRequestRef.current) {
+        if (requestId !== recognizeRequestRef.current || savedRef.current) {
           return;
         }
         setRecognizeStatus(null);
       });
   }, [attachment?.recognizeJpeg, pendingRecognizeJpeg]);
+
+  useEffect(() => {
+    return () => {
+      recognizeRequestRef.current += 1;
+    };
+  }, []);
 
   function update(patch: Partial<typeof state>, field?: LogFormField) {
     if (field) {
@@ -355,19 +365,28 @@ export function LogNewForm() {
         </p>
       ) : null}
       <CompactPhotoField
+        actions="retake"
         onCapture={() => void startCapture("log")}
         onLibrary={() => void startCapture("log", { source: "library" })}
         attachment={attachment}
-        onEdit={() => void editAttachment("log")}
+        onPreview={() => setPreviewOpen(true)}
         onRetry={() => void retryUpload("log")}
         onClear={() => {
+          recognizeRequestRef.current += 1;
           recognizedJpegRef.current = null;
           setRecognizeStatus(null);
+          setPreviewOpen(false);
           void clearAttachment("log");
         }}
         error={visibleErrors.photoIds}
         recognizeStatus={recognizeStatus}
         recognizeMessage={recognizeStatus ? DRINK_RECOGNIZE_BANNER[recognizeStatus] : undefined}
+      />
+      <PhotoViewer
+        open={previewOpen && Boolean(attachment?.previewUrl)}
+        src={attachment?.previewUrl ?? ""}
+        alt="記録写真"
+        onClose={() => setPreviewOpen(false)}
       />
       <section className="log-form-section">
         <FieldLabel htmlFor="log-drink-name" optional>
@@ -405,11 +424,14 @@ export function LogNewForm() {
         bottleName={state.bottleName}
         error={visibleErrors.bottleId}
         onSelect={(bottle) => {
-          setState((current) =>
-            bottle
-              ? applySelectedBottle(current, bottle, { preserveEdits: true })
-              : clearSelectedBottle(current),
-          );
+          setState((current) => {
+            if (!bottle) {
+              return clearSelectedBottle(current);
+            }
+            const next = applySelectedBottle(current, bottle, { preserveEdits: true });
+            lockInheritedRecognizeFields(touchedRef.current, next, { lockDrinkType: true });
+            return next;
+          });
           setServerErrors({});
           setFormError(null);
         }}

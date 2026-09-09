@@ -31,13 +31,13 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 | DB | Cloudflare D1 (SQLite) | 無料枠5GB。個人〜小規模なら十分。SQLiteなのでローカル開発も容易 |
 | ORM/マイグレーション | Drizzle ORM + drizzle-kit | 型安全なクエリとマイグレーション管理。D1公式対応 |
 | 認証 | Better Auth | Hono + D1 + Drizzleで動作する。メール/パスワードから始めてOAuthを後付けできる |
-| 写真ストレージ | Cloudflare R2 | 無料枠10GB・転送料無料。アップロード前にクライアント側で切り抜き・リサイズ・色補正・合成まで済ませ、加工後 1 枚だけ保存 |
-| 画像処理 | **ブラウザ Canvas 2D**（`createImageBitmap` + `ctx.filter` + `toBlob`） | Workers で画像処理をしない（CPU 時間・無料枠）。Cloudflare Images / 外部 API は有料または依存増のため不採用。追加パッケージなし（2026-09-05） |
+| 写真ストレージ | Cloudflare R2 | 無料枠10GB・転送料無料。アップロード前にクライアント側で向き補正・リサイズ・合成まで済ませ、加工後 1 枚だけ保存。色補正はしない |
+| 画像処理 | **ブラウザ Canvas 2D**（`createImageBitmap` + `toBlob`） | Workers で画像処理をしない（CPU 時間・無料枠）。Cloudflare Images / 外部 API は有料または依存増のため不採用。追加パッケージなし |
 | 写真取り込み | `<input type="file" accept="image/*">`（撮影は `capture="environment"`、ライブラリは `capture` なし） | 撮影を主導線にする。iOS の `capture` はライブラリを出さず、Android の `capture` なしはカメラを出さない端末があるため 2 ボタンに分ける。`getUserMedia` は使わない |
 | キャラクター | インライン SVG の React コンポーネント（`<Mascot />`） | テーマ追従・拡縮自由・追加依存なし。ラスタ画像は持たない（[character.md](character.md)） |
 | 定期処理 | Workers **Cron Triggers**（`scheduled`） | 未紐付け写真の日次 GC、`ai_usage` の掃除。無料枠に含まれる |
 | 背景除去（切り抜き） | ブラウザ WASM（`onnxruntime-web` MIT + U2-Net-P。同一オリジン `/models/`） | セラーの棚に切り抜きボトルを立てる（2026-09-05 に MVP へ）。`@imgly/background-removal` は AGPL-3.0 のため不採用。端末内処理でサーバー費用ゼロ。初回にモデルを DL（Cache API）。失敗時は長方形にフォールバック |
-| ラベル読み取り | **Cloudflare Workers AI**（Vision 対応の指示追従モデル。binding `AI`） | ボトル・記録・ノートの写真から品名・生産者・生産国・品種・ヴィンテージ・種類などの候補を返す（2026-09-05 決定。記録・ノートは 2026-09-08）。無料枠（日次 Neurons）内。新ベンダー・鍵が不要で、写真が Cloudflare 外へ出ない。`LabelRecognizer` / `DrinkRecognizer` / `NoteRecognizer` で実装し、将来 **Gemini 等の外部 API** に差し替え可能にする（その場合は `wrangler secret` で鍵、外部送信の明記が必要） |
+| ラベル読み取り | **設定可能な認識プロファイル**（binding `AI` + AI Gateway Unified Billing） | 酒記録の初期は `google/gemini-3.7-flash`。セラー・ノートは Workers AI Llama。モデル ID はサーバー設定だけ。日次 30 回。詳細は [features/ai-recognition.md](features/ai-recognition.md) |
 | PWA | vite-plugin-pwa | manifest / アイコン（キャラクター由来）/ スタンドアロン表示を宣言的に設定 |
 | Lint / Format | Biome | ESLint+Prettierの2本立てを避け、1ツールで完結。高速で設定が少ない |
 | テスト | Vitest (+ Testing Library) / Playwright | 単体・コンポーネントテストはVitest。主要導線のE2EスモークはPlaywright |

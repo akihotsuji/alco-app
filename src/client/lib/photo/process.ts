@@ -1,5 +1,4 @@
 import { PHOTO_CUTOUT_MASK_CACHE_SIZE, type PhotoMascotPose } from "@/shared/constants.ts";
-import { applyPreset, type ColorPreset } from "./apply-preset.ts";
 import { composeMascot } from "./compose-mascot.ts";
 import { cropResize } from "./crop-resize.ts";
 import { createSharedSegmentation } from "./cutout-cache.ts";
@@ -15,8 +14,10 @@ import {
   type AspectRatio,
   aspectForKind,
   computeCoverCrop,
+  fitToLongEdge,
   type OutputSize,
   outputSizeForAspect,
+  resizeKeepAspect,
 } from "./geometry.ts";
 import { recordCutoutMetric } from "./photo-metrics.ts";
 import {
@@ -26,7 +27,7 @@ import {
   segmentBottle,
   supportsBackgroundRemoval,
 } from "./remove-background.ts";
-import { toJpegBlob, toWebpBlob } from "./to-jpeg-blob.ts";
+import { toJpegBlob, toJpegBlobWithinLimit, toWebpBlob } from "./to-jpeg-blob.ts";
 
 export type PhotoProcessKind = "log" | "cellar" | "note";
 
@@ -38,7 +39,6 @@ export type PhotoEditParams = {
   scale: number;
   offsetX: number;
   offsetY: number;
-  filterOn: boolean;
 };
 
 export type ProcessPhotoInput = PhotoEditParams & {
@@ -75,19 +75,11 @@ export type CutoutPreview =
 type PreparedPhoto = {
   aspect: AspectRatio;
   output: OutputSize;
-  /** トリミング・リサイズ済み、未補正 */
+  /** トリミング・リサイズ済み。色補正はしない */
   cropped: HTMLCanvasElement;
-  preset: ColorPreset;
-  /** 背景除去の同一性キー（画像・比率・位置・拡縮。色補正は含めない） */
+  /** 背景除去の同一性キー（画像・比率・位置・拡縮） */
   segmentationKey: string;
 };
-
-export function presetForKind(kind: PhotoProcessKind, filterOn: boolean): ColorPreset {
-  if (!filterOn) {
-    return "none";
-  }
-  return kind === "cellar" ? "cellar" : "table";
-}
 
 /** 画像オブジェクトの同一性。Blob URL ではなくオブジェクトそのものを使い、GC を妨げない */
 const sourceIds = new WeakMap<object, number>();
@@ -115,7 +107,7 @@ export function segmentationKeyFor(params: PhotoEditParams): string {
   ].join("|");
 }
 
-/** 向き補正済みの元画像から、比率・位置・拡縮・色補正プリセットを確定する */
+/** 向き補正済みの元画像から、比率・位置・拡縮を確定する */
 export function preparePhoto(params: PhotoEditParams): PreparedPhoto {
   const aspect = aspectForKind(params.kind);
   const crop = computeCoverCrop({
@@ -131,14 +123,13 @@ export function preparePhoto(params: PhotoEditParams): PreparedPhoto {
     aspect,
     output,
     cropped: cropResize(params.source, crop, output),
-    preset: presetForKind(params.kind, params.filterOn),
     segmentationKey: segmentationKeyFor(params),
   };
 }
 
 /** 切り抜く前の 2:3 JPEG（ラベル読み取り用。保存しない） */
 export async function prepareRecognitionImage(prepared: PreparedPhoto): Promise<Blob> {
-  return toJpegBlob(applyPreset(prepared.cropped, prepared.preset));
+  return toJpegBlob(prepared.cropped);
 }
 
 const segmentation = createSharedSegmentation<
@@ -202,7 +193,6 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
       source: prepared.cropped,
       mask: seg.mask,
       modelSize: seg.modelSize,
-      preset: prepared.preset,
       output: prepared.output,
     });
     const composeMs = Math.round(performance.now() - composeStart);
@@ -230,20 +220,53 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
   }
 }
 
+export async function processLogPhoto(input: {
+  source: CanvasImageSource;
+  sourceWidth: number;
+  sourceHeight: number;
+  mascotOn: boolean;
+  mascotPose?: PhotoMascotPose;
+  capturedAt?: string;
+  onRecognizeJpeg?: (jpeg: Blob) => void;
+}): Promise<ProcessedPhoto> {
+  const output = fitToLongEdge(input.sourceWidth, input.sourceHeight);
+  const full = resizeKeepAspect(input.source, input.sourceWidth, input.sourceHeight, output);
+  const recognizeJpeg = await toJpegBlobWithinLimit(full);
+  input.onRecognizeJpeg?.(recognizeJpeg);
+  let canvas = full;
+  if (input.mascotOn) {
+    canvas = await composeMascot(full, input.mascotPose);
+  }
+  const blob = await toJpegBlobWithinLimit(canvas);
+  return {
+    blob,
+    previewUrl: URL.createObjectURL(blob),
+    recognizeJpeg,
+    capturedAt: input.capturedAt,
+  };
+}
+
 export async function processPhoto(input: ProcessPhotoInput): Promise<ProcessedPhoto> {
+  if (input.kind === "log") {
+    return processLogPhoto({
+      source: input.source,
+      sourceWidth: input.sourceWidth,
+      sourceHeight: input.sourceHeight,
+      mascotOn: input.mascotOn,
+      mascotPose: input.mascotPose,
+      onRecognizeJpeg: input.onRecognizeJpeg,
+    });
+  }
+
   const prepared = preparePhoto(input);
 
   if (input.kind === "cellar") {
     return processCellarPhoto(input, prepared);
   }
 
-  const filtered = applyPreset(prepared.cropped, prepared.preset);
-  let recognizeJpeg: Blob | undefined;
-  if (input.kind === "log" || input.kind === "note") {
-    recognizeJpeg = await toJpegBlob(filtered);
-    input.onRecognizeJpeg?.(recognizeJpeg);
-  }
-  let canvas = filtered;
+  const recognizeJpeg = await toJpegBlob(prepared.cropped);
+  input.onRecognizeJpeg?.(recognizeJpeg);
+  let canvas = prepared.cropped;
   if (input.mascotOn) {
     canvas = await composeMascot(canvas, input.mascotPose);
   }
@@ -256,8 +279,7 @@ async function processCellarPhoto(
   prepared: PreparedPhoto,
 ): Promise<ProcessedPhoto> {
   const started = performance.now();
-  const filtered = applyPreset(prepared.cropped, prepared.preset);
-  const recognizeJpeg = await toJpegBlob(filtered);
+  const recognizeJpeg = await toJpegBlob(prepared.cropped);
   input.onRecognizeJpeg?.(recognizeJpeg);
 
   const fallback = async (cutout: CutoutOutcome): Promise<ProcessedPhoto> => {
@@ -285,7 +307,6 @@ async function processCellarPhoto(
       source: prepared.cropped,
       mask: seg.mask,
       modelSize: seg.modelSize,
-      preset: prepared.preset,
       output: prepared.output,
     });
     composeMs = Math.round(performance.now() - composeStart);
