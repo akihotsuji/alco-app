@@ -1,0 +1,15 @@
+{
+  "rules": [
+    {
+      "id": "expire-d1-backups-14d",
+      "enabled": true,
+      "conditions": {},
+      "deleteObjectsTransition": {
+        "condition": {
+          "maxAge": 1209600,
+          "type": "Age"
+        }
+      }
+    }
+  ]
+}

@@ -52,6 +52,7 @@ playwright/.auth/
 
 # --- ローカル DB / バックアップ ---
 # drizzle のマイグレーション .sql はコミットする。ダンプとローカル DB のみ除外
+# 7-04 の D1 export（.sql / .sql.gz）は /backups/ にだけ置く
 *.sql.bak
 *.sqlite
 *.sqlite3

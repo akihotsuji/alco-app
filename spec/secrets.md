@@ -36,7 +36,7 @@
 |---|---|---|---|---|
 | `BETTER_AUTH_SECRET` | `.dev.vars` | wrangler secret | wrangler secret | 置かない |
 | `BETTER_AUTH_URL` | 省略可（`.dev.vars`）。未設定ならリクエスト origin | 置かない（本番 URL を書かない） | 省略可。未設定なら `CANONICAL_ORIGIN` | 置かない |
-| `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml` / `deploy-prod.yml`） |
+| `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml`） |
 | `CLOUDFLARE_ACCOUNT_ID` | 使わない | — | — | Actions（同上） |
 
 - `database_id` は secret ではない。`wrangler.jsonc` のみ（[production-env.md](features/production-env.md)）
@@ -77,7 +77,7 @@ Worker 名は `alco-app-prod`。`deploy-prod.yml` のデプロイは secret を�
 
 ### GitHub
 
-Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` のみ。`deploy-dev.yml` と `deploy-prod.yml` が同じ名前を読む。トークン権限は [dev-deploy-ci.md](features/dev-deploy-ci.md) のとおり（Account 全権限は付けない）。
+Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` のみ。`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml` が同じ名前を読む。トークン権限は [dev-deploy-ci.md](features/dev-deploy-ci.md) のとおり（Account 全権限は付けない）。
 
 ---
 

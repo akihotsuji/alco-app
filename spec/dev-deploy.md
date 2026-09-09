@@ -48,6 +48,6 @@ pnpm exec wrangler deploy --env dev
 
 ## 了解事項
 
-- バックアップはまだ無い（Phase 7-04）。ドッグフード中のデータ消失リスクをオーナーが了解する
+- D1 の日次バックアップは 7-04（[features/d1-backup.md](features/d1-backup.md)）。dev も同じジョブで export する。写真 R2 の誤削除は別災害
 - スキーマ変更はリモート D1 へ forward migration で入れる。ローカルとリモートの差分に注意する
 - 無料枠のデプロイ回数を浪費しない

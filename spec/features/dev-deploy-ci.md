@@ -63,8 +63,8 @@
 2. 次を足す（Account 全権限は付けない）
    - Account Settings: Read
    - Workers Scripts: Edit
-   - Workers R2 Storage: Edit
-   - D1: Edit（リモート migrate 用。Workers テンプレだけでは足りないことがある）
+   - Workers R2 Storage: Edit（写真バケットと `alco-app-d1-backups`）
+   - D1: Edit（リモート migrate と 7-04 の export / 一時 D1 リハーサル）
 3. トークンのスコープは **このアプリのアカウントだけ**
 4. GitHub Secrets に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を入れる
 
@@ -102,3 +102,4 @@
 - [dev-deploy.md](../dev-deploy.md)
 - [02-tech-stack.md](../02-tech-stack.md) CI / CD
 - [02-deploy-pipeline.md](../../roadmap/phase-07-production-release/02-deploy-pipeline.md)
+- [d1-backup.md](d1-backup.md)（同じ GitHub Secrets で日次 export）

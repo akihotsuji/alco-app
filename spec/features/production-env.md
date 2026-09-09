@@ -49,6 +49,8 @@ ID・アカウント情報はここに書かない。`database_id` は `wrangler
 
 トップレベル（デフォルト env）の Worker 名は `alco-app`。D1 / R2 は置かない。無引数の `wrangler deploy` は本番も dev も向かない。
 
+D1 バックアップ用 R2 `alco-app-d1-backups` は env に置かない（Worker binding なし。正本は [d1-backup.md](d1-backup.md)）。
+
 コードからは引き続き `env.DB` / `env.PHOTOS` / `env.AI` で参照する。
 
 ---
@@ -101,3 +103,4 @@ pnpm exec wrangler deploy --env production
 - [dev-deploy-ci.md](dev-deploy-ci.md)（main → `env.dev`）
 - [02-deploy-pipeline.md](../../roadmap/phase-07-production-release/02-deploy-pipeline.md)
 - [custom-domain.md](custom-domain.md)
+- [d1-backup.md](d1-backup.md)（D1 export 用 R2。Worker には bind しない）

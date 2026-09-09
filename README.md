@@ -27,8 +27,9 @@ Cloudflare は wrangler の **`env.dev`** と **`env.production`** で分ける�
 | `env.dev` | R2 | `alco-app-photos-dev`（非公開） | `PHOTOS` |
 | `env.production` | D1 | `alco-app-prod` | `DB` |
 | `env.production` | R2 | `alco-app-photos-prod`（非公開） | `PHOTOS` |
+| （CI のみ） | R2 | `alco-app-d1-backups`（非公開。D1 SQL） | なし |
 
-ID は `wrangler.jsonc` のみに書く。シークレットの置き場は [spec/secrets.md](spec/secrets.md)。本番デプロイは 7-02。
+ID は `wrangler.jsonc` のみに書く。シークレットの置き場は [spec/secrets.md](spec/secrets.md)。本番デプロイは 7-02。D1 バックアップは [spec/features/d1-backup.md](spec/features/d1-backup.md)。
 
 ## 起動
 
