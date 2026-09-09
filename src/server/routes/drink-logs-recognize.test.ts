@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { aiUsage } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import {
@@ -141,19 +141,33 @@ describe("POST /api/drink-logs/recognize", () => {
   });
 
   it("Workers AI 失敗は 502 で加算しない。本文にモデル名を出さない", async () => {
-    const ctx = await createTestApp({
-      drinkRecognizer: createStubLabelRecognizer(async () => {
-        throw new Error("@cf/meta/llama-4-scout-17b-16e-instruct boom");
-      }),
-    });
-    const a = await session(ctx.app, "a@example.com");
-    const res = await postRecognize(ctx.app, a.cookie, makeJpeg(200, 250));
-    const text = await res.text();
-    expect(res.status).toBe(502);
-    expect(text).toBe(JSON.stringify({ error: "upstream_error" }));
-    expect(text).not.toContain("llama");
-    expect(text).not.toContain("boom");
-    expect(await usageCount(ctx, a.userId)).toBe(0);
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      const ctx = await createTestApp({
+        drinkRecognizer: createStubLabelRecognizer(async () => {
+          throw Object.assign(new Error("@cf/meta/llama-4-scout-17b-16e-instruct boom"), {
+            status: 502,
+          });
+        }),
+      });
+      const a = await session(ctx.app, "a@example.com");
+      const res = await postRecognize(ctx.app, a.cookie, makeJpeg(200, 250));
+      const text = await res.text();
+      expect(res.status).toBe(502);
+      expect(text).toBe(JSON.stringify({ error: "upstream_error" }));
+      expect(text).not.toContain("llama");
+      expect(text).not.toContain("boom");
+      expect(await usageCount(ctx, a.userId)).toBe(0);
+      const line = info.mock.calls
+        .map((args) => String(args[0]))
+        .find((entry) => entry.includes("[drink-recognize]"));
+      expect(line).toContain("ok=false");
+      expect(line).toContain("reason=");
+      expect(line).toContain("status=502");
+      expect(line).toContain("boom");
+    } finally {
+      info.mockRestore();
+    }
   });
 
   it("20ms でタイムアウトしたら 502。加算しない", async () => {

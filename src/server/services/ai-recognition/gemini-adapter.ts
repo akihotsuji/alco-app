@@ -4,8 +4,21 @@ import { bytesToBase64 } from "./bytes.ts";
 import { type ModelProfile, RecognitionConfigError } from "./profiles.ts";
 import { extractGroundingSources, normalizeTokenUsage } from "./usage.ts";
 
-type GeminiPart = Record<string, unknown>;
+type GeminiCall = {
+  profile: ModelProfile;
+  jpegBytes?: Uint8Array;
+  systemPrompt: string;
+  userPrompt: string;
+  search: boolean;
+  kind: "extract" | "lookup";
+};
 
+/**
+ * Cloudflare カタログの `env.AI.run` 例は Generate Content（contents / parts）。
+ * 画像は公式の Image Understanding と同じ `inlineData`。
+ * `responseMimeType` / `responseSchema` はカタログ例に無く、未検証の 400 を避けるため送らない。
+ * 検索だけ `tools: [{ googleSearch: {} }]` を付ける。
+ */
 export function createGeminiGatewayAdapter(ai: Ai): RecognitionAdapter {
   return {
     async invoke(request) {
@@ -39,16 +52,8 @@ export function createGeminiGatewayAdapter(ai: Ai): RecognitionAdapter {
   };
 }
 
-function buildGeminiBody(request: {
-  profile: ModelProfile;
-  jpegBytes?: Uint8Array;
-  systemPrompt: string;
-  userPrompt: string;
-  schema: Record<string, unknown>;
-  search: boolean;
-  kind: "extract" | "lookup";
-}): Record<string, unknown> {
-  const parts: GeminiPart[] = [{ text: request.userPrompt }];
+export function buildGeminiBody(request: GeminiCall): Record<string, unknown> {
+  const parts: Array<Record<string, unknown>> = [{ text: request.userPrompt }];
   if (request.jpegBytes) {
     parts.unshift({
       inlineData: {
@@ -64,10 +69,6 @@ function buildGeminiBody(request: {
         ? request.profile.lookupMaxOutputTokens
         : request.profile.maxOutputTokens,
   };
-  if (request.profile.supportsStructuredOutput) {
-    generationConfig.responseMimeType = "application/json";
-    generationConfig.responseSchema = request.schema;
-  }
   if (
     request.profile.emitThinkingConfig &&
     request.profile.supportsThinking &&
@@ -117,7 +118,7 @@ function readStatus(error: unknown): number | null {
   if (typeof error !== "object" || error === null) {
     return null;
   }
-  const status = Reflect.get(error, "status");
+  const status = Reflect.get(error, "status") ?? Reflect.get(error, "statusCode");
   return typeof status === "number" ? status : null;
 }
 
