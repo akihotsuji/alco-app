@@ -17,6 +17,7 @@ const meSchema = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string(),
+  ageVerified: z.boolean(),
 });
 
 describe("認証 API", () => {
@@ -50,6 +51,7 @@ describe("認証 API", () => {
       id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
       email: "a@example.com",
       name: "ユーザーA",
+      ageVerified: false,
     });
   });
 
@@ -93,6 +95,7 @@ describe("認証 API", () => {
       id: userA.id,
       email: userA.email,
       name: userA.name,
+      ageVerified: true,
     });
     expect(userA.id).not.toBe(userB.id);
   });

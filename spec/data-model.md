@@ -75,7 +75,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 領域 | テーブル | 管理 |
 |---|---|---|
 | 認証 | `user`, `session`, `account`, `verification` | **Auth ライブラリ管理**。`npx auth@latest generate`（Phase 2-02） |
-| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents` | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01 |
+| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents`, `age_verifications` | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01。`age_verifications` は 8-02 |
 
 Auth コアの列はライブラリ版に従う。以下は実装時の参照用であり、**列名・追加列を凍結しない**。プラグイン追加で増える可能性がある。
 
@@ -108,6 +108,7 @@ erDiagram
     user ||--o{ photos : owns
     user ||--o{ ai_usage : "daily count"
     user ||--o| legal_consents : "signup consent"
+    user ||--o| age_verifications : "age gate"
     my_drinks ||--o{ drink_logs : "optional ref"
     bottles ||--o{ drink_logs : "optional (consume / manual)"
     bottles ||--o{ tasting_notes : "optional"
@@ -241,6 +242,14 @@ erDiagram
         text user_id FK
         text document_version
         integer accepted_at
+        integer created_at
+        integer updated_at
+    }
+
+    age_verifications {
+        text user_id PK_FK
+        text birth_on
+        integer verified_at
         integer created_at
         integer updated_at
     }
@@ -518,6 +527,21 @@ CHECK (
 - 更新時の再同意ゲートは持たない（将来）
 - クライアントが送る時刻は使わない
 
+### 6.8 age_verifications（8-02）
+
+満 20 歳以上の確認。Better Auth の `user` は触らない。行がある = 確認済み。20 歳未満の提出では行を作らない。
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| userId | user_id | text | NO | PK、FK → user.id CASCADE | 1 ユーザー 1 行 |
+| birthOn | birth_on | text | NO | `YYYY-MM-DD` | 確認に使った生年月日。成功時だけ保存 |
+| verifiedAt | verified_at | integer | NO | | 確認成功の瞬間（UTC ms）。サーバーが付与 |
+| createdAt / updatedAt | created_at / updated_at | integer | NO | | |
+
+- `GET /api/me` は `ageVerified` だけ返す。`birthOn` はレスポンスに出さない
+- 確認済みの再 POST は無視（上書きしない）
+- 計算の正は [age-verification.md](features/age-verification.md)
+
 ---
 
 ## 7. インデックス
@@ -555,7 +579,7 @@ CHECK (
 
 | 親 | 子 | ON DELETE | 理由 |
 |---|---|---|---|
-| `user.id` | アプリ 7 テーブル（`ai_usage` / `legal_consents` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない（削除 UI は将来） |
+| `user.id` | アプリ 8 テーブル（`ai_usage` / `legal_consents` / `age_verifications` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない（削除 UI は将来） |
 | `my_drinks.id` | `drink_logs.my_drink_id` | SET NULL | 過去ログを残す |
 | `bottles.id` | `drink_logs.bottle_id` | SET NULL | 記録と `drink_name` スナップショットを残す |
 | `bottles.id` | `tasting_notes.bottle_id` | SET NULL | ノートとスナップショットを残す |
@@ -597,7 +621,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 ## 10. Drizzle スキーマ草案
 
-Phase 2-01 の実装メモ。**実装済み（1-07 改訂を含む）**: 正は [`src/db/schema.ts`](../src/db/schema.ts)（アプリ 7 テーブル。`ai_usage` / `legal_consents` を含む）と [`src/db/auth-schema.ts`](../src/db/auth-schema.ts)（Better Auth CLI 生成物）。enum 配列は [`src/shared/constants.ts`](../src/shared/constants.ts) から import し、CHECK 制約も drizzle-kit 経由（`check()`）で生成する。以下の草案は設計時の参考として残す。差分が出たら実装側を正とし、本表を更新する。
+Phase 2-01 の実装メモ。**実装済み（1-07 改訂を含む）**: 正は [`src/db/schema.ts`](../src/db/schema.ts)（アプリ 8 テーブル。`ai_usage` / `legal_consents` / `age_verifications` を含む）と [`src/db/auth-schema.ts`](../src/db/auth-schema.ts)（Better Auth CLI 生成物）。enum 配列は [`src/shared/constants.ts`](../src/shared/constants.ts) から import し、CHECK 制約も drizzle-kit 経由（`check()`）で生成する。以下の草案は設計時の参考として残す。差分が出たら実装側を正とし、本表を更新する。
 
 ```ts
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";

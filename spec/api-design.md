@@ -29,7 +29,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 1 タップ記録 | **`POST /api/my-drinks/:id/log` を必須**。サーバーがプリセットをコピー | 3-03。クライアントが量・度数を混ぜない |
 | 写真配信 | **認可付き `GET /api/photos/:id/content`（Worker が R2 をストリーム）** | 同一オリジンで Cookie が付く。R2 binding のみ。追加の S3 シークレット不要 |
 | 署名 URL | MVP では **作らない** | 上に同じ。必要になったら追記 |
-| `/api/me` | `{ id, email, name }`。表示名更新は Better Auth クライアント | 設定画面。独自 PATCH は作らない |
+| `/api/me` | `{ id, email, name, ageVerified }`。`birthOn` は返さない。表示名更新は Better Auth クライアント | 設定画面。独自 PATCH は作らない。年齢確認は 8-02 |
 | 週の始まり | **月曜（ISO 8601）** | 3-06 が覆す場合は本ファイルを先に直す |
 | 未来日の休肝 | サマリーの未来日は `isFuture: true`、**休肝日に数えない** | 3-06 の提案を採用 |
 | JSON の瞬間時刻 | **ISO 8601 UTC**（`...Z`）。DB の Unix ms とはサーバーが変換 | 可読性と TZ 明示 |
@@ -151,6 +151,8 @@ WHERE id = :id AND user_id = :sessionUserId
 |---|---|---|
 | 400 | `validation_error` | Zod 失敗。範囲・enum・日付形式・排他条件 |
 | 401 | `unauthorized` | セッションなし / 期限切れ |
+| 403 | `age_required` | ログイン済みだが年齢未確認。機能 API のみ（8-02） |
+| 403 | `age_restricted` | 生年月日提出時点で満 20 歳未満。保存しない（8-02） |
 | 404 | `not_found` | 未定義ルート、存在しない ID、他人の ID、他人の参照 ID |
 | 413 | `payload_too_large` | 写真サイズ超過（1MB） |
 | 415 | `unsupported_media_type` | 許可外 MIME（SVG / GIF / HEIC 等） |
@@ -165,7 +167,7 @@ WHERE id = :id AND user_id = :sessionUserId
 - エラーコードの一覧と本文スキーマは `src/shared/api-error.ts`（`API_ERROR_CODES` / `apiErrorBodySchema`）。ハンドラは `src/server/errors.ts` の `ApiError` を投げ、`src/server/middleware/error.ts` が本形式へ変換する（2-03）
 - Phase 0 の未定義ルート `{ "ok": false }` と 500 `{ "ok": false }` は **2-03 で本形式へ移行済み**。`GET /api/health` の成功は変えない
 
-存在しないリソースと権限のないリソースは、ステータスも本文も同じにする。**403 は使わない**。
+存在しないリソースと権限のないリソースは、ステータスも本文も同じにする。**IDOR では 403 を使わない。** 年齢ゲート（未確認・未満）だけ 403 を使う。リソースの存否は漏らさない。
 
 ### 2.7 ページング
 
@@ -240,7 +242,8 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 |---|---|---|---|
 | GET | `/api/health` | なし | 死活確認 |
 | * | `/api/auth/*` | Better Auth | 認証（公式ハンドラ） |
-| GET | `/api/me` | 必須 | 自分の id / email / name |
+| GET | `/api/me` | 必須 | 自分の id / email / name / ageVerified |
+| POST | `/api/me/age-verification` | 必須 | 生年月日で満 20 歳を確認。年齢ゲート対象外 |
 | GET | `/api/drink-logs` | 必須 | 期間内の記録一覧＋合計 |
 | GET | `/api/drink-logs/summary` | 必須 | 日 / 週 / 月の集計 |
 | POST | `/api/drink-logs` | 必須 | 記録作成 |
@@ -293,12 +296,29 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 
 | | |
 |---|---|
-| 認証 | 必須 |
-| 成功 | `{ "id": "<user.id>", "email": "<email>", "name": "<name>" }` |
+| 認証 | 必須（年齢確認は不要） |
+| 成功 | `{ "id": "<user.id>", "email": "<email>", "name": "<name>", "ageVerified": true \| false }` |
 
 - Better Auth の `user` から取る。`account.password` は見ない
 - `image` は返さない（MVP で使わない）
+- `ageVerified` は `age_verifications` に行があるか。`birthOn` は返さない
 - 表示名の更新は Better Auth クライアント。本 API に PATCH は置かない
+
+### 4.2.1 POST /api/me/age-verification
+
+| | |
+|---|---|
+| 認証 | 必須（この POST 自体は年齢未確認でも可） |
+| ボディ | `{ "birthOn": "YYYY-MM-DD" }`（未知キー不可。`userId` / `isOver20` 不可） |
+| 成功 | 200 `{ "ageVerified": true }` |
+
+- 満 20 歳の計算はサーバー（[age-verification.md](features/age-verification.md)）。クライアント判定は信じない
+- 未満は 403 `age_restricted`。行を作らない
+- 既に確認済みなら 200 で本文を無視する
+- 未来日・1900 年より前・形式不正は 400 `validation_error`（`fields.birthOn`）
+- 生年月日をログに出さない
+
+記録・セラー・ノート・写真・マイドリンクなど、上記以外の機能 API は未確認なら 403 `age_required`。`GET /api/health` と `/api/auth/*` は対象外。
 
 ### 4.3 drink-logs
 
@@ -771,6 +791,7 @@ src/server/
   errors.ts             # ApiError と code ↔ status 対応表
   validation.ts         # validate(target, schema): zod-validator 共通ラッパー（失敗は 400 validation_error）
   middleware/auth.ts    # PUBLIC_API_ROUTES（公開パスの唯一のリスト）と createAuthGuard
+  middleware/age.ts     # 年齢確認（exempt: GET /api/me, POST /api/me/age-verification, 公開ルート）
   middleware/error.ts   # errorHandler / notFoundHandler
   routes/health.ts
   routes/me.ts
@@ -785,9 +806,10 @@ src/server/
 ```text
 1. secure-headers
 2. 認証 MW（/api/* 全体。PUBLIC_API_ROUTES = GET /api/health, /api/auth/* は内部で除外）
-3. /api/auth/*（Better Auth handler）
-4. 業務ルート（/api/health, /api/me, …。固定パスを :id より前）
-5. 未定義 /api/* → 404 { "error": "not_found" }（未認証なら 2 で 401）
+3. 年齢確認 MW（未確認の機能 API は 403 `age_required`。GET /api/me と POST /api/me/age-verification と公開ルートは除外）
+4. /api/auth/*（Better Auth handler）
+5. 業務ルート（/api/health, /api/me, …。固定パスを :id より前）
+6. 未定義 /api/* → 404 { "error": "not_found" }（未認証なら 2 で 401）
 ```
 
 認証 MW は公開ルートを自分で除外するので、登録順に依存せずログインが通る。Auth（Better Auth インスタンス）の組み立ては保護ルートと `/api/auth/*` でだけ行い、`GET /api/health` は D1 に触らない。
@@ -806,7 +828,7 @@ src/server/
 4. 更新・削除は `and(eq(id), eq(userId))`
 5. 入力は `src/shared` の Zod + `@hono/zod-validator`
 6. エラーは共通ハンドラ。クライアントは `error` コードのみ。スタックはログだけ
-7. 他人と未存在は 404 同一本文。403 を使わない
+7. 他人と未存在は 404 同一本文。IDOR に 403 は使わない。年齢ゲートだけ 403（`age_required` / `age_restricted`）
 8. `alcoholG` はサーバー再計算。リクエストで受け取らない
 9. レスポンス型を明示し `AppType` を export する
 10. 写真キーはサーバー生成。`r2Key` を JSON に出さない

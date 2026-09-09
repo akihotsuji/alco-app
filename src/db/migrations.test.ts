@@ -17,6 +17,7 @@ const APP_TABLES = [
   "photos",
   "ai_usage",
   "legal_consents",
+  "age_verifications",
 ];
 
 type Journal = { entries: { idx: number; tag: string }[] };
@@ -144,7 +145,7 @@ describe("マイグレーション（src/db/migrations）", () => {
     db.close();
   });
 
-  it("Auth 4 テーブル + アプリ 6 テーブルが作成される", () => {
+  it("Auth 4 テーブル + アプリ 8 テーブルが作成される", () => {
     const db = openMigratedDb();
     const rows = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
@@ -164,7 +165,7 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
 
   it("schema.ts の全テーブルについて列名・NOT NULL・インデックスが DB と一致する（generate 忘れ検知）", () => {
     const db = openMigratedDb();
-    expect(tables.length).toBe(11);
+    expect(tables.length).toBe(12);
     for (const table of tables) {
       const config = getTableConfig(table);
       const info = db.prepare(`PRAGMA table_info("${config.name}")`).all() as {
@@ -378,6 +379,9 @@ describe("制約の挙動", () => {
       db.prepare(
         "INSERT INTO legal_consents (id, user_id, document_version, accepted_at, created_at, updated_at) VALUES (?, ?, '2026-09-09', ?, ?, ?)",
       ).run(`lc-${uid}`, uid, NOW, NOW, NOW);
+      db.prepare(
+        "INSERT INTO age_verifications (user_id, birth_on, verified_at, created_at, updated_at) VALUES (?, '1990-01-15', ?, ?, ?)",
+      ).run(uid, NOW, NOW, NOW);
     }
     db.prepare("DELETE FROM user WHERE id = 'u1'").run();
     for (const table of APP_TABLES) {

@@ -220,3 +220,14 @@ export const legalConsents = sqliteTable(
   },
   (table) => [uniqueIndex("legal_consents_user_uidx").on(table.userId)],
 );
+
+// 満 20 歳の確認（8-02）。成功時だけ 1 行。Better Auth の user は触らない
+export const ageVerifications = sqliteTable("age_verifications", {
+  userId: text("user_id")
+    .primaryKey()
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  birthOn: text("birth_on").notNull(),
+  verifiedAt: integer("verified_at", { mode: "timestamp_ms" }).notNull(),
+  ...timestampColumns(),
+});

@@ -18,6 +18,8 @@ describe("法務文書", () => {
     expect(terms).toContain("飲酒を推奨しません");
     expect(privacy).toContain("Cloudflare");
     expect(privacy).toContain("生活記録");
+    expect(privacy).toContain("生年月日");
+    expect(terms).toContain("年齢確認画面");
     expect(terms).not.toContain("もう一杯");
     expect(privacy).not.toContain("<script");
   });

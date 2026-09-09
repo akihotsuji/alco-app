@@ -20,6 +20,11 @@ export const SignupPage = lazy(async () => {
   return { default: Page };
 });
 
+export const AgePage = lazy(async () => {
+  const { AgePage: Page } = await import("@/client/pages/AgePage.tsx");
+  return { default: Page };
+});
+
 const LegalDocumentPage = lazy(async () => {
   const { LegalPage: Page } = await import("@/client/pages/LegalPage.tsx");
   return { default: Page };

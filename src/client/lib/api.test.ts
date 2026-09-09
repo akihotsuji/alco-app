@@ -52,11 +52,17 @@ describe("unwrap", () => {
     const me = await unwrap(
       client.api.me.$get({}, { headers: { Cookie: cookieHeaderFrom(signUpRes) } }),
     );
-    expectTypeOf(me).toEqualTypeOf<{ id: string; email: string; name: string }>();
+    expectTypeOf(me).toEqualTypeOf<{
+      id: string;
+      email: string;
+      name: string;
+      ageVerified: boolean;
+    }>();
     expect(me).toEqual({
       id: expect.any(String),
       email: "a@example.com",
       name: "ユーザーA",
+      ageVerified: false,
     });
   });
 

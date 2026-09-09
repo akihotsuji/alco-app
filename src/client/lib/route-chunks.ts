@@ -5,6 +5,7 @@ export const routeChunks = {
   home: () => import("@/client/pages/HomePage.tsx"),
   login: () => import("@/client/pages/LoginPage.tsx"),
   signup: () => import("@/client/pages/SignupPage.tsx"),
+  age: () => import("@/client/pages/AgePage.tsx"),
   legal: () => import("@/client/pages/LegalPage.tsx"),
   summary: () => import("@/client/pages/summary/SummaryPages.tsx"),
   logDay: () => import("@/client/pages/logs/LogDayPage.tsx"),
@@ -26,6 +27,9 @@ export function initialRouteChunkIds(pathname: string): readonly RouteChunkId[] 
   }
   if (pathname === "/signup") {
     return ["signup"];
+  }
+  if (pathname === "/age") {
+    return ["age"];
   }
   if (pathname === "/terms" || pathname === "/privacy") {
     return ["legal"];
@@ -66,6 +70,9 @@ export function chunkIdForPath(pathname: string): RouteChunkId | null {
   }
   if (pathname === "/signup") {
     return "signup";
+  }
+  if (pathname === "/age") {
+    return "age";
   }
   if (pathname === "/terms" || pathname === "/privacy") {
     return "legal";

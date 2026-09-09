@@ -13,6 +13,7 @@ describe("boot-prefetch の経路", () => {
     const paths = [
       "/login",
       "/signup",
+      "/age",
       "/terms",
       "/privacy",
       "/",

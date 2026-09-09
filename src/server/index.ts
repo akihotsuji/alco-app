@@ -6,12 +6,13 @@ import { createD1Db } from "@/db/index.ts";
 import type { AppEnv } from "./app-env.ts";
 import { type Auth, createAuthFromEnv } from "./auth.ts";
 import { canonicalRedirectResponse } from "./canonical-redirect.ts";
+import { createAgeGuard } from "./middleware/age.ts";
 import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
 import { createBottlesRoute } from "./routes/bottles.ts";
 import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
 import { healthRoute } from "./routes/health.ts";
-import { meRoute } from "./routes/me.ts";
+import { createMeRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
@@ -75,12 +76,16 @@ export function createApp(options: CreateAppOptions = {}) {
   app.notFound(notFoundHandler);
 
   app.use(apiSecureHeaders);
-  app.use("/api/*", createAuthGuard(resolveAuth));
-
-  app.all("/api/auth/*", (c) => resolveAuth(c).handler(c.req.raw));
-
   const getDb = (c: { env: Env }) => options.db ?? createD1Db(c.env.DB);
   const getBucket = (c: { env: Env }) => options.photos ?? wrapR2Bucket(c.env.PHOTOS);
+
+  app.use("/api/*", createAuthGuard(resolveAuth));
+  app.use(
+    "/api/*",
+    createAgeGuard((c) => getDb(c)),
+  );
+
+  app.all("/api/auth/*", (c) => resolveAuth(c).handler(c.req.raw));
 
   const routeDeps = {
     getDb: (c: { env: Env }) => getDb(c),
@@ -108,7 +113,7 @@ export function createApp(options: CreateAppOptions = {}) {
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app
     .route("/api/health", healthRoute)
-    .route("/api/me", meRoute)
+    .route("/api/me", createMeRoute({ getDb }))
     .route("/api/drink-logs", drinkLogsRoute)
     .route("/api/my-drinks", myDrinksRoute)
     .route("/api/photos", photosRoute)

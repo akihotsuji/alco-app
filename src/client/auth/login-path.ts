@@ -8,6 +8,9 @@ export function loginPathFor(pathname: string, search = ""): string {
 }
 
 /** ログイン / サインアップ間で `redirect` クエリを引き継ぐ。 */
-export function hrefWithRedirect(path: "/login" | "/signup", redirectQuery: string | null): string {
+export function hrefWithRedirect(
+  path: "/login" | "/signup" | "/age",
+  redirectQuery: string | null,
+): string {
   return redirectQuery ? `${path}?redirect=${encodeURIComponent(redirectQuery)}` : path;
 }

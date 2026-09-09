@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addCalendarDays,
   addCalendarMonths,
+  addCalendarYears,
   formatHomeDateLabel,
   formatLongJapaneseDate,
   formatMonthDay,
@@ -26,6 +27,14 @@ describe("parseCalendarDate", () => {
     expect(parseCalendarDate("2026-13-01")).toBeNull();
     expect(parseCalendarDate("2026-9-5")).toBeNull();
     expect(parseCalendarDate("new")).toBeNull();
+  });
+});
+
+describe("addCalendarYears", () => {
+  it("2 月 29 日は先の年にその日が無ければ 2 月 28 日", () => {
+    expect(addCalendarYears("2004-02-29", 1)).toBe("2005-02-28");
+    expect(addCalendarYears("2004-02-29", 20)).toBe("2024-02-29");
+    expect(addCalendarYears("2006-04-01", 20)).toBe("2026-04-01");
   });
 });
 

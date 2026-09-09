@@ -31,7 +31,7 @@ export const signupFormSchema = z.object({
 export type LoginForm = z.infer<typeof loginFormSchema>;
 export type SignupForm = z.infer<typeof signupFormSchema>;
 
-const AUTH_PAGE_PATHS = new Set(["/login", "/signup"]);
+const AUTH_PAGE_PATHS = new Set(["/login", "/signup", "/age"]);
 
 /** オープンリダイレクト対策。不正値は `/`。 */
 export function resolveSafeRedirect(value: string | null | undefined): string {
