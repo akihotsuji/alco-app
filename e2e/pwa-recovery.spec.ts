@@ -16,7 +16,13 @@ async function waitForActiveSw(page: import("@playwright/test").Page) {
 }
 
 test("初回起動と再読み込みで空画面にならない", async ({ page, request }) => {
-  const missing = await request.get("/assets/does-not-exist-OLDHASH.js");
+  const missing = await request.get("/assets/does-not-exist-OLDHASH.js", {
+    headers: {
+      Accept: "*/*",
+      "Sec-Fetch-Dest": "script",
+      "Sec-Fetch-Mode": "cors",
+    },
+  });
   expect(missing.status()).toBe(404);
   expect(missing.headers()["content-type"] ?? "").not.toContain("text/html");
 

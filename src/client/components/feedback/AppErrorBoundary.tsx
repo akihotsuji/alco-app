@@ -42,14 +42,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   override render(): ReactNode {
     if (this.state.failed) {
-      return (
-        <AuthBoot
-          variant="failed"
-          onRetry={() => {
-            this.setState({ failed: false });
-          }}
-        />
-      );
+      return <AuthBoot variant="failed" />;
     }
     return this.props.children;
   }
