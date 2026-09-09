@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createApiClient } from "@/client/lib/api.ts";
+import { EARLY_FETCH_TIMEOUT_MS } from "@/client/lib/boot.ts";
 import {
   initialRouteChunkIds as appInitialRouteChunkIds,
   chunkIdForPath,
@@ -42,5 +43,18 @@ describe("boot-prefetch の経路", () => {
     const drinks = client.api["my-drinks"].$path({ query: { limit: "30" } });
     expect(homeDataPaths(today)).toEqual([day, week, drinks]);
     expect(SESSION_PATH).toBe("/api/auth/get-session");
+  });
+
+  it("先読みタイムアウトは本バンドルと同じ 10 秒（静的 import はしない）", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "boot-prefetch.ts"),
+      "utf8",
+    );
+    expect(EARLY_FETCH_TIMEOUT_MS).toBe(10_000);
+    expect(source).toContain("const EARLY_FETCH_TIMEOUT_MS = 10_000");
+    expect(source).not.toMatch(/^import /m);
   });
 });

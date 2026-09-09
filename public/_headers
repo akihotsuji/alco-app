@@ -29,6 +29,16 @@
   Content-Type: application/javascript
   X-Content-Type-Options: nosniff
 
+/boot-guard.js
+  Cache-Control: no-cache
+  Content-Type: application/javascript
+  X-Content-Type-Options: nosniff
+
+/boot.css
+  Cache-Control: no-cache
+  Content-Type: text/css
+  X-Content-Type-Options: nosniff
+
 /manifest.webmanifest
   Content-Type: application/manifest+json
   X-Content-Type-Options: nosniff

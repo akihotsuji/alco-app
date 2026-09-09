@@ -1,15 +1,24 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Navigate, Outlet } from "react-router";
-import { authClient } from "@/client/lib/auth-client.ts";
+import { useSessionBoot } from "@/client/hooks/use-session-boot.ts";
+import { clearReloadGuard } from "@/client/lib/app-reload.ts";
+import { clearAssetRecoveryGuard } from "@/client/lib/asset-recovery.ts";
 import { AuthBoot } from "./AuthBoot.tsx";
 
 export function GuestOnly() {
-  const { data, isPending } = authClient.useSession();
+  const boot = useSessionBoot();
 
-  if (isPending) {
-    return <AuthBoot />;
+  useEffect(() => {
+    if (boot.kind === "authenticated" || boot.kind === "guest") {
+      clearReloadGuard();
+      clearAssetRecoveryGuard();
+    }
+  }, [boot.kind]);
+
+  if (boot.variant) {
+    return <AuthBoot variant={boot.variant} onRetry={boot.retry} retrying={boot.retrying} />;
   }
-  if (data) {
+  if (boot.kind === "authenticated") {
     return <Navigate to="/" replace />;
   }
   return (

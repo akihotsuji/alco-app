@@ -14,10 +14,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="icon" href="/pwa/pwa-192x192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/boot.css" />
     <title>alco-app</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="auth-boot" data-boot-html>
+        <p class="auth-boot-status" data-boot-status>読み込み中</p>
+        <a class="auth-boot-retry" data-boot-retry href="./">再試行</a>
+      </div>
+    </div>
+    <script src="/boot-guard.js"></script>
     <script type="module" src="/src/client/boot-prefetch.ts"></script>
     <script type="module" src="/src/client/main.tsx"></script>
   </body>

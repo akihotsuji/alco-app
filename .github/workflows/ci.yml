@@ -87,6 +87,9 @@ jobs:
       - name: Run E2E
         run: pnpm test:e2e
 
+      - name: Run PWA E2E
+        run: pnpm test:e2e:pwa
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4

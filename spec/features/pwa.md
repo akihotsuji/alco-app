@@ -88,13 +88,25 @@
 | ビルドした静的ファイル（HTML / JS / CSS / アイコン） | precache | スタンドアロン起動と再訪 |
 | `/api/*`（認証・写真本文を含む） | **NetworkOnly** | セッション付き JSON / 認可付き画像を SW キャッシュしない |
 | `/models/**` | precache **しない** | 4.5MB の ONNX。既存の Cache API が担う |
+| 存在しない `/assets/*`（古いハッシュの JS / CSS） | **404**（HTML にしない） | Workers の SPA fallback が `index.html` を返すと、`nosniff` でスクリプト実行が拒否され空画面になる |
 
-- `navigateFallback` は `index.html`（SPA）。`/api/` は denylist
-- `registerType: autoUpdate` + `skipWaiting` + `clientsClaim`。デプロイ後は次の起動で新 SW がすぐ有効
+- `navigateFallback` は `index.html`（SPA）。denylist は `/api/` と `/assets/` と `*.js` / `*.css`
+- `registerType: autoUpdate` + `skipWaiting` + `clientsClaim`。デプロイ後は新 SW がすぐ有効
+- **初回インストール**（この文書読み込み時点で `controller` が無い）では `controllerchange` で再読み込みしない
+- **既存バージョンからの更新**では再読み込みを `app-reload` に一元化する。短時間の重複・画面再起動をまたぐループはしない
+- 未保存フォームがあるときは再読み込みせず、既存の離脱保護（破棄確認）を通す更新トーストを出す
+- SW 登録失敗はアプリ本体の表示を止めない
+- `urlPattern` は SW に閉じた関数にする（ビルド時に外部 import 名だけが残ると NetworkOnly が死ぬ）
+- precache に無い JS / CSS が `text/html` で返ったときは 404 として扱う（古い HTML が消えたチャンクを指す場合）
 - `pnpm dev`（Vite）では SW を登録しない（HMR と CSP 未適用のため）。確認は `pnpm build` → `wrangler dev --env dev`
 - 古い SW が残って壊れたときの外し方は README
+- 通常の復旧では Cookie / IndexedDB / localStorage / 全キャッシュを一括削除しない
 
-Workers Static Assets の `_headers` で `/sw.js` に `Cache-Control: no-cache` を付ける（デフォルトの must-revalidate でも再検証されるが、SW 更新を明示する）。
+Workers Static Assets の `_headers` で `/sw.js` に `Cache-Control: no-cache` を付ける（デフォルトの must-revalidate でも再検証されるが、SW 更新を明示する）。`/boot-guard.js` と `/boot.css` も同様。
+
+`run_worker_first` は `/api/*` に加え `/assets/*`。ハッシュ付き資産が無いときは Worker が 404 を返し、SPA の HTML を JS として渡さない。
+
+起動・失敗時の画面は [screen-designs/00-common.md](../screen-designs/00-common.md) 2.10。認証の通信失敗は [auth.md](auth.md)。
 
 ---
 
@@ -125,8 +137,8 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 
 - SW の scope はアプリ全体。配信は Workers の HTTPS のみ
 - `/api/*` を CacheFirst / StaleWhileRevalidate にしない（Cookie 付き JSON・写真）
-- SW 登録スクリプトを HTML インラインにしない（CSP）
-- ログにセッショントークンを出さない（既存どおり）
+- SW 登録スクリプトを HTML インラインにしない（CSP）。起動ガードは `/boot-guard.js`（`'self'`）
+- ログにセッショントークン・Cookie・個人の記録を出さない（既存どおり）
 
 ---
 
@@ -135,5 +147,8 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 - [ ] ビルド成果に `manifest.webmanifest` があり、`display` が `standalone`
 - [ ] 192 / 512 / maskable / Apple touch の PNG がある
 - [ ] SW が `/api/` を NetworkOnly にし、`/models/` を precache しない
+- [ ] 存在しない `/assets/*.js` が HTML ではなく 404 を返す
+- [ ] 起動中に「読み込み中」が見え、失敗時に説明と再試行がある
+- [ ] 初回インストールで不要な再読み込みをしない。更新再読み込みはループしない
 - [ ] lint / typecheck / test がパスする
 - [ ] 監査: SW が秘密・認可レスポンスをキャッシュしない

@@ -54,9 +54,18 @@ export const PWA_PRECACHE_GLOB = ["**/*.{js,css,html,ico,png,svg,webp,webmanifes
 /** 切り抜きモデルは既存の Cache API。SW precache に載せない */
 export const PWA_PRECACHE_IGNORE = ["**/models/**"] as const;
 export const PWA_NAVIGATE_FALLBACK = "index.html";
-export const PWA_NAVIGATE_FALLBACK_DENYLIST = [/^\/api(?:\/|$)/];
+export const PWA_NAVIGATE_FALLBACK_DENYLIST = [
+  /^\/api(?:\/|$)/,
+  /^\/assets(?:\/|$)/,
+  /\.(?:js|css)$/,
+];
 
 /** セッション付き JSON / 認可付き写真を SW がキャッシュしない */
 export function isPwaNetworkOnlyPath(pathname: string): boolean {
   return pathname === "/api" || pathname.startsWith("/api/");
+}
+
+/** SPA fallback の HTML を JS / CSS として渡さない */
+export function isHtmlMasqueradingAsAsset(contentType: string | null): boolean {
+  return (contentType ?? "").toLowerCase().includes("text/html");
 }

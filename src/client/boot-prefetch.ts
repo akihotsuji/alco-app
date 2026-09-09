@@ -3,6 +3,7 @@
  * 静的 import は置かない（Vite が共有 chunk を挟むと RTT が増える）。
  * 対応表は route-chunks.ts と一致させる（boot-prefetch.test.ts で検証）。
  */
+const EARLY_FETCH_TIMEOUT_MS = 10_000;
 const loaders = {
   shell: () => import("@/client/layout/AuthenticatedLayout.tsx"),
   home: () => import("@/client/pages/HomePage.tsx"),
@@ -89,12 +90,18 @@ function installEarlyFetchStore(): void {
 }
 
 function startEarlyFetch(path: string): void {
-  window.__alcoEarlyFetch?.put(path, fetch(path, { credentials: "same-origin" }));
+  window.__alcoEarlyFetch?.put(
+    path,
+    fetch(path, {
+      credentials: "same-origin",
+      signal: AbortSignal.timeout(EARLY_FETCH_TIMEOUT_MS),
+    }),
+  );
 }
 
 export function prefetchInitialRoute(pathname = window.location.pathname): void {
   for (const id of initialRouteChunkIds(pathname)) {
-    void loaders[id]();
+    void loaders[id]().catch(() => undefined);
   }
 }
 

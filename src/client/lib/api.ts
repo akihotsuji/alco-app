@@ -1,7 +1,9 @@
 import { type ClientRequestOptions, type ClientResponse, hc } from "hono/client";
 import type { AppType } from "@/server/index.ts";
 import { type ApiErrorCode, type ApiErrorFields, apiErrorBodySchema } from "@/shared/api-error.ts";
+import { EARLY_FETCH_TIMEOUT_MS } from "./boot.ts";
 import { takeEarlyFetch } from "./early-fetch.ts";
+import { settleEarlyFetch } from "./fetch-timeout.ts";
 
 /**
  * Hono RPC クライアント。SPA と API は同一 Worker・同一オリジンなので base は相対 `/`。
@@ -12,14 +14,17 @@ export function createApiClient(options: ClientRequestOptions = {}) {
   return hc<AppType>("/", {
     ...options,
     fetch: (input: Request | string | URL, init?: RequestInit) => {
+      const live = async () => {
+        if (options.fetch) {
+          return options.fetch(input, init);
+        }
+        return fetch(input, init);
+      };
       const early = takeEarlyFetch(input, init);
       if (early) {
-        return early;
+        return settleEarlyFetch(early, live, EARLY_FETCH_TIMEOUT_MS);
       }
-      if (options.fetch) {
-        return options.fetch(input, init);
-      }
-      return fetch(input, init);
+      return live();
     },
     // セッション Cookie を必ず付ける（同一オリジンでも明示する）
     init: { credentials: "include", ...options.init },

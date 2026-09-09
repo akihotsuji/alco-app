@@ -1,3 +1,5 @@
+import { requestAppReload } from "@/client/lib/app-reload.ts";
+import { notifySwUpdateAvailable, shouldReloadOnControllerChange } from "@/client/lib/sw-update.ts";
 import { PWA_SW_FILENAME } from "@/shared/pwa.ts";
 
 export function shouldRegisterServiceWorker(prod: boolean, hasServiceWorker: boolean): boolean {
@@ -5,12 +7,44 @@ export function shouldRegisterServiceWorker(prod: boolean, hasServiceWorker: boo
 }
 
 /** 本番ビルドだけ SW を登録する。Vite 開発では HMR を邪魔しない。インライン script は使わない（CSP） */
-export function installServiceWorker(): void {
-  if (!shouldRegisterServiceWorker(import.meta.env.PROD, "serviceWorker" in navigator)) {
+export function installServiceWorker(
+  deps: {
+    prod?: boolean;
+    hasServiceWorker?: boolean;
+    register?: (url: string) => Promise<unknown>;
+    addControllerChangeListener?: (listener: () => void) => void;
+    hadControllerAtStart?: boolean;
+    onRegisterError?: (error: unknown) => void;
+  } = {},
+): void {
+  const prod = deps.prod ?? import.meta.env.PROD;
+  const hasServiceWorker = deps.hasServiceWorker ?? "serviceWorker" in navigator;
+  if (!shouldRegisterServiceWorker(prod, hasServiceWorker)) {
     return;
   }
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    window.location.reload();
+  const hadControllerAtStart =
+    deps.hadControllerAtStart ?? Boolean(navigator.serviceWorker.controller);
+
+  const onControllerChange = () => {
+    if (!shouldReloadOnControllerChange(hadControllerAtStart)) {
+      return;
+    }
+    const decision = requestAppReload("sw-update", {
+      notifyDirty: () => notifySwUpdateAvailable(),
+    });
+    if (decision === "skip-loop") {
+      notifySwUpdateAvailable();
+    }
+  };
+
+  if (deps.addControllerChangeListener) {
+    deps.addControllerChangeListener(onControllerChange);
+  } else {
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+  }
+
+  const register = deps.register ?? ((url: string) => navigator.serviceWorker.register(url));
+  void register(`/${PWA_SW_FILENAME}`).catch((error: unknown) => {
+    deps.onRegisterError?.(error);
   });
-  void navigator.serviceWorker.register(`/${PWA_SW_FILENAME}`);
 }

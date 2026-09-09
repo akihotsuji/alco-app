@@ -60,6 +60,7 @@
 
 - 起動直後: `boot-prefetch.ts` を **別エントリ**（本番は main より前の `<script type="module">`）として読む。メイン JS の解析を待たず、**開いたパス**の chunk を `import()` する（`/login` なら login だけ。`/` なら shell + home）。セッション Cookie は httpOnly なので JS からは見ない
 - 同じ script が `GET /api/auth/get-session` を先に飛ばす。`/` ではホームが待つ summary（day/week）と my-drinks も先に飛ばし、Hono RPC / Better Auth が応答を使い切る（楽観的更新ではない）
+- 先読み GET は 10 秒で打ち切る。失敗した Promise を本バンドルが待たず、通常の `fetch` にフォールバックする。画面 `import()` の失敗は握りつぶして未処理拒否にしない（本体の Error Boundary / `vite:preloadError` が復旧する）
 - タブ / FAB / ヘッダー / ホームの導線: `pointerenter` と `focus` で行き先の chunk を先読み
 - 中央タブ「記録」は `logForm` と `photoEdit`
 

@@ -20,6 +20,7 @@ import { createWorkersAiRecognizer } from "./services/label-recognizer/workers-a
 import { createWorkersAiNoteRecognizer } from "./services/note-recognizer/workers-ai.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
+import { isHashedAssetPath, serveHashedAsset } from "./static-assets.ts";
 
 export type CreateAppOptions = {
   auth?: Auth;
@@ -32,8 +33,9 @@ export type CreateAppOptions = {
 };
 
 /**
- * Worker が返すのは `/api/*` の JSON（と写真バイナリ）だけ。SPA の HTML / JS / CSS は
- * 静的アセット配信（`run_worker_first: ["/api/*"]`）なので、そちらの CSP は `public/_headers`。
+ * Worker が返すのは `/api/*` の JSON（と写真バイナリ）と、存在しない `/assets/*` の 404。
+ * 残りの SPA の HTML / JS / CSS は静的アセット配信（`run_worker_first: ["/api/*", "/assets/*"]`）。
+ * そちらの CSP は `public/_headers`。
  * API 応答はスクリプトも埋め込みも要らないため全面禁止にする。
  */
 const apiSecureHeaders = secureHeaders({
@@ -126,7 +128,12 @@ export async function handleScheduled(env: Env, nowMs = Date.now()) {
 }
 
 export default {
-  fetch: app.fetch,
+  fetch: (request: Request, env: Env, ctx: ExecutionContext) => {
+    if (isHashedAssetPath(new URL(request.url).pathname)) {
+      return serveHashedAsset(request, env);
+    }
+    return app.fetch(request, env, ctx);
+  },
   scheduled: (controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
     ctx.waitUntil(handleScheduled(env, controller.scheduledTime));
   },

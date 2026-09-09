@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
+import { SwUpdateHost } from "@/client/components/feedback/SwUpdateHost.tsx";
 import { FirstRunGuideHost } from "@/client/components/guide/FirstRunGuideHost.tsx";
 import {
   FirstRunGuideProvider,
@@ -34,6 +35,7 @@ export function AppShell() {
       <HeaderOverrideProvider>
         <FirstRunGuideProvider>
           <AppShellFrame />
+          <SwUpdateHost />
         </FirstRunGuideProvider>
       </HeaderOverrideProvider>
     </LeaveGuardProvider>
