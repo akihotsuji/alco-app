@@ -28,6 +28,7 @@ import {
   parseDrinkExtract,
   parseDrinkLookup,
   selectDrinkAutofillFields,
+  summarizeDrinkParse,
 } from "../ai-recognition/drink-extract.ts";
 import { summarizeAiError } from "../ai-recognition/error-summary.ts";
 import { createAdapterForProfile } from "../ai-recognition/factory.ts";
@@ -162,6 +163,9 @@ async function executeDrinkRecognition(
     );
     const extract = parseDrinkExtract(extractRaw);
     let selected = selectDrinkAutofillFields(extract, null);
+    console.info(
+      `[drink-recognize] parse ${summarizeDrinkParse(extractRaw, extract, selected.fields)}`,
+    );
     let usage = normalizeTokenUsage(extractRaw);
     let searchUsed = false;
     let sources: RecognizeSource[] = selected.sources;

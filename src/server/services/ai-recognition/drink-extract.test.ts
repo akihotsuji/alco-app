@@ -95,6 +95,48 @@ describe("selectDrinkAutofillFields", () => {
   });
 });
 
+describe("parseDrinkExtract", () => {
+  it("平坦な JSON と日本語の種類を候補形へ直す", () => {
+    const extract = parseDrinkExtract({
+      subject: "label",
+      drinkName: "獺祭",
+      producer: "旭酒造",
+      drinkType: "日本酒",
+      volumeMl: 180,
+      abvPercent: 16,
+      origin: "日本",
+    });
+    const { fields } = selectDrinkAutofillFields(extract, null);
+    expect(fields.drinkName?.value).toBe("獺祭");
+    expect(fields.producer?.value).toBe("旭酒造");
+    expect(fields.drinkType?.value).toBe("sake");
+    expect(fields.volumeMl?.value).toBe(180);
+    expect(fields.abvPercent?.value).toBe(16);
+    expect(fields.origin?.value).toBe("日本");
+  });
+
+  it("Gemini candidates の平坦 JSON も同じ欄になる", () => {
+    const extract = parseDrinkExtract({
+      candidates: [
+        {
+          finishReason: "STOP",
+          content: {
+            parts: [
+              {
+                text: '{"subject":"label","drinkName":"Sample","drinkType":"beer","volumeMl":350}',
+              },
+            ],
+          },
+        },
+      ],
+    });
+    const { fields } = selectDrinkAutofillFields(extract, null);
+    expect(fields.drinkName?.value).toBe("Sample");
+    expect(fields.drinkType?.value).toBe("beer");
+    expect(fields.volumeMl?.value).toBe(350);
+  });
+});
+
 describe("needsProductLookup", () => {
   it("品名と生産者が揃い国か品種が無いときだけ真", () => {
     expect(

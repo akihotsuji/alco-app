@@ -30,10 +30,10 @@
 | Google 原生 ID | `gemini-3.7-flash`（定数 `GEMINI_37_FLASH_NATIVE_ID`。混同しない） |
 | 呼び出し | 既存 binding `env.AI.run(modelId, body, { gateway: { id } })` |
 | 課金 | AI Gateway Unified Billing。追加の Google API キーは不要 |
-| 画像抽出 | 公式 `env.AI.run` 例どおり Generate Content（`contents` / `parts`）。画像は Image Understanding と同じ `inlineData`。`responseMimeType` / `responseSchema` は送らない |
-| 構造化 | プロンプトで JSON を要求し、業務層で検証。Llama の `guided_json` は流用しない |
+| 画像抽出 | 公式 `env.AI.run` 例どおり Generate Content（`contents` / `parts`）。画像は Image Understanding と同じ `inlineData` |
+| 構造化 | Gemini `responseMimeType` + `responseSchema`。平坦な JSON（文字列・数値だけ）も業務層で `{ value, confidence }` に直す。Llama の `guided_json` は流用しない |
 | 検索 | `tools: [{ googleSearch: {} }]`。プロファイルが `supportsSearch` のときだけ送る |
-| 思考量 | プロファイルに `thinkingLevel: "low"` を持つ。Cloudflare binding での `thinkingConfig` 通過は未検証のため **初期実装では送らない**（`emitThinkingConfig: false`） |
+| 思考量 | `thinkingConfig.thinkingLevel: "minimal"` を送る。思考で JSON が欠けるのを避ける。`maxOutputTokens` は 4096 |
 | 検証区分 | Gemini プロファイルは `mock-only`。Llama は既存本番経路 `production-llama` |
 
 公式: [Cloudflare Models](https://developers.cloudflare.com/ai/models/google/gemini-3.7-flash/)、[Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/)、[Google Gemini 3.7 Flash](https://ai.google.dev/gemini-api/docs/models)。
@@ -55,7 +55,7 @@
 
 | キー | プロバイダ | modelId | 画像 | 構造化 | 検索 | 検証 |
 |---|---|---|---|---|---|---|
-| `gemini-3.7-flash` | gemini | `google/gemini-3.7-flash` | 可 | `json-prompt` | 可（実 API 未検証） | mock-only |
+| `gemini-3.7-flash` | gemini | `google/gemini-3.7-flash` | 可 | `gemini-response-schema` | 可（実 API 未検証） | mock-only |
 | `workers-ai-llama` | workers-ai | `@cf/meta/llama-4-scout-17b-16e-instruct` | 可 | `workers-ai-guided-json` | 不可 | production-llama |
 
 不明なキーは `RecognitionConfigError` → `503 misconfigured`。未対応パラメータは送らない。検索非対応プロファイルで検索したように扱わない。
@@ -128,6 +128,7 @@
 - 失敗やタイムアウトでも上流課金が残り得る
 - アプリログに写真本体・Base64・認証情報を出さない。件数・時間・フィールド数・profile 名だけ
 - 失敗時は `[drink-recognize] ok=false reason=` に status と短いメッセージだけ出す（写真・Base64・Cookie は落とす）。クライアント応答は `upstream_error`
+- `ok=true fieldCount=0` のときは `[drink-recognize] parse` に subject / extractCount / finishReason / payloadKeys / トークン数だけ出す（値は出さない）
 - Gateway 本文ログは既定 OFF（`AI_GATEWAY_COLLECT_LOG=0`）
 
 ## 11. モデル切替手順
@@ -157,7 +158,7 @@
 
 ## 13. 未検証
 
-- Gemini 3.7 Flash の実 API（画像・構造化出力・検索・思考量・実測レイテンシ / 料金）
+- Gemini 3.7 Flash の実 API（検索 grounding・実測レイテンシ / 料金。画像抽出は本番でクレジット不足のあと `ok=true fieldCount=0` を確認済み）
 - 同じ実写真 30 枚での現行 Llama との品質比較
 - Unified Billing のクレジット残高と Gateway 支出上限の実機確認
 
@@ -166,4 +167,5 @@
 - ノート / セラーは Workers AI Llama を Gateway なしで呼ぶ。酒記録 Gemini は `gateway.id` 経由の第三者モデル
 - Gateway にリクエストは届きトークン 0 なら、モデル実行前の失敗（課金・形式・認可）
 - 切り分けは Workers Logs の `[drink-recognize] ok=false reason=`。クライアントは `upstream_error` だけ
+- `ok=true fieldCount=0` は課金成功のあと JSON が業務形に落ちたとき。`[drink-recognize] parse` の finishReason / payloadKeys / thinkingTokens を見る
 - 応急は `AI_RECOGNITION_PROFILE=workers-ai-llama` にして再デプロイ（手入力は継続できる）

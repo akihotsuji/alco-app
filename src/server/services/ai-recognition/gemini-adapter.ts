@@ -9,6 +9,7 @@ type GeminiCall = {
   jpegBytes?: Uint8Array;
   systemPrompt: string;
   userPrompt: string;
+  schema?: Record<string, unknown>;
   search: boolean;
   kind: "extract" | "lookup";
 };
@@ -16,7 +17,7 @@ type GeminiCall = {
 /**
  * Cloudflare カタログの `env.AI.run` 例は Generate Content（contents / parts）。
  * 画像は公式の Image Understanding と同じ `inlineData`。
- * `responseMimeType` / `responseSchema` はカタログ例に無く、未検証の 400 を避けるため送らない。
+ * 構造化は `responseMimeType` + `responseSchema`。思考量はプロファイルの thinkingConfig。
  * 検索だけ `tools: [{ googleSearch: {} }]` を付ける。
  */
 export function createGeminiGatewayAdapter(ai: Ai): RecognitionAdapter {
@@ -69,6 +70,10 @@ export function buildGeminiBody(request: GeminiCall): Record<string, unknown> {
         ? request.profile.lookupMaxOutputTokens
         : request.profile.maxOutputTokens,
   };
+  if (request.profile.supportsStructuredOutput && request.schema) {
+    generationConfig.responseMimeType = "application/json";
+    generationConfig.responseSchema = request.schema;
+  }
   if (
     request.profile.emitThinkingConfig &&
     request.profile.supportsThinking &&

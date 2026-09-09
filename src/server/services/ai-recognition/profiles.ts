@@ -13,7 +13,10 @@ import {
 } from "@/shared/constants.ts";
 
 export type RecognitionRequestFormat = "gemini-generate-content" | "workers-ai-chat";
-export type StructuredOutputStyle = "json-prompt" | "workers-ai-guided-json";
+export type StructuredOutputStyle =
+  | "json-prompt"
+  | "gemini-response-schema"
+  | "workers-ai-guided-json";
 
 export type ModelProfile = {
   key: AiRecognitionProfileKey;
@@ -48,15 +51,15 @@ export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
     requestFormat: "gemini-generate-content",
     supportsImage: true,
     supportsStructuredOutput: true,
-    structuredOutputStyle: "json-prompt",
+    structuredOutputStyle: "gemini-response-schema",
     supportsSearch: true,
     supportsThinking: true,
-    thinkingLevel: "low",
-    emitThinkingConfig: false,
+    thinkingLevel: "minimal",
+    emitThinkingConfig: true,
     timeoutMs: 25_000,
     lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_TIMEOUT_MS,
-    maxOutputTokens: 2048,
-    lookupMaxOutputTokens: 1024,
+    maxOutputTokens: 4096,
+    lookupMaxOutputTokens: 2048,
     temperature: 0,
     verification: "mock-only",
   },

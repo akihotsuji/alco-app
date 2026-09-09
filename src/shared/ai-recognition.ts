@@ -29,7 +29,7 @@ export type PhotoSubject = (typeof PHOTO_SUBJECTS)[number];
 
 export const DRINK_EXTRACT_PROMPT_VERSION = "drink-extract-v2";
 export const DRINK_LOOKUP_PROMPT_VERSION = "drink-lookup-v1";
-export const DRINK_OUTPUT_SCHEMA_VERSION = "drink-fields-v2";
+export const DRINK_OUTPUT_SCHEMA_VERSION = "drink-fields-v3";
 
 export const unknownTokenUsage = {
   inputTokens: null,

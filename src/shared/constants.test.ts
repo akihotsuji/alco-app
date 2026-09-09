@@ -21,6 +21,8 @@ describe("drink types", () => {
     expect(normalizeRecognizedDrinkType("rosé")).toBe("wine_rose");
     expect(normalizeRecognizedDrinkType("prosecco")).toBe("wine_sparkling");
     expect(normalizeRecognizedDrinkType("amber")).toBe("wine_orange");
+    expect(normalizeRecognizedDrinkType("赤ワイン")).toBe("wine_red");
+    expect(normalizeRecognizedDrinkType("日本酒")).toBe("sake");
     expect(normalizeRecognizedDrinkType("vodka")).toBeNull();
   });
 });

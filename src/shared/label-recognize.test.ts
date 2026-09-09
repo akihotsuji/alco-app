@@ -77,4 +77,22 @@ describe("extractModelPayload", () => {
       }),
     ).toEqual({ name: { value: "赤", confidence: 0.8 } });
   });
+
+  it("思考パートを捨て、最後の酒記録 JSON を取る", () => {
+    expect(
+      extractModelPayload({
+        candidates: [
+          {
+            finishReason: "STOP",
+            content: {
+              parts: [
+                { thought: true, text: 'scratch { "ignore": true }' },
+                { text: 'prefix {"name":{"value":"赤","confidence":0.8}}' },
+              ],
+            },
+          },
+        ],
+      }),
+    ).toEqual({ name: { value: "赤", confidence: 0.8 } });
+  });
 });
