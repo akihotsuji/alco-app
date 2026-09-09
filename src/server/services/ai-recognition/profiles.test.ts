@@ -31,7 +31,7 @@ describe("resolveModelProfile", () => {
     expect(llama.structuredOutputStyle).toBe("workers-ai-guided-json");
     const gemini = resolveModelProfile({}, "drink");
     expect(gemini.supportsSearch).toBe(true);
-    expect(gemini.structuredOutputStyle).toBe("gemini-response-schema");
+    expect(gemini.structuredOutputStyle).toBe("json-prompt");
     expect(gemini.supportsThinking).toBe(true);
     expect(gemini.emitThinkingConfig).toBe(false);
   });

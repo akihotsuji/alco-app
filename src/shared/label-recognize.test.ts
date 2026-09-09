@@ -55,4 +55,26 @@ describe("extractModelPayload", () => {
     expect(extractModelPayload("{not json")).toBeNull();
     expect(extractModelPayload({ response: "nope" })).toBeNull();
   });
+
+  it("Chat Completions の choices[].message.content を剥がす", () => {
+    expect(
+      extractModelPayload({
+        choices: [{ message: { content: '{"name":{"value":"赤","confidence":0.8}}' } }],
+      }),
+    ).toEqual({ name: { value: "赤", confidence: 0.8 } });
+  });
+
+  it("Generate Content の candidates[].content.parts を剥がす", () => {
+    expect(
+      extractModelPayload({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: '{"name":{"value":"赤","confidence":0.8}}' }],
+            },
+          },
+        ],
+      }),
+    ).toEqual({ name: { value: "赤", confidence: 0.8 } });
+  });
 });

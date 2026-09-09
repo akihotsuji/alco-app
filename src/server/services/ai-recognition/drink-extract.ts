@@ -97,7 +97,7 @@ const numberProperty = {
   },
 };
 
-/** Gemini responseSchema（uppercase types）。Workers AI guided_json には使わない */
+/** プロンプトが要求する JSON 形。Cloudflare 経路では responseSchema として送らない */
 export const DRINK_EXTRACT_GEMINI_SCHEMA = {
   type: "OBJECT",
   properties: {

@@ -29,6 +29,7 @@ import {
   parseDrinkLookup,
   selectDrinkAutofillFields,
 } from "../ai-recognition/drink-extract.ts";
+import { summarizeAiError } from "../ai-recognition/error-summary.ts";
 import { createAdapterForProfile } from "../ai-recognition/factory.ts";
 import {
   MODEL_PROFILES,
@@ -74,6 +75,7 @@ export async function recognizeDrinkPhoto(input: {
   let ok = false;
   let fieldCount = 0;
   let searchUsed = false;
+  let failReason = "";
   try {
     const result = await runDrinkRecognition(input);
     fieldCount = Object.keys(result.fields).length;
@@ -91,6 +93,7 @@ export async function recognizeDrinkPhoto(input: {
       searchUsed: result.searchUsed,
     };
   } catch (error) {
+    failReason = summarizeAiError(error);
     await refundAiUsage({ db: input.db, userId: input.userId, now: input.now });
     if (error instanceof ApiError) {
       throw error;
@@ -101,7 +104,7 @@ export async function recognizeDrinkPhoto(input: {
     throw new ApiError("upstream_error");
   } finally {
     console.info(
-      `[drink-recognize] ok=${ok} durationMs=${Date.now() - started} fieldCount=${fieldCount} searchUsed=${searchUsed} profile=${input.recognizer.profile}`,
+      `[drink-recognize] ok=${ok} durationMs=${Date.now() - started} fieldCount=${fieldCount} searchUsed=${searchUsed} profile=${input.recognizer.profile} reason=${failReason || "-"}`,
     );
   }
 }
