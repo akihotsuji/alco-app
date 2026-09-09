@@ -248,7 +248,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] シークレット管理の整理（wrangler secret / GitHub Secrets、`.dev.vars`はコミット禁止）→ [secrets.md](secrets.md)（7-03。2026-09-09。本番 Auth secret 投入済み）
 - [x] D1日次バックアップ（D1のTime Travel確認＋定期エクスポートをGitHub Actionsで実行）→ [features/d1-backup.md](features/d1-backup.md)（7-04。2026-09-09。初回手動実行と `mode=rehearse` はオーナー）
 - [x] 監視: Workers Logsの確認手順、エラー通知（Sentry は不採用。ウェブフック + Actions メール）→ [features/monitoring.md](features/monitoring.md)（7-05。2026-09-09。ウェブフック投入はオーナー）
-- [ ] 独自ドメイン設定 → [features/custom-domain.md](features/custom-domain.md)（7-06。2026-09-09 ゾーン接続済み。公開名 さけしおり / `sake-shiori.com`。308 は Deploy prod 後）
+- [ ] 独自ドメイン設定 → [features/custom-domain.md](features/custom-domain.md)（7-06。2026-09-09 ゾーン接続済み。公開名 酒のしおり / `sake-shiori.com`。308 は Deploy prod 後）
 - [x] リリース前の全体セキュリティ監査（`security-audit` スキルをコードベース全体に対して実施。認可・セキュリティヘッダー・シークレット管理・R2公開設定の総点検）→ [security-audit-release.md](security-audit-release.md)（7-07。2026-09-09。Critical / High ゼロ。R2 ダッシュボード目視はオーナー）
 - [x] リリースチェックリスト作成と実施 → [release-checklist.md](release-checklist.md)（7-08。2026-09-09。初回本番デプロイと実機スモークはオーナー）
 - [x] 運用ドキュメント作成: 障害時の確認手順、バックアップからの復元手順 → [operations.md](operations.md)（7-09。2026-09-09）

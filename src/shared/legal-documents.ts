@@ -1,4 +1,5 @@
 import { LEGAL_DRAFT_NOTICE, LEGAL_EFFECTIVE_ON, LEGAL_VERSION } from "./legal.ts";
+import { PROD_CANONICAL_ORIGIN, SERVICE_NAME_JA } from "./prod-canonical.ts";
 
 export type LegalBlock = { type: "p"; text: string } | { type: "ul"; items: string[] };
 
@@ -34,7 +35,7 @@ export const TERMS_DOCUMENT: LegalDocument = {
       blocks: [
         {
           type: "p",
-          text: "本規約は、さけしおり（https://sake-shiori.com。以下「本サービス」）の利用条件です。アカウントを作成した時点で、本規約に同意したものとします。",
+          text: `本規約は、${SERVICE_NAME_JA}（${PROD_CANONICAL_ORIGIN}。以下「本サービス」）の利用条件です。アカウントを作成した時点で、本規約に同意したものとします。`,
         },
       ],
     },

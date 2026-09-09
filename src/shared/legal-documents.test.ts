@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { LEGAL_VERSION } from "./legal.ts";
 import { PRIVACY_DOCUMENT, TERMS_DOCUMENT } from "./legal-documents.ts";
+import { PROD_CANONICAL_ORIGIN, SERVICE_NAME_JA } from "./prod-canonical.ts";
 
 function allTexts(document: typeof TERMS_DOCUMENT): string[] {
   return document.sections.flatMap((section) =>
@@ -14,6 +15,8 @@ describe("法務文書", () => {
     expect(PRIVACY_DOCUMENT.version).toBe(LEGAL_VERSION);
     const terms = allTexts(TERMS_DOCUMENT).join("\n");
     const privacy = allTexts(PRIVACY_DOCUMENT).join("\n");
+    expect(terms).toContain(SERVICE_NAME_JA);
+    expect(terms).toContain(PROD_CANONICAL_ORIGIN);
     expect(terms).toContain("満20歳未満");
     expect(terms).toContain("飲酒を推奨しません");
     expect(privacy).toContain("Cloudflare");
