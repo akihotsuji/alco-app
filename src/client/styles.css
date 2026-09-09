@@ -546,6 +546,98 @@ select {
     calc(var(--space-5) + var(--safe-bottom)) calc(var(--space-5) + var(--safe-left));
 }
 
+.signup-legal {
+  display: grid;
+  grid-template-columns: var(--tap-min) 1fr;
+  column-gap: var(--space-2);
+  align-items: start;
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.signup-legal input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  margin: 11px 0 0 11px;
+  accent-color: var(--primary);
+}
+
+.signup-legal label {
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  font-size: var(--text-body);
+  line-height: 1.4;
+}
+
+.signup-legal-links {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: 13px;
+}
+
+.signup-legal-links a {
+  color: var(--primary);
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+}
+
+.legal-page {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}
+
+.legal-article {
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 calc(var(--space-4) + var(--safe-right)) calc(var(--space-6) + var(--safe-bottom))
+    calc(var(--space-4) + var(--safe-left));
+}
+
+.legal-draft,
+.legal-meta {
+  margin: 0 0 var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.legal-section {
+  margin-bottom: var(--space-5);
+}
+
+.legal-section h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.legal-section p,
+.legal-section li {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-body);
+  line-height: 1.7;
+}
+
+.legal-section ul {
+  margin: 0 0 var(--space-3);
+  padding-left: 1.25rem;
+}
+
+.legal-related {
+  margin: var(--space-4) 0 0;
+}
+
 .auth-password {
   position: relative;
 }
@@ -3157,6 +3249,7 @@ input:focus-visible {
   gap: var(--space-3);
   text-align: left;
   margin-bottom: var(--space-3);
+  text-decoration: none;
 }
 
 .settings-row-stack {

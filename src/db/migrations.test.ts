@@ -9,7 +9,15 @@ import { BOTTLE_STATUSES, DRINK_TYPES, PHOTO_KINDS } from "@/shared/constants.ts
 
 const migrationsDir = path.join(import.meta.dirname, "migrations");
 
-const APP_TABLES = ["drink_logs", "my_drinks", "bottles", "tasting_notes", "photos", "ai_usage"];
+const APP_TABLES = [
+  "drink_logs",
+  "my_drinks",
+  "bottles",
+  "tasting_notes",
+  "photos",
+  "ai_usage",
+  "legal_consents",
+];
 
 type Journal = { entries: { idx: number; tag: string }[] };
 
@@ -156,7 +164,7 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
 
   it("schema.ts の全テーブルについて列名・NOT NULL・インデックスが DB と一致する（generate 忘れ検知）", () => {
     const db = openMigratedDb();
-    expect(tables.length).toBe(10);
+    expect(tables.length).toBe(11);
     for (const table of tables) {
       const config = getTableConfig(table);
       const info = db.prepare(`PRAGMA table_info("${config.name}")`).all() as {
@@ -367,6 +375,9 @@ describe("制約の挙動", () => {
       db.prepare("INSERT INTO ai_usage (user_id, used_on, count) VALUES (?, '2026-01-01', 3)").run(
         uid,
       );
+      db.prepare(
+        "INSERT INTO legal_consents (id, user_id, document_version, accepted_at, created_at, updated_at) VALUES (?, ?, '2026-09-09', ?, ?, ?)",
+      ).run(`lc-${uid}`, uid, NOW, NOW, NOW);
     }
     db.prepare("DELETE FROM user WHERE id = 'u1'").run();
     for (const table of APP_TABLES) {

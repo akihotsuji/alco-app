@@ -15,6 +15,7 @@ import {
   resolveSafeRedirect,
   signupFormSchema,
 } from "@/shared/auth.ts";
+import { LEGAL_VERSION, legalHref } from "@/shared/legal.ts";
 
 export function SignupPage() {
   const [searchParams] = useSearchParams();
@@ -25,6 +26,7 @@ export function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +34,7 @@ export function SignupPage() {
     name: name.trim(),
     email: email.trim(),
     password,
+    acceptedLegal,
   });
   const canSubmit = parsed.success && !submitting;
 
@@ -42,11 +45,14 @@ export function SignupPage() {
     }
     setSubmitting(true);
     setError(null);
-    const result = await authClient.signUp.email({
+    const signupInput = {
       name: parsed.data.name,
       email: parsed.data.email,
       password: parsed.data.password,
-    });
+      acceptedLegal: true,
+      legalVersion: LEGAL_VERSION,
+    };
+    const result = await authClient.signUp.email(signupInput);
     setSubmitting(false);
     if (result.error) {
       setError(
@@ -112,6 +118,19 @@ export function SignupPage() {
         aria-describedby={error ? "auth-form-error" : undefined}
         onChange={setPassword}
       />
+      <div className="signup-legal">
+        <input
+          id="signup-legal"
+          type="checkbox"
+          checked={acceptedLegal}
+          onChange={(event) => setAcceptedLegal(event.target.checked)}
+        />
+        <label htmlFor="signup-legal">利用規約とプライバシーポリシーに同意する</label>
+        <p className="signup-legal-links">
+          <Link to={legalHref("/terms", "signup")}>利用規約</Link>
+          <Link to={legalHref("/privacy", "signup")}>プライバシーポリシー</Link>
+        </p>
+      </div>
     </AuthPageLayout>
   );
 }

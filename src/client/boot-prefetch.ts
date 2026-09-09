@@ -9,6 +9,7 @@ const loaders = {
   home: () => import("@/client/pages/HomePage.tsx"),
   login: () => import("@/client/pages/LoginPage.tsx"),
   signup: () => import("@/client/pages/SignupPage.tsx"),
+  legal: () => import("@/client/pages/LegalPage.tsx"),
   summary: () => import("@/client/pages/summary/SummaryPages.tsx"),
   logDay: () => import("@/client/pages/logs/LogDayPage.tsx"),
   logForm: () => import("@/client/pages/logs/LogFormPage.tsx"),
@@ -36,6 +37,9 @@ export function initialRouteChunkIds(pathname: string): readonly BootChunkId[] {
   }
   if (pathname === "/signup") {
     return ["signup"];
+  }
+  if (pathname === "/terms" || pathname === "/privacy") {
+    return ["legal"];
   }
   if (pathname === "/") {
     return ["shell", "home"];

@@ -20,6 +20,12 @@ describe("SettingsPage S11 / S12", () => {
     expect(source).not.toContain("健康");
   });
 
+  it("このアプリ節から利用規約とプライバシーポリシーへ辿れる", () => {
+    expect(source).toContain("このアプリ");
+    expect(source).toContain('legalHref("/terms", "settings")');
+    expect(source).toContain('legalHref("/privacy", "settings")');
+  });
+
   it("版表記は公開名称とバージョンを並べ、仮名 alco-app を出さない", () => {
     expect(source).toContain("PWA_NAME");
     expect(source).toContain("APP_VERSION");

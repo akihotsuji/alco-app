@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/libsql";
 import { z } from "zod";
 import * as schema from "@/db/schema.ts";
 import { WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
+import { LEGAL_VERSION } from "@/shared/legal.ts";
 import { createAuth } from "./auth.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
@@ -136,11 +137,19 @@ export function cookieHeaderFrom(response: Response): string {
     .join("; ");
 }
 
-export async function signUp(app: TestApp, input: TestUserInput) {
+export async function signUpWithBody(app: TestApp, body: unknown) {
   return app.request("/api/auth/sign-up/email", {
     method: "POST",
     headers: authHeaders(app),
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
+  });
+}
+
+export async function signUp(app: TestApp, input: TestUserInput) {
+  return signUpWithBody(app, {
+    ...input,
+    acceptedLegal: true,
+    legalVersion: LEGAL_VERSION,
   });
 }
 
