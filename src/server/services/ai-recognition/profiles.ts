@@ -32,7 +32,7 @@ export type ModelProfile = {
   supportsSearch: boolean;
   supportsThinking: boolean;
   thinkingLevel?: "minimal" | "low" | "medium" | "high";
-  /** Cloudflare binding で thinkingConfig の通過が確認できてから true */
+  /** true のとき generationConfig.thinkingConfig を送る */
   emitThinkingConfig: boolean;
   timeoutMs: number;
   lookupTimeoutMs: number;
