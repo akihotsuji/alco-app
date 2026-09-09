@@ -42,8 +42,7 @@ type WranglerConfig = {
 
 const wrangler = parseJsonc(wranglerSource) as WranglerConfig;
 
-const SECRET_KEY_PATTERN =
-  /better_auth|api[_-]?token|password|private[_-]?key|secret/i;
+const SECRET_KEY_PATTERN = /better_auth|api[_-]?token|password|private[_-]?key|secret/i;
 
 function collectKeys(value: unknown, keys: string[] = []): string[] {
   if (Array.isArray(value)) {
