@@ -20,6 +20,7 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [data-model.md](data-model.md) | ER図・Drizzleスキーマ設計 | 承認済み（1-04。1-07 改訂は 2026-09-06 承認） |
 | [api-design.md](api-design.md) | APIエンドポイント一覧・認可ルール | 承認済み（1-05。1-07 改訂は 2026-09-06 承認） |
 | [dev-deploy.md](dev-deploy.md) | dev Workers への手動デプロイ・リモート migrate・ログの見方（3-07。後で operations に統合） | 作成済み（3-07） |
+| [secrets.md](secrets.md) | シークレットのキー名と置き場・投入／ローテーション（値は書かない） | 7-03（2026-09-09） |
 | features/ | 機能ごとの詳細仕様（画面項目・バリデーション） | 各実装フェーズで作成 |
 | [features/health.md](features/health.md) | 公開 `GET /api/health`（認証なし） | 作成済み（0-04） |
 | [features/alcohol-calculation.md](features/alcohol-calculation.md) | 純アルコール量計算・グラスプリセット・休肝日 | 承認済み（1-06。2026-09-04） |

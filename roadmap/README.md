@@ -111,7 +111,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 5 テイスティングノート | [phase-05-tasting-note](phase-05-tasting-note/00-phase.md) | 撮って評価と一言・写真グリッド・セラー連携 | 完了（5-01〜5-05。5-05 は 2026-09-07） |
 | Phase 5.5 実機検証・機能安定化 | [phase-05-5-device-hardening](phase-05-5-device-hardening/00-phase.md) | Phase 3〜5の実機探索、Issue化、1件ずつ修正 | 未着手（Phase 5完了直後） |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
-| Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 進行中（7-01 完了） |
+| Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 進行中（7-01 / 7-03 完了） |
 | Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 未着手 |
 
 ## ロードマップ ↔ ファイル対応表
@@ -219,7 +219,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 |---|---|---|---|
 | 7-01 | 本番用リソース作成 | [01-prod-resources.md](phase-07-production-release/01-prod-resources.md) | 完了（2026-09-09） |
 | 7-02 | GitHub Actions デプロイパイプライン | [02-deploy-pipeline.md](phase-07-production-release/02-deploy-pipeline.md) | 未着手 |
-| 7-03 | シークレット管理の整理 | [03-secret-management.md](phase-07-production-release/03-secret-management.md) | 未着手 |
+| 7-03 | シークレット管理の整理 | [03-secret-management.md](phase-07-production-release/03-secret-management.md) | 完了（2026-09-09。本番投入はオーナー） |
 | 7-04 | D1日次バックアップ | [04-d1-backup.md](phase-07-production-release/04-d1-backup.md) | 未着手 |
 | 7-05 | 監視 | [05-monitoring.md](phase-07-production-release/05-monitoring.md) | 未着手 |
 | 7-06 | 独自ドメイン設定（任意） | [06-custom-domain.md](phase-07-production-release/06-custom-domain.md) | 未着手 |

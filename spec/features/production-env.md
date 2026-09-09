@@ -24,7 +24,7 @@ wrangler の **`env.production`** で、dev とデータを混ぜない本番 Wo
 
 - 本番 Worker のデプロイ（`wrangler deploy --env production`）
 - 本番 D1 への migrate
-- `BETTER_AUTH_SECRET` などシークレットの投入（7-03）
+- `BETTER_AUTH_SECRET` などシークレットの投入（手順は [secrets.md](../secrets.md)）
 - GitHub 本番デプロイパイプライン（7-02）
 - 独自ドメイン（7-06）
 - シークレット値・アカウント ID・`workers.dev` URL の文書化（禁止）
@@ -56,7 +56,7 @@ ID・アカウント情報はここに書かない。`database_id` は `wrangler
 - 別 D1（同じ `database_id` を 2 env から指さない）
 - 別 R2
 - 別 Worker 名
-- 別 `BETTER_AUTH_SECRET`（値は 7-03 で投入。本タスクでは入れない）
+- 別 `BETTER_AUTH_SECRET`（置き場は [secrets.md](../secrets.md)。7-01 では入れない）
 - 別 Cookie ドメイン（カスタムドメインは 7-06）
 
 ---

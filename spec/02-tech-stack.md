@@ -153,7 +153,7 @@ alco-app/
 | ワークフロー | `.github/workflows/deploy-dev.yml`（`ci.yml` とは分ける） |
 | 起動 | `CI` が `main` の push で成功した `workflow_run`、または `workflow_dispatch` |
 | 対象 | `pnpm build` → リモート D1 migrate → `wrangler deploy --env dev` |
-| シークレット | GitHub Secrets の `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`（値はリポジトリに書かない）。`BETTER_AUTH_SECRET` は Worker の wrangler secret |
+| シークレット | 置き場の正本は [secrets.md](secrets.md)。GitHub Secrets は `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`（値はリポジトリに書かない）。`BETTER_AUTH_SECRET` は Worker の wrangler secret |
 | 禁止 | `--env production`、`pull_request` / `pull_request_target` でのデプロイ、PR Preview、ログへの `workers.dev` URL |
 | Git ブランチ | トリガーは `main`。長期ブランチ `dev` は作らない（理由は feature spec） |
 
