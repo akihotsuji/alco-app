@@ -146,16 +146,19 @@ alco-app/
 
 ## CD（dev 自動デプロイ）
 
-7-02 の「main → Cloudflare `env.dev`」を開発 Phase で先行。正本は [features/dev-deploy-ci.md](features/dev-deploy-ci.md)。本番デプロイは Phase 7。
+7-02 の「main → Cloudflare `env.dev`」は開発 Phase で先行。本番は同じ 7-02 で追加。正本は [features/dev-deploy-ci.md](features/dev-deploy-ci.md) と [features/deploy-prod.md](features/deploy-prod.md)。
 
 | 項目 | 決定 |
 |---|---|
-| ワークフロー | `.github/workflows/deploy-dev.yml`（`ci.yml` とは分ける） |
-| 起動 | `CI` が `main` の push で成功した `workflow_run`、または `workflow_dispatch` |
-| 対象 | `pnpm build` → リモート D1 migrate → `wrangler deploy --env dev` |
+| ワークフロー | `.github/workflows/deploy-dev.yml` と `.github/workflows/deploy-prod.yml`（`ci.yml` とは分ける） |
+| 起動（dev） | `CI` が `main` の push で成功した `workflow_run`、または `workflow_dispatch` |
+| 起動（本番） | タグ `vX.Y.Z` または `main` の `workflow_dispatch`。どちらも GitHub Environment `production` の承認後 |
+| 対象（dev） | `pnpm build` → リモート D1 migrate → `wrangler deploy --env dev` |
+| 対象（本番） | 対象 SHA の `CI` success → `pnpm build` → 本番 D1 migrate → `wrangler deploy --env production` |
 | シークレット | 置き場の正本は [secrets.md](secrets.md)。GitHub Secrets は `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`（値はリポジトリに書かない）。`BETTER_AUTH_SECRET` は Worker の wrangler secret |
-| 禁止 | `--env production`、`pull_request` / `pull_request_target` でのデプロイ、PR Preview、ログへの `workers.dev` URL |
-| Git ブランチ | トリガーは `main`。長期ブランチ `dev` は作らない（理由は feature spec） |
+| 認証 | 公式の wrangler / Workers Builds は当面 API トークン。OIDC は使わない |
+| 禁止 | 素の `wrangler deploy`、`pull_request` / `pull_request_target` でのデプロイ、PR Preview、ログへの `workers.dev` URL |
+| Git ブランチ | 日常デプロイのトリガーは `main`。長期ブランチ `dev` は作らない（理由は feature spec） |
 
 ## ブランチ運用（0-08 FIX）
 

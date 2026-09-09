@@ -2,7 +2,7 @@
 
 値は書かない。キー名と置き場・手順だけを正とする。実装: Phase 7-03。手順書は [03-secret-management.md](../roadmap/phase-07-production-release/03-secret-management.md)。
 
-- 状態: **7-03 手順済み**（2026-09-09）。本番 Worker への `BETTER_AUTH_SECRET` 投入はオーナーが手元で行う（値はチャット・PR・Issue に出さない）
+- 状態: **7-03 済み**（2026-09-09）。本番 `BETTER_AUTH_SECRET` は Worker `alco-app-prod` に投入済み（値は書かない）
 
 ---
 
@@ -26,7 +26,7 @@
 - 実際の秘密値（生成も貼り付けもしない）
 - 1Password 等の必須化（当面しない）
 - Sentry DSN（7-05。公開してよい場合でもドキュメントに実値を書かない）
-- 本番デプロイパイプライン（7-02）
+- 本番デプロイの実行そのもの（ワークフローは [deploy-prod.md](features/deploy-prod.md)）
 
 ---
 
@@ -36,7 +36,7 @@
 |---|---|---|---|---|
 | `BETTER_AUTH_SECRET` | `.dev.vars` | wrangler secret | wrangler secret | 置かない |
 | `BETTER_AUTH_URL` | 省略可（`.dev.vars`）。未設定ならリクエスト origin | 省略可 | 省略可（7-06 まで origin） | 置かない |
-| `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml`。7-02 の本番も同じ名前） |
+| `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml` / `deploy-prod.yml`） |
 | `CLOUDFLARE_ACCOUNT_ID` | 使わない | — | — | Actions（同上） |
 
 - `database_id` は secret ではない。`wrangler.jsonc` のみ（[production-env.md](features/production-env.md)）
@@ -58,7 +58,7 @@ copy .dev.vars.example .dev.vars
 
 ### Workers dev
 
-投入済み（3-07）。日常の `deploy-dev.yml` は secret を消さない。入れ直すときだけ:
+投入済み（3-07）。日常の `deploy-dev.yml` / `deploy-prod.yml` は secret を消さない。入れ直すときだけ:
 
 ```powershell
 pnpm exec wrangler secret put BETTER_AUTH_SECRET --env dev
@@ -66,17 +66,17 @@ pnpm exec wrangler secret put BETTER_AUTH_SECRET --env dev
 
 ### Workers 本番
 
-**dev と同じ値を使わない。** オーナーが手元で実行する。エージェントに値を渡さない。
+**投入済み**（2026-09-09。dev とは別値。値は残していない）。入れ直すときだけ:
 
 ```powershell
 pnpm exec wrangler secret put BETTER_AUTH_SECRET --env production
 ```
 
-Worker 名は `alco-app-prod`。未デプロイでも secret はスクリプト名に紐づく。失敗したら 7-02 の初回デプロイ直前に再実行する。
+Worker 名は `alco-app-prod`。`deploy-prod.yml` のデプロイは secret を消さない。
 
 ### GitHub
 
-Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` のみ。トークン権限は [dev-deploy-ci.md](features/dev-deploy-ci.md) のとおり（Account 全権限は付けない）。
+Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` のみ。`deploy-dev.yml` と `deploy-prod.yml` が同じ名前を読む。トークン権限は [dev-deploy-ci.md](features/dev-deploy-ci.md) のとおり（Account 全権限は付けない）。
 
 ---
 

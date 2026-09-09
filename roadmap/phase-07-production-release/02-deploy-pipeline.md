@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 7 本番リリース |
-| ステータス | **一部完了**（dev 自動デプロイを開発 Phase で先行。本番は未着手） |
+| ステータス | **完了**（2026-09-09。`deploy-prod.yml`。Environment 必須レビューアと初回デプロイはオーナー） |
 | 要件 | main マージ→dev 自動、タグ/手動承認→本番 |
 | ソース | Phase 7 デプロイパイプライン |
 
@@ -74,13 +74,13 @@
 ## 8. 受け入れ条件
 
 - [x] main マージで dev が更新される（ワークフロー先行。GitHub Secrets 投入後に実デプロイが通る）
-- [ ] 本番は承認またはタグなしでは変わらない（本番ワークフロー未作成）
+- [x] 本番は承認またはタグなしでは変わらない（`deploy-prod.yml` + Environment `production`。必須レビューアはオーナー設定）
 - [x] トークンが git に無い
-- [x] CI 赤でデプロイされない（`workflow_run` の `conclusion == success` かつ triggering event が `push`）
+- [x] CI 赤でデプロイされない（本番は対象 SHA の `CI` success を確認。dev は `workflow_run` の `conclusion == success` かつ triggering event が `push`）
 
 ## 9. セキュリティ観点
 
-- OIDC が使えるなら長期トークンよりよい。Workers 公式の推奨を導入時確認。**要確認**
+- OIDC は使わない。公式 wrangler / Workers Builds は当面 API トークン（2026-09-09 確認）
 - `contents: read` とデプロイに必要な最小 `permissions`
 - ログに secret を echo しない
 
@@ -88,6 +88,7 @@
 
 - [03-secret-management.md](03-secret-management.md)
 - [spec/02-tech-stack.md](../../spec/02-tech-stack.md) CI/CD
+- [spec/features/deploy-prod.md](../../spec/features/deploy-prod.md)
 - [spec/features/dev-deploy-ci.md](../../spec/features/dev-deploy-ci.md)
 - `.github/workflows/deploy-dev.yml`
 

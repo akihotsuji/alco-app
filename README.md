@@ -98,7 +98,7 @@ Workers の `Env` 型は `worker-configuration.d.ts`（`wrangler types --env dev
 
 ## CI
 
-PR と `main` への push で GitHub Actions（`.github/workflows/ci.yml`）が次を実行する。このワークフローはデプロイしない。`main` の CI 成功後は `.github/workflows/deploy-dev.yml` が Cloudflare `env.dev` へ載せる。
+PR と `main` への push で GitHub Actions（`.github/workflows/ci.yml`）が次を実行する。このワークフローはデプロイしない。`main` の CI 成功後は `.github/workflows/deploy-dev.yml` が Cloudflare `env.dev` へ載せる。本番は `.github/workflows/deploy-prod.yml`（タグ `vX.Y.Z` または `main` からの手動実行。Environment `production` の承認後。[spec/features/deploy-prod.md](spec/features/deploy-prod.md)）。
 
 ```powershell
 pnpm install --frozen-lockfile

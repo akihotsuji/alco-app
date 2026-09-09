@@ -29,6 +29,7 @@ alco-app（お酒の記録アプリ）の仕様・設計に関するドキュメ
 | [features/tasting-note.md](features/tasting-note.md) | テイスティングノート（撮って評価と一言・写真グリッド・セラー連携）の画面項目・バリデーション・API・エッジケース | 承認済み（5-01 #46）。5-02 CRUD 実装済み |
 | [features/pwa.md](features/pwa.md) | PWA（manifest・スタンドアロン・アイコン生成・SW は API を NetworkOnly） | 6-01（2026-09-08） |
 | [features/production-env.md](features/production-env.md) | 本番 wrangler env・D1 / R2 の命名と分離（デプロイは 7-02） | 7-01（2026-09-09） |
+| [features/deploy-prod.md](features/deploy-prod.md) | タグ / 承認で `env.production` へデプロイ | 7-02（2026-09-09） |
 | [features/e2e.md](features/e2e.md) | Playwright E2E（記録→サマリー、ボトル→ノート。CI Chromium） | 6-02 |
 | [qa-devices.md](qa-devices.md) | iOS Safari / Android Chrome の実機 QA（セーフエリア・PWA 追加・入力ズーム） | 6-05（オーナー実機確認待ち） |
 | release-checklist.md | リリース前チェックリスト | Phase 7で作成 |

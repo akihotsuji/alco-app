@@ -19,7 +19,7 @@
 **対象外**
 
 - 本番 Worker / 本番 D1 / 本番 R2
-- `deploy-prod.yml`、タグ `v*`、GitHub Environment `production` の承認
+- `deploy-prod.yml`、タグ `vX.Y.Z`、GitHub Environment `production` の承認（正本は [deploy-prod.md](deploy-prod.md)）
 - PR ごとの Preview デプロイ
 - `BETTER_AUTH_SECRET` の投入（既存の wrangler secret を使う。GitHub Secrets には置かない）
 - Git の長期ブランチ `dev`（後述）
@@ -89,7 +89,7 @@
 - 権限は `contents: read` のみ
 - トークン・アカウント ID・`workers.dev` URL をログ・spec・README に書かない
 - `ci.yml` にデプロイや Cloudflare シークレットを足さない
-- OIDC は Phase 7 で公式推奨を再確認する。本先行実装は API トークン
+- OIDC は使わない。公式の wrangler / Workers Builds も当面 API トークン（7-02 で再確認）
 
 ## テスト
 

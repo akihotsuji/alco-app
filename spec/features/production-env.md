@@ -2,7 +2,7 @@
 
 実装: Phase 7-01。手順は [01-prod-resources.md](../../roadmap/phase-07-production-release/01-prod-resources.md)。環境表の要約は [02-tech-stack.md](../02-tech-stack.md)「環境（Cloudflare）」。
 
-- 状態: **7-01 済み**（2026-09-09。本番 Worker のデプロイ・migrate・シークレット投入はしない）
+- 状態: **7-01 済み**（2026-09-09）。デプロイ手順は [deploy-prod.md](deploy-prod.md)
 
 ---
 
