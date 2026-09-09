@@ -128,7 +128,21 @@ Chrome（デスクトップ）:
 
 更新: `registerType: autoUpdate` + `skipWaiting`。デプロイ後は次の起動で新 SW が有効。壊れた古い SW が残るときは、そのオリジンの Application → Service Workers で Unregister し、ハード再読み込みする。
 
-実機のホーム追加は Phase 6-05。
+実機の確認項目は [spec/qa-devices.md](spec/qa-devices.md)。
+
+### iOS Safari（ホーム画面に追加）
+
+1. Safari で dev の HTTPS URL を開く（[spec/dev-deploy.md](spec/dev-deploy.md)。URL はドキュメントに書かない）
+2. 共有ボタン（四角から上矢印）を開く
+3. 「ホーム画面に追加」を選ぶ
+4. 追加後、ホームのアイコンから起動する。Safari のタブバーが消え、アプリの下部タブだけになる
+
+### Android Chrome（ホーム画面に追加）
+
+1. Chrome で同じ URL を開く
+2. メニュー（︙）→「アプリをインストール」または「ホーム画面に追加」
+3. インストールバナーが出ればそれを使ってもよい
+4. 追加後、ホームのアイコンから起動する。ブラウザの UI が消える
 
 ## ブランチ運用
 

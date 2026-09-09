@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
+import { measureSafeAreaInsets } from "@/client/lib/device-chrome.ts";
 import {
   guideSpotlight,
   guideSpotlightPath,
@@ -90,8 +91,14 @@ export function GuideSpotlight() {
     };
   }, [target, remasureKey]);
 
+  const safeArea = measureSafeAreaInsets();
   const tip: GuideTipLayout | null = hole
-    ? guideTipLayout(hole, { width: window.innerWidth, height: window.innerHeight }, tipBox)
+    ? guideTipLayout(
+        hole,
+        { width: window.innerWidth, height: window.innerHeight },
+        tipBox,
+        safeArea,
+      )
     : null;
 
   useLayoutEffect(() => {
@@ -108,6 +115,7 @@ export function GuideSpotlight() {
       hole,
       { width: window.innerWidth, height: window.innerHeight },
       next,
+      measureSafeAreaInsets(),
     );
     node.style.setProperty("--guide-tip-arrow-x", `${layout.arrowLeft}px`);
   }, [hole, remasureKey]);

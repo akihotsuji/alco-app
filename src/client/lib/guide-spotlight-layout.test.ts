@@ -150,4 +150,16 @@ describe("guideTipLayout", () => {
     expect(tip.placement).toBe("above");
     expect(tip.left + tip.width).toBeLessThanOrEqual(390 - 16);
   });
+
+  it("セーフエリアぶん余白を足してノッチに被せない", () => {
+    const hole = holeFromRect({ top: 80, left: 8, width: 80, height: 40 });
+    const tip = guideTipLayout(
+      hole,
+      { width: 844, height: 390 },
+      { width: 320, height: 120 },
+      { top: 0, right: 0, bottom: 0, left: 47 },
+    );
+    expect(tip.left).toBeGreaterThanOrEqual(63);
+    expect(tip.left + tip.width).toBeLessThanOrEqual(844 - 16);
+  });
 });

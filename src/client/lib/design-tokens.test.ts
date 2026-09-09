@@ -220,5 +220,7 @@ describe("design tokens", () => {
     expect(tokenValue(block, "--shadow-knob")).toBe("0 1px 2px rgba(43, 38, 31, 0.35)");
     expect(tokenValue(block, "--radius-photo")).toBe("20px");
     expect(tokenValue(block, "--tab-h")).toBe("72px");
+    expect(tokenValue(block, "--page-pad-x")).toBe("20px");
+    expect(tokenValue(block, "--safe-top")).toBe("env(safe-area-inset-top, 0px)");
   });
 });

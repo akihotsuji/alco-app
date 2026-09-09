@@ -1,3 +1,5 @@
+import { type SafeAreaInsets, ZERO_SAFE_AREA } from "@/client/lib/device-chrome.ts";
+
 export const GUIDE_HOLE_PAD = 8;
 export const GUIDE_TIP_ARROW_HALF = 8;
 /** 扇が行の上に乗る高さ。設定へ着地したとき「使い方を見る」をこのぶん空ける */
@@ -123,8 +125,13 @@ export function guideTipLayout(
   hole: Pick<GuideHole, "top" | "left" | "width" | "height">,
   viewport: { width: number; height: number },
   tip: { width: number; height: number },
+  safe: SafeAreaInsets = ZERO_SAFE_AREA,
 ): GuideTipLayout {
-  const width = Math.min(tip.width, Math.max(160, viewport.width - 32));
+  const padLeft = Math.max(16, Math.round(safe.left) + 16);
+  const padRight = Math.max(16, Math.round(safe.right) + 16);
+  const padTop = Math.max(16, Math.round(safe.top) + 16);
+  const padBottom = Math.max(16, Math.round(safe.bottom) + 16);
+  const width = Math.min(tip.width, Math.max(160, viewport.width - padLeft - padRight));
   const height = Math.max(tip.height, 1);
   const spaceBelow = viewport.height - (hole.top + hole.height);
   const spaceAbove = hole.top;
@@ -132,11 +139,11 @@ export function guideTipLayout(
   const placement: "above" | "below" =
     spaceBelow < need && spaceAbove >= spaceBelow ? "above" : "below";
   const rawTop = placement === "above" ? hole.top - height - 12 : hole.top + hole.height + 12;
-  const top = Math.max(16, Math.min(rawTop, viewport.height - height - 16));
+  const top = Math.max(padTop, Math.min(rawTop, viewport.height - height - padBottom));
   const preferRight = hole.left + hole.width / 2 > viewport.width / 2;
   const left = preferRight
-    ? Math.max(16, Math.min(hole.left + hole.width - width, viewport.width - 16 - width))
-    : Math.max(16, Math.min(hole.left, viewport.width - 16 - width));
+    ? Math.max(padLeft, Math.min(hole.left + hole.width - width, viewport.width - padRight - width))
+    : Math.max(padLeft, Math.min(hole.left, viewport.width - padRight - width));
   const holeCenter = hole.left + hole.width / 2;
   const arrowLeft = Math.max(16, Math.min(width - 16, holeCenter - left));
   return { top, left, width, placement, arrowLeft };
