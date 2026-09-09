@@ -36,10 +36,12 @@ export async function signUpAsNewUser(
   await page.getByRole("textbox", { name: /パスワード/ }).fill(user.password);
   await page.getByLabel("利用規約とプライバシーポリシーに同意する").check();
   await page.getByRole("button", { name: "登録する" }).click();
-  await page.waitForURL((url) => url.pathname === "/age");
+  // SPA 遷移では waitForURL(load) が終わらずテスト全体の制限に達することがある
+  await expect(page.getByRole("heading", { name: "年齢確認" })).toBeVisible({
+    timeout: 30_000,
+  });
   await page.getByLabel("生年月日").fill("1990-01-15");
   await page.getByRole("button", { name: "確認する" }).click();
-  await page.waitForURL("/");
   // 招待ダイアログが開くと背面の「ホーム」見出しは a11y ツリーから外れる
   await dismissFirstRunGuide(page);
   await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
