@@ -1,6 +1,6 @@
 # 監視（7-05）
 
-実装: Phase 7-05。手順は [05-monitoring.md](../../roadmap/phase-07-production-release/05-monitoring.md)。確認手順の正本は本ファイル。7-09 の `spec/operations.md` に統合する。
+実装: Phase 7-05。手順は [05-monitoring.md](../../roadmap/phase-07-production-release/05-monitoring.md)。確認手順の正本は本ファイル。運用時の見方は [operations.md](../operations.md) 3 章。
 
 - 状態: **7-05 済み**（2026-09-09）。Workers Logs は wrangler で有効。実行時エラーの通知は任意の `ALERT_WEBHOOK_URL`。ジョブ失敗は GitHub Actions のメール。ウェブフック投入と ntfy 購読はオーナー
 
@@ -112,7 +112,7 @@
 
 ---
 
-## 7. 確認手順（7-09 へ転記）
+## 7. 確認手順（運用時は [operations.md](../operations.md) 3 章も見る）
 
 ### 7.1 ダッシュボード
 

@@ -35,5 +35,6 @@
 | [features/monitoring.md](features/monitoring.md) | Workers Logs とエラー通知（ウェブフック + Actions メール） | 7-05（2026-09-09） |
 | [features/e2e.md](features/e2e.md) | Playwright E2E（記録→サマリー、ボトル→ノート。CI Chromium） | 6-02 |
 | [qa-devices.md](qa-devices.md) | iOS Safari / Android Chrome の実機 QA（セーフエリア・PWA 追加・入力ズーム） | 6-05（オーナー実機確認待ち） |
-| release-checklist.md | リリース前チェックリスト | Phase 7で作成 |
-| operations.md | 運用手順（バックアップ復元・障害対応） | Phase 7で作成 |
+| [security-audit-release.md](security-audit-release.md) | リリース前の全体セキュリティ監査（Critical / High ゼロ。R2 ダッシュボード目視はオーナー） | 7-07（2026-09-09） |
+| [release-checklist.md](release-checklist.md) | 本番リリース当日のチェックリスト（初回デプロイ実施はオーナー） | 7-08（2026-09-09） |
+| [operations.md](operations.md) | 障害確認・Worker ロールバック・D1 復元 | 7-09（2026-09-09） |

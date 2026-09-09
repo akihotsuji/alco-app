@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 目安 | 3〜5日 |
-| 状態 | 進行中（7-01〜7-05。2026-09-09。ウェブフック投入はオーナー） |
+| 状態 | 進行中（7-01〜7-05・7-07〜7-09。2026-09-09。7-06 の 308、初回 Deploy prod、ウェブフック投入はオーナー） |
 | ソース | [spec/03-roadmap.md](../../spec/03-roadmap.md) Phase 7 |
 
 ## 目的
@@ -32,15 +32,15 @@ dev と分離した本番環境を構築し、安全に個人利用の本番運�
 | 04 | [D1 バックアップ](04-d1-backup.md) | Time Travel 確認 + 定期 export |
 | 05 | [監視](05-monitoring.md) | Logs、エラー通知 |
 | 06 | [独自ドメイン](06-custom-domain.md) | 任意。`*.workers.dev` でも可 |
-| 07 | [全体セキュリティ監査](07-security-audit.md) | `security-audit` をコードベース全体へ |
-| 08 | [リリースチェックリスト](08-release-checklist.md) | `spec/release-checklist.md` |
-| 09 | [運用ドキュメント](09-operations-docs.md) | `spec/operations.md` |
+| 07 | [全体セキュリティ監査](07-security-audit.md) | [security-audit-release.md](../../spec/security-audit-release.md)（2026-09-09） |
+| 08 | [リリースチェックリスト](08-release-checklist.md) | [release-checklist.md](../../spec/release-checklist.md) と skill `release`（2026-09-09） |
+| 09 | [運用ドキュメント](09-operations-docs.md) | [operations.md](../../spec/operations.md)（2026-09-09） |
 
 推奨順: 01 → 03（シークレット投入）→ 02 → 04 → 05。06 は任意でいつでも可。07 → 08 実施 → 09 は 04 のリハーサル結果を含む。
 
 ## このフェーズで整備する skills
 
-- skill: `release` — チェックリスト実行→本番デプロイ→動作確認→ロールバック
+- skill: `release` — チェックリスト実行→本番デプロイ→動作確認→ロールバック（7-08。2026-09-09）
 
 ## 終了後にできること
 

@@ -224,6 +224,21 @@ describe("GET /api/photos/:id と content", () => {
 });
 
 describe("PATCH / DELETE /api/photos/:id", () => {
+  it("未認証の PATCH / DELETE は 401", async () => {
+    const { app } = await createTestApp();
+    const patched = await app.request(`/api/photos/${crypto.randomUUID()}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sortOrder: 1 }),
+    });
+    expect(patched.status).toBe(401);
+    expect(await patched.json()).toEqual({ error: "unauthorized" });
+
+    const deleted = await app.request(`/api/photos/${crypto.randomUUID()}`, { method: "DELETE" });
+    expect(deleted.status).toBe(401);
+    expect(await deleted.json()).toEqual({ error: "unauthorized" });
+  });
+
   it("他人の PATCH / DELETE は 404 で元データは残る", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
