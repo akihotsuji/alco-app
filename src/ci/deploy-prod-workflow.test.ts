@@ -49,6 +49,14 @@ describe("deploy-prod.yml", () => {
     }
   });
 
+  it("builds the Vite worker bundle for env.production", () => {
+    const envAt = indexAfter(deployProd, "CLOUDFLARE_ENV: production");
+    const buildAt = indexAfter(deployProd, "pnpm build");
+    const deployAt = indexAfter(deployProd, "wrangler deploy --env production");
+    expect(envAt).toBeLessThan(buildAt);
+    expect(buildAt).toBeLessThan(deployAt);
+  });
+
   it("reads Cloudflare secrets by name and does not echo them", () => {
     expect(deployProd).toContain("secrets.CLOUDFLARE_API_TOKEN");
     expect(deployProd).toContain("secrets.CLOUDFLARE_ACCOUNT_ID");
