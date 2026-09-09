@@ -101,7 +101,7 @@ Time Travel は短い窓の誤操作向け。14 日超や「DB ごと消した�
 3. 対象ごとに `wrangler d1 export <name> --remote --output=... --env <dev|production> --skip-confirmation`
 4. gzip（`-n`）。ローカル SQL は残さない
 5. `wrangler r2 object put alco-app-d1-backups/<key> --file=... --remote`
-6. ログには **バイト数と sha256 だけ**。SQL 本文・`INSERT`・メールは出さない
+6. ログには **バイト数と sha256 だけ**。SQL 本文・`INSERT`・メール・**すべての http(s) URL** は出さない（`wrangler d1 export` は約1時間有効の presigned URL を stdout に出す）
 7. 作業ファイルを消す
 
 オブジェクトキー: `{prod|dev}/{database}-{YYYY-MM-DDThhmmss}Z.sql.gz`  
@@ -163,7 +163,7 @@ Actions の `mode=rehearse` は 7.2 を自動化する。復元先名が `alco-a
 
 ## 9. テスト
 
-- `src/ci/d1-backup.test.ts`: 対象の解釈、オブジェクトキー、14 日 lifecycle、復元先の拒否、ログから SQL / メールを消す、ファイル要約が本文を返さない
+- `src/ci/d1-backup.test.ts`: 対象の解釈、オブジェクトキー、14 日 lifecycle、復元先の拒否、ログから SQL / メール / 署名付き URL を消す、ファイル要約が本文を返さない
 - `src/ci/backup-d1-workflow.test.ts`: schedule、artifact 禁止、prod 上書き禁止、公開ログ対策
 - `src/ci/wrangler-env.test.ts`: バックアップバケットを Worker に bind しない
 

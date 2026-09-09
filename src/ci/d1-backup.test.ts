@@ -82,21 +82,31 @@ describe("d1 backup helpers", () => {
     expect(() => assertSafeRestoreTarget(REHEARSAL_DATABASE)).not.toThrow();
   });
 
-  it("strips SQL rows, emails, and workers.dev URLs from backup logs", () => {
+  it("strips SQL rows, emails, and every http(s) URL including export signed links", () => {
+    const signed =
+      "https://example.r2.cloudflarestorage.com/export.sql?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=deadbeef";
     const input = [
       "Exported to backups/alco-app-prod.sql",
       "INSERT INTO user (email) VALUES ('owner@example.com');",
       "contact owner@example.com",
       "https://alco-app-prod.example.workers.dev",
+      `You can also download your export from the following URL manually. This link will be valid for one hour: ${signed}`,
+      `{"signed_url":"${signed}"}`,
     ].join("\n");
-    expect(sanitizeBackupLog(input)).toBe(
+    const sanitized = sanitizeBackupLog(input);
+    expect(sanitized).toBe(
       [
         "Exported to backups/alco-app-prod.sql",
         "[redacted-sql]",
         "contact [redacted-email]",
         "[redacted-url]",
+        "You can also download your export from the following URL manually. This link will be valid for one hour: [redacted-url]",
+        '{"signed_url":"[redacted-url]"}',
       ].join("\n"),
     );
+    expect(sanitized).not.toMatch(/https?:\/\//i);
+    expect(sanitized).not.toContain("X-Amz-Signature");
+    expect(sanitized).not.toContain("cloudflarestorage.com");
   });
 
   it("summarizes a dump by size and hash without returning the file body", () => {

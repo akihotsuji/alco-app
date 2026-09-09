@@ -22,6 +22,8 @@ export const PROTECTED_DATABASES = ["alco-app-prod", "alco-app-dev"] as const;
 
 const SQL_LINE = /^\s*(INSERT|UPDATE|DELETE|REPLACE|CREATE TABLE|ALTER TABLE)\b/i;
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+/** wrangler d1 export は約1時間有効の presigned URL を stdout に出す。public Actions ログに残さない */
+const HTTP_URL = /https?:\/\/[^\s<>"'`]+/gi;
 
 export function parseBackupSelection(input: string | undefined): BackupDatabase[] {
   const value = (input ?? "both").trim();
@@ -73,7 +75,7 @@ export function sanitizeBackupLog(input: string): string {
       if (SQL_LINE.test(line)) {
         return "[redacted-sql]";
       }
-      return line.replace(EMAIL, "[redacted-email]");
+      return line.replace(HTTP_URL, "[redacted-url]").replace(EMAIL, "[redacted-email]");
     })
     .join("\n");
 }
