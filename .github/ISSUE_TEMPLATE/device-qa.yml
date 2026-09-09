@@ -19,6 +19,7 @@ body:
         - 写真共通処理
         - 認証・設定・ナビゲーション
         - 機能間連携
+        - PWA・表示・端末差
     validations:
       required: true
 

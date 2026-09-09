@@ -50,7 +50,7 @@
 
 | # | 要素 | 種別 | 内容・挙動 |
 |---|---|---|---|
-| P1 | 閉じる × | Button 副（円） | 破棄して閉じる。呼び出し元は写真なしのまま |
+| P1 | 閉じる × | Button 副（円） | 破棄して閉じる。呼び出し元は写真なしのまま。上バーは `safe-area-inset-top` を足す（6-05） |
 | P2 | 撮り直す | テキストボタン | 撮影を開き直す（`capture="environment"`） |
 | P2b | ライブラリから | テキストボタン | 保存済み写真を選ぶ（`capture` なし）。P2 の左 |
 | P3 | プレビュー | Canvas / `<img>` + 枠 | 比率枠に `cover`。1 本指ドラッグで平行移動、2 本指ピンチで 1.0〜3.0 倍。枠外は `--foreground` 60% で暗く |
@@ -142,3 +142,4 @@ File → createImageBitmap（EXIF orientation 補正）
 - [ ] サーバー: magic bytes、1MB、SVG/GIF 415、他人の紐付け先 404、未紐付け 24h GC
 - [ ] 座標計算・合成の純粋関数に単体テスト
 - [ ] 設定の既定（`photo.mascot` / `photo.filter`）が反映される
+- [ ] 上バーが `safe-area-inset-top`、保存バーが `safe-area-inset-bottom` を避ける（6-05）

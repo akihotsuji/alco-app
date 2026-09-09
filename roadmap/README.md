@@ -209,8 +209,8 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 6-01 | vite-plugin-pwa導入 | [01-vite-plugin-pwa.md](phase-06-pwa-quality/01-vite-plugin-pwa.md) | 完了（2026-09-08） |
 | 6-02 | Playwright E2E | [02-playwright-e2e.md](phase-06-pwa-quality/02-playwright-e2e.md) | 完了（2026-09-08） |
 | 6-03 | パフォーマンス改善 | [03-performance.md](phase-06-pwa-quality/03-performance.md) | 完了（2026-09-08） |
-| 6-04 | アクセシビリティ最低限対応 | [04-accessibility.md](phase-06-pwa-quality/04-accessibility.md) | 未着手 |
-| 6-05 | iOS Safari / Android Chrome 実機確認 | [05-device-qa.md](phase-06-pwa-quality/05-device-qa.md) | 未着手 |
+| 6-04 | アクセシビリティ最低限対応 | [04-accessibility.md](phase-06-pwa-quality/04-accessibility.md) | 完了（2026-09-09） |
+| 6-05 | iOS Safari / Android Chrome 実機確認 | [05-device-qa.md](phase-06-pwa-quality/05-device-qa.md) | エージェント作業済み（2026-09-09。オーナー実機確認待ち） |
 
 ### Phase 7（9タスク）
 
