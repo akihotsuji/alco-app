@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 7 本番リリース |
-| ステータス | **方針・実装済み**（2026-09-09）。購入と Deploy prod 後に接続 |
+| ステータス | **ゾーン接続済み**（2026-09-09）。308 は Deploy prod 後 |
 | 要件 | 本番を `https://sake-shiori.com` にする。dev の `workers.dev` は残す |
 | ソース | Phase 7 独自ドメイン。正本は [spec/features/custom-domain.md](../../spec/features/custom-domain.md) |
 

@@ -2,7 +2,7 @@
 
 実装: Phase 7-06。手順は [06-custom-domain.md](../../roadmap/phase-07-production-release/06-custom-domain.md)。
 
-- 状態: **方針・実装済み**（2026-09-09）。ゾーン作成と本番デプロイ後に接続が完了する
+- 状態: **ゾーン接続済み**（2026-09-09）。apex / www を Worker `alco-app-prod` に付けた。ホスト正規化（308）は Deploy prod のあと
 - 公開名称: **さけしおり**（ラテン表記 `sake-shiori`）
 - 正ホスト: **`sake-shiori.com`**（TLD は Web の既定として `.com`）
 - 正オリジン: `https://sake-shiori.com`
@@ -96,7 +96,7 @@ apex と www の両方を「正」にしない。セッション Cookie が割�
 4. デプロイが apex / www を Worker に付け、DNS と証明書を作る
 5. `https://sake-shiori.com` でログイン〜記録を確認する
 
-エージェントの wrangler OAuth には Registrar 権限が無い。ゾーン一覧は取得できる（2026-09-09 時点でゾーン 0 件）。購入そのものはダッシュボードの決済が必要。
+2026-09-09: ゾーン `sake-shiori.com` は active。apex と www を `alco-app-prod` に API で接続した。証明書は apex で発行済み。www の DNS は Cloudflare 側に出ている。ホスト正規化のコードは Deploy prod 後に乗る。
 
 ---
 
