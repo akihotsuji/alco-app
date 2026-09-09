@@ -76,7 +76,7 @@
 
 理由:
 
-- 本番リソース（`env.production`）がまだ無い。Git の `dev` を足してもデプロイ先は `alco-app-dev` のままになり、長期ブランチが 1 本増えるだけになる
+- 当時は本番リソース（`env.production`）が無かった。Git の `dev` を足してもデプロイ先は `alco-app-dev` のままになり、長期ブランチが 1 本増えるだけだった（7-01 で本番 D1 / R2 は追加済み。GitFlow は今も採用しない）
 - いまの PR はすべて `main` 向け。ターゲットを `dev` に変えると保護ルールと日常の PR 先が全部変わる
 - Phase 7 の決め（[02-deploy-pipeline.md](../../roadmap/phase-07-production-release/02-deploy-pipeline.md)）は **`main` = 最新の良いコード（ドッグフード）**、本番は **タグまたは承認で特定コミットを上げる**。`main` 即本番よりロールバックしやすい
 

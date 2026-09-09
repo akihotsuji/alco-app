@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // トップレベルは共通設定のみ。dev リソースは env.dev に置く（トップレベルを dev 扱いにしない）
+  // トップレベルは共通設定のみ。実リソースは env.dev / env.production に置く（無引数 deploy をどちらにも向けない）
   "name": "alco-app",
   "main": "./src/server/index.ts",
   "compatibility_date": "2026-09-03",
@@ -36,6 +36,29 @@
         {
           "binding": "PHOTOS",
           "bucket_name": "alco-app-photos-dev"
+        }
+      ],
+      "triggers": {
+        "crons": ["0 18 * * *"]
+      }
+    },
+    "production": {
+      "name": "alco-app-prod",
+      "ai": {
+        "binding": "AI"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "alco-app-prod",
+          "database_id": "b7dad946-90ff-4771-890f-540dd0ec8046",
+          "migrations_dir": "src/db/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "PHOTOS",
+          "bucket_name": "alco-app-photos-prod"
         }
       ],
       "triggers": {

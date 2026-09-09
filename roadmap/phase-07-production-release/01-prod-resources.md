@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 7 本番リリース |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-09。リソースと `env.production` まで。デプロイ・migrate・secret は未実施） |
 | 要件 | 可用性、コスト無料枠、dev と完全分離 |
 | ソース | Phase 7「Workers環境分離、本番D1・本番R2」 |
 
@@ -72,10 +72,10 @@ pnpm exec wrangler r2 bucket create alco-app-photos-prod
 
 ## 8. 受け入れ条件
 
-- [ ] 本番リソースが dev と別
-- [ ] R2 非公開
-- [ ] 設定に secret 値がない
-- [ ] 命名がドキュメントにある
+- [x] 本番リソースが dev と別
+- [x] R2 は公開アクセスを有効にせず作成（ダッシュボード確認はオーナー）
+- [x] 設定に secret 値がない
+- [x] 命名がドキュメントにある（[production-env.md](../../spec/features/production-env.md)）
 
 ## 9. セキュリティ観点
 
@@ -84,6 +84,7 @@ pnpm exec wrangler r2 bucket create alco-app-photos-prod
 
 ## 10. 関連ファイル / 関連spec
 
+- [spec/features/production-env.md](../../spec/features/production-env.md)
 - [spec/02-tech-stack.md](../../spec/02-tech-stack.md)
 - [02-deploy-pipeline.md](02-deploy-pipeline.md)
 - [../phase-00-project-foundation/03-cloudflare-dev-resources.md](../phase-00-project-foundation/03-cloudflare-dev-resources.md)

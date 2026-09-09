@@ -96,7 +96,7 @@ pnpm exec wrangler d1 execute alco-app-dev --local --env dev --command "PRAGMA t
 
 ## リモート適用
 
-dev リモート（3-07）はオーナーが次を実行する。手順の正本は [spec/dev-deploy.md](../../../spec/dev-deploy.md)。本番は Phase 7-01。
+dev リモート（3-07）はオーナーが次を実行する。手順の正本は [spec/dev-deploy.md](../../../spec/dev-deploy.md)。本番 D1 は 7-01 で作成済み。リモート migrate は 7-02 または初回リリース。
 
 ```powershell
 pnpm exec wrangler d1 migrations apply alco-app-dev --remote --env dev

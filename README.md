@@ -19,14 +19,16 @@ pnpm が PATH に無い場合は `corepack enable` のあと `corepack prepare p
 
 ## 環境
 
-Cloudflare の開発環境は wrangler の **`env.dev`**（トップレベルを dev 扱いにしない）。詳細は [spec/02-tech-stack.md](spec/02-tech-stack.md)。
+Cloudflare は wrangler の **`env.dev`** と **`env.production`** で分ける（トップレベルをどちらにもしない）。詳細は [spec/02-tech-stack.md](spec/02-tech-stack.md) と [spec/features/production-env.md](spec/features/production-env.md)。
 
-| リソース | 名前 | binding |
-|---|---|---|
-| D1 | `alco-app-dev` | `DB` |
-| R2 | `alco-app-photos-dev`（非公開） | `PHOTOS` |
+| wrangler env | リソース | 名前 | binding |
+|---|---|---|---|
+| `env.dev` | D1 | `alco-app-dev` | `DB` |
+| `env.dev` | R2 | `alco-app-photos-dev`（非公開） | `PHOTOS` |
+| `env.production` | D1 | `alco-app-prod` | `DB` |
+| `env.production` | R2 | `alco-app-photos-prod`（非公開） | `PHOTOS` |
 
-ID は `wrangler.jsonc` のみに書く。本番（`env.production`）は Phase 7。
+ID は `wrangler.jsonc` のみに書く。本番のデプロイ・migrate・シークレット投入は 7-02 / 7-03。
 
 ## 起動
 
