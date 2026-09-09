@@ -160,7 +160,7 @@ WHERE id = :id AND user_id = :sessionUserId
 
 - `fields` のキーはリクエストのフィールド名（camelCase）。ネストは `.` 区切り（`log.volumeMl`、`photoIds.0`）。リクエスト全体の不備（未知キー、壊れた JSON、Content-Type 不一致）はキー `""`。Zod の内部 path 配列やスキーマファイルパスは出さない
 - メッセージは日本語（Zod の `ja` ロケール。`src/shared/zod-config.ts`）。値のエコーは最小（パスワードは絶対に返さない）
-- 詳細は Workers Logs のみ（メソッドとパスだけ。クエリ・ヘッダー・ボディは出さない）。Cookie・トークン・パスワードをログらない
+- 詳細は Workers Logs のみ（メソッドとパスだけ。クエリ・ヘッダー・ボディは出さない）。Cookie・トークン・パスワードをログらない。実行時の未捕捉エラーは任意の HTTPS ウェブフックへメソッド / パス / エラー名だけ送る（[monitoring.md](features/monitoring.md)）
 - エラーコードの一覧と本文スキーマは `src/shared/api-error.ts`（`API_ERROR_CODES` / `apiErrorBodySchema`）。ハンドラは `src/server/errors.ts` の `ApiError` を投げ、`src/server/middleware/error.ts` が本形式へ変換する（2-03）
 - Phase 0 の未定義ルート `{ "ok": false }` と 500 `{ "ok": false }` は **2-03 で本形式へ移行済み**。`GET /api/health` の成功は変えない
 

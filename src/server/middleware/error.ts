@@ -10,6 +10,7 @@ import {
   errorCodeForStatus,
   MALFORMED_REQUEST_MESSAGE,
 } from "../errors.ts";
+import { reportUnexpectedError } from "../services/error-alert.ts";
 
 const ROOT_FIELD = "";
 
@@ -41,7 +42,7 @@ function respond(
  * 全 API 共通。クライアントには `error` コード（と 400 の `fields`）だけを返し、
  * スタック・SQL・内部パスは Workers Logs にのみ出す。
  */
-export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
+export const errorHandler: ErrorHandler<AppEnv> = async (err, c) => {
   if (err instanceof ApiError) {
     return respond(
       c,
@@ -69,12 +70,12 @@ export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
       );
     }
     if (code === "internal_error") {
-      logUnexpected(err, c.req.method, c.req.path);
+      await logUnexpected(err, c);
     }
     return respond(c, { error: code }, API_ERROR_STATUS[code]);
   }
 
-  logUnexpected(err, c.req.method, c.req.path);
+  await logUnexpected(err, c);
   return respond(c, { error: "internal_error" }, API_ERROR_STATUS.internal_error);
 };
 
@@ -82,6 +83,15 @@ export const notFoundHandler: NotFoundHandler<AppEnv> = (c) =>
   c.json({ error: "not_found" } satisfies ApiErrorBody, API_ERROR_STATUS.not_found);
 
 /** クエリ・ヘッダー・ボディはログに出さない（Cookie / パスワード混入防止）。 */
-function logUnexpected(err: unknown, method: string, path: string) {
+async function logUnexpected(err: unknown, c: Parameters<ErrorHandler<AppEnv>>[1]): Promise<void> {
+  const method = c.req.method;
+  const path = c.req.path;
   console.error(`[api] unhandled error: ${method} ${path}`, err);
+  await reportUnexpectedError({
+    env: c.env,
+    kind: "unhandled_error",
+    method,
+    path,
+    err,
+  });
 }

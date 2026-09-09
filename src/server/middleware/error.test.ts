@@ -6,6 +6,7 @@ import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import "@/shared/zod-config.ts";
 import type { AppEnv } from "../app-env.ts";
 import { ApiError } from "../errors.ts";
+import { resetErrorAlertCooldownForTests } from "../services/error-alert.ts";
 import { errorHandler, fieldsFromZodIssues, notFoundHandler } from "./error.ts";
 
 const SECRET_MARKER = "super-secret-cookie-value";
@@ -43,7 +44,9 @@ function buildApp() {
 
 describe("errorHandler", () => {
   afterEach(() => {
+    resetErrorAlertCooldownForTests();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("ApiError はコードとステータスをそのまま返す", async () => {
@@ -105,6 +108,36 @@ describe("errorHandler", () => {
     const [prefix] = errorSpy.mock.calls[0] ?? [];
     expect(prefix).toBe("[api] unhandled error: GET /boom");
     expect(String(prefix)).not.toContain("query-should-not-be-logged");
+  });
+
+  it("想定外 500 だけウェブフックを送り、本文に秘密を載せない", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchSpy);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const env = { ALERT_WEBHOOK_URL: "https://alert.example/hook" };
+    const boom = await buildApp().request("/boom?token=query-should-not-be-logged", {}, env);
+    expect(boom.status).toBe(500);
+    expect(await boom.json()).toEqual({ error: "internal_error" });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const posted = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body)) as Record<string, unknown>;
+    expect(posted).toEqual({
+      source: "alco-app",
+      worker: "alco-app-dev",
+      kind: "unhandled_error",
+      method: "GET",
+      path: "/boom",
+      errorName: "Error",
+    });
+    expect(JSON.stringify(posted)).not.toContain(SECRET_MARKER);
+    expect(JSON.stringify(posted)).not.toContain("query-should-not-be-logged");
+
+    fetchSpy.mockClear();
+    const notFound = await buildApp().request("/api-error", {}, env);
+    expect(notFound.status).toBe(404);
+    const validation = await buildApp().request("/zod-error", {}, env);
+    expect(validation.status).toBe(400);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('未定義ルートは { error: "not_found" }', async () => {

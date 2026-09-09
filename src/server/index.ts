@@ -16,6 +16,7 @@ import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
 import { createWorkersAiDrinkRecognizer } from "./services/drink-recognizer/workers-ai.ts";
+import { reportUnexpectedError } from "./services/error-alert.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import { createWorkersAiRecognizer } from "./services/label-recognizer/workers-ai.ts";
 import { createWorkersAiNoteRecognizer } from "./services/note-recognizer/workers-ai.ts";
@@ -121,31 +122,56 @@ export type AppType = ReturnType<typeof createApp>;
 export const app = createApp();
 
 export async function handleScheduled(env: Env, nowMs = Date.now()) {
-  return runDailyGc({
-    db: createD1Db(env.DB),
-    bucket: wrapR2Bucket(env.PHOTOS),
-    nowMs,
-  });
+  try {
+    return await runDailyGc({
+      db: createD1Db(env.DB),
+      bucket: wrapR2Bucket(env.PHOTOS),
+      nowMs,
+    });
+  } catch (err) {
+    console.error("[gc] unhandled error", err);
+    await reportUnexpectedError({
+      env,
+      kind: "scheduled_error",
+      method: "CRON",
+      path: "scheduled",
+      err,
+    });
+    throw err;
+  }
 }
 
 export async function handleFetch(request: Request, env: Env, ctx: ExecutionContext) {
-  const redirected = canonicalRedirectResponse(request.url, env);
-  if (redirected) {
-    return redirected;
-  }
+  let pathname = "/";
+  try {
+    const redirected = canonicalRedirectResponse(request.url, env);
+    if (redirected) {
+      return redirected;
+    }
 
-  const pathname = new URL(request.url).pathname;
-  if (isHashedAssetPath(pathname)) {
-    return serveHashedAsset(request, env);
-  }
-  if (pathname === "/api" || pathname.startsWith("/api/")) {
+    pathname = new URL(request.url).pathname;
+    if (isHashedAssetPath(pathname)) {
+      return serveHashedAsset(request, env);
+    }
+    if (pathname === "/api" || pathname.startsWith("/api/")) {
+      return app.fetch(request, env, ctx);
+    }
+    const assets = envAssets(env);
+    if (assets) {
+      return assets.fetch(request);
+    }
     return app.fetch(request, env, ctx);
+  } catch (err) {
+    console.error("[fetch] unhandled error", err);
+    await reportUnexpectedError({
+      env,
+      kind: "unhandled_error",
+      method: request.method,
+      path: pathname,
+      err,
+    });
+    throw err;
   }
-  const assets = envAssets(env);
-  if (assets) {
-    return assets.fetch(request);
-  }
-  return app.fetch(request, env, ctx);
 }
 
 export default {

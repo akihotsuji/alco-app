@@ -25,7 +25,7 @@
 
 - 実際の秘密値（生成も貼り付けもしない）
 - 1Password 等の必須化（当面しない）
-- Sentry DSN（7-05。公開してよい場合でもドキュメントに実値を書かない）
+- Sentry DSN（7-05 で不採用。将来足す場合もドキュメントに実値を書かない）
 - 本番デプロイの実行そのもの（ワークフローは [deploy-prod.md](features/deploy-prod.md)）
 
 ---
@@ -36,13 +36,15 @@
 |---|---|---|---|---|
 | `BETTER_AUTH_SECRET` | `.dev.vars` | wrangler secret | wrangler secret | 置かない |
 | `BETTER_AUTH_URL` | 省略可（`.dev.vars`）。未設定ならリクエスト origin | 置かない（本番 URL を書かない） | 省略可。未設定なら `CANONICAL_ORIGIN` | 置かない |
+| `ALERT_WEBHOOK_URL` | 省略可（`.dev.vars`）。未設定なら送らない | wrangler secret（任意） | wrangler secret（任意） | 置かない |
 | `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml`） |
 | `CLOUDFLARE_ACCOUNT_ID` | 使わない | — | — | Actions（同上） |
 
 - `database_id` は secret ではない。`wrangler.jsonc` のみ（[production-env.md](features/production-env.md)）
 - 本番の公開オリジンは `CANONICAL_ORIGIN`（wrangler `vars`。秘密ではない。[custom-domain.md](features/custom-domain.md)）
 - E2E / CI の `BETTER_AUTH_SECRET` はジョブ内で使い捨て生成する。GitHub Secrets にも本番 wrangler secret にもしない（[e2e.md](features/e2e.md)）
-- アプリコードは `src/server/env.ts` のキー名だけで読む。値は `.dev.vars` / wrangler secret から入る
+- アプリコードは `src/server/env.ts` と `src/server/services/error-alert.ts` のキー名だけで読む。値は `.dev.vars` / wrangler secret から入る
+- `ALERT_WEBHOOK_URL` は `https:` のみ。トピック名や URL をチャット・spec に書かない（[monitoring.md](features/monitoring.md)）
 
 ---
 
@@ -75,6 +77,15 @@ pnpm exec wrangler secret put BETTER_AUTH_SECRET --env production
 
 Worker 名は `alco-app-prod`。`deploy-prod.yml` のデプロイは secret を消さない。
 
+### エラー通知ウェブフック
+
+任意。未設定なら Workers Logs だけが残る。投入後に対象 env をデプロイする。
+
+```powershell
+pnpm exec wrangler secret put ALERT_WEBHOOK_URL --env dev
+pnpm exec wrangler secret put ALERT_WEBHOOK_URL --env production
+```
+
 ### GitHub
 
 Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` のみ。`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml` が同じ名前を読む。トークン権限は [dev-deploy-ci.md](features/dev-deploy-ci.md) のとおり（Account 全権限は付けない）。
@@ -87,6 +98,7 @@ Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TO
 |---|---|---|
 | `BETTER_AUTH_SECRET` | 新しい値を生成し、対象 env だけ `wrangler secret put`（local は `.dev.vars` を書き換え） | その環境の既存セッションは無効になる |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare でトークンを再発行 → GitHub Secret を更新 → 旧トークンを無効化 | デプロイ CI が新トークンになるまで失敗しうる |
+| `ALERT_WEBHOOK_URL` | 新しい HTTPS URL を対象 env だけ `wrangler secret put`（local は `.dev.vars`） | 旧 URL への通知は止まる |
 | `CLOUDFLARE_ACCOUNT_ID` | アカウントを変えない限りローテーションしない | — |
 
 Auth secret は **env 単位**で回す。dev を回しても本番は変えない。
@@ -140,4 +152,5 @@ rg -n "BEGIN PRIVATE|sk_live_|sk_test_|ghp_|BETTER_AUTH_SECRET=" --glob "!roadma
 - [production-env.md](features/production-env.md)
 - [custom-domain.md](features/custom-domain.md)
 - [dev-deploy.md](dev-deploy.md)
+- [monitoring.md](features/monitoring.md)
 - [.cursor/rules/security.mdc](../.cursor/rules/security.mdc)
