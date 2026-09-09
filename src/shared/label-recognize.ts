@@ -145,6 +145,10 @@ export function extractModelPayload(output: unknown): unknown {
   if (geminiText !== null) {
     return parseJsonText(geminiText);
   }
+  const chatText = chatCompletionText(record);
+  if (chatText !== null) {
+    return parseJsonText(chatText);
+  }
   if (typeof record.response === "string") {
     return parseJsonText(record.response);
   }
@@ -176,6 +180,36 @@ function geminiCandidateText(record: Record<string, unknown>): string | null {
   }
   const texts: string[] = [];
   for (const part of parts) {
+    const row = asRecord(part);
+    if (row && typeof row.text === "string" && row.text.trim()) {
+      texts.push(row.text);
+    }
+  }
+  return texts.length > 0 ? texts.join("\n") : null;
+}
+
+function chatCompletionText(record: Record<string, unknown>): string | null {
+  const choices = record.choices;
+  if (!Array.isArray(choices) || choices.length === 0) {
+    return null;
+  }
+  const first = asRecord(choices[0]);
+  const message = first ? asRecord(first.message) : null;
+  if (!message) {
+    return null;
+  }
+  if (typeof message.content === "string" && message.content.trim()) {
+    return message.content;
+  }
+  if (!Array.isArray(message.content)) {
+    return null;
+  }
+  const texts: string[] = [];
+  for (const part of message.content) {
+    if (typeof part === "string" && part.trim()) {
+      texts.push(part);
+      continue;
+    }
     const row = asRecord(part);
     if (row && typeof row.text === "string" && row.text.trim()) {
       texts.push(row.text);
