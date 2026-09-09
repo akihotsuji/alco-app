@@ -809,7 +809,7 @@ src/server/
 3. 年齢確認 MW（未確認の機能 API は 403 `age_required`。GET /api/me と POST /api/me/age-verification と公開ルートは除外）
 4. /api/auth/*（Better Auth handler）
 5. 業務ルート（/api/health, /api/me, …。固定パスを :id より前）
-6. 未定義 /api/* → 404 { "error": "not_found" }（未認証なら 2 で 401）
+6. 未定義 /api/* → 404 { "error": "not_found" }（未認証なら 2 で 401。年齢未確認なら 3 で 403）
 ```
 
 認証 MW は公開ルートを自分で除外するので、登録順に依存せずログインが通る。Auth（Better Auth インスタンス）の組み立ては保護ルートと `/api/auth/*` でだけ行い、`GET /api/health` は D1 に触らない。

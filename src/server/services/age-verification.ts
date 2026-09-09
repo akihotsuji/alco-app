@@ -37,11 +37,18 @@ export async function verifyAge(options: {
   }
 
   const now = options.now ?? new Date();
-  await db.insert(ageVerifications).values({
-    userId,
-    birthOn,
-    verifiedAt: now,
-    createdAt: now,
-    updatedAt: now,
-  });
+  try {
+    await db.insert(ageVerifications).values({
+      userId,
+      birthOn,
+      verifiedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+  } catch {
+    if (await hasAgeVerification(db, userId)) {
+      return;
+    }
+    throw new ApiError("internal_error");
+  }
 }

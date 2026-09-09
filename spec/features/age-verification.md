@@ -106,6 +106,7 @@ isAtLeast20 = today >= majorityOn
 | * | 記録・セラー・ノート・写真・マイドリンク | **必須** | 未確認は 403 `age_required` |
 | * | `/api/auth/*` | 不要 | ログアウト・表示名更新は可 |
 | GET | `/api/health` | 不要 | 公開のまま |
+| * | 未定義の `/api/*` | 必須 | 未確認は 403（ルートの存在を漏らさない）。確認済みは 404 |
 
 `POST /api/me/age-verification`:
 
