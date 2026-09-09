@@ -19,7 +19,10 @@ import {
   listDrinkLogs,
   updateDrinkLog,
 } from "../services/drink-logs.ts";
-import { recognizeDrinkPhoto } from "../services/drink-recognizer/recognize.ts";
+import {
+  readDailyLimitFromEnv,
+  recognizeDrinkPhoto,
+} from "../services/drink-recognizer/recognize.ts";
 import type { LabelRecognizer } from "../services/label-recognizer/index.ts";
 import type { PhotoBucket } from "../services/photos.ts";
 import { validate } from "../validation.ts";
@@ -28,6 +31,7 @@ export type DrinkLogRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppBatchDb;
   getBucket: (c: Context<AppEnv>) => PhotoBucket;
   getDrinkRecognizer: (c: Context<AppEnv>) => LabelRecognizer;
+  getEnv?: (c: Context<AppEnv>) => object;
   recognizeTimeoutMs?: number;
 };
 
@@ -77,7 +81,9 @@ export function createDrinkLogsRoute(deps: DrinkLogRouteDeps) {
         userId: user.id,
         bytes,
         recognizer: deps.getDrinkRecognizer(c),
+        env: deps.getEnv?.(c) ?? c.env,
         timeoutMs: deps.recognizeTimeoutMs,
+        dailyLimit: readDailyLimitFromEnv(deps.getEnv?.(c) ?? c.env),
       });
       return c.json(result);
     })

@@ -9,6 +9,8 @@ import {
 export function createWorkersAiDrinkRecognizer(ai: Ai): LabelRecognizer {
   return {
     provider: "workers-ai",
+    profile: "workers-ai-llama",
+    modelId: WORKERS_AI_VISION_MODEL,
     async recognize(jpegBytes) {
       const imageUrl = `data:image/jpeg;base64,${bytesToBase64(jpegBytes)}`;
       return ai.run(WORKERS_AI_VISION_MODEL, {

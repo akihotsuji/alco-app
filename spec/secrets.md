@@ -42,6 +42,7 @@
 
 - `database_id` は secret ではない。`wrangler.jsonc` のみ（[production-env.md](features/production-env.md)）
 - 本番の公開オリジンは `CANONICAL_ORIGIN`（wrangler `vars`。秘密ではない。[custom-domain.md](features/custom-domain.md)）
+- 認識プロファイル（`AI_RECOGNITION_PROFILE` 等）は wrangler `vars`。秘密ではない。Google API キーは増やさない。[ai-recognition.md](features/ai-recognition.md)
 - E2E / CI の `BETTER_AUTH_SECRET` はジョブ内で使い捨て生成する。GitHub Secrets にも本番 wrangler secret にもしない（[e2e.md](features/e2e.md)）
 - アプリコードは `src/server/env.ts` と `src/server/services/error-alert.ts` のキー名だけで読む。値は `.dev.vars` / wrangler secret から入る
 - `ALERT_WEBHOOK_URL` は `https:` のみ。トピック名や URL をチャット・spec に書かない（[monitoring.md](features/monitoring.md)）

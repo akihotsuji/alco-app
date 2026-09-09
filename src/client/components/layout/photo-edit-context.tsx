@@ -15,6 +15,7 @@ import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
 import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
+import { processLogFile } from "@/client/lib/photo/process-file.ts";
 
 export type PhotoEditContextKind = "log" | "cellar" | "note";
 
@@ -165,6 +166,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const collectRef = useRef<PhotoCollectSession | null>(null);
   const burstRef = useRef<PhotoBurstSession | null>(null);
   const capturedAtRef = useRef<string | undefined>(undefined);
+  const logIngestTokenRef = useRef(0);
+  const ingestLogPhotoRef = useRef<(file: File) => Promise<void>>(async () => {});
 
   const canCollectMore = useCallback(() => burstRef.current?.canCollectMore() ?? false, []);
 
@@ -245,6 +248,10 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       collectRef.current = options?.collect ?? null;
       burstRef.current = options?.burst ?? null;
       setBurstActive(options?.burst !== undefined);
+      if (nextKind === "log") {
+        await ingestLogPhotoRef.current(file);
+        return;
+      }
       await loadFile(nextKind, file);
     },
     [loadFile],
@@ -410,6 +417,34 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     },
     [attachments, beginUpload],
   );
+
+  const ingestLogPhoto = useCallback(
+    async (file: File) => {
+      const token = logIngestTokenRef.current + 1;
+      logIngestTokenRef.current = token;
+      try {
+        const processed = await processLogFile(file, offerRecognizeJpeg);
+        if (logIngestTokenRef.current !== token) {
+          URL.revokeObjectURL(processed.previewUrl);
+          return;
+        }
+        const intent = intentRef.current;
+        if (intent) {
+          const replace = historyHasFlag(window.history.state, HISTORY_FLAG);
+          closeOverlay();
+          void beginUpload("log", processed);
+          intent.onUse({ replace });
+          intentRef.current = null;
+          return;
+        }
+        void beginUpload("log", processed);
+      } catch {
+        // 撮り直し失敗では既存の写真と入力を残す
+      }
+    },
+    [beginUpload, closeOverlay, offerRecognizeJpeg],
+  );
+  ingestLogPhotoRef.current = ingestLogPhoto;
 
   const clearAttachment = useCallback(
     async (targetKind: PhotoEditContextKind) => {

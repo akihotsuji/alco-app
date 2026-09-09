@@ -5,6 +5,7 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { z } from "zod";
 import * as schema from "@/db/schema.ts";
+import { WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
 import { createAuth } from "./auth.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
@@ -65,7 +66,12 @@ export function createStubLabelRecognizer(
     name: { value: "サンプル赤", confidence: 0.86 },
   }),
 ): LabelRecognizer {
-  return { provider: "workers-ai", recognize };
+  return {
+    provider: "workers-ai",
+    profile: "workers-ai-llama",
+    modelId: WORKERS_AI_VISION_MODEL,
+    recognize,
+  };
 }
 
 export async function createTestApp(

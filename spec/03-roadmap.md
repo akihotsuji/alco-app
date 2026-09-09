@@ -198,6 +198,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [ ] **5.5-04 Issue修正ループ**: 優先度順に同時着手1件で、仕様確認 → 再現 → 回帰テスト追加 → 修正 → dev再デプロイ → 同じ実機で再確認を繰り返す
 - [ ] **5.5-05 回帰確認・終了判定**: 主要導線を通し直し、未トリアージIssue、Blocker、Highの機能不良がないことを確認してPhase 6へ進む
 - [x] **登録の共通識別・撮影日・場所・連続導線**: 記録・セラー・ノートの品名 / 品種 / ヴィンテージ / 生産国 / 生産者を揃え、登録日は撮影日、飲酒記録に場所、保存後にノート導線（2026-09-08。[register-identity.md](features/register-identity.md)）
+- [x] **酒記録の外部 AI 補完と写真導線**: Gemini 3.7 Flash（サーバー設定で切替）、根拠付きの国・品種、撮影後は詳細入力へ直接、色補正廃止、キャラは設定自動適用、写真拡大（2026-09-09。[ai-recognition.md](features/ai-recognition.md)）
 
 詳細な順序・Issue分割・実機チェック項目は [roadmap/phase-05-5-device-hardening/](../roadmap/phase-05-5-device-hardening/00-phase.md) を参照する。
 

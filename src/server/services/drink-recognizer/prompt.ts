@@ -6,7 +6,7 @@ export const DRINK_RECOGNIZE_SYSTEM_PROMPT = [
   "You estimate what alcoholic drink is in a photo of a glass, can, bottle, or cup.",
   "Return JSON only. No markdown. No extra keys.",
   "This is a rough guess. Prefer common serving sizes. Omit any field you cannot reasonably infer.",
-  "Prefer printed label text for identity fields. If a field is not fully readable, infer a likely value.",
+  "Prefer printed label text for identity fields. If a field is not fully readable, omit it.",
   "Do not invent completely unrelated brands. Do not encourage drinking.",
   "Schema:",
   "{",

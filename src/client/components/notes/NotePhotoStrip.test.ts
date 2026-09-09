@@ -32,6 +32,7 @@ describe("ノート写真ストリップ / カルーセル", () => {
     expect(carousel).toContain("if (photos.length === 0)");
     expect(carousel).toContain("return null");
     expect(edit).toContain('kind !== "cellar"');
-    expect(edit).toContain("キャラを入れる");
+    expect(edit).toContain("getComposeMascotPref");
+    expect(edit).not.toContain("キャラを入れる");
   });
 });

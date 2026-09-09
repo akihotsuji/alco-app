@@ -8,7 +8,6 @@ import {
 import {
   getCellarListViewPref,
   getCellarRecognizePref,
-  getColorCorrectionPref,
   getComposeMascotPref,
   getCutoutPref,
   getHapticPref,
@@ -17,7 +16,6 @@ import {
   parseReduceMotionPref,
   setCellarListViewPref,
   setCellarRecognizePref,
-  setColorCorrectionPref,
   setComposeMascotPref,
   setCutoutPref,
   setHapticPref,
@@ -40,7 +38,6 @@ describe("PHOTO_PREF_KEYS", () => {
   it("設定と photo-edit が同じキーを読む", () => {
     expect(PHOTO_PREF_KEYS).toEqual({
       mascot: "photo.mascot",
-      filter: "photo.filter",
       cutout: "photo.cutout",
       recognize: "cellar.recognize",
     });
@@ -59,21 +56,17 @@ describe("flag preferences", () => {
     });
 
     expect(getComposeMascotPref()).toBe(true);
-    expect(getColorCorrectionPref()).toBe(true);
     expect(getCutoutPref()).toBe(true);
     expect(getCellarRecognizePref()).toBe(true);
 
     setComposeMascotPref(false);
-    setColorCorrectionPref(false);
     setCutoutPref(false);
     setCellarRecognizePref(false);
 
     expect(memory.get(PHOTO_PREF_KEYS.mascot)).toBe("false");
-    expect(memory.get(PHOTO_PREF_KEYS.filter)).toBe("false");
     expect(memory.get(PHOTO_PREF_KEYS.cutout)).toBe("false");
     expect(memory.get(PHOTO_PREF_KEYS.recognize)).toBe("false");
     expect(getComposeMascotPref()).toBe(false);
-    expect(getColorCorrectionPref()).toBe(false);
     expect(getCutoutPref()).toBe(false);
     expect(getCellarRecognizePref()).toBe(false);
   });

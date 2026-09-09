@@ -274,15 +274,9 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | `--switch-knob` | `#FFFDFA` | `#D9CFC4` | スイッチのつまみ |
 | `--tab-h` | **72px**（64 → 72 に改訂） | 同じ | 中央タブが浮く余白を確保 |
 
-写真の色補正プリセット（Canvas `filter`。数値は正本、変えるなら本表を直す）:
+写真の色補正プリセットは **廃止**した。向き補正・リサイズ・キャラ合成・セラーの切り抜きと落ち影は残す。
 
-| プリセット | filter | 用途 |
-|---|---|---|
-| `table` | `saturate(1.08) contrast(1.04)` | 記録・ノート（食卓の一杯） |
-| `cellar` | `saturate(1.05) contrast(1.06) brightness(0.97) sepia(0.10)` + 周辺減光（半径 0.75、濃度 0.25） | セラー陳列 |
-| `none` | なし | ユーザーが OFF にしたとき |
-
-セラーの写真は 2:3 に切ったあと **端末内で背景除去**し、透過 WebP として保存する（2026-09-05 に MVP へ）。除去できない・未対応の端末では長方形のまま保存し、棚では角 8px の写真として載せる（[screen-designs/04-cellar.md](screen-designs/04-cellar.md) 陳列の写真、[07-photo-capture.md](screen-designs/07-photo-capture.md)）。
+セラーの写真は 2:3 に切ったあと **端末内で背景除去**し、透過 WebP として保存する。除去できない・未対応の端末では長方形のまま保存し、棚では角 8px の写真として載せる（[screen-designs/04-cellar.md](screen-designs/04-cellar.md) 陳列の写真、[07-photo-capture.md](screen-designs/07-photo-capture.md)）。
 
 ---
 

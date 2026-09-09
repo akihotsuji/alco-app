@@ -19,6 +19,7 @@ import { MemoField } from "@/client/components/logs/MemoField.tsx";
 import { PlaceField } from "@/client/components/logs/PlaceField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
+import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import {
   useDeleteDrinkLog,
@@ -28,6 +29,13 @@ import {
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
+import {
+  applyRecognizeToLogForm,
+  countDrinkRecognizeFields,
+  DRINK_RECOGNIZE_BANNER,
+  type DrinkRecognizeTouched,
+  lockInheritedRecognizeFields,
+} from "@/client/lib/drink-recognize.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import {
   applySelectedBottle,
@@ -47,6 +55,7 @@ import {
 } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
+import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import { DRINK_NAME_MAX_LENGTH, type DrinkLog } from "@/shared/drink-logs.ts";
@@ -75,7 +84,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   const {
     attachments,
     startCapture,
-    editAttachment,
+    pendingRecognizeJpeg,
     retryUpload,
     clearAttachment,
     releaseAttachment,
@@ -93,6 +102,32 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   const [touched, setTouched] = useState<Partial<Record<LogFormField, boolean>>>({});
   const [discardOpen, setDiscardOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | null>(null);
+  const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
+  const aiMarksRef = useRef(aiMarks);
+  aiMarksRef.current = aiMarks;
+  const touchedRef = useRef<DrinkRecognizeTouched>(
+    (() => {
+      const touched: DrinkRecognizeTouched = {
+        drinkName: false,
+        drinkType: false,
+        volumeMl: false,
+        abvPercent: false,
+        producer: false,
+        origin: false,
+        variety: false,
+        vintage: false,
+      };
+      lockInheritedRecognizeFields(touched, initial, {
+        lockDrinkType: true,
+        lockVolume: true,
+      });
+      return touched;
+    })(),
+  );
+  const recognizedJpegRef = useRef<Blob | null>(null);
+  const recognizeRequestRef = useRef(0);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const attachment = attachments.log;
@@ -115,9 +150,68 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
     return () => setGuard(null);
   }, [dirty, setGuard]);
 
+  useEffect(() => {
+    if (!pendingRecognizeJpeg) {
+      return;
+    }
+    startDrinkRecognition(pendingRecognizeJpeg).catch(() => {});
+  }, [pendingRecognizeJpeg]);
+
+  useEffect(() => {
+    const jpeg = attachment?.recognizeJpeg ?? pendingRecognizeJpeg;
+    if (!jpeg || recognizedJpegRef.current === jpeg) {
+      return;
+    }
+    recognizedJpegRef.current = jpeg;
+    const requestId = recognizeRequestRef.current + 1;
+    recognizeRequestRef.current = requestId;
+    setRecognizeStatus("loading");
+    void startDrinkRecognition(jpeg)
+      .then((result) => {
+        if (requestId !== recognizeRequestRef.current || savedRef.current) {
+          return;
+        }
+        if (countDrinkRecognizeFields(result.fields) === 0) {
+          setRecognizeStatus(null);
+          return;
+        }
+        setState((current) => {
+          const applied = applyRecognizeToLogForm({
+            state: current,
+            fields: result.fields,
+            touched: touchedRef.current,
+            marks: aiMarksRef.current,
+          });
+          setAiMarks(applied.marks);
+          return applied.next;
+        });
+        setRecognizeStatus("success");
+      })
+      .catch(() => {
+        if (requestId !== recognizeRequestRef.current || savedRef.current) {
+          return;
+        }
+        setRecognizeStatus(null);
+      });
+  }, [attachment?.recognizeJpeg, pendingRecognizeJpeg]);
+
+  useEffect(() => {
+    return () => {
+      recognizeRequestRef.current += 1;
+    };
+  }, []);
+
   function update(patch: Partial<typeof state>, field?: LogFormField) {
     if (field) {
       setTouched((current) => ({ ...current, [field]: true }));
+      if (field in touchedRef.current) {
+        touchedRef.current[field as keyof DrinkRecognizeTouched] = true;
+        setAiMarks((current) => {
+          const next = new Set(current);
+          next.delete(field);
+          return next;
+        });
+      }
     }
     setState((current) => ({ ...current, ...patch }));
     setServerErrors({});
@@ -212,20 +306,39 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         </p>
       ) : null}
       <CompactPhotoField
+        actions="retake"
         onCapture={() => void startCapture("log")}
         onLibrary={() => void startCapture("log", { source: "library" })}
         attachment={attachment}
         existingPreviewUrl={existingPhotoId ? photoContentUrl(existingPhotoId) : null}
-        onEdit={() => (attachment ? void editAttachment("log") : void startCapture("log"))}
+        onPreview={() => setPreviewOpen(true)}
         onRetry={() => void retryUpload("log")}
-        onClear={() => (attachment ? void clearAttachment("log") : void removeExistingPhoto())}
+        onClear={() => {
+          recognizeRequestRef.current += 1;
+          recognizedJpegRef.current = null;
+          setRecognizeStatus(null);
+          setPreviewOpen(false);
+          if (attachment) {
+            void clearAttachment("log");
+            return;
+          }
+          void removeExistingPhoto();
+        }}
         error={visibleErrors.photoIds}
+        recognizeStatus={recognizeStatus}
+        recognizeMessage={recognizeStatus ? DRINK_RECOGNIZE_BANNER[recognizeStatus] : undefined}
+      />
+      <PhotoViewer
+        open={previewOpen && Boolean(attachment?.previewUrl || existingPhotoId)}
+        src={attachment?.previewUrl ?? (existingPhotoId ? photoContentUrl(existingPhotoId) : "")}
+        alt="記録写真"
+        onClose={() => setPreviewOpen(false)}
       />
       <section className="log-form-section">
         <FieldLabel htmlFor="log-edit-drink-name" optional>
           {IDENTITY_FIELD_LABELS.drinkName}
         </FieldLabel>
-        <FieldWithAiMark marked={false}>
+        <FieldWithAiMark marked={aiMarks.has("drinkName")}>
           <Input
             id="log-edit-drink-name"
             value={state.drinkName}
@@ -240,18 +353,27 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           </p>
         ) : null}
       </section>
-      <DrinkTypeSelect value={state.drinkType} onChange={(drinkType) => update({ drinkType })} />
+      <DrinkTypeSelect
+        value={state.drinkType}
+        onChange={(drinkType) => {
+          touchedRef.current.drinkType = true;
+          update({ drinkType });
+        }}
+      />
       <BottlePickerRow
         placement="optional"
         bottleId={state.bottleId}
         bottleName={state.bottleName}
         error={visibleErrors.bottleId}
         onSelect={(bottle) => {
-          setState((current) =>
-            bottle
-              ? applySelectedBottle(current, bottle, { preserveEdits: true })
-              : clearSelectedBottle(current),
-          );
+          setState((current) => {
+            if (!bottle) {
+              return clearSelectedBottle(current);
+            }
+            const next = applySelectedBottle(current, bottle, { preserveEdits: true });
+            lockInheritedRecognizeFields(touchedRef.current, next, { lockDrinkType: true });
+            return next;
+          });
           setServerErrors({});
           setFormError(null);
         }}
@@ -270,6 +392,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           producer: visibleErrors.producer,
           origin: visibleErrors.origin,
         }}
+        aiMarks={aiMarks}
         onChange={(field, value) => update({ [field]: value }, field)}
       />
       <VolumeField

@@ -6,6 +6,7 @@ import { OpenedFollowupSheet } from "@/client/components/cellar/OpenedFollowupSh
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
+import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
@@ -228,20 +229,13 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           </ul>
         </section>
       ) : null}
-      {lightbox && photo ? (
-        <button
-          type="button"
-          className="bottle-lightbox"
-          onClick={() => setLightbox(false)}
-          aria-label="閉じる"
-        >
-          <ContentPhoto
-            src={photoContentUrl(photo.id)}
-            size={PHOTO_DISPLAY_SIZE.bottleHeroPhoto}
-            loading="eager"
-          />
-        </button>
-      ) : null}
+      <PhotoViewer
+        open={lightbox && Boolean(photo)}
+        src={photo ? photoContentUrl(photo.id) : ""}
+        alt={bottle.name}
+        checkerboard={photo?.kind === "cutout"}
+        onClose={() => setLightbox(false)}
+      />
       <OpenedFollowupSheet
         open={followupOpen}
         onClose={dismissFollowup}

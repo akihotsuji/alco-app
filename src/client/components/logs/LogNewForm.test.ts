@@ -8,18 +8,24 @@ const source = readFileSync(join(here, "LogNewForm.tsx"), "utf8");
 const edit = readFileSync(join(here, "LogEditForm.tsx"), "utf8");
 
 describe("LogNewForm 写真からの種類・量の先埋め", () => {
-  it("新規だけ推測し、触った欄は上書きしない。編集は変えない", () => {
+  it("新規と編集の空欄だけ推測し、触った欄とボトル由来は上書きしない", () => {
     expect(source).toContain("startDrinkRecognition");
     expect(source).toContain("applyRecognizeToLogForm");
     expect(source).toContain("marks: aiMarksRef.current");
     expect(source).toContain("DRINK_RECOGNIZE_BANNER");
+    expect(source).toContain("lockInheritedRecognizeFields");
     expect(source).toContain("touchedRef.current.drinkType = true");
     expect(source).toContain("touchedRef.current.volumeMl = true");
     expect(source).toContain("usePhotoEdit");
     expect(source).not.toContain("useCaptureOnCameraQuery");
     expect(source).toContain("CompactPhotoField");
+    expect(source).toContain("PhotoViewer");
+    expect(source).toContain("savedRef.current");
     expect(edit).toContain("CompactPhotoField");
-    expect(edit).not.toContain("startDrinkRecognition");
+    expect(edit).toContain("startDrinkRecognition");
+    expect(edit).toContain("lockInheritedRecognizeFields");
+    expect(edit).toContain("PhotoViewer");
+    expect(edit).toContain("savedRef.current");
   });
 
   it("共通識別と場所があり、ボトルは種類の次。後選択は手入力を残す", () => {

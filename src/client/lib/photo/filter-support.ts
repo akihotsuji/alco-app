@@ -1,16 +1,3 @@
-export function supportsCanvasFilter(): boolean {
-  if (typeof document === "undefined") {
-    return false;
-  }
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx || !("filter" in ctx)) {
-    return false;
-  }
-  ctx.filter = "brightness(1.1)";
-  return ctx.filter === "brightness(1.1)";
-}
-
 export function supportsWasmSimd(): boolean {
   try {
     return WebAssembly.validate(

@@ -13,6 +13,7 @@ export const API_ERROR_STATUS = {
   unsupported_media_type: 415,
   rate_limited: 429,
   upstream_error: 502,
+  misconfigured: 503,
   internal_error: 500,
 } as const satisfies Record<ApiErrorCode, ContentfulStatusCode>;
 

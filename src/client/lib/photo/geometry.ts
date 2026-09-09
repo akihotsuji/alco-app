@@ -199,6 +199,45 @@ export function aspectForKind(kind: "log" | "note" | "cellar"): AspectRatio {
   return kind === "cellar" ? PHOTO_ASPECT.cellar : PHOTO_ASPECT.log;
 }
 
+/** 写真全体を残したまま長辺だけ揃える（酒記録の表示・認識用） */
+export function fitToLongEdge(
+  sourceWidth: number,
+  sourceHeight: number,
+  longEdge = PHOTO_OUTPUT_LONG_EDGE,
+): OutputSize {
+  const current = Math.max(sourceWidth, sourceHeight);
+  if (current <= 0) {
+    return { width: 1, height: 1 };
+  }
+  if (current <= longEdge) {
+    return { width: sourceWidth, height: sourceHeight };
+  }
+  const scale = longEdge / current;
+  return {
+    width: Math.max(1, Math.round(sourceWidth * scale)),
+    height: Math.max(1, Math.round(sourceHeight * scale)),
+  };
+}
+
+export function resizeKeepAspect(
+  source: CanvasImageSource,
+  sourceWidth: number,
+  sourceHeight: number,
+  output: OutputSize,
+): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = output.width;
+  canvas.height = output.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("canvas 2d が使えません");
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, output.width, output.height);
+  return canvas;
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }

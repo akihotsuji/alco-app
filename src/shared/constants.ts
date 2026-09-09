@@ -102,16 +102,23 @@ export const PHOTO_WEBP_QUALITY = 0.9;
 export const PHOTO_GC_TTL_MS = 24 * 60 * 60 * 1000;
 export const PHOTO_GC_BATCH_SIZE = 500;
 export const AI_USAGE_RETENTION_DAYS = 30;
-/** ラベル読み取りの日次上限（ユーザー / JST 日）。api-design 4.5.3 */
+/** ラベル読み取りの日次上限（ユーザー / JST 日）。api-design 4.5.3。env で上書き可 */
 export const AI_RECOGNIZE_DAILY_LIMIT = 30;
 export const AI_RECOGNIZE_TIMEOUT_MS = 20_000;
+export const AI_RECOGNIZE_LOOKUP_TIMEOUT_MS = 20_000;
+export const AI_RECOGNIZE_OVERALL_TIMEOUT_MS = 40_000;
+export const AI_RECOGNIZE_RETRY_LIMIT = 1;
 /** クライアントが候補を捨てる確度の下限（サーバーは 0〜1 をそのまま返す） */
 export const AI_RECOGNIZE_MIN_CONFIDENCE = 0.5;
 /** Workers AI の Vision 対応・指示追従モデル（公式一覧。導入時点） */
 export const WORKERS_AI_VISION_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
+/** Cloudflare AI カタログ上の Gemini 3.7 Flash（Unified Billing） */
+export const GEMINI_37_FLASH_MODEL_ID = "google/gemini-3.7-flash";
+/** Google 側のモデル ID。Cloudflare カタログ ID と混同しない */
+export const GEMINI_37_FLASH_NATIVE_ID = "gemini-3.7-flash";
 export const LABEL_RECOGNIZE_PROVIDERS = ["workers-ai", "gemini", "openai"] as const;
 export type LabelRecognizeProvider = (typeof LABEL_RECOGNIZE_PROVIDERS)[number];
-export const DEFAULT_LABEL_RECOGNIZE_PROVIDER: LabelRecognizeProvider = "workers-ai";
+export const DEFAULT_LABEL_RECOGNIZE_PROVIDER: LabelRecognizeProvider = "gemini";
 
 export const PHOTO_OWNER_LIMITS = {
   bottle: 1,
@@ -135,16 +142,6 @@ export const PHOTO_MASCOT_POSES = ["default", "surprised", "rest", "cheer"] as c
 export type PhotoMascotPose = (typeof PHOTO_MASCOT_POSES)[number];
 
 export const PHOTO_DECODE_MAX_EDGE = 2560;
-
-export const PHOTO_FILTERS = {
-  table: "saturate(1.08) contrast(1.04)",
-  cellar: "saturate(1.05) contrast(1.06) brightness(0.97) sepia(0.10)",
-} as const;
-
-export const PHOTO_CELLAR_VIGNETTE = {
-  radius: 0.75,
-  opacity: 0.25,
-} as const;
 
 export const PHOTO_CUTOUT_SHADOW = {
   widthRatio: 0.8,
@@ -200,7 +197,6 @@ export const PHOTO_CUTOUT_MASK_CACHE_SIZE = 4;
 /** 設定・photo-edit が共有する localStorage キー（spec/screen-designs/07-photo-capture.md） */
 export const PHOTO_PREF_KEYS = {
   mascot: "photo.mascot",
-  filter: "photo.filter",
   cutout: "photo.cutout",
   recognize: "cellar.recognize",
 } as const;

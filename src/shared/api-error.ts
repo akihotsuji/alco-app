@@ -9,6 +9,7 @@ export const API_ERROR_CODES = [
   "unsupported_media_type",
   "rate_limited",
   "upstream_error",
+  "misconfigured",
   "internal_error",
 ] as const;
 

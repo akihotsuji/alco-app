@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { recognizeRunMetaSchema } from "./ai-recognition.ts";
 import { ABV_PERCENT_MAX, ABV_PERCENT_MIN, VOLUME_ML_MAX, VOLUME_ML_MIN } from "./alcohol.ts";
 import { DEFAULT_LABEL_RECOGNIZE_PROVIDER, LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
 import { recognizedDrinkTypeValueSchema } from "./drink-logs.ts";
@@ -67,6 +68,12 @@ export const drinkRecognizeResponseSchema = z
     fields: drinkRecognizeFieldsSchema,
     provider: z.enum(LABEL_RECOGNIZE_PROVIDERS),
     remainingToday: z.number().int().min(0),
+    profile: recognizeRunMetaSchema.shape.profile,
+    modelId: recognizeRunMetaSchema.shape.modelId,
+    durationMs: recognizeRunMetaSchema.shape.durationMs,
+    usage: recognizeRunMetaSchema.shape.usage,
+    sources: recognizeRunMetaSchema.shape.sources,
+    searchUsed: recognizeRunMetaSchema.shape.searchUsed,
   })
   .strict();
 

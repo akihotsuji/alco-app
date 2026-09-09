@@ -20,4 +20,13 @@ describe("CompactPhotoField 撮影と選択", () => {
     expect(bottle).toContain('ratio="bottle"');
     expect(bottle).not.toContain("PhotoTile");
   });
+
+  it("酒記録の写真タップは拡大で、撮り直しと選び直しは別操作", () => {
+    expect(field).toContain("写真を拡大");
+    expect(field).toContain("撮り直す");
+    expect(field).toContain('actions?: "edit" | "retake"');
+    expect(logNew).toContain('actions="retake"');
+    expect(logNew).toContain("PhotoViewer");
+    expect(logNew).not.toContain("editAttachment");
+  });
 });

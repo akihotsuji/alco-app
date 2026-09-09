@@ -15,4 +15,11 @@ describe("LogDayPage D10", () => {
     expect(source.indexOf("<DayPlaces")).toBeLessThan(source.indexOf("log-list"));
     expect(source).not.toContain("googleMapsSearchUrl");
   });
+
+  it("サムネタップは拡大で、行本文は編集へ進む", () => {
+    expect(source).toContain("PhotoViewer");
+    expect(source).toContain("log-row-thumb-button");
+    expect(source).toContain("log-row-main");
+    expect(source).toContain("写真を拡大");
+  });
 });

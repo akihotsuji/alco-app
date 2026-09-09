@@ -155,7 +155,8 @@ WHERE id = :id AND user_id = :sessionUserId
 | 413 | `payload_too_large` | 写真サイズ超過（1MB） |
 | 415 | `unsupported_media_type` | 許可外 MIME（SVG / GIF / HEIC 等） |
 | 429 | `rate_limited` | ラベル読み取りの日次上限 |
-| 502 | `upstream_error` | Workers AI が失敗 / タイムアウト（ラベル読み取りのみ。詳細は出さない） |
+| 502 | `upstream_error` | 上流 AI が失敗 / タイムアウト（認識 API。詳細は出さない） |
+| 503 | `misconfigured` | 認識プロファイル不明など。手入力は継続できる |
 | 500 | `internal_error` | それ以外。スタック・SQL・内部パスは出さない |
 
 - `fields` のキーはリクエストのフィールド名（camelCase）。ネストは `.` 区切り（`log.volumeMl`、`photoIds.0`）。リクエスト全体の不備（未知キー、壊れた JSON、Content-Type 不一致）はキー `""`。Zod の内部 path 配列やスキーマファイルパスは出さない
@@ -243,7 +244,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | GET | `/api/drink-logs` | 必須 | 期間内の記録一覧＋合計 |
 | GET | `/api/drink-logs/summary` | 必須 | 日 / 週 / 月の集計 |
 | POST | `/api/drink-logs` | 必須 | 記録作成 |
-| POST | `/api/drink-logs/recognize` | 必須 | 記録写真から種類・量の候補（Workers AI）。保存しない |
+| POST | `/api/drink-logs/recognize` | 必須 | 記録写真から種類・量・識別の候補（既定は Cloudflare 経由 Gemini）。保存しない |
 | GET | `/api/drink-logs/:id` | 必須 | 記録詳細 |
 | PATCH | `/api/drink-logs/:id` | 必須 | 記録の部分更新 |
 | DELETE | `/api/drink-logs/:id` | 必須 | 記録削除 |
@@ -439,9 +440,9 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 
 #### POST /api/drink-logs/recognize
 
-記録写真（グラス / 缶 / 瓶）から **品名・識別 4 項目・種類・量・度数の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` と **同じ 30 回 / 日（JST）** を共有する。`max_tokens` は 500 程度。
+記録写真（グラス / 缶 / 瓶 / ラベル）から **品名・識別 4 項目・種類・量・度数の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` と **同じ 30 回 / 日（JST）** を共有する。正本は [features/ai-recognition.md](features/ai-recognition.md)。
 
-`multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。
+`multipart/form-data`、パート名 `file`。JPEG、≦1MB。切り抜き不要（写真全体）。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。
 
 ```json
 {
@@ -455,20 +456,32 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
     "volumeMl": { "value": 350, "confidence": 0.7 },
     "abvPercent": { "value": 5, "confidence": 0.6 }
   },
-  "provider": "workers-ai",
-  "remainingToday": 27
+  "provider": "gemini",
+  "remainingToday": 27,
+  "profile": "gemini-3.7-flash",
+  "modelId": "google/gemini-3.7-flash",
+  "durationMs": 1840,
+  "usage": {
+    "inputTokens": null,
+    "outputTokens": null,
+    "thinkingTokens": null,
+    "searchCount": null
+  },
+  "sources": [],
+  "searchUsed": false
 }
 ```
 
 | 規則 | 内容 |
 |---|---|
-| プロバイダ | 4.5.3 と同じ Workers AI Vision。プロンプトはサーバー固定（グラス/缶/瓶の見た目。ユーザー文を混ぜない） |
-| 出力 | `drinkType` は 12 種、`volumeMl` は 1〜5000 整数、`abvPercent` は 0〜100 小数 1 桁、`confidence` は 0〜1。検証落ちは省く。空 `fields` でも 200 |
-| 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）、20 秒タイムアウト |
-| クライアント | 確度 0.5 未満は捨てる。空欄と直前の AI 値は再読取で上書きする。触った欄は上書きしない。種類を入れたら量は推測値を優先し、無ければ種類デフォルト。量チップにあればそのチップを選んだ状態にする |
-| 対象 | `log-new` のみ。`log-edit` では呼ばない |
+| プロバイダ | サーバー設定 `AI_RECOGNITION_PROFILE`。初期は Cloudflare AI Gateway Unified Billing 経由の Gemini 3.7 Flash（`google/gemini-3.7-flash`）。クライアントはモデルを指定できない |
+| 出力 | `drinkType` は 12 種、`volumeMl` は 1〜5000 整数、`abvPercent` は 0〜100 小数 1 桁、`confidence` は 0〜1。検証落ちは省く。空 `fields` でも 200。使用量が取れなければ null（0 にしない） |
+| 根拠 | 生産国は label / verified_origin / product_source のみ自動入力。品種は label / product_source のみ。根拠のない推測は空欄 |
+| 上限 / 失敗 | 日次上限は 4.5.3 と同じ（env で上書き可、無制限化しない）。429 `rate_limited`、502 `upstream_error`（回数は返金）、503 `misconfigured`（回数加算なし）、全体タイムアウトあり |
+| クライアント | 確度 0.5 未満は捨てる。空欄と直前の AI 値は再読取で上書きする。触った欄・ボトル由来は上書きしない。種類を入れたら量は推測値を優先し、無ければ種類デフォルト。AI 完了は保存必須にしない |
+| 対象 | `log-new` と、編集で新規写真を付けたときの空欄。保存済み記録を遅延結果で書き換えない |
 
-公開エンドポイントではない。
+公開エンドポイントではない。写真は R2 に公開せず、リクエスト内の JPEG だけを上流へ送る。
 
 ### 4.4 my-drinks
 
@@ -595,7 +608,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 成功: 200。クライアントは確度 0.5 未満の候補を捨て、空欄と直前の AI 印の欄に入れる。
 
-公開エンドポイントではない（認証必須）。外部ベンダーへの送信は無い（Cloudflare 内）。将来 Gemini 等の外部 API を足す場合は、送信先を設定画面の副文とプライバシー表記（Phase 8-01）に明記し、オーナー承認を得る。
+公開エンドポイントではない（認証必須）。セラー・ノートは Cloudflare Workers AI（アカウント内）。酒記録の既定は Cloudflare 経由で Google Gemini へ画像を送る（設定画面の記録節に外部 AI である旨を書く。モデル名は出さない）。
 
 ### 4.6 tasting-notes
 
@@ -809,7 +822,7 @@ src/server/
 | 在庫金額サマリー、飲み頃アラート | v1.x |
 | ノートと飲酒記録の同時作成 | v1.x（開栓 → 記録も作らない。2026-09-06） |
 | 切り抜きと長方形の両方を保存 | v1.x（MVP はどちらか 1 枚） |
-| Gemini / OpenAI 等の外部 Vision API | 将来。`LabelRecognizer` の差し替えで対応。外部送信の明記と承認が前提 |
+| Gemini / OpenAI 等の外部 Vision API | 酒記録は Gemini 3.7 Flash（Cloudflare Unified Billing）を初期採用。セラー・ノートは Workers AI のまま。設定キーで切替。[features/ai-recognition.md](features/ai-recognition.md) |
 | 記録・ノート写真の AI 推定 | 記録は `POST /api/drink-logs/recognize`。ノートは `POST /api/tasting-notes/recognize`（本変更） |
 | CSV エクスポート | 将来構想 |
 | アカウント削除 API | 将来（FK CASCADE は data-model 済み） |

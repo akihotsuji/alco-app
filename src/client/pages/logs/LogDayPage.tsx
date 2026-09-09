@@ -7,8 +7,10 @@ import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { DayPlaces } from "@/client/components/logs/DayPlaces.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
+import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { useDeleteDrinkLog, useDrinkLogsDay } from "@/client/hooks/use-drink-logs.ts";
 import { useHighlightRow } from "@/client/hooks/use-highlight-row.ts";
+import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { isValidLogDateParam, tokyoToday } from "@/client/lib/app-routes.ts";
 import { undoDrinkLogId } from "@/client/lib/history-state.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
@@ -34,6 +36,7 @@ function ValidLogDayPage({ day }: { day: string }) {
   const query = useDrinkLogsDay(day);
   const remove = useDeleteDrinkLog();
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ src: string; alt: string } | null>(null);
   const shownUndo = useRef<string | null>(null);
   const highlightId = searchParams.get("highlight");
   const itemIds = query.data?.items.map((item) => item.id) ?? [];
@@ -124,6 +127,7 @@ function ValidLogDayPage({ day }: { day: string }) {
                       }
                       fading={isTarget && highlight.phase === "fading"}
                       removing={item.id === removingId}
+                      onPreviewPhoto={setPreview}
                     />
                   </div>
                 );
@@ -132,6 +136,12 @@ function ValidLogDayPage({ day }: { day: string }) {
           )}
         </div>
       ) : null}
+      <PhotoViewer
+        open={preview !== null}
+        src={preview?.src ?? ""}
+        alt={preview?.alt ?? "記録写真"}
+        onClose={() => setPreview(null)}
+      />
     </div>
   );
 }
@@ -142,9 +152,10 @@ type LogDayRowProps = {
   highlighted: boolean;
   fading: boolean;
   removing: boolean;
+  onPreviewPhoto: (photo: { src: string; alt: string }) => void;
 };
 
-function LogDayRow({ item, ref, highlighted, fading, removing }: LogDayRowProps) {
+function LogDayRow({ item, ref, highlighted, fading, removing, onPreviewPhoto }: LogDayRowProps) {
   const name = item.drinkName ?? DRINK_TYPE_LABELS[item.drinkType];
   const secondary = [
     formatTokyoTime(new Date(item.drunkAt)),
@@ -164,30 +175,45 @@ function LogDayRow({ item, ref, highlighted, fading, removing }: LogDayRowProps)
     .join(" ");
 
   return (
-    <Link ref={ref} className={classes} to={`/logs/entries/${item.id}/edit`}>
+    <div className={classes}>
       {item.thumbPhotoId ? (
-        <ContentPhoto
-          className="log-row-thumb"
-          src={`/api/photos/${item.thumbPhotoId}/content`}
-          size={PHOTO_DISPLAY_SIZE.logRow}
-        />
-      ) : (
-        <span className="log-row-icon" aria-hidden>
-          <Wine size={24} />
+        <button
+          type="button"
+          className="log-row-thumb-button"
+          aria-label="写真を拡大"
+          onClick={() =>
+            onPreviewPhoto({
+              src: photoContentUrl(item.thumbPhotoId as string),
+              alt: name,
+            })
+          }
+        >
+          <ContentPhoto
+            className="log-row-thumb"
+            src={photoContentUrl(item.thumbPhotoId)}
+            size={PHOTO_DISPLAY_SIZE.logRow}
+          />
+        </button>
+      ) : null}
+      <Link ref={ref} className="log-row-main" to={`/logs/entries/${item.id}/edit`}>
+        {item.thumbPhotoId ? null : (
+          <span className="log-row-icon" aria-hidden>
+            <Wine size={24} />
+          </span>
+        )}
+        <span className="log-row-copy">
+          <span className="log-row-top">
+            <strong>
+              {name} {item.volumeMl}ml
+            </strong>
+            <span>{displayAlcoholGrams(item.alcoholG).toFixed(1)}g</span>
+          </span>
+          <span className="log-row-sub">{secondary}</span>
         </span>
-      )}
-      <span className="log-row-copy">
-        <span className="log-row-top">
-          <strong>
-            {name} {item.volumeMl}ml
-          </strong>
-          <span>{displayAlcoholGrams(item.alcoholG).toFixed(1)}g</span>
+        <span className="log-row-chevron" aria-hidden>
+          ›
         </span>
-        <span className="log-row-sub">{secondary}</span>
-      </span>
-      <span className="log-row-chevron" aria-hidden>
-        ›
-      </span>
-    </Link>
+      </Link>
+    </div>
   );
 }
