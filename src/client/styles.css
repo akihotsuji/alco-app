@@ -3199,6 +3199,7 @@ input:focus-visible {
 }
 
 .settings-segment-option {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3212,6 +3213,23 @@ input:focus-visible {
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+}
+
+/*
+  visually-hidden の 1px radio にフォーカスすると、モバイルが IME 回避で
+  visualViewport / safe-area-inset-bottom を変え、タブバーが下半分を覆う。
+  見えるセグメントと同じ矩形に重ね、スクロールアンカーからも外す。
+*/
+.settings-segment-radio {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  border: 0;
+  overflow-anchor: none;
 }
 
 .settings-segment-option.is-on {

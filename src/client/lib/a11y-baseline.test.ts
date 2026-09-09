@@ -99,5 +99,7 @@ describe("a11y baseline（6-04）", () => {
     const reduce = read("src/client/components/settings/ReduceMotionPrefRow.tsx");
     expect(reduce).toContain('type="radio"');
     expect(reduce).toContain('name="reduce-motion"');
+    expect(reduce).toContain("preventPointerFocus");
+    expect(reduce).not.toContain("visually-hidden");
   });
 });
