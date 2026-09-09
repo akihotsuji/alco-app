@@ -485,8 +485,7 @@
       <span class="mascot stamp"><svg><use href="#m-surprised"/></svg></span>
     </div>
     <div class="body" style="flex:none;padding-top:16px">
-      <div class="chips"><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>色補正: 食卓</span><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>キャラを入れる</span></div>
-      <p class="tiny muted" style="margin:6px 0 0">ドラッグで位置、ピンチで大きさを調整</p>
+      <p class="tiny muted" style="margin:6px 0 0">キャラは設定に合わせて合成します。酒記録は撮影後にこの画面を挟みません</p>
     </div>
     <div class="foot" style="margin-top:auto"><button class="btn btn-primary">使う</button></div>
   </section>
@@ -497,7 +496,7 @@
       <svg viewBox="0 0 60 150" style="width:150px;height:375px;margin-bottom:24px"><use href="#b-wine"/></svg>
     </div>
     <div class="body" style="flex:none;padding-top:16px">
-      <div class="chips"><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>切り抜く</span><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>色補正: セラー</span></div>
+      <div class="chips"><span class="chip on"><svg class="ico"><use href="#i-check"/></svg>切り抜く</span></div>
       <p class="tiny muted" style="margin:6px 0 0">切り抜きは端末内で処理します。うまく抜けないときは長方形のまま保存します</p>
     </div>
     <div class="foot" style="margin-top:auto"><button class="btn btn-primary">使う</button></div>
@@ -781,10 +780,11 @@
       <div class="row"><div>表示名</div><div class="meta">オーナー ›</div></div>
       <div class="row"><div>メール</div><div class="meta">user@example.com</div></div>
       <div class="section">写真</div>
-      <div class="row"><div>写真にキャラを入れる<div class="sub">撮影後の既定</div></div><span class="switch"></span></div>
-      <div class="row"><div>色補正を掛ける<div class="sub">撮影後の既定</div></div><span class="switch"></span></div>
+      <div class="row"><div>写真にキャラを入れる<div class="sub">新しい写真に合成。過去は変えない</div></div><span class="switch"></span></div>
       <div class="section">セラー</div>
-      <div class="row"><div>ラベルを自動で読み取る<div class="sub">写真を Cloudflare の AI に送ります</div></div><span class="switch"></span></div>
+      <div class="row"><div>ラベルを自動で読み取る<div class="sub">写真を Cloudflare Workers AI に送ります</div></div><span class="switch"></span></div>
+      <div class="section">記録</div>
+      <p class="tiny muted" style="padding:0 4px">写真からの自動入力では、画像を Cloudflare 経由の外部 AI に送ります</p>
       <div class="section">表示</div>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:12px"><div>外観</div><div class="chips"><span class="chip on">端末に従う</span><span class="chip">ライト</span><span class="chip">ダーク</span></div></div>
       <div class="row" style="margin-top:20px"><div class="btn-danger" style="padding:0">ログアウト</div></div>

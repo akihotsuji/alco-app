@@ -120,7 +120,7 @@ Vite が 500 kB 超を警告。ボトルネックは **初期 JS 1 本に全画�
 | `NotePages-*.js` | 35.25 kB | 11.62 kB | ノート |
 | `SummaryPages-*.js` | 4.85 kB | 1.91 kB | 週/月サマリー＋チャート |
 | `PhotoEdit-*.js` | 6.82 kB | 2.98 kB | 写真編集 UI |
-| `process-*.js` | 25.46 kB | 9.30 kB | 切り抜き・色補正（編集時） |
+| `process-*.js` | 25.46 kB | 9.30 kB | 切り抜き・合成（編集時。色補正はしない） |
 | `onnxruntime` | 45.40 kB | 14.70 kB | 使ったときだけ（既存） |
 | `assets/main-*.css` | 82.89 kB | 14.85 kB | 全画面 CSS |
 
