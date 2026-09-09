@@ -1,0 +1,172 @@
+name: Backup D1
+
+on:
+  schedule:
+    - cron: "0 17 * * *"
+  workflow_dispatch:
+    inputs:
+      database:
+        description: エクスポートする D1
+        type: choice
+        options:
+          - both
+          - alco-app-prod
+          - alco-app-dev
+        default: both
+      mode:
+        description: backup=R2へ保存 / rehearse=一時D1へimport（prod/devは上書きしない）
+        type: choice
+        options: [backup, rehearse]
+        default: backup
+
+concurrency:
+  group: backup-d1
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  D1_BACKUP_TS: node --experimental-strip-types --disable-warning=ExperimentalWarning src/ci/d1-backup.ts
+
+jobs:
+  backup:
+    name: export / upload (R2)
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode != 'rehearse'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Require Cloudflare secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "Set repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID."
+            exit 1
+          fi
+
+      - name: Ensure private backup bucket and 14-day lifecycle
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if ! pnpm exec wrangler r2 bucket info alco-app-d1-backups >/dev/null 2>&1; then
+            pnpm exec wrangler r2 bucket create alco-app-d1-backups 2>&1 \
+              | $D1_BACKUP_TS sanitize-log
+          fi
+          pnpm exec wrangler r2 bucket lifecycle set alco-app-d1-backups \
+            --file src/ci/d1-backup-lifecycle.json -y 2>&1 \
+            | $D1_BACKUP_TS sanitize-log
+
+      - name: Export D1 and upload gzip to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_SELECTION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.database || 'both' }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p backups
+          while read -r database wrangler_env; do
+            [ -n "${database}" ] || continue
+            raw="backups/${database}.sql"
+            gz="${raw}.gz"
+            key="$($D1_BACKUP_TS object-key --database "${database}")"
+            pnpm exec wrangler d1 export "${database}" --remote --output="${raw}" \
+              --env "${wrangler_env}" --skip-confirmation 2>&1 \
+              | $D1_BACKUP_TS sanitize-log
+            gzip -n -9 "${raw}"
+            $D1_BACKUP_TS summarize "${gz}"
+            pnpm exec wrangler r2 object put "alco-app-d1-backups/${key}" \
+              --file="${gz}" --remote --content-type application/gzip 2>&1 \
+              | $D1_BACKUP_TS sanitize-log
+            rm -f "${raw}" "${gz}"
+            echo "Uploaded one D1 export to the private backup bucket"
+          done < <($D1_BACKUP_TS databases "${BACKUP_SELECTION}")
+
+  rehearse:
+    name: restore rehearsal (throwaway D1)
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'rehearse'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Require Cloudflare secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "Set repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID."
+            exit 1
+          fi
+
+      - name: Import export into throwaway D1 then delete it
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_SELECTION: ${{ github.event.inputs.database }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p backups
+          $D1_BACKUP_TS assert-restore-target "alco-app-d1-restore-rehearsal"
+          read -r database wrangler_env < <($D1_BACKUP_TS rehearse-source "${BACKUP_SELECTION}")
+          raw="backups/${database}.sql"
+          pnpm exec wrangler d1 export "${database}" --remote --output="${raw}" \
+            --env "${wrangler_env}" --skip-confirmation 2>&1 \
+            | $D1_BACKUP_TS sanitize-log
+          if ! pnpm exec wrangler d1 info alco-app-d1-restore-rehearsal >/dev/null 2>&1; then
+            pnpm exec wrangler d1 create alco-app-d1-restore-rehearsal 2>&1 \
+              | $D1_BACKUP_TS sanitize-log
+          fi
+          set +e
+          pnpm exec wrangler d1 execute "alco-app-d1-restore-rehearsal" --remote --yes \
+            --file="${raw}" 2>&1 \
+            | $D1_BACKUP_TS sanitize-log
+          import_status=${PIPESTATUS[0]}
+          if [ "${import_status}" -eq 0 ]; then
+            pnpm exec wrangler d1 execute "alco-app-d1-restore-rehearsal" --remote --yes \
+              --command "SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE '_cf_%' ORDER BY name;" 2>&1 \
+              | $D1_BACKUP_TS sanitize-log
+            import_status=${PIPESTATUS[0]}
+          fi
+          pnpm exec wrangler d1 delete "alco-app-d1-restore-rehearsal" --skip-confirmation 2>&1 \
+            | $D1_BACKUP_TS sanitize-log
+          delete_status=${PIPESTATUS[0]}
+          rm -f "${raw}"
+          if [ "${import_status}" -ne 0 ]; then
+            exit "${import_status}"
+          fi
+          exit "${delete_status}"

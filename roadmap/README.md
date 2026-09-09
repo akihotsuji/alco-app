@@ -220,7 +220,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 7-01 | 本番用リソース作成 | [01-prod-resources.md](phase-07-production-release/01-prod-resources.md) | 完了（2026-09-09） |
 | 7-02 | GitHub Actions デプロイパイプライン | [02-deploy-pipeline.md](phase-07-production-release/02-deploy-pipeline.md) | 完了（2026-09-09。Environment 設定と初回デプロイはオーナー） |
 | 7-03 | シークレット管理の整理 | [03-secret-management.md](phase-07-production-release/03-secret-management.md) | 完了（2026-09-09。本番投入はオーナー） |
-| 7-04 | D1日次バックアップ | [04-d1-backup.md](phase-07-production-release/04-d1-backup.md) | 未着手 |
+| 7-04 | D1日次バックアップ | [04-d1-backup.md](phase-07-production-release/04-d1-backup.md) | ワークフロー済み（2026-09-09。初回実行と rehearse はオーナー） |
 | 7-05 | 監視 | [05-monitoring.md](phase-07-production-release/05-monitoring.md) | 未着手 |
 | 7-06 | 独自ドメイン設定（任意） | [06-custom-domain.md](phase-07-production-release/06-custom-domain.md) | 未着手 |
 | 7-07 | リリース前の全体セキュリティ監査 | [07-security-audit.md](phase-07-production-release/07-security-audit.md) | 未着手 |

@@ -111,6 +111,13 @@ describe("wrangler.jsonc env split", () => {
     expect(production.r2_buckets?.[0]?.binding).toBe("PHOTOS");
     expect(dev.r2_buckets?.[0]?.bucket_name).toBe("alco-app-photos-dev");
     expect(production.r2_buckets?.[0]?.bucket_name).toBe("alco-app-photos-prod");
+    expect(wranglerSource).not.toContain("alco-app-d1-backups");
+    expect(dev.r2_buckets?.some((bucket) => bucket.bucket_name === "alco-app-d1-backups")).toBe(
+      false,
+    );
+    expect(
+      production.r2_buckets?.some((bucket) => bucket.bucket_name === "alco-app-d1-backups"),
+    ).toBe(false);
 
     expect(dev.ai?.binding).toBe("AI");
     expect(production.ai?.binding).toBe("AI");

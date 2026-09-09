@@ -150,7 +150,7 @@ alco-app/
 
 | 項目 | 決定 |
 |---|---|
-| ワークフロー | `.github/workflows/deploy-dev.yml` と `.github/workflows/deploy-prod.yml`（`ci.yml` とは分ける） |
+| ワークフロー | `.github/workflows/deploy-dev.yml` と `.github/workflows/deploy-prod.yml`（`ci.yml` とは分ける）。D1 バックアップは `.github/workflows/backup-d1.yml`（[d1-backup.md](features/d1-backup.md)） |
 | 起動（dev） | `CI` が `main` の push で成功した `workflow_run`、または `workflow_dispatch` |
 | 起動（本番） | タグ `vX.Y.Z` または `main` の `workflow_dispatch`。どちらも GitHub Environment `production` の承認後 |
 | 対象（dev） | `pnpm build` → リモート D1 migrate → `wrangler deploy --env dev` |
@@ -158,6 +158,7 @@ alco-app/
 | シークレット | 置き場の正本は [secrets.md](secrets.md)。GitHub Secrets は `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`（値はリポジトリに書かない）。`BETTER_AUTH_SECRET` は Worker の wrangler secret |
 | 認証 | 公式の wrangler / Workers Builds は当面 API トークン。OIDC は使わない |
 | 禁止 | 素の `wrangler deploy`、`pull_request` / `pull_request_target` でのデプロイ、PR Preview、ログへの `workers.dev` URL |
+| D1 バックアップ | 毎日 17:00 UTC に `alco-app-prod` / `alco-app-dev` を export し、非公開 R2 `alco-app-d1-backups` へ 14 日保持（[d1-backup.md](features/d1-backup.md)） |
 | Git ブランチ | 日常デプロイのトリガーは `main`。長期ブランチ `dev` は作らない（理由は feature spec） |
 
 ## ブランチ運用（0-08 FIX）
