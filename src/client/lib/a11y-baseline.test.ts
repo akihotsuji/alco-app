@@ -68,7 +68,9 @@ describe("a11y baseline（6-04）", () => {
     expect(stars).toContain('role="radiogroup"');
     expect(stars).toContain('role="radio"');
     expect(stars).toContain("aria-checked");
-    expect(read("e2e/smoke-cellar-note.spec.ts")).toContain('getByRole("radio", { name: "評価 4" })');
+    expect(read("e2e/smoke-cellar-note.spec.ts")).toContain(
+      'getByRole("radio", { name: "評価 4" })',
+    );
     const biome = read("biome.json");
     expect(biome).toContain('"a11y"');
     expect(biome).toContain('"recommended": true');
