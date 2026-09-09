@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { app, handleScheduled } from "@/server/index.ts";
 import { resetErrorAlertCooldownForTests } from "@/server/services/error-alert.ts";
 
+function envWith(values: object): Env {
+  return values as unknown as Env;
+}
+
 describe("GET /api/health", () => {
   it("{ ok: true } を返す", async () => {
     const res = await app.request("/api/health");
@@ -43,9 +47,7 @@ describe("handleScheduled", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
     await expect(
-      handleScheduled({
-        ALERT_WEBHOOK_URL: "https://alert.example/hook",
-      } as Env),
+      handleScheduled(envWith({ ALERT_WEBHOOK_URL: "https://alert.example/hook" })),
     ).rejects.toThrow();
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
