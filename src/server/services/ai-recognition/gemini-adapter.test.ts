@@ -29,7 +29,7 @@ describe("buildGeminiBody", () => {
       maxOutputTokens: profile.maxOutputTokens,
       responseMimeType: "application/json",
       responseSchema: schema,
-      thinkingConfig: { thinkingLevel: "minimal" },
+      thinkingConfig: { thinkingLevel: "low" },
     });
   });
 
@@ -45,7 +45,7 @@ describe("buildGeminiBody", () => {
     expect(body.generationConfig).toEqual({
       temperature: 0,
       maxOutputTokens: profile.lookupMaxOutputTokens,
-      thinkingConfig: { thinkingLevel: "minimal" },
+      thinkingConfig: { thinkingLevel: "low" },
     });
     const parts = (body.contents as Array<{ parts: unknown[] }>)[0]?.parts;
     expect(parts).toEqual([{ text: "lookup" }]);
