@@ -247,7 +247,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] シークレット管理の整理（wrangler secret / GitHub Secrets、`.dev.vars`はコミット禁止）→ [secrets.md](secrets.md)（7-03。2026-09-09。本番 Auth secret 投入済み）
 - [ ] D1日次バックアップ（D1のTime Travel確認＋定期エクスポートをGitHub Actionsで実行）
 - [ ] 監視: Workers Logsの確認手順、エラー通知（Sentry無料枠 or Cloudflare通知）
-- [ ] 独自ドメイン設定 → [features/custom-domain.md](features/custom-domain.md)（7-06。2026-09-09 方針・実装済み。公開名 さけしおり / `sake-shiori.com`。購入と Deploy prod 後に接続）
+- [ ] 独自ドメイン設定 → [features/custom-domain.md](features/custom-domain.md)（7-06。2026-09-09 ゾーン接続済み。公開名 さけしおり / `sake-shiori.com`。308 は Deploy prod 後）
 - [ ] リリース前の全体セキュリティ監査（`security-audit` スキルをコードベース全体に対して実施。認可・セキュリティヘッダー・シークレット管理・R2公開設定の総点検）
 - [ ] リリースチェックリスト作成と実施 → `spec/release-checklist.md`
 - [ ] 運用ドキュメント作成: 障害時の確認手順、バックアップからの復元手順 → `spec/operations.md`
