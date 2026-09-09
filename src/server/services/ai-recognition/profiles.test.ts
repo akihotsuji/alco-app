@@ -34,7 +34,7 @@ describe("resolveModelProfile", () => {
     expect(gemini.structuredOutputStyle).toBe("gemini-response-schema");
     expect(gemini.supportsThinking).toBe(true);
     expect(gemini.emitThinkingConfig).toBe(true);
-    expect(gemini.thinkingLevel).toBe("minimal");
+    expect(gemini.thinkingLevel).toBe("low");
   });
 });
 
