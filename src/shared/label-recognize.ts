@@ -181,7 +181,10 @@ function geminiCandidateText(record: Record<string, unknown>): string | null {
   const texts: string[] = [];
   for (const part of parts) {
     const row = asRecord(part);
-    if (row && typeof row.text === "string" && row.text.trim()) {
+    if (!row || row.thought === true) {
+      continue;
+    }
+    if (typeof row.text === "string" && row.text.trim()) {
       texts.push(row.text);
     }
   }
@@ -218,6 +221,20 @@ function chatCompletionText(record: Record<string, unknown>): string | null {
   return texts.length > 0 ? texts.join("\n") : null;
 }
 
+const DRINK_PAYLOAD_KEYS = [
+  "drinkName",
+  "name",
+  "producer",
+  "drinkType",
+  "volumeMl",
+  "subject",
+  "origin",
+  "variety",
+  "vintage",
+  "abvPercent",
+  "printedOrigin",
+] as const;
+
 function parseJsonText(text: string): unknown {
   const trimmed = text.trim();
   const fenced = /^```(?:json)?\s*([\s\S]*?)```$/i.exec(trimmed);
@@ -225,17 +242,73 @@ function parseJsonText(text: string): unknown {
   try {
     return JSON.parse(body) as unknown;
   } catch {
-    const start = body.indexOf("{");
-    const end = body.lastIndexOf("}");
-    if (start >= 0 && end > start) {
+    const objects = extractBalancedJsonObjects(body);
+    let lastValid: unknown = null;
+    for (let index = objects.length - 1; index >= 0; index -= 1) {
       try {
-        return JSON.parse(body.slice(start, end + 1)) as unknown;
+        const parsed: unknown = JSON.parse(objects[index] ?? "");
+        lastValid = parsed;
+        if (looksLikeDrinkPayload(parsed)) {
+          return parsed;
+        }
       } catch {
-        return null;
+        // 次の候補へ
       }
     }
-    return null;
+    return lastValid;
   }
+}
+
+function looksLikeDrinkPayload(value: unknown): boolean {
+  const record = asRecord(value);
+  if (!record) {
+    return false;
+  }
+  return DRINK_PAYLOAD_KEYS.some((key) => key in record);
+}
+
+function extractBalancedJsonObjects(text: string): string[] {
+  const objects: string[] = [];
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] !== "{") {
+      continue;
+    }
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    const start = index;
+    for (; index < text.length; index += 1) {
+      const char = text[index] ?? "";
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (char === "\\") {
+          escaped = true;
+          continue;
+        }
+        if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+      if (char === "{") {
+        depth += 1;
+      } else if (char === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          objects.push(text.slice(start, index + 1));
+          break;
+        }
+      }
+    }
+  }
+  return objects;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

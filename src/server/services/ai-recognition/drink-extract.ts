@@ -11,7 +11,9 @@ import { DRINK_TYPES } from "@/shared/constants.ts";
 import { type DrinkRecognizeFields, pickDrinkRecognizeFields } from "@/shared/drink-recognize.ts";
 import { extractModelPayload } from "@/shared/label-recognize.ts";
 import { countryFromVerifiedAppellation } from "@/shared/verified-origin.ts";
-import { isHttpUrl } from "./usage.ts";
+import { isHttpUrl, normalizeTokenUsage } from "./usage.ts";
+
+const DEFAULT_LOOSE_CONFIDENCE = 0.8;
 
 export const DRINK_EXTRACT_SYSTEM_PROMPT = [
   "You extract alcoholic-drink fields from a photo.",
@@ -97,7 +99,7 @@ const numberProperty = {
   },
 };
 
-/** プロンプトが要求する JSON 形。Cloudflare 経路では responseSchema として送らない */
+/** Gemini responseSchema（uppercase types）。Workers AI guided_json には使わない */
 export const DRINK_EXTRACT_GEMINI_SCHEMA = {
   type: "OBJECT",
   properties: {
@@ -183,8 +185,7 @@ function readText(source: Record<string, unknown>, key: string): string | null {
 }
 
 export function parseDrinkExtract(output: unknown): DrinkExtract {
-  const payload = extractModelPayload(output);
-  const source = asRecord(payload) ?? {};
+  const source = coerceLooseExtractSource(extractModelPayload(output));
   const subjectRaw = typeof source.subject === "string" ? source.subject : "unknown";
   const fields = pickDrinkRecognizeFields(source);
   return {
@@ -196,6 +197,112 @@ export function parseDrinkExtract(output: unknown): DrinkExtract {
     printedOrigin: readText(source, "printedOrigin"),
     printedVariety: readText(source, "printedVariety"),
   };
+}
+
+/** 値だけ。写真・銘柄の中身は出さない */
+export function summarizeDrinkParse(
+  output: unknown,
+  extract: DrinkExtract,
+  selected: DrinkRecognizeFields,
+): string {
+  const payload = extractModelPayload(output);
+  const source = asRecord(payload);
+  const usage = normalizeTokenUsage(output);
+  const keys = source
+    ? Object.keys(source).sort().join(",")
+    : payload === null
+      ? "null"
+      : typeof payload;
+  return [
+    `subject=${extract.subject}`,
+    `extractCount=${Object.keys(extract.fields).length}`,
+    `selectedCount=${Object.keys(selected).length}`,
+    `finishReason=${readFinishReason(output)}`,
+    `payloadKeys=${keys || "-"}`,
+    `inputTokens=${usage.inputTokens ?? "-"}`,
+    `outputTokens=${usage.outputTokens ?? "-"}`,
+    `thinkingTokens=${usage.thinkingTokens ?? "-"}`,
+  ].join(" ");
+}
+
+function coerceLooseExtractSource(payload: unknown): Record<string, unknown> {
+  const source = asRecord(payload) ?? {};
+  const next: Record<string, unknown> = { ...source };
+  for (const key of ["drinkName", "name", "producer", "origin", "variety", "drinkType"]) {
+    next[key] = coerceTextField(next[key]);
+  }
+  for (const key of ["vintage", "volumeMl", "abvPercent"]) {
+    next[key] = coerceNumberField(next[key]);
+  }
+  for (const key of ["printedOrigin", "printedVariety", "appellation"]) {
+    next[key] = coercePrintedField(next[key]);
+  }
+  const subject = typeof next.subject === "string" ? next.subject : "unknown";
+  if (subject === "label") {
+    if (
+      !readText(next, "printedOrigin") &&
+      typeof source.origin === "string" &&
+      source.origin.trim()
+    ) {
+      next.printedOrigin = { value: source.origin.trim() };
+    }
+    if (
+      !readText(next, "printedVariety") &&
+      typeof source.variety === "string" &&
+      source.variety.trim()
+    ) {
+      next.printedVariety = { value: source.variety.trim() };
+    }
+  }
+  return next;
+}
+
+function coerceTextField(value: unknown): unknown {
+  if (typeof value === "string" && value.trim()) {
+    return { value: value.trim(), confidence: DEFAULT_LOOSE_CONFIDENCE };
+  }
+  const row = asRecord(value);
+  if (!row || typeof row.value !== "string") {
+    return value;
+  }
+  if (typeof row.confidence === "number") {
+    return value;
+  }
+  return { ...row, confidence: DEFAULT_LOOSE_CONFIDENCE };
+}
+
+function coerceNumberField(value: unknown): unknown {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return { value, confidence: DEFAULT_LOOSE_CONFIDENCE };
+  }
+  if (typeof value === "string" && value.trim()) {
+    return { value: value.trim(), confidence: DEFAULT_LOOSE_CONFIDENCE };
+  }
+  const row = asRecord(value);
+  if (!row || row.value === undefined) {
+    return value;
+  }
+  if (typeof row.confidence === "number") {
+    return value;
+  }
+  return { ...row, confidence: DEFAULT_LOOSE_CONFIDENCE };
+}
+
+function coercePrintedField(value: unknown): unknown {
+  if (typeof value === "string" && value.trim()) {
+    return { value: value.trim() };
+  }
+  return value;
+}
+
+function readFinishReason(output: unknown): string {
+  const record = asRecord(output);
+  const candidates = record?.candidates;
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return "-";
+  }
+  const first = asRecord(candidates[0]);
+  return first && typeof first.finishReason === "string" ? first.finishReason : "-";
 }
 
 export type LookupResult = {

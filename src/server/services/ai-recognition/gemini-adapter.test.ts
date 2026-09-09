@@ -5,16 +5,17 @@ import { MODEL_PROFILES } from "./profiles.ts";
 const profile = MODEL_PROFILES["gemini-3.7-flash"];
 
 describe("buildGeminiBody", () => {
-  it("画像抽出は Generate Content + inlineData。responseSchema は送らない", () => {
+  it("画像抽出は Generate Content + inlineData + responseSchema", () => {
+    const schema = { type: "OBJECT", properties: { drinkName: { type: "STRING" } } };
     const body = buildGeminiBody({
       profile,
       jpegBytes: new Uint8Array([1, 2, 3, 4]),
       systemPrompt: "sys",
       userPrompt: "user",
+      schema,
       search: false,
       kind: "extract",
     });
-    const encoded = JSON.stringify(body);
     expect(body.messages).toBeUndefined();
     expect(body.contents).toEqual([
       {
@@ -26,10 +27,10 @@ describe("buildGeminiBody", () => {
     expect(body.generationConfig).toEqual({
       temperature: 0,
       maxOutputTokens: profile.maxOutputTokens,
+      responseMimeType: "application/json",
+      responseSchema: schema,
+      thinkingConfig: { thinkingLevel: "minimal" },
     });
-    expect(encoded).not.toContain("responseSchema");
-    expect(encoded).not.toContain("responseMimeType");
-    expect(encoded).not.toContain("googleSearch");
   });
 
   it("検索照合は googleSearch を付け、画像は送らない", () => {
@@ -44,6 +45,7 @@ describe("buildGeminiBody", () => {
     expect(body.generationConfig).toEqual({
       temperature: 0,
       maxOutputTokens: profile.lookupMaxOutputTokens,
+      thinkingConfig: { thinkingLevel: "minimal" },
     });
     const parts = (body.contents as Array<{ parts: unknown[] }>)[0]?.parts;
     expect(parts).toEqual([{ text: "lookup" }]);

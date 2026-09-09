@@ -60,6 +60,13 @@ const DRINK_TYPE_ALIASES: Record<string, DrinkType> = {
   skin_contact: "wine_orange",
 };
 
+const DRINK_TYPE_LABEL_ALIASES: Record<string, DrinkType> = Object.fromEntries(
+  Object.entries(DRINK_TYPE_LABELS).map(([type, label]) => [
+    label.toLowerCase().replace(/[\s-]+/g, "_"),
+    type as DrinkType,
+  ]),
+) as Record<string, DrinkType>;
+
 /** 認識モデルが返す別名を 12 種へ寄せる。未知は null */
 export function normalizeRecognizedDrinkType(raw: string): DrinkType | null {
   const value = raw
@@ -69,7 +76,7 @@ export function normalizeRecognizedDrinkType(raw: string): DrinkType | null {
   if ((DRINK_TYPES as readonly string[]).includes(value)) {
     return value as DrinkType;
   }
-  return DRINK_TYPE_ALIASES[value] ?? null;
+  return DRINK_TYPE_ALIASES[value] ?? DRINK_TYPE_LABEL_ALIASES[value] ?? null;
 }
 
 /** sealed = 未開栓（棚） / consumed = 開栓（貯蔵庫） */
