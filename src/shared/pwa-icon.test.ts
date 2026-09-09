@@ -11,7 +11,7 @@ const mascot = readFileSync(
 );
 
 describe("buildPwaIconSvg", () => {
-  it("通常ポーズを primary 正方形に載せる", () => {
+  it("通常ポーズをクリーム正方形に載せる", () => {
     const svg = buildPwaIconSvg(mascot);
     expect(svg).toContain(`viewBox="0 0 ${PWA_ICON_SIZE} ${PWA_ICON_SIZE}"`);
     expect(svg).toContain(`fill="${PWA_ICON_BACKGROUND}"`);

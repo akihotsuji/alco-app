@@ -57,7 +57,7 @@
 │ ┌ 行 ─────────────────────────┐  │
 │ │ ログアウト                    │  │  danger 文字
 │ └──────────────────────────────┘  │
-│ alco-app 0.1.0                    │  13px muted
+│ さけしおり 0.1.0                  │  13px muted
 ├──────────────────────────────────┤
 │ ホーム  セラー  (記録)  ノート  設定*│
 └──────────────────────────────────┘
@@ -73,7 +73,7 @@
 | S4 | 色補正を掛ける | スイッチ | プリセット（`table` / `cellar`）の既定 ON/OFF。`localStorage` | クライアント |
 | S5 | ラベルを自動で読み取る | スイッチ | ボトル追加時に写真を `POST /api/bottles/recognize`（Workers AI）へ送るか。副文で送信先を明示。`localStorage` `cellar.recognize`。既定 ON | クライアント |
 | S6 | ログアウト | 行（danger） | 確認ダイアログ「ログアウトしますか」→ `signOut` → `/login` | Better Auth |
-| S7 | 注記 | テキスト | バージョン（ビルド時定数） | — |
+| S7 | 注記 | テキスト | 「さけしおり」とバージョン（`PWA_NAME` とビルド時定数） | — |
 | S8 | 触感フィードバック | スイッチ | `navigator.vibrate` による軽い振動（押下 10ms、保存成功 10-40-10ms）を有効にする。**既定 OFF**。`localStorage` `ui.haptic`。副文「対応端末（Android）で有効」。`navigator.vibrate` が無い端末（iOS）ではスイッチを無効にし副文「この端末では使えません」。ON にした瞬間に `haptic("light")` を 1 回鳴らして確認できる（[../motion-design.md](../motion-design.md) 6.5、X5） | クライアント |
 | S9 | 動きを減らす | 2 択セグメント（`fieldset` / `legend`、行内） | 「端末の設定に従う」（既定）/「常に減らす」。native `radio`。タップでは radio にフォーカスしない（モバイルの IME 回避で `visualViewport` / `safe-area-inset-bottom` が変わり、タブバーが下半分を覆うのを防ぐ）。`localStorage` `ui.reduce-motion` = `system` / `always`。`always` または OS の `prefers-reduced-motion: reduce` で `AppShell` が `<html data-reduce-motion="1">` を付ける（[../motion-design.md](../motion-design.md) 6.8、X5）。OS 側が reduce のときは「端末の設定で動きが減っています」を副文に出す。ON のときキャラのまばたき・ウィンク・傾き・液面も止める | クライアント |
 | S10 | 外観 | チップ列 3 択（`fieldset` / `legend`） | 「端末に従う」（既定）/「ライト」/「ダーク」。`localStorage` `ui.theme` = `system` / `light` / `dark`。`main.tsx` が React の描画より前に `lib/theme.ts` で解決し `<html data-theme="light|dark">` を付ける。CSS のトークンはこの属性だけを見る（属性が付く前の初回描画は `prefers-color-scheme` フォールバック）。`system` のときは OS の外観変更（`matchMedia` change）に追従する。別タブの変更は `storage` イベントで追従。選んだ瞬間に切り替わり、リロード後も維持 | クライアント |
@@ -115,3 +115,4 @@ S8 / S9 / S11 は「操作」節として表示節の下、ログアウトの上
 - [ ] 「使い方を見る」で扇が開き、記録 / セラー / ノートのガイドを始められる。完了から来たときも選択肢が見える
 - [ ] 「現在地を記録する」が既定 ON、OFF で新規記録が位置情報を要求しない。ON で許可ダイアログを出せる。非対応端末ではスイッチ無効
 - [ ] 招待コードが無い
+- [ ] 画面下の版表記は「さけしおり」とバージョン

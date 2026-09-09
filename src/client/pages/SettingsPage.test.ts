@@ -20,6 +20,12 @@ describe("SettingsPage S11 / S12", () => {
     expect(source).not.toContain("健康");
   });
 
+  it("版表記は公開名称とバージョンを並べ、仮名 alco-app を出さない", () => {
+    expect(source).toContain("PWA_NAME");
+    expect(source).toContain("APP_VERSION");
+    expect(source).not.toContain("alco-app");
+  });
+
   it("記録節に現在地を記録するがある", () => {
     expect(source).toContain("記録");
     expect(source).toContain("RecordLocationPrefRow");

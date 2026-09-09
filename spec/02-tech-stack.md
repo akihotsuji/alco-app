@@ -210,7 +210,7 @@ alco-app/
 | Workers CPU | 画像はクライアント加工済み。サーバーは magic bytes / 寸法ヘッダ / R2 put と、AI 呼び出しの待ち（CPU 時間には数えられない） | 2-08 / 4-07 |
 | 背景除去モデル | 同一オリジン `/models/u2netp.onnx` と ORT（`/models/ort/ort-wasm-simd-threaded.mjs` + `.wasm`）。`onnxruntime-web` 1.21.0 の `ort.wasm.bundle.min.mjs` は WASM 用 JS を内蔵しないため、`wasmPaths` は `.mjs` と `.wasm` の絶対 URL を両方明示する。ビルド時に配置。実行時は Cache API。CSP の `connect-src` は `'self'` のまま | 4-06 |
 | 環境変数 | 追加なし（写真上限・AI 日次上限などは `src/shared` の定数） | — |
-| PWA アイコン | キャラクター SVG を primary 地に合成し、ビルド時に `sharp` で PNG 一式を生成（`vite-plugin-pwa` の manifest / SW と併用） | 6-01 |
+| PWA アイコン | キャラクター SVG をライトの地色に合成し、ビルド時に `sharp` で PNG 一式を生成（`vite-plugin-pwa` の manifest / SW と併用） | 6-01 |
 
 ## ランニングコスト見積り
 

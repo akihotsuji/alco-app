@@ -28,7 +28,7 @@ export function extractSvgInner(svg: string): { viewBox: string; inner: string }
 }
 
 /**
- * 通常ポーズを primary 正方形に載せたアイコン SVG を作る。
+ * 通常ポーズをクリーム正方形に載せたアイコン SVG を作る。
  * 角丸はソースに焼き込まない（OS がマスクする）。
  */
 export function buildPwaIconSvg(mascotSvg: string, options: PwaIconSvgOptions = {}): string {

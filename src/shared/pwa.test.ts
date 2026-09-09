@@ -19,8 +19,8 @@ import {
 
 describe("pwa 契約", () => {
   it("表示名とスタンドアロン起動の値が仕様どおり", () => {
-    expect(PWA_NAME).toBe("alco-app");
-    expect(PWA_SHORT_NAME).toBe("alco");
+    expect(PWA_NAME).toBe("さけしおり");
+    expect(PWA_SHORT_NAME).toBe("さけしおり");
     expect(PWA_START_URL).toBe("/");
     expect(PWA_DISPLAY).toBe("standalone");
     expect(PWA_VITE_ENVIRONMENT).toBe("client");
@@ -32,9 +32,11 @@ describe("pwa 契約", () => {
     expect(PWA_BACKGROUND_COLOR).toBe(PWA_THEME_COLOR_LIGHT);
   });
 
-  it("アイコン地と線がライトの primary 対比になる", () => {
-    expect(PWA_ICON_BACKGROUND.toLowerCase()).toBe(LIGHT_COLOR_TOKENS["--primary"]);
-    expect(PWA_ICON_LINE.toLowerCase()).toBe(LIGHT_COLOR_TOKENS["--primary-fg"]);
+  it("アイコン地はライトの地、線は前景でキャラのワインと溶けない", () => {
+    expect(PWA_ICON_BACKGROUND.toLowerCase()).toBe(LIGHT_COLOR_TOKENS["--background"]);
+    expect(PWA_ICON_LINE.toLowerCase()).toBe(LIGHT_COLOR_TOKENS["--foreground"]);
+    expect(PWA_ICON_BACKGROUND.toLowerCase()).not.toBe(LIGHT_COLOR_TOKENS["--primary"]);
+    expect(PWA_ICON_BACKGROUND.toLowerCase()).not.toBe(LIGHT_COLOR_TOKENS["--mascot-wine"]);
   });
 
   it("マニフェストアイコンに 192 / 512 / maskable がある", () => {
