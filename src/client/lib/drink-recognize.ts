@@ -43,9 +43,15 @@ export function drinkRecognizeBannerMessage(
   return DRINK_RECOGNIZE_BANNER[status];
 }
 
-/** 抽出が終わったあとの結果文（照合が入らなかった / 失敗したときもここへ戻す） */
-export function settledRecognizeStatus(appliedCount: number): DrinkRecognizeStatus {
-  return appliedCount > 0 ? "success" : "empty";
+/**
+ * 抽出が終わったあとの結果文（照合が入らなかった / 失敗したときもここへ戻す）。
+ * `anyApplied` は AI 印の無い欄（量・度数）だけが入ったときに「読み取れなかった」と言わないための印
+ */
+export function settledRecognizeStatus(
+  appliedCount: number,
+  anyApplied: boolean = appliedCount > 0,
+): DrinkRecognizeStatus {
+  return appliedCount > 0 || anyApplied ? "success" : "empty";
 }
 
 export type DrinkRecognizeTouched = {
@@ -246,6 +252,17 @@ export function applyRecognizeToLogForm(
   }
 
   return { next, applied, marks };
+}
+
+/**
+ * 状態行「写真から N 項目を入れました（AI 印の欄）」の N。
+ * 量・度数は AI 印を付けずに黙って補完するので、印の付いた欄だけを数える（印の無い欄を数えると
+ * 見える AI 印より多い件数になる）
+ */
+export function countMarkedApplied(
+  result: Pick<ApplyDrinkRecognizeResult, "applied" | "marks">,
+): number {
+  return result.applied.filter((field) => result.marks.has(field)).length;
 }
 
 /** ボトルから埋まった欄と、編集時の既存値を AI 上書きから守る */

@@ -9,12 +9,13 @@ import {
 import { lookupDrinkProduct } from "@/client/hooks/use-drink-logs.ts";
 import {
   applyRecognizeToLogForm,
+  countMarkedApplied,
   DRINK_LOOKUP_FIELDS,
   type DrinkRecognizeStatus,
   type DrinkRecognizeTouched,
   pendingDrinkRecognizeFields,
 } from "@/client/lib/drink-recognize.ts";
-import { runDrinkRecognizeFlow } from "@/client/lib/drink-recognize-flow.ts";
+import { type ApplyCount, runDrinkRecognizeFlow } from "@/client/lib/drink-recognize-flow.ts";
 import type { LogFormState } from "@/client/lib/log-form.ts";
 import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import type { DrinkRecognizeFields } from "@/shared/drink-recognize.ts";
@@ -77,7 +78,7 @@ export function useDrinkPhotoRecognition({
     requestRef.current = requestId;
     const isStale = () => requestId !== requestRef.current || savedRef.current;
 
-    const apply = (fields: DrinkRecognizeFields): number => {
+    const apply = (fields: DrinkRecognizeFields): ApplyCount => {
       const touched = touchedRef.current;
       const priorMarks = aiMarksRef.current;
       const preview = applyRecognizeToLogForm({
@@ -93,7 +94,7 @@ export function useDrinkPhotoRecognition({
         (current) =>
           applyRecognizeToLogForm({ state: current, fields, touched, marks: priorMarks }).next,
       );
-      return preview.applied.length;
+      return { marked: countMarkedApplied(preview), applied: preview.applied.length };
     };
 
     void runDrinkRecognizeFlow(jpeg, {

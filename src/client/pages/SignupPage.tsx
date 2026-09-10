@@ -19,7 +19,7 @@ import { authClient } from "@/client/lib/auth-client.ts";
 import { cn } from "@/client/lib/utils.ts";
 import { AUTH_NAME_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH, signupFormSchema } from "@/shared/auth.ts";
 import { LEGAL_VERSION, legalHref } from "@/shared/legal.ts";
-import { OAUTH_SIGNUP_ERROR_MESSAGE } from "@/shared/oauth.ts";
+import { GOOGLE_SIGN_IN_VISIBLE, OAUTH_SIGNUP_ERROR_MESSAGE } from "@/shared/oauth.ts";
 import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 
 export function SignupPage() {
@@ -108,15 +108,17 @@ export function SignupPage() {
       submittingLabel="登録中"
       footer={
         <>
-          <GoogleSignInButton
-            mode="signup"
-            redirectQuery={redirectQuery}
-            acceptedLegal={acceptedLegal}
-            disabled={submitting || !turnstile.canAct}
-            turnstileToken={turnstile.token}
-            onError={setError}
-            onBusyChange={setSubmitting}
-          />
+          {GOOGLE_SIGN_IN_VISIBLE ? (
+            <GoogleSignInButton
+              mode="signup"
+              redirectQuery={redirectQuery}
+              acceptedLegal={acceptedLegal}
+              disabled={submitting || !turnstile.canAct}
+              turnstileToken={turnstile.token}
+              onError={setError}
+              onBusyChange={setSubmitting}
+            />
+          ) : null}
           <Link
             className={cn(buttonVariants({ variant: "link" }), "mt-4 self-center")}
             to={loginHref}

@@ -15,7 +15,7 @@ import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
 import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
-import { processLogFile } from "@/client/lib/photo/process-file.ts";
+import { processLogFile, processNoteFile } from "@/client/lib/photo/process-file.ts";
 import type {
   PhotoEditContextKind,
   PhotoFormSession,
@@ -184,6 +184,9 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const capturedAtRef = useRef<string | undefined>(undefined);
   const logIngestTokenRef = useRef(0);
   const ingestLogPhotoRef = useRef<(file: File) => Promise<void>>(async () => {});
+  const ingestNotePhotoRef = useRef<(file: File, collect: PhotoCollectSession) => Promise<void>>(
+    async () => {},
+  );
   const kindRef = useRef(kind);
   kindRef.current = kind;
   const formSessionsRef = useRef<Partial<Record<PhotoEditContextKind, PhotoFormSession>>>({});
@@ -365,6 +368,10 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       setBurstActive(options?.burst !== undefined);
       if (nextKind === "log") {
         await ingestLogPhotoRef.current(file);
+        return;
+      }
+      if (nextKind === "note" && options?.collect) {
+        await ingestNotePhotoRef.current(file, options.collect);
         return;
       }
       await loadFile(nextKind, file);
@@ -561,6 +568,24 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     [beginUpload, closeOverlay, offerRecognizeJpeg],
   );
   ingestLogPhotoRef.current = ingestLogPhoto;
+
+  // ノートは撮影・選択の直後に「使う」を挟まず行へ積む（05-notes.md N1）。切り抜き位置はサムネの「編集」で直す
+  const ingestNotePhoto = useCallback(
+    async (file: File, collect: PhotoCollectSession) => {
+      let processed: ProcessedPhoto;
+      try {
+        processed = await processNoteFile(file, (jpeg) => offerRecognizeJpeg(jpeg, "note"));
+      } catch {
+        // 読み込めない写真はサムネを増やさず、既存の写真と入力を残す
+        return;
+      }
+      collectRef.current = null;
+      setCollectedCount((count) => count + 1);
+      void beginCollectedUpload(processed, collect);
+    },
+    [beginCollectedUpload, offerRecognizeJpeg],
+  );
+  ingestNotePhotoRef.current = ingestNotePhoto;
 
   const clearAttachment = useCallback(
     async (targetKind: PhotoEditContextKind) => {

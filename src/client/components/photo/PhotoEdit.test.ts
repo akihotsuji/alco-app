@@ -47,6 +47,24 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(context).toContain("ingestLogPhoto");
   });
 
+  it("ノートの撮影・選択は photo-edit を挟まず中央 4:5 で行へ積む。再編集（editFromBlob）だけ photo-edit", () => {
+    expect(context).toContain('if (nextKind === "note" && options?.collect)');
+    expect(context).toContain("ingestNotePhoto");
+    expect(context).toContain("processNoteFile");
+    expect(context).toContain('offerRecognizeJpeg(jpeg, "note")');
+    const processFile = readFileSync(join(here, "../../lib/photo/process-file.ts"), "utf8");
+    const noteFn = processFile.slice(processFile.indexOf("export async function processNoteFile"));
+    expect(noteFn).toContain('kind: "note"');
+    expect(noteFn).toContain("scale: 1");
+    expect(noteFn).toContain("mascotOn: getComposeMascotPref()");
+    expect(noteFn).toContain("cutoutOn: false");
+    // 再編集はこれまでどおりオーバーレイで位置を直す
+    expect(context).toContain("const editFromBlob = useCallback(");
+    expect(context.slice(context.indexOf("const editFromBlob"))).toContain(
+      "openWithSource(nextKind, decoded.bitmap, decoded.error)",
+    );
+  });
+
   it("切り抜く前の JPEG を先に呼び出し元へ渡し、ラベル読み取りを背景除去と並列に始められる", () => {
     expect(source).toContain(
       'kind === "cellar" || kind === "note" ? offerRecognizeJpeg : undefined',

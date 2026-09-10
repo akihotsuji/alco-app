@@ -1,4 +1,5 @@
 import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
+import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import { decodeImage } from "@/client/lib/photo/decode-image.ts";
 import { type ProcessedPhoto, processLogPhoto, processPhoto } from "@/client/lib/photo/process.ts";
 import { supportsBackgroundRemoval } from "@/client/lib/photo/remove-background.ts";
@@ -24,6 +25,36 @@ export async function processCellarFile(
       offsetY: 0,
       mascotOn: false,
       cutoutOn: getCutoutPref() && supportsBackgroundRemoval(),
+      onRecognizeJpeg,
+    });
+    return { ...processed, capturedAt };
+  } finally {
+    source.close();
+  }
+}
+
+/**
+ * ノートの撮影・ライブラリ選択用。photo-edit の「使う」を挟まず、中央・拡縮 1 で 4:5 に切り、
+ * 設定どおりキャラを合成する（05-notes.md N1）。位置を直したいときはサムネの「編集」から photo-edit を開く。
+ */
+export async function processNoteFile(
+  file: File,
+  onRecognizeJpeg?: (jpeg: Blob) => void,
+): Promise<ProcessedPhoto> {
+  const capturedAt = (await capturedAtFromFile(file)) ?? undefined;
+  const source = await decodeImage(file);
+  try {
+    const processed = await processPhoto({
+      source,
+      sourceWidth: source.width,
+      sourceHeight: source.height,
+      kind: "note",
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0,
+      mascotOn: getComposeMascotPref(),
+      mascotPose: pickMascotPose(),
+      cutoutOn: false,
       onRecognizeJpeg,
     });
     return { ...processed, capturedAt };
