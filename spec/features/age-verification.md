@@ -108,6 +108,8 @@ isAtLeast20 = today >= majorityOn
 | GET | `/api/health` | 不要 | 公開のまま |
 | * | 未定義の `/api/*` | 必須 | 未確認は 403（ルートの存在を漏らさない）。確認済みは 404 |
 
+年齢確認ゲートは **確認済み userId を isolate 内に最大 1000 件**覚える（FIFO。`createVerifiedUserCache`）。確認は一度成立したら取り消す経路が無い（`age_verifications` に DELETE が無く、ユーザー削除は CASCADE でセッションも消える）ため、肯定結果の再利用は安全。**未確認（否定）は覚えない**ので、確認 POST の直後から機能 API が通る。効果は [performance.md](performance.md) 6.4。
+
 `POST /api/me/age-verification`:
 
 | 条件 | 応答 |

@@ -176,7 +176,7 @@ OSの写真選択キャンセルは、現行どおり入力を維持する（`pi
 
 - `thumbPhotoId` は先頭写真ID。小さい派生ファイルではない。`photoContentUrl` が保存原本を返し、CSSだけ縮小する。
 - `ContentPhoto` に `loading="lazy"`、`decoding="async"`、寸法指定あり。
-- Query `staleTime` は 30秒（`query-client.ts`）。写真は `Cache-Control: private, max-age=300`。未導入として足さない。
+- Query `staleTime` は 30秒、`gcTime` は 24 時間（`query-client.ts`）。写真は `Cache-Control: private, max-age=31536000, immutable` + `ETag`（差し替え不可なので ID が内容を表す）。未導入として足さない。
 
 `useBottles` の queryKey は `view` / `q` / `drinkType`。**`limit` / `cursor` を含まない。** `useInfiniteBottles` は `limit` を含み、`cursor` は含めない。形式を混同しない。
 

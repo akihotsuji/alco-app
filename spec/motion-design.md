@@ -145,7 +145,7 @@
 
 | ID | 対象 | 演出意図 | 動きの内容 | 開始条件 | 継続 | メリット | 難易度 |
 |---|---|---|---|---|---|---|---|
-| M-29 | スケルトン → 本体 | 待ちの終わり | スケルトンを不透明 1 → 0、本体を 0 → 1 でクロスフェード。シマー・点滅は禁止 | データ到着 | `--dur-state` | レイアウトが「差し替わる」瞬間の唐突さを消す | 低 |
+| M-29 | スケルトン → 本体 / プレースホルダ → 写真 | 待ちの終わり | スケルトンを不透明 1 → 0、本体を 0 → 1 でクロスフェード。写真も同じ: 届くまで背後のプレースホルダ（棚は種類のボトル型、ノートは inset 枠）、到着で `img[data-state="loaded"]` が 0 → 1。シマー・点滅は禁止 | データ到着 / 写真の `load`（キャッシュ済みは動かない） | `--dur-state` | レイアウトが「差し替わる」瞬間の唐突さを消す | 低 |
 | M-30 | ダイアログ 閉じる | 決めた | 下へ 12px + 不透明 0。スクリムはフェード | 閉じる操作 | `--dur-state` | 開閉が対になる | 低 |
 | M-31 | チップ選択（種類・量） | 選んだ | outset-sm ⇄ inset-sm と文字色・字重を `--dur-press` で切替（既存 120ms を統一） | タップ | `--dur-press` | 入力を遅くしない最小の反応 | 低 |
 | M-32 | 棚に並んだ本の段を示す | 置いた | `bottle-new` 保存後は `bottle-detail` へ遷移するため棚側の演出は無し。**`bottle-list` に戻ったとき**、直前に追加・復元した本の段の棚板に M-12 のハイライトを 1 回。対象 ID は `history.state` で渡し、再生後に消す | 直前に追加・復元した本が一覧内にある | `--dur-open` | 「並んだ」を後から確認できる | 中 |
@@ -332,7 +332,7 @@ html[data-reduce-motion="1"] .log-row-enter {
 | M-23 / M-24 | `.app-toast` | 出現 / 退場 | 出: `translateY(8px→0)` `opacity 0→1`、退: `opacity 1→0` | `--dur-toast-in` `--ease-out` / `--dur-toast-out` `--ease-in` | 不透明度のみ |
 | M-25 | `Mascot pose="cheer" pour` | トースト出現と同時 | 水面パスを 45% → 60% の 2 段階で持ち、上のパスを `clip-path` で下から出す | `--dur-fill` `--ease-fill`、1 回 | `pour` 無効 |
 | M-26 / M-27 | 空状態 | 初回描画 | `opacity 0→1` `translateY(8px→0)`、ボタンは `animation-delay: 80ms` | `--dur-enter` `--ease-out`、1 回 | 不透明度のみ |
-| M-29 | スケルトン ⇄ 本体 | データ到着 | 両者を同じグリッドセルに重ね `opacity` をクロス | `--dur-state` | 同じ（不透明度） |
+| M-29 | スケルトン ⇄ 本体 / `.bottle-tile-placeholder` ⇄ `img[data-state]` | データ到着 / 写真 `load` | 両者を同じセルに重ね `opacity` をクロス | `--dur-state` | 同じ（不透明度） |
 | M-31 | Chip 選択 | タップ | 影 `::after opacity`、`color`、`font-weight` | `--dur-press` | 即時 |
 
 ---
