@@ -26,7 +26,10 @@ test("ノートは写真選択後に photo-edit を挟まずサムネが積ま�
 
   const slider = page.getByRole("slider", { name: "評価（1.0〜5.0、0.5刻み）" });
   await expect(slider).toHaveAttribute("aria-valuetext", "未選択");
-  await expect(page.getByRole("radio", { name: "評価 4" })).toHaveAttribute("aria-checked", "false");
+  await expect(page.getByRole("radio", { name: "評価 4" })).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
 
   await slider.focus();
   for (let i = 0; i < 7; i += 1) {
@@ -39,7 +42,10 @@ test("ノートは写真選択後に photo-edit を挟まずサムネが積ま�
 
   await page.getByRole("radio", { name: "評価 3" }).click();
   await expect(slider).toHaveAttribute("aria-valuetext", "3.0");
-  await expect(page.getByRole("radio", { name: "評価 4" })).toHaveAttribute("aria-checked", "false");
+  await expect(page.getByRole("radio", { name: "評価 4" })).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
 
   const walkthroughDir = process.env.WALKTHROUGH_DIR;
   if (walkthroughDir) {
