@@ -117,9 +117,9 @@ export const PROFILE_ENV_KEYS = {
 } as const satisfies Record<AiRecognitionTask, string>;
 
 export const DEFAULT_PROFILE_BY_TASK: Record<AiRecognitionTask, AiRecognitionProfileKey> = {
-  drink: "gemini-3.5-flash-lite",
-  label: "gemini-3.5-flash-lite",
-  note: "gemini-3.5-flash-lite",
+  drink: "gemini-3.7-flash",
+  label: "gemini-3.7-flash",
+  note: "gemini-3.7-flash",
 };
 
 /** 経路ごとのアプリ側打ち切り。未指定ならそのプロファイルの timeoutMs */
