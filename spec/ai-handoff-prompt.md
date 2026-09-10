@@ -71,14 +71,14 @@ git checkout -b feature/<内容> origin/main
 | キー | 現行値 |
 | --- | --- |
 | `AI_RECOGNITION_PROFILE` | `gemini-3.7-flash` |
-| `AI_LABEL_RECOGNITION_PROFILE` | `workers-ai-llama` |
-| `AI_NOTE_RECOGNITION_PROFILE` | `workers-ai-llama` |
+| `AI_LABEL_RECOGNITION_PROFILE` | `gemini-3.7-flash` |
+| `AI_NOTE_RECOGNITION_PROFILE` | `gemini-3.7-flash` |
 
 `DEFAULT_PROFILE_BY_TASK` も同じ。`thinkingLevel` は `"low"`。`minimal` は送らない（Gemini 3.7 Flash は `low` / `medium` / `high` のみ。`minimal` は Gateway 400）。
 
-`src/shared/constants.ts` の `DEFAULT_LABEL_RECOGNIZE_PROVIDER = "gemini"` は、現行 wrangler の label/note プロファイル（`workers-ai-llama`）と食い違う。共通化時にこの定数へ寄せてモデルを変えない。
+2026-09-10 オーナー判断: 3機能の既定モデルを同じ Gemini 3.7 Flash に揃える。Llama は env で戻せる。モデル ID を揃えることと解析パイプライン（lookup）を揃えることは別。セラー / ノートは単段のまま。
 
-設定UI（`spec/screen-designs/06-settings.md` S5）の副文は「Cloudflare Workers AI」。酒記録の実プロファイルは Gemini。文言を直すなら画面設計を先に更新する。
+設定UI（`spec/screen-designs/06-settings.md` S5）の副文は「Cloudflare 経由の外部 AI」。モデル名は出さない。
 
 ### 2.2 いつ解析が走るか
 
@@ -222,7 +222,7 @@ OSの写真選択キャンセルは、現行どおり入力を維持する（`pi
 
 飲酒記録の現行 Gemini 解析（抽出・根拠・任意lookup・キャッシュ）を共通サービスへ抽出する。既存の3 recognize APIは薄い adapter として残してよい。
 
-**モデル移行はしない。** §9 の「profileを揃える」は、共有resolverが task別キー（`AI_RECOGNITION_PROFILE` / `AI_LABEL_RECOGNITION_PROFILE` / `AI_NOTE_RECOGNITION_PROFILE`）を同じ手続きで読むこと。3機能を同じモデルIDにする意味ではない。コードだけ共通化して、label/note が古い個別profile解決のまま残ることを禁ずる。現行既定（drink=Gemini、label/note=Llama）を維持する。セラー/ノートを Gemini にするのはオーナー判断。
+**モデル ID は 2026-09-10 のオーナー判断で揃えた**（3機能とも既定 `gemini-3.7-flash`）。§9 の「profileを揃える」は、共有resolverが task別キーを同じ手続きで読むことも含む。コードだけ共通化して、label/note が古い個別profile解決のまま残ることを禁ずる。解析パイプライン（lookup）までは揃えない。セラー / ノートを drink の extract+lookup に置き換えない。
 
 共有する内容：
 

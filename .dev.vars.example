@@ -14,10 +14,10 @@ GOOGLE_CLIENT_SECRET=
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
 # EMAIL_FROM=酒のしおり <noreply@sake-shiori.com>
-# 認識モデル。未設定なら wrangler.jsonc の vars（酒記録は gemini-3.7-flash）
+# 認識モデル。未設定なら wrangler.jsonc の vars（3機能とも gemini-3.7-flash）
 # AI_RECOGNITION_PROFILE=gemini-3.7-flash
-# AI_LABEL_RECOGNITION_PROFILE=workers-ai-llama
-# AI_NOTE_RECOGNITION_PROFILE=workers-ai-llama
+# AI_LABEL_RECOGNITION_PROFILE=gemini-3.7-flash
+# AI_NOTE_RECOGNITION_PROFILE=gemini-3.7-flash
 # AI_GATEWAY_ID=default
 # AI_GATEWAY_COLLECT_LOG=0
 # AI_RECOGNIZE_DAILY_LIMIT=30

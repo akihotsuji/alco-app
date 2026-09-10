@@ -4,7 +4,7 @@
 
 モック: [cellar-shelf.png](../wireframes/mocks/cellar-shelf.png)（1 本ずつ）、[cellar-by-type.png](../wireframes/mocks/cellar-by-type.png)（種類ごと）、[cellar-archive.png](../wireframes/mocks/cellar-archive.png)、[cellar-new.png](../wireframes/mocks/cellar-new.png)（ラベル読み取り後）、[cellar-detail.png](../wireframes/mocks/cellar-detail.png)
 
-2026-09-05（2 回目）のオーナー決定: 棚は **地色の上にガラス風の棚板**、ボトルは **切り抜き**（背景除去を MVP へ）。**種類ごと / 1 本ずつ**の表示切替。**ラベルの AI 読み取り**（Cloudflare Workers AI）はセラーのみ。
+2026-09-05（2 回目）のオーナー決定: 棚は **地色の上にガラス風の棚板**、ボトルは **切り抜き**（背景除去を MVP へ）。**種類ごと / 1 本ずつ**の表示切替。**ラベルの AI 読み取り**はセラーのみ（当時は Workers AI。2026-09-10 に記録と同じ Gemini へ揃えた）。
 
 2026-09-06 追記: セラーの操作は **追加**と**開栓**。開栓で貯蔵庫へ移す。棚に残す「開栓済み」と、開栓時の 1 杯記録は持たない。1 杯は記録画面で付ける。
 

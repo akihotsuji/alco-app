@@ -6,11 +6,13 @@ import {
 } from "../drink-recognizer/prompt.ts";
 import type { LabelRecognizer } from "../label-recognizer/index.ts";
 import {
+  LABEL_RECOGNIZE_GEMINI_SCHEMA,
   LABEL_RECOGNIZE_GUIDED_JSON_SCHEMA,
   LABEL_RECOGNIZE_SYSTEM_PROMPT,
   LABEL_RECOGNIZE_USER_PROMPT,
 } from "../label-recognizer/prompt.ts";
 import {
+  NOTE_RECOGNIZE_GEMINI_SCHEMA,
   NOTE_RECOGNIZE_GUIDED_JSON_SCHEMA,
   NOTE_RECOGNIZE_SYSTEM_PROMPT,
   NOTE_RECOGNIZE_USER_PROMPT,
@@ -23,7 +25,7 @@ import {
 import { resolveRecognitionSetup } from "./factory.ts";
 import { RecognitionConfigError, readGatewayCollectLog, readGatewayId } from "./profiles.ts";
 
-function taskPrompts(
+export function taskPrompts(
   task: AiRecognitionTask,
   format: "gemini-generate-content" | "workers-ai-chat",
 ) {
@@ -42,10 +44,24 @@ function taskPrompts(
     };
   }
   if (task === "label") {
+    if (format === "gemini-generate-content") {
+      return {
+        systemPrompt: LABEL_RECOGNIZE_SYSTEM_PROMPT,
+        userPrompt: LABEL_RECOGNIZE_USER_PROMPT,
+        schema: LABEL_RECOGNIZE_GEMINI_SCHEMA as Record<string, unknown>,
+      };
+    }
     return {
       systemPrompt: LABEL_RECOGNIZE_SYSTEM_PROMPT,
       userPrompt: LABEL_RECOGNIZE_USER_PROMPT,
       schema: LABEL_RECOGNIZE_GUIDED_JSON_SCHEMA as Record<string, unknown>,
+    };
+  }
+  if (format === "gemini-generate-content") {
+    return {
+      systemPrompt: NOTE_RECOGNIZE_SYSTEM_PROMPT,
+      userPrompt: NOTE_RECOGNIZE_USER_PROMPT,
+      schema: NOTE_RECOGNIZE_GEMINI_SCHEMA as Record<string, unknown>,
     };
   }
   return {

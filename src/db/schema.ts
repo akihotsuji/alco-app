@@ -197,7 +197,7 @@ export const photos = sqliteTable(
   ],
 );
 
-// ラベル読み取り（Workers AI）の日次利用回数。画像・結果は保存しない
+// 認識 API の日次利用回数。画像・結果は保存しない
 export const aiUsage = sqliteTable(
   "ai_usage",
   {
