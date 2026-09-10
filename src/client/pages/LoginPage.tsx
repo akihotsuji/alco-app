@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
 import { hrefWithRedirect } from "@/client/auth/login-path.ts";
+import { loginNoticeFromSearch } from "@/client/auth/password-reset.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
 import { PasswordField } from "@/client/components/auth/PasswordField.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
@@ -16,6 +17,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const redirectQuery = searchParams.get("redirect");
   const signupHref = hrefWithRedirect("/signup", redirectQuery);
+  const resetNotice = loginNoticeFromSearch(searchParams);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,6 +54,7 @@ export function LoginPage() {
   return (
     <AuthPageLayout
       title="ログイン"
+      notice={resetNotice}
       error={error}
       onSubmit={onSubmit}
       canSubmit={canSubmit}
@@ -59,12 +62,20 @@ export function LoginPage() {
       submitLabel="ログイン"
       submittingLabel="ログイン中"
       footer={
-        <Link
-          className={cn(buttonVariants({ variant: "link" }), "mt-4 self-center")}
-          to={signupHref}
-        >
-          アカウントを作成
-        </Link>
+        <>
+          <Link
+            className={cn(buttonVariants({ variant: "link" }), "mt-4 self-center")}
+            to="/forgot-password"
+          >
+            パスワードを忘れた
+          </Link>
+          <Link
+            className={cn(buttonVariants({ variant: "link" }), "mt-2 self-center")}
+            to={signupHref}
+          >
+            アカウントを作成
+          </Link>
+        </>
       }
     >
       <Label htmlFor="login-email">メール</Label>

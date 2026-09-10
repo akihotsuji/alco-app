@@ -9,11 +9,16 @@ import { legalConsents } from "@/db/schema.ts";
 import {
   AUTH_PASSWORD_MAX_LENGTH,
   AUTH_PASSWORD_MIN_LENGTH,
+  RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
 } from "@/shared/auth.ts";
 import { LEGAL_VERSION, signupLegalAcceptanceSchema } from "@/shared/legal.ts";
 import { readAuthSecret, resolveAuthBaseURL } from "./env.ts";
+import {
+  createResetPasswordMailer,
+  type SendResetPasswordEmail,
+} from "./services/reset-password-mail.ts";
 
 export type AuthDb = AppDb | LibSQLDatabase<typeof schema>;
 
@@ -23,6 +28,7 @@ export type CreateAuthOptions = {
   baseURL: string;
   trustedOrigins: string[];
   useSecureCookies: boolean;
+  sendResetPassword?: SendResetPasswordEmail;
 };
 
 /** Better Auth 既定の sign-up/sign-in は 10 秒 3 回。E2E は同一 IP から連続登録するため HTTP だけ緩める。 */
@@ -35,12 +41,14 @@ export function authRateLimitConfig(useSecureCookies: boolean) {
           customRules: {
             "/sign-up/email": { window: 10, max: 100 },
             "/sign-in/email": { window: 10, max: 100 },
+            "/request-password-reset": { window: 10, max: 100 },
           },
         }),
   };
 }
 
 export function createAuth(options: CreateAuthOptions) {
+  const sendReset = options.sendResetPassword ?? (async () => {});
   return betterAuth({
     database: drizzleAdapter(options.db, {
       provider: "sqlite",
@@ -54,6 +62,11 @@ export function createAuth(options: CreateAuthOptions) {
       minPasswordLength: AUTH_PASSWORD_MIN_LENGTH,
       maxPasswordLength: AUTH_PASSWORD_MAX_LENGTH,
       requireEmailVerification: false,
+      resetPasswordTokenExpiresIn: RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS,
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({ user, url }) => {
+        await sendReset({ email: user.email, resetUrl: url });
+      },
     },
     session: {
       expiresIn: SESSION_EXPIRES_IN_SECONDS,
@@ -127,5 +140,6 @@ export function createAuthFromEnv(env: Env, requestUrl: string): Auth {
     baseURL,
     trustedOrigins,
     useSecureCookies: new URL(baseURL).protocol === "https:",
+    sendResetPassword: createResetPasswordMailer(env),
   });
 }

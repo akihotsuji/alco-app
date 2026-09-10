@@ -10,6 +10,7 @@ const loaders = {
   login: () => import("@/client/pages/LoginPage.tsx"),
   signup: () => import("@/client/pages/SignupPage.tsx"),
   age: () => import("@/client/pages/AgePage.tsx"),
+  passwordReset: () => import("@/client/pages/PasswordResetPages.tsx"),
   legal: () => import("@/client/pages/LegalPage.tsx"),
   summary: () => import("@/client/pages/summary/SummaryPages.tsx"),
   logDay: () => import("@/client/pages/logs/LogDayPage.tsx"),
@@ -41,6 +42,9 @@ export function initialRouteChunkIds(pathname: string): readonly BootChunkId[] {
   }
   if (pathname === "/age") {
     return ["age"];
+  }
+  if (pathname === "/forgot-password" || pathname === "/reset-password") {
+    return ["passwordReset"];
   }
   if (pathname === "/terms" || pathname === "/privacy") {
     return ["legal"];

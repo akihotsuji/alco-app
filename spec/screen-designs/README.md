@@ -26,7 +26,7 @@ Phase 1-07 の成果物。**全画面の要素・機能・状態・遷移・イ�
 | ファイル | 画面 ID | 実装フェーズ |
 |---|---|---|
 | [00-common.md](00-common.md) | 共通シェル（ヘッダー、下部タブ（中央=記録）、トースト、ダイアログ、空・エラー・ローディング、`not-found`） | 2-05 / 2-06 |
-| [01-auth.md](01-auth.md) | `auth-login` `auth-signup` `auth-age` | 2-02 / 2-05 / 8-02 |
+| [01-auth.md](01-auth.md) | `auth-login` `auth-signup` `auth-age` `auth-forgot-password` `auth-reset-password` | 2-02 / 2-05 / 8-02 / 8-03 |
 | [02-home.md](02-home.md) | `home` `summary-week` `summary-month` | 3-03 / 3-06 |
 | [03-log.md](03-log.md) | `log-day` `log-new` `log-edit` `mydrink-list` `mydrink-new` `mydrink-edit` | 3-02 〜 3-05 |
 | [04-cellar.md](04-cellar.md) | `bottle-list`（陳列。種類ごと / 1 本ずつ） `bottle-archive`（貯蔵庫） `bottle-new`（ラベル読み取り） `bottle-detail` `bottle-edit` | 4-02 〜 4-07 |

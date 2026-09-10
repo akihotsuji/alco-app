@@ -88,7 +88,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 方法 | パス | 認証 | 理由 |
 |---|---|---|---|
 | GET | `/api/health` | なし | 死活確認。本文に内部情報を出さない |
-| * | `/api/auth/*` | なし（Better Auth が各ルートを処理） | サインアップ / ログイン / ログアウト / セッション取得 |
+| * | `/api/auth/*` | なし（Better Auth が各ルートを処理） | サインアップ / ログイン / ログアウト / セッション取得 / パスワードリセット |
 
 Better Auth 配下のうち、本アプリが使う操作（パスは `basePath` からの相対。公式クライアントを使い、手で組み立てない）:
 
@@ -99,7 +99,9 @@ Better Auth 配下のうち、本アプリが使う操作（パスは `basePath`
 | ログアウト | `POST /sign-out` | 使う |
 | セッション取得 | `GET /get-session` | 使う（サーバー MW でも使用） |
 | 表示名更新 | Better Auth クライアントの `updateUser` | 設定の任意項目 |
-| パスワードリセット | `POST /request-password-reset` 等 | **使わない**（Phase 8-03） |
+| パスワードリセット要求 | `POST /request-password-reset` | 使う（8-03）。未登録でも同じ 200。`redirectTo` は `/reset-password` |
+| リセット callback | `GET /reset-password/:token` | Better Auth が `/reset-password?token=` へ 302 |
+| パスワード再設定 | `POST /reset-password` | 使う（8-03）。トークンは Better Auth。自前発行しない |
 | OAuth | プロバイダ経路 | **使わない**（Phase 8-04） |
 
 `/api/auth/*` のレスポンス形式は Better Auth の契約に従う。本ドキュメントの `{ "error": "..." }` には包まない。

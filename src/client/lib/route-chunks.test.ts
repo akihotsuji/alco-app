@@ -7,6 +7,8 @@ describe("chunkIdForPath", () => {
     expect(chunkIdForPath("/login")).toBe("login");
     expect(chunkIdForPath("/signup")).toBe("signup");
     expect(chunkIdForPath("/age")).toBe("age");
+    expect(chunkIdForPath("/forgot-password")).toBe("passwordReset");
+    expect(chunkIdForPath("/reset-password")).toBe("passwordReset");
     expect(chunkIdForPath("/terms")).toBe("legal");
     expect(chunkIdForPath("/privacy")).toBe("legal");
     expect(chunkIdForPath("/summary/week")).toBe("summary");
@@ -30,6 +32,8 @@ describe("initialRouteChunkIds", () => {
     expect(initialRouteChunkIds("/login")).toEqual(["login"]);
     expect(initialRouteChunkIds("/signup")).toEqual(["signup"]);
     expect(initialRouteChunkIds("/age")).toEqual(["age"]);
+    expect(initialRouteChunkIds("/forgot-password")).toEqual(["passwordReset"]);
+    expect(initialRouteChunkIds("/reset-password")).toEqual(["passwordReset"]);
     expect(initialRouteChunkIds("/terms")).toEqual(["legal"]);
     expect(initialRouteChunkIds("/")).toEqual(["shell", "home"]);
     expect(initialRouteChunkIds("/cellar")).toEqual(["shell", "cellar"]);

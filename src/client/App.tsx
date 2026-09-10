@@ -13,6 +13,7 @@ import {
   BottleEditPage,
   BottleNewPage,
   CellarPage,
+  ForgotPasswordPage,
   HomePage,
   LegalPrivacyPage,
   LegalTermsPage,
@@ -27,6 +28,7 @@ import {
   NoteNewPage,
   NotesPage,
   NotFoundPage,
+  ResetPasswordPage,
   SettingsPage,
   SignupPage,
   SummaryMonthPage,
@@ -51,6 +53,22 @@ export function App() {
             element={
               <Suspense fallback={<main className="legal-page" />}>
                 <LegalPrivacyPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <Suspense fallback={<main className="auth-page" />}>
+                <ForgotPasswordPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <Suspense fallback={<main className="auth-page" />}>
+                <ResetPasswordPage />
               </Suspense>
             }
           />
