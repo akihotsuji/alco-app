@@ -245,6 +245,82 @@ export const ORIGIN_MESSAGES = {
   invalid: "実在する国の名前を選んでください",
 } as const;
 
+/**
+ * 生産国欄の「よく使う国」チップ（spec/screen-designs/03-log.md N8b）。
+ * 酒類の主要生産国。順番は表示順。全 200 か国からの選択は検索で行う。
+ */
+export const FREQUENT_ORIGIN_COUNTRIES_JA: readonly string[] = [
+  "日本",
+  "フランス",
+  "イタリア",
+  "スペイン",
+  "アメリカ合衆国",
+  "ドイツ",
+  "チリ",
+  "オーストラリア",
+  "ニュージーランド",
+  "アルゼンチン",
+  "ポルトガル",
+  "イギリス",
+];
+
+export const ORIGIN_SEARCH_LIMIT = 8;
+
+/** ひらがな → カタカナ（IME 変換前の入力でも国名に当てる） */
+function hiraganaToKatakana(text: string): string {
+  return text.replace(/[\u3041-\u3096]/g, (char) =>
+    String.fromCharCode(char.charCodeAt(0) + 0x60),
+  );
+}
+
+type SearchEntry = {
+  country: OriginCountry;
+  ja: string;
+  aliases: readonly string[];
+};
+
+const SEARCH_ENTRIES: readonly SearchEntry[] = COUNTRY_SEEDS.map(([code, ja, ...aliases]) => ({
+  country: { code, ja },
+  ja,
+  aliases: aliases.map((alias) => normalizeKey(alias)),
+}));
+
+/**
+ * 生産国の候補検索。日本語名（ひらがな入力可）と英語別名の前方一致を優先し、部分一致を後ろに置く。
+ * 空の問い合わせは空配列（呼び出し側が「よく使う国」を出す）。
+ */
+export function searchOriginCountries(
+  query: string,
+  limit: number = ORIGIN_SEARCH_LIMIT,
+): OriginCountry[] {
+  const raw = query.normalize("NFKC").trim();
+  if (raw.length === 0 || limit <= 0) {
+    return [];
+  }
+  const ja = hiraganaToKatakana(raw);
+  const key = normalizeKey(raw);
+  const ranked: { country: OriginCountry; rank: number; index: number }[] = [];
+  SEARCH_ENTRIES.forEach((entry, index) => {
+    let rank: number | null = null;
+    if (entry.ja === ja) {
+      rank = 0;
+    } else if (entry.ja.startsWith(ja)) {
+      rank = 1;
+    } else if (entry.aliases.some((alias) => alias.startsWith(key))) {
+      rank = 2;
+    } else if (entry.ja.includes(ja)) {
+      rank = 3;
+    } else if (entry.aliases.some((alias) => alias.includes(key))) {
+      rank = 4;
+    }
+    if (rank !== null) {
+      ranked.push({ country: entry.country, rank, index });
+    }
+  });
+  ranked.sort((a, b) => a.rank - b.rank || a.index - b.index);
+  return ranked.slice(0, limit).map((item) => item.country);
+}
+
 const ORIGIN_JA_NAMES: readonly string[] = ORIGIN_COUNTRIES.map((country) => country.ja);
 const ORIGIN_JA_SET = new Set(ORIGIN_JA_NAMES);
 const JA_NAMES_BY_LENGTH = [...ORIGIN_JA_NAMES].sort((a, b) => b.length - a.length);

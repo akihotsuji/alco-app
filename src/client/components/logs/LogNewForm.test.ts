@@ -12,7 +12,10 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("startDrinkRecognition");
     expect(source).toContain("applyRecognizeToLogForm");
     expect(source).toContain("marks: aiMarksRef.current");
-    expect(source).toContain("DRINK_RECOGNIZE_BANNER");
+    expect(source).toContain("drinkRecognizeBannerMessage(recognizeStatus, recognizeAppliedCount)");
+    expect(source).toContain("pendingDrinkRecognizeFields(state, touchedRef.current, aiMarks)");
+    expect(source).toContain('setRecognizeStatus("empty")');
+    expect(source).toContain('setRecognizeStatus("failure")');
     expect(source).toContain("lockInheritedRecognizeFields");
     expect(source).toContain("touchedRef.current.drinkType = true");
     expect(source).toContain("touchedRef.current.volumeMl = true");

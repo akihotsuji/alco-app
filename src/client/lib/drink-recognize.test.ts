@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applyRecognizeToLogForm, lockInheritedRecognizeFields } from "./drink-recognize.ts";
+import {
+  applyRecognizeToLogForm,
+  DRINK_RECOGNIZE_BANNER,
+  drinkRecognizeBannerMessage,
+  lockInheritedRecognizeFields,
+  pendingDrinkRecognizeFields,
+} from "./drink-recognize.ts";
 import { initialLogFormState } from "./log-form.ts";
 
 const NOW = new Date("2026-09-05T04:05:00.000Z");
@@ -155,5 +161,54 @@ describe("applyRecognizeToLogForm", () => {
     expect(touched.origin).toBe(true);
     expect(touched.drinkType).toBe(true);
     expect(touched.variety).toBe(false);
+  });
+
+  it("種類を AI が選んだら drinkType にも AI 印を付ける（行ピルで反映済みを示す）", () => {
+    const { marks } = applyRecognizeToLogForm({
+      state: initialLogFormState(null, NOW),
+      fields: { drinkType: { value: "beer", confidence: 0.8 } },
+      touched: untouched,
+    });
+    expect(marks.has("drinkType")).toBe(true);
+    const locked = applyRecognizeToLogForm({
+      state: initialLogFormState(null, NOW),
+      fields: { drinkType: { value: "beer", confidence: 0.8 } },
+      touched: { ...untouched, drinkType: true },
+    });
+    expect(locked.marks.has("drinkType")).toBe(false);
+  });
+});
+
+describe("pendingDrinkRecognizeFields", () => {
+  it("空欄と直前の AI 値の欄だけ「読み取り中」。触った欄・ボトル由来の値は含めない", () => {
+    const state = {
+      ...initialLogFormState(null, NOW),
+      drinkName: "",
+      producer: "AI生産者",
+      origin: "スペイン",
+      variety: "",
+      vintage: "2019",
+    };
+    const pending = pendingDrinkRecognizeFields(
+      state,
+      { ...untouched, variety: true },
+      new Set(["producer"]),
+    );
+    expect(pending.has("drinkName")).toBe(true);
+    expect(pending.has("producer")).toBe(true);
+    expect(pending.has("origin")).toBe(false);
+    expect(pending.has("variety")).toBe(false);
+    expect(pending.has("vintage")).toBe(false);
+  });
+});
+
+describe("drinkRecognizeBannerMessage", () => {
+  it("成功は入れた件数を出し、0 件・失敗は手入力できることを添える", () => {
+    expect(drinkRecognizeBannerMessage("loading", 0)).toBe(DRINK_RECOGNIZE_BANNER.loading);
+    expect(drinkRecognizeBannerMessage("success", 3)).toBe(
+      "写真から 3 項目を入れました（AI 印の欄。修正できます）",
+    );
+    expect(drinkRecognizeBannerMessage("empty", 0)).toContain("手で入力できます");
+    expect(drinkRecognizeBannerMessage("failure", 0)).toContain("手で入力してください");
   });
 });

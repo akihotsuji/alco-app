@@ -3,10 +3,31 @@ import { AI_RECOGNIZE_MIN_CONFIDENCE } from "@/shared/constants.ts";
 import type { DrinkRecognizeFields } from "@/shared/drink-recognize.ts";
 import type { LogFormState } from "./log-form.ts";
 
+/**
+ * 写真欄の下の読み取り状態（spec/screen-designs/03-log.md N2）。
+ * loading: 欄側にも「読み取り中」ピルを出す。success: 入れた件数を出す。
+ * empty / failure: 黙らず 1 行で知らせ、手入力を続けられることを示す。
+ */
 export const DRINK_RECOGNIZE_BANNER = {
-  loading: "写真から種類と量を推測しています…",
+  loading: "写真を読み取っています…",
   success: "写真から入れました",
+  empty: "写真から読み取れる項目がありませんでした。手で入力できます",
+  failure: "読み取れませんでした（手で入力してください）",
 } as const;
+
+export type DrinkRecognizeStatus = keyof typeof DRINK_RECOGNIZE_BANNER;
+
+export function drinkRecognizeBannerMessage(
+  status: DrinkRecognizeStatus,
+  appliedCount: number,
+): string {
+  if (status === "success") {
+    return appliedCount > 0
+      ? `写真から ${appliedCount} 項目を入れました（AI 印の欄。修正できます）`
+      : DRINK_RECOGNIZE_BANNER.success;
+  }
+  return DRINK_RECOGNIZE_BANNER[status];
+}
 
 export type DrinkRecognizeTouched = {
   drinkName: boolean;
@@ -54,6 +75,32 @@ function empty(value: string): boolean {
 
 function canFillText(current: string, touched: boolean, marked: boolean): boolean {
   return !touched && (empty(current) || marked);
+}
+
+export const DRINK_RECOGNIZE_TEXT_FIELDS = [
+  "drinkName",
+  "producer",
+  "origin",
+  "variety",
+  "vintage",
+] as const satisfies readonly (keyof DrinkRecognizeTouched)[];
+
+/**
+ * 読み取り中に「AI が入れるかもしれない欄」。空欄と直前の AI 値の欄で、ユーザーが触っていないもの。
+ * 欄側に「読み取り中」ピルを出して、まだ反映されていないことを示す（種類は行ピルで別扱い）。
+ */
+export function pendingDrinkRecognizeFields(
+  state: Pick<LogFormState, (typeof DRINK_RECOGNIZE_TEXT_FIELDS)[number]>,
+  touched: DrinkRecognizeTouched,
+  marks: ReadonlySet<string>,
+): Set<string> {
+  const pending = new Set<string>();
+  for (const field of DRINK_RECOGNIZE_TEXT_FIELDS) {
+    if (canFillText(state[field], touched[field], marks.has(field))) {
+      pending.add(field);
+    }
+  }
+  return pending;
 }
 
 /**
@@ -113,6 +160,7 @@ export function applyRecognizeToLogForm(
   if (usable(input.fields.drinkType) && !lockType) {
     next.drinkType = input.fields.drinkType.value;
     applied.push("drinkType");
+    marks.add("drinkType");
   }
 
   if (usable(input.fields.volumeMl) && !input.touched.volumeMl) {

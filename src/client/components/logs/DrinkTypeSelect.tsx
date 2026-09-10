@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
+import { AiMarkPill } from "@/client/components/form/FieldWithAiMark.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import {
   DialogContent,
@@ -17,6 +18,10 @@ type DrinkTypeSelectProps = {
   required?: boolean;
   placeholder?: string;
   error?: string;
+  /** AI が写真から選んだ（行に AI ピル） */
+  aiMarked?: boolean;
+  /** 読み取り中で AI が選ぶ可能性がある（行に「読み取り中」ピル） */
+  aiPending?: boolean;
 };
 
 /** 種類セレクト。全 12 種へアクセスする。横スクロールに頼らない */
@@ -26,6 +31,8 @@ export function DrinkTypeSelect({
   required = false,
   placeholder = "種類を選択",
   error,
+  aiMarked = false,
+  aiPending = false,
 }: DrinkTypeSelectProps) {
   const [open, setOpen] = useState(false);
 
@@ -43,6 +50,7 @@ export function DrinkTypeSelect({
         <span className={value ? "form-select-value" : "form-select-placeholder"}>
           {value ? DRINK_TYPE_LABELS[value] : placeholder}
         </span>
+        <AiMarkPill marked={aiMarked} pending={aiPending} />
         <ChevronRight size={20} className="form-row-chevron" aria-hidden />
       </button>
       {error ? (
