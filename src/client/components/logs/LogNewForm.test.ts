@@ -9,30 +9,27 @@ const edit = readFileSync(join(here, "LogEditForm.tsx"), "utf8");
 
 describe("LogNewForm 写真からの種類・量の先埋め", () => {
   it("新規と編集の空欄だけ推測し、触った欄とボトル由来は上書きしない", () => {
-    expect(source).toContain("startDrinkRecognition");
-    expect(source).toContain("applyRecognizeToLogForm");
-    expect(source).toContain("marks: aiMarksRef.current");
-    expect(source).toContain("drinkRecognizeBannerMessage(recognizeStatus, recognizeAppliedCount)");
-    expect(source).toContain("pendingDrinkRecognizeFields(state, touchedRef.current, aiMarks)");
-    expect(source).toContain('setRecognizeStatus("empty")');
-    expect(source).toContain('setRecognizeStatus("failure")');
-    expect(source).toContain("lockInheritedRecognizeFields");
+    for (const form of [source, edit]) {
+      // 二段階の読み取りは共有フックに寄せ、フォームは状態・候補を受け取るだけ
+      expect(form).toContain("useDrinkPhotoRecognition({");
+      expect(form).toContain("jpeg: recognizeJpegForForm(attachment, pendingRecognize, session)");
+      expect(form).toContain(
+        "drinkRecognizeBannerMessage(recognition.status, recognition.appliedCount)",
+      );
+      expect(form).toContain("aiPending={recognition.aiPending}");
+      expect(form).toContain("originCandidate={recognition.originCandidate}");
+      expect(form).toContain("recognition.reset()");
+      expect(form).toContain("lockInheritedRecognizeFields");
+      expect(form).toContain("usePhotoFormSession");
+      expect(form).toContain("CompactPhotoField");
+      expect(form).toContain("PhotoViewer");
+      expect(form).toContain("savedRef,");
+      expect(form).not.toContain("startDrinkRecognition");
+    }
     expect(source).toContain("touchedRef.current.drinkType = true");
     expect(source).toContain("touchedRef.current.volumeMl = true");
     expect(source).toContain("usePhotoEdit");
-    expect(source).toContain("usePhotoFormSession");
-    expect(source).toContain("recognizeJpegForForm");
-    expect(edit).toContain("usePhotoFormSession");
-    expect(edit).toContain("recognizeJpegForForm");
     expect(source).not.toContain("useCaptureOnCameraQuery");
-    expect(source).toContain("CompactPhotoField");
-    expect(source).toContain("PhotoViewer");
-    expect(source).toContain("savedRef.current");
-    expect(edit).toContain("CompactPhotoField");
-    expect(edit).toContain("startDrinkRecognition");
-    expect(edit).toContain("lockInheritedRecognizeFields");
-    expect(edit).toContain("PhotoViewer");
-    expect(edit).toContain("savedRef.current");
   });
 
   it("共通識別と場所があり、ボトルは種類の次。後選択は手入力を残す", () => {

@@ -20,11 +20,14 @@ type OriginCountryFieldProps = {
   aiMarked?: boolean;
   aiPending?: boolean;
   disabled?: boolean;
+  /** 写真からの候補（N8b）。自動では入れず、空欄のときだけチップで示す。タップはユーザー入力扱い */
+  candidate?: string | null;
   onChange: (value: string) => void;
 };
 
 export const ORIGIN_FIELD_PLACEHOLDER = "国名を入力して選ぶ";
 export const ORIGIN_FREQUENT_LABEL = "よく使う国";
+export const ORIGIN_CANDIDATE_LABEL = "写真からの候補";
 export const ORIGIN_CLEAR_LABEL = "生産国を消す";
 
 /**
@@ -40,6 +43,7 @@ export function OriginCountryField({
   aiMarked = false,
   aiPending = false,
   disabled = false,
+  candidate = null,
   onChange,
 }: OriginCountryFieldProps) {
   const listId = useId();
@@ -53,6 +57,8 @@ export function OriginCountryField({
     focused && !dismissed && trimmed.length > 0 && !isValid ? searchOriginCountries(trimmed) : [];
   const open = options.length > 0;
   const showFrequent = trimmed.length === 0 && !disabled;
+  const candidateName = candidate?.trim() ?? "";
+  const showCandidate = showFrequent && !aiPending && isAllowedOriginJa(candidateName);
 
   function select(name: string) {
     haptic("light");
@@ -169,6 +175,14 @@ export function OriginCountryField({
           </div>
         ) : null}
       </div>
+      {showCandidate ? (
+        <div className="origin-frequent origin-candidate">
+          <span className="origin-frequent-label">{ORIGIN_CANDIDATE_LABEL}</span>
+          <div className="chip-row origin-frequent-chips">
+            <Chip onSelect={() => select(candidateName)}>{candidateName}</Chip>
+          </div>
+        </div>
+      ) : null}
       {showFrequent ? (
         <div className="origin-frequent">
           <span className="origin-frequent-label">{ORIGIN_FREQUENT_LABEL}</span>
