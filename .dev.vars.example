@@ -21,3 +21,5 @@ TURNSTILE_SECRET_KEY=
 # AI_GATEWAY_ID=default
 # AI_GATEWAY_COLLECT_LOG=0
 # AI_RECOGNIZE_DAILY_LIMIT=30
+# 新規登録の一時停止（8-06）。秘密ではない。1 でメール登録と Google 新規を止める
+# SIGNUPS_CLOSED=0

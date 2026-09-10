@@ -1,6 +1,6 @@
 # 01 認証（ログイン / サインアップ）
 
-実装: 2-02（Better Auth）/ 2-05（レイアウト）/ 8-03（パスワードリセット）/ 8-04（Google OAuth）/ 8-05（Turnstile）。認証 API は Better Auth の公式クライアントのみ（[../api-design.md](../api-design.md) 2.3）。ボット対策の正本は [../features/rate-limit-abuse.md](../features/rate-limit-abuse.md)。
+実装: 2-02（Better Auth）/ 2-05（レイアウト）/ 8-03（パスワードリセット）/ 8-04（Google OAuth）/ 8-05（Turnstile）/ 8-06（登録停止）。認証 API は Better Auth の公式クライアントのみ（[../api-design.md](../api-design.md) 2.3）。ボット対策の正本は [../features/rate-limit-abuse.md](../features/rate-limit-abuse.md)。使用量の正本は [../features/usage-monitoring.md](../features/usage-monitoring.md)。
 
 モック: [login.png](../wireframes/mocks/login.png)
 
@@ -96,7 +96,18 @@
 
 - 招待コード欄は置かない（確定）
 - 既存メールのエラーも汎用文「登録できませんでした。入力内容を確認してください」（存在推測を避ける）
+- 登録停止（`SIGNUPS_CLOSED`）はカード上部「現在、新規登録を停止しています」。招待ではない（8-06。[../features/usage-monitoring.md](../features/usage-monitoring.md)）
 - S7 の同意は 20 歳以上であることの表明を含む。専用の生年月日確認は `auth-age`（8-02。[../features/age-verification.md](../features/age-verification.md)）
+
+### 状態
+
+ログインと同じ送信中・確認読込失敗・レート制限に加え:
+
+| 状態 | 表示 |
+|---|---|
+| エラー | カード上部「登録できませんでした。入力内容を確認してください」。既存メールも同じ |
+| 登録停止 | カード上部「現在、新規登録を停止しています」。招待コード欄は出さない。フォームは残す（公開 API に停止フラグは出さない） |
+| 成功 | `/age`（`redirect` があれば引き継ぐ）へ `replace` |
 
 ---
 
@@ -290,7 +301,7 @@
 
 ---
 
-## 受け入れチェック（2-02 / 2-05 / 8-01 / 8-02 / 8-03 / 8-04 / 8-05）
+## 受け入れチェック（2-02 / 2-05 / 8-01 / 8-02 / 8-03 / 8-04 / 8-05 / 8-06）
 
 - [ ] `/login` `/signup` でキャラ `default` 120px とカード 1 枚。ワードマークは「酒のしおり」
 - [ ] ログイン成功で `redirect`（相対パスのみ）または `/`
@@ -317,3 +328,5 @@
 - [ ] 確認未完了では送信と「Google で続行」が無効。スキップボタンは無い（8-05）
 - [ ] 読込失敗は再表示できる。確認を飛ばす裏道は無い（8-05）
 - [ ] ログイン失敗文は従来の汎用文。確認の成否を列挙しない（8-05）
+- [ ] 登録停止中はメール登録も Google 新規も拒否し、「現在、新規登録を停止しています」を出す（8-06）
+- [ ] 停止中もログインと既存 Google は使える。招待コード欄は無い（8-06）

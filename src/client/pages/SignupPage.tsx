@@ -89,6 +89,7 @@ export function SignupPage() {
         authClientErrorMessage(
           result.error.status,
           "登録できませんでした。入力内容を確認してください",
+          result.error.message,
         ),
       );
       return;

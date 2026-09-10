@@ -93,6 +93,7 @@ export async function createTestApp(
     verifyTurnstile?: VerifyTurnstile;
     turnstileSiteKey?: string | null;
     photoDailyLimit?: number;
+    signupsClosed?: boolean;
   } = {},
 ) {
   const client = createClient({ url: ":memory:" });
@@ -100,6 +101,7 @@ export async function createTestApp(
 
   const db = drizzle(client, { schema });
   const mailbox: ResetPasswordMail[] = [];
+  const signupsClosedState = { value: options.signupsClosed === true };
   const auth = createAuth({
     db,
     secret: TEST_AUTH_SECRET,
@@ -113,6 +115,9 @@ export async function createTestApp(
       }),
     google: options.google,
     verifyTurnstile: options.verifyTurnstile,
+    get signupsClosed() {
+      return signupsClosedState.value;
+    },
   });
 
   const photos = createMemoryR2();
@@ -140,7 +145,16 @@ export async function createTestApp(
   });
   appCount += 1;
   clientIpByApp.set(app, `10.0.${Math.floor(appCount / 256)}.${appCount % 256}`);
-  return { app, auth, db, photos, mailbox };
+  return {
+    app,
+    auth,
+    db,
+    photos,
+    mailbox,
+    setSignupsClosed(value: boolean) {
+      signupsClosedState.value = value;
+    },
+  };
 }
 
 function authHeaders(app: TestApp): Record<string, string> {

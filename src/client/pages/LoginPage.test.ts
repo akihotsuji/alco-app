@@ -26,6 +26,7 @@ describe("認証画面 8-03 / 8-04 / 8-05", () => {
   it("サインアップに招待コード欄が無い", () => {
     const signup = readFileSync(join(here, "SignupPage.tsx"), "utf8");
     expect(signup).not.toMatch(/invite|招待コード/i);
+    expect(signup).toContain("result.error.message");
   });
 
   it("ログイン・サインアップ・再設定メールに Turnstile があり、新パスワードには無い", () => {

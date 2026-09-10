@@ -4,6 +4,7 @@ import {
   clipDisplayName,
   displayNameSchema,
   forgotPasswordFormSchema,
+  isSignupsClosedFlag,
   loginFormSchema,
   RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS,
   resetPasswordFormSchema,
@@ -12,6 +13,15 @@ import {
   SESSION_UPDATE_AGE_SECONDS,
   signupFormSchema,
 } from "./auth.ts";
+
+describe("isSignupsClosedFlag", () => {
+  it("1 と true だけ真", () => {
+    expect(isSignupsClosedFlag(undefined)).toBe(false);
+    expect(isSignupsClosedFlag("0")).toBe(false);
+    expect(isSignupsClosedFlag("1")).toBe(true);
+    expect(isSignupsClosedFlag(" true ")).toBe(true);
+  });
+});
 
 describe("session duration constants", () => {
   it("有効期間は 30 日、更新間隔は 1 日（秒）", () => {

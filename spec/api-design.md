@@ -96,7 +96,7 @@ Better Auth 配下のうち、本アプリが使う操作（パスは `basePath`
 
 | 操作 | 公式エンドポイント（相対） | MVP |
 |---|---|---|
-| サインアップ | `POST /sign-up/email` | 使う。8-01 から `acceptedLegal: true` と現行 `legalVersion` が必須。無ければ 400。同意は `legal_consents` に保存 |
+| サインアップ | `POST /sign-up/email` | 使う。8-01 から `acceptedLegal: true` と現行 `legalVersion` が必須。無ければ 400。同意は `legal_consents` に保存。`SIGNUPS_CLOSED` 時は 400「現在、新規登録を停止しています」（8-06） |
 | ログイン | `POST /sign-in/email` | 使う |
 | ログアウト | `POST /sign-out` | 使う |
 | セッション取得 | `GET /get-session` | 使う（サーバー MW でも使用） |
@@ -104,7 +104,7 @@ Better Auth 配下のうち、本アプリが使う操作（パスは `basePath`
 | パスワードリセット要求 | `POST /request-password-reset` | 使う（8-03）。未登録でも同じ 200。`redirectTo` は `/reset-password` |
 | リセット callback | `GET /reset-password/:token` | Better Auth が `/reset-password?token=` へ 302 |
 | パスワード再設定 | `POST /reset-password` | 使う（8-03）。トークンは Better Auth。自前発行しない |
-| Google で続行 | `POST /sign-in/social` | 使う（8-04）。`provider: google`。新規は `requestSignUp: true` と規約同意（`additionalData`）。ログインは既存 Google のみ |
+| Google で続行 | `POST /sign-in/social` | 使う（8-04）。`provider: google`。新規は `requestSignUp: true` と規約同意（`additionalData`）。ログインは既存 Google のみ。`SIGNUPS_CLOSED` 時の新規（`requestSignUp`）は 400（8-06） |
 | Google callback | `GET /callback/google` | Better Auth が処理。リダイレクト URI は `{baseURL}/api/auth/callback/google` |
 
 `/api/auth/*` のレスポンス形式は Better Auth の契約に従う。本ドキュメントの `{ "error": "..." }` には包まない。
@@ -297,11 +297,11 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 
 ### 4.1 GET /api/health
 
-[features/health.md](features/health.md) どおり。`{ "ok": true }`。認証なし。D1/R2 の接続確認はしない。
+[features/health.md](features/health.md) どおり。`{ "ok": true }`。認証なし。D1/R2 の接続確認はしない。使用量・枠残は出さない（8-06）。
 
 ### 4.1.1 GET /api/config
 
-[features/rate-limit-abuse.md](features/rate-limit-abuse.md) どおり。認証なし。本文は `{ "turnstileSiteKey": string | null }` だけ。シークレット・閾値・内部名は出さない。未設定は `null`。`GET /api/health` の契約は変えない。
+[features/rate-limit-abuse.md](features/rate-limit-abuse.md) どおり。認証なし。本文は `{ "turnstileSiteKey": string | null }` だけ。シークレット・閾値・内部名・使用量は出さない。未設定は `null`。`GET /api/health` の契約は変えない。
 
 ### 4.2 GET /api/me
 

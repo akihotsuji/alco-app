@@ -2,8 +2,9 @@
 
 オーナーがエージェントなしでも、Logs を見て復元を試みられる手順。値・トークン・SQL 本文・Cookie は書かない。コマンドは **2026-09-09** の wrangler 公式（Workers rollback / D1 Time Travel）に合わせた。バージョンが変わっていたら実行前に `--help` を見る。
 
-- 状態: **作成済み**（2026-09-09）。8-05 で WAF / 誤ブロック解除を追記（2026-09-10）
+- 状態: **作成済み**（2026-09-09）。8-05 で WAF / 誤ブロック解除を追記（2026-09-10）。8-06 で使用量の週次確認を 9 章に追加
 - 監視の正本: [features/monitoring.md](features/monitoring.md)
+- 使用量の正本: [features/usage-monitoring.md](features/usage-monitoring.md)
 - バックアップの正本: [features/d1-backup.md](features/d1-backup.md)
 - デプロイの正本: [features/deploy-prod.md](features/deploy-prod.md)
 - シークレット: [secrets.md](secrets.md)
@@ -208,3 +209,32 @@ pnpm exec wrangler d1 export alco-app-prod --remote --env production --output=ba
 3. Turnstile キーの片方欠けは、ウィジェットも検証も無効になる（[rate-limit-abuse.md](features/rate-limit-abuse.md)）。両方揃っているかを [secrets.md](secrets.md) で確認する
 
 アプリ側の写真日次上限はユーザー単位（セッション）。IP ヘッダではバイパスできない。
+
+---
+
+## 9. 無料枠の使用量（8-06）
+
+正本は [usage-monitoring.md](features/usage-monitoring.md)。数字のコピーは [02-tech-stack.md](02-tech-stack.md)。確認日を見て古ければ公式を開き直す。
+
+**使用量を `GET /api/health` や `GET /api/config` に出さない。** 課金額・アカウント ID を spec や Issue に書かない。
+
+### 9.1 週次（エラー目視と同じ週）
+
+1. Workers `alco-app-prod` の Metrics（リクエスト/日、CPU 超過、Error 1027 / 1102）
+2. D1 `alco-app-prod` の行読取・書込・容量
+3. R2 `alco-app-photos-prod` と `alco-app-d1-backups` の保存量（合算が 10 GB 枠）
+4. Workers AI の Neurons、AI Gateway の支出
+5. Resend の通数、GitHub Actions の artifact
+
+80% を超えたら usage-monitoring 6 章。
+
+### 9.2 新規登録の一時停止
+
+招待制は使わない。`SIGNUPS_CLOSED=1` を対象 env の wrangler `vars` に入れてデプロイする。メール登録と Google 新規だけ止まる。戻すときは `0`。
+
+### 9.3 予算アラート（オーナー）
+
+- Cloudflare: Manage Account → Billing → Billable Usage → Budget alert（情報のみ。使用は止まらない）
+- AI Gateway: spend limits（超過は 429。手入力は続く）
+
+Paid（月 5 USD）に進む条件は usage-monitoring 8 章。

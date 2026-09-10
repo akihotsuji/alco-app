@@ -13,6 +13,7 @@ import {
   RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
+  SIGNUPS_CLOSED_MESSAGE,
 } from "@/shared/auth.ts";
 import { LEGAL_VERSION, signupLegalAcceptanceSchema } from "@/shared/legal.ts";
 import { googleSignupAdditionalDataSchema, readSocialSignInLegal } from "@/shared/oauth.ts";
@@ -21,6 +22,7 @@ import {
   type GoogleOAuthConfig,
   readAuthSecret,
   readGoogleOAuthConfig,
+  readSignupsClosed,
   readTurnstileConfig,
   resolveAuthBaseURL,
 } from "./env.ts";
@@ -41,6 +43,7 @@ export type CreateAuthOptions = {
   sendResetPassword?: SendResetPasswordEmail;
   google?: GoogleOAuthConfig;
   verifyTurnstile?: VerifyTurnstile;
+  signupsClosed?: boolean;
 };
 
 function readHookHeader(ctx: { headers?: Headers; request?: Request }, name: string): string {
@@ -151,6 +154,14 @@ export function createAuth(options: CreateAuthOptions) {
     },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        if (options.signupsClosed) {
+          if (ctx.path === "/sign-up/email") {
+            throw new APIError("BAD_REQUEST", { message: SIGNUPS_CLOSED_MESSAGE });
+          }
+          if (ctx.path === "/sign-in/social" && readSocialSignInLegal(ctx.body).requestSignUp) {
+            throw new APIError("BAD_REQUEST", { message: SIGNUPS_CLOSED_MESSAGE });
+          }
+        }
         if (ctx.path === "/sign-up/email") {
           const parsed = signupLegalAcceptanceSchema.safeParse(ctx.body);
           if (!parsed.success) {
@@ -220,5 +231,6 @@ export function createAuthFromEnv(env: Env, requestUrl: string): Auth {
     sendResetPassword: createResetPasswordMailer(env),
     google: readGoogleOAuthConfig(env),
     verifyTurnstile: turnstile ? createTurnstileVerifier(turnstile.secret) : undefined,
+    signupsClosed: readSignupsClosed(env),
   });
 }

@@ -150,6 +150,11 @@ describe("wrangler.jsonc env split", () => {
     ]);
   });
 
+  it("keeps signups open by default on both named envs", () => {
+    expect(wrangler.env.dev.vars?.SIGNUPS_CLOSED).toBe("0");
+    expect(wrangler.env.production.vars?.SIGNUPS_CLOSED).toBe("0");
+  });
+
   it("enables Workers Logs and traces on both named envs", () => {
     const expected = {
       enabled: true,

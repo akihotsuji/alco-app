@@ -181,3 +181,4 @@ pnpm probe:alert
 - [production-env.md](production-env.md)
 - [05-monitoring.md](../../roadmap/phase-07-production-release/05-monitoring.md)
 - [09-operations-docs.md](../../roadmap/phase-07-production-release/09-operations-docs.md)
+- [usage-monitoring.md](usage-monitoring.md)（無料枠の週次。使用量は Logs に出さない）
