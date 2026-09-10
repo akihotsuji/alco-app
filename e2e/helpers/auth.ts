@@ -26,6 +26,15 @@ export async function dismissFirstRunGuide(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "使い方を少し試してみますか？" })).toHaveCount(0);
 }
 
+/** 年齢確認 A5 は 年 / 月 / 日 の 3 欄（spec/screen-designs/01-auth.md） */
+export async function fillBirthOn(page: Page, birthOn: string): Promise<void> {
+  const [year, month, day] = birthOn.split("-");
+  const group = page.getByRole("group", { name: "生年月日" });
+  await group.getByLabel("年").fill(year ?? "");
+  await group.getByLabel("月").fill(month ?? "");
+  await group.getByLabel("日").fill(day ?? "");
+}
+
 export async function signUpAsNewUser(
   page: Page,
   user: E2EUser = createE2EUser(),
@@ -42,7 +51,7 @@ export async function signUpAsNewUser(
   if (!(await ageHeading.isVisible())) {
     throw new Error(`サインアップ後に年齢確認へ進めない: ${await alert.textContent()}`);
   }
-  await page.getByLabel("生年月日").fill("1990-01-15");
+  await fillBirthOn(page, "1990-01-15");
   await page.getByRole("button", { name: "確認する" }).click();
   // 招待ダイアログが開くと背面の「ホーム」見出しは a11y ツリーから外れる
   await dismissFirstRunGuide(page);
