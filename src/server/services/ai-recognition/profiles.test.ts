@@ -13,21 +13,22 @@ import {
 } from "./profiles.ts";
 
 describe("resolveModelProfile", () => {
-  it("未設定なら3機能とも Gemini 3.5 Flash-Lite", () => {
-    expect(resolveModelProfile({}, "drink").modelId).toBe(GEMINI_35_FLASH_LITE_MODEL_ID);
-    expect(resolveModelProfile({}, "label").modelId).toBe(GEMINI_35_FLASH_LITE_MODEL_ID);
-    expect(resolveModelProfile({}, "note").modelId).toBe(GEMINI_35_FLASH_LITE_MODEL_ID);
-    expect(resolveModelProfile({}, "drink").key).toBe("gemini-3.5-flash-lite");
-    expect(resolveModelProfile({}, "label").key).toBe("gemini-3.5-flash-lite");
-    expect(resolveModelProfile({}, "note").key).toBe("gemini-3.5-flash-lite");
+  it("未設定なら3機能とも Gemini 3.7 Flash（Flash-Lite は品質不足で既定にしない）", () => {
+    expect(resolveModelProfile({}, "drink").modelId).toBe(GEMINI_37_FLASH_MODEL_ID);
+    expect(resolveModelProfile({}, "label").modelId).toBe(GEMINI_37_FLASH_MODEL_ID);
+    expect(resolveModelProfile({}, "note").modelId).toBe(GEMINI_37_FLASH_MODEL_ID);
+    expect(resolveModelProfile({}, "drink").key).toBe("gemini-3.7-flash");
+    expect(resolveModelProfile({}, "label").key).toBe("gemini-3.7-flash");
+    expect(resolveModelProfile({}, "note").key).toBe("gemini-3.7-flash");
   });
 
-  it("Flash-Lite は minimal 思考・小さい出力上限。3.7 Flash は low で minimal を送らない", () => {
-    const lite = resolveModelProfile({}, "drink");
+  it("Flash-Lite は env で選べ、minimal 思考・小さい出力上限。3.7 Flash は low で minimal を送らない", () => {
+    const lite = resolveModelProfile({ AI_RECOGNITION_PROFILE: "gemini-3.5-flash-lite" }, "drink");
+    expect(lite.modelId).toBe(GEMINI_35_FLASH_LITE_MODEL_ID);
     expect(lite.thinkingLevel).toBe("minimal");
     expect(lite.maxOutputTokens).toBe(1024);
     expect(lite.supportsSearch).toBe(true);
-    const flash = resolveModelProfile({ AI_RECOGNITION_PROFILE: "gemini-3.7-flash" }, "drink");
+    const flash = resolveModelProfile({}, "drink");
     expect(flash.thinkingLevel).toBe("low");
     expect(flash.maxOutputTokens).toBe(2048);
   });
@@ -62,7 +63,7 @@ describe("resolveModelProfile", () => {
     expect(gemini.structuredOutputStyle).toBe("gemini-response-schema");
     expect(gemini.supportsThinking).toBe(true);
     expect(gemini.emitThinkingConfig).toBe(true);
-    expect(gemini.thinkingLevel).toBe("minimal");
+    expect(gemini.thinkingLevel).toBe("low");
   });
 
   it("打ち切り時間はプロファイルに従い、指定があればそれを使う", () => {
