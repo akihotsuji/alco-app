@@ -13,6 +13,8 @@ import {
 } from "./drink-recognize.ts";
 import type { LogFormState } from "./log-form.ts";
 
+export type ApplyCount = { marked: number; applied: number };
+
 export type DrinkRecognizeFlowDeps = {
   recognize: (jpeg: Blob) => Promise<DrinkRecognizeResponse>;
   lookup: (body: DrinkLookupRequest) => Promise<DrinkLookupResponse>;
@@ -21,8 +23,8 @@ export type DrinkRecognizeFlowDeps = {
   touched: DrinkRecognizeTouched;
   /** 撮り直し・保存・画面離脱で true。以降は何も反映しない */
   isStale: () => boolean;
-  /** 欄へ反映する。反映した項目数を返す */
-  apply: (fields: DrinkRecognizeFields) => number;
+  /** 欄へ反映する。`marked` は AI 印の付いた欄の数（状態行の N）、`applied` は量・度数を含む反映数 */
+  apply: (fields: DrinkRecognizeFields) => ApplyCount;
   onStatus: (status: DrinkRecognizeStatus, appliedCount: number) => void;
   onOriginCandidate: (value: string | null) => void;
 };
@@ -56,12 +58,15 @@ export async function runDrinkRecognizeFlow(
     deps.onStatus("empty", 0);
     return;
   }
-  let appliedCount = deps.apply(result.fields);
+  const extracted = deps.apply(result.fields);
+  let appliedCount = extracted.marked;
+  // 量・度数だけ入ったときも「読み取れなかった」とは言わない（印は無いが値は変わっている）
+  let anyApplied = extracted.applied > 0;
 
   const afterExtract = deps.snapshot();
   const plan = planDrinkLookup(result, afterExtract.state, deps.touched, afterExtract.marks);
   if (!plan) {
-    deps.onStatus(settledRecognizeStatus(appliedCount), appliedCount);
+    deps.onStatus(settledRecognizeStatus(appliedCount, anyApplied), appliedCount);
     return;
   }
 
@@ -72,12 +77,14 @@ export async function runDrinkRecognizeFlow(
       return;
     }
     if (looked.matched) {
-      appliedCount += deps.apply(looked.fields);
+      const merged = deps.apply(looked.fields);
+      appliedCount += merged.marked;
+      anyApplied ||= merged.applied > 0;
     }
   } catch {
     if (deps.isStale()) {
       return;
     }
   }
-  deps.onStatus(settledRecognizeStatus(appliedCount), appliedCount);
+  deps.onStatus(settledRecognizeStatus(appliedCount, anyApplied), appliedCount);
 }

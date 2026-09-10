@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyRecognizeToLogForm,
+  countMarkedApplied,
   DRINK_LOOKUP_FIELDS,
   DRINK_RECOGNIZE_BANNER,
   drinkRecognizeBannerMessage,
@@ -182,6 +183,31 @@ describe("applyRecognizeToLogForm", () => {
   });
 });
 
+describe("countMarkedApplied", () => {
+  it("状態行の件数は AI 印の付いた欄だけ。量・度数は数えない（品名 + 種類 + 度数で 3 にならない）", () => {
+    const result = applyRecognizeToLogForm({
+      state: initialLogFormState(null, NOW),
+      fields: {
+        drinkName: { value: "PILPIL", confidence: 0.9 },
+        drinkType: { value: "wine", confidence: 0.9 },
+        abvPercent: { value: 12, confidence: 0.8 },
+      },
+      touched: untouched,
+    });
+    expect(result.applied).toEqual(["drinkName", "drinkType", "abvPercent"]);
+    expect(countMarkedApplied(result)).toBe(2);
+    expect(
+      countMarkedApplied(
+        applyRecognizeToLogForm({
+          state: initialLogFormState(null, NOW),
+          fields: { volumeMl: { value: 350, confidence: 0.8 } },
+          touched: untouched,
+        }),
+      ),
+    ).toBe(0);
+  });
+});
+
 describe("pendingDrinkRecognizeFields", () => {
   it("空欄と直前の AI 値の欄だけ「読み取り中」。触った欄・ボトル由来の値は含めない", () => {
     const state = {
@@ -269,6 +295,9 @@ describe("settledRecognizeStatus", () => {
   it("1 件以上なら success、0 件なら empty", () => {
     expect(settledRecognizeStatus(2)).toBe("success");
     expect(settledRecognizeStatus(0)).toBe("empty");
+    // 量・度数だけ入った（AI 印 0 件）ときは「読み取れなかった」ではなく「写真から入れました」
+    expect(settledRecognizeStatus(0, true)).toBe("success");
+    expect(drinkRecognizeBannerMessage("success", 0)).toBe(DRINK_RECOGNIZE_BANNER.success);
   });
 });
 

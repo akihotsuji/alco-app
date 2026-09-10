@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DrinkLookupResponse, DrinkRecognizeResponse } from "@/shared/drink-recognize.ts";
-import { applyRecognizeToLogForm, type DrinkRecognizeTouched } from "./drink-recognize.ts";
+import {
+  applyRecognizeToLogForm,
+  countMarkedApplied,
+  type DrinkRecognizeTouched,
+} from "./drink-recognize.ts";
 import { type DrinkRecognizeFlowDeps, runDrinkRecognizeFlow } from "./drink-recognize-flow.ts";
 import { initialLogFormState, type LogFormState } from "./log-form.ts";
 
@@ -87,7 +91,7 @@ function harness(
         const applied = applyRecognizeToLogForm({ state, fields, touched, marks });
         state = applied.next;
         marks = applied.marks;
-        return applied.applied.length;
+        return { marked: countMarkedApplied(applied), applied: applied.applied.length };
       },
       onStatus: (status, count) => statuses.push([status, count]),
       onOriginCandidate: (value) => candidates.push(value),
