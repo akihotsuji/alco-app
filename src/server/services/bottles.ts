@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
@@ -23,6 +23,8 @@ import type { BottleStatus, DrinkType, PhotoContentType, PhotoKind } from "@/sha
 import { DEFAULT_BOTTLE_STATUS, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
+import { takeLimitPlusOne } from "../lib/keyset-page.ts";
+import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
 type BottleRow = typeof bottles.$inferSelect;
@@ -109,7 +111,7 @@ function cursorError(): ApiError {
   });
 }
 
-function sortAt(row: BottleRow, view: BottleView): number {
+function sortAt(row: { createdAt: Date; consumedAt: Date | null }, view: BottleView): number {
   if (view === "archive") {
     return row.consumedAt?.getTime() ?? 0;
   }
@@ -291,7 +293,7 @@ function attributesFromBody(body: CreateBottleInput | UpdateBottleInput) {
     ...(body.name === undefined ? {} : { name: body.name }),
     ...(body.drinkType === undefined ? {} : { drinkType: body.drinkType }),
     ...(body.producer === undefined ? {} : { producer: normalizeOptionalText(body.producer) }),
-    ...(body.origin === undefined ? {} : { origin: normalizeOptionalText(body.origin) }),
+    ...(body.origin === undefined ? {} : { origin: writtenOrigin(body.origin) ?? null }),
     ...(body.variety === undefined ? {} : { variety: normalizeOptionalText(body.variety) }),
     ...(body.vintage === undefined ? {} : { vintage: body.vintage }),
     ...(body.purchasedOn === undefined ? {} : { purchasedOn: body.purchasedOn }),
@@ -333,7 +335,7 @@ export async function createBottles(input: {
     name: body.name,
     drinkType: body.drinkType,
     producer: normalizeOptionalText(body.producer),
-    origin: normalizeOptionalText(body.origin),
+    origin: writtenOrigin(body.origin) ?? null,
     variety: normalizeOptionalText(body.variety),
     vintage: body.vintage ?? null,
     purchasedOn: body.purchasedOn ?? null,
@@ -519,16 +521,6 @@ export async function listBottles(input: {
     viewConditions.push(eq(bottles.status, status));
   }
 
-  const viewRows = await db
-    .select({ drinkType: bottles.drinkType })
-    .from(bottles)
-    .where(and(...viewConditions));
-
-  const countsByType: CountsByType = emptyCountsByType();
-  for (const row of viewRows) {
-    countsByType[row.drinkType] += 1;
-  }
-
   const itemConditions = [...viewConditions];
   const q = query.q?.trim();
   if (q) {
@@ -541,28 +533,59 @@ export async function listBottles(input: {
     itemConditions.push(eq(bottles.drinkType, query.drinkType));
   }
 
-  const rows = await db
-    .select()
-    .from(bottles)
-    .where(and(...itemConditions))
-    .orderBy(
-      query.view === "archive" ? desc(bottles.consumedAt) : desc(bottles.createdAt),
-      desc(bottles.id),
-    );
-
-  let start = 0;
   if (query.cursor) {
     const cursor = decodeCursor(query.cursor);
-    const cursorIndex = rows.findIndex(
-      (row) => row.id === cursor.id && sortAt(row, query.view) === cursor.at,
-    );
-    if (cursorIndex < 0) {
+    const [anchor] = await db
+      .select({
+        id: bottles.id,
+        createdAt: bottles.createdAt,
+        consumedAt: bottles.consumedAt,
+      })
+      .from(bottles)
+      .where(and(eq(bottles.id, cursor.id), ...viewConditions));
+    if (!anchor || sortAt(anchor, query.view) !== cursor.at) {
       throw cursorError();
     }
-    start = cursorIndex + 1;
+    if (query.view === "archive") {
+      itemConditions.push(
+        sql`(coalesce(${bottles.consumedAt}, 0) < ${cursor.at} or (coalesce(${bottles.consumedAt}, 0) = ${cursor.at} and ${bottles.id} < ${cursor.id}))`,
+      );
+    } else {
+      itemConditions.push(
+        sql`(${bottles.createdAt} < ${cursor.at} or (${bottles.createdAt} = ${cursor.at} and ${bottles.id} < ${cursor.id}))`,
+      );
+    }
   }
 
-  const page = rows.slice(start, start + query.limit);
+  const [totalRow, typeRows, fetched] = await Promise.all([
+    db
+      .select({ n: count() })
+      .from(bottles)
+      .where(and(...viewConditions))
+      .then((rows) => rows[0]),
+    db
+      .select({ drinkType: bottles.drinkType, n: count() })
+      .from(bottles)
+      .where(and(...viewConditions))
+      .groupBy(bottles.drinkType),
+    db
+      .select()
+      .from(bottles)
+      .where(and(...itemConditions))
+      .orderBy(
+        query.view === "archive"
+          ? desc(sql`coalesce(${bottles.consumedAt}, 0)`)
+          : desc(bottles.createdAt),
+        desc(bottles.id),
+      )
+      .limit(query.limit + 1),
+  ]);
+
+  const countsByType: CountsByType = emptyCountsByType();
+  for (const row of typeRows) {
+    countsByType[row.drinkType] += Number(row.n);
+  }
+  const { page, hasMore } = takeLimitPlusOne(fetched, query.limit);
   const photoMap = await photosForBottles(
     db,
     userId,
@@ -571,8 +594,8 @@ export async function listBottles(input: {
   const last = page.at(-1);
   return {
     items: page.map((row) => toBottleItem(row, photoMap.get(row.id) ?? [])),
-    nextCursor: start + page.length < rows.length && last ? encodeCursor(last, query.view) : null,
-    totalCount: viewRows.length,
+    nextCursor: hasMore && last ? encodeCursor(last, query.view) : null,
+    totalCount: Number(totalRow?.n ?? 0),
     countsByType,
   };
 }
@@ -609,7 +632,8 @@ export async function updateBottle(input: {
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
   const patch = {
-    ...attributesFromBody(body),
+    ...attributesFromBody({ ...body, origin: undefined }),
+    ...(body.origin === undefined ? {} : { origin: writtenOrigin(body.origin, current.origin) }),
     updatedAt,
   };
 

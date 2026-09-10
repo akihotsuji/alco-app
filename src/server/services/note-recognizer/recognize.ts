@@ -1,11 +1,17 @@
 import type { AppSqliteDb } from "@/db/index.ts";
+import {
+  NOTE_EXTRACT_PROMPT_VERSION,
+  NOTE_OUTPUT_SCHEMA_VERSION,
+} from "@/shared/ai-recognition.ts";
 import { AI_RECOGNIZE_DAILY_LIMIT, AI_RECOGNIZE_TIMEOUT_MS } from "@/shared/constants.ts";
 import { type NoteRecognizeResponse, parseNoteRecognizePayload } from "@/shared/note-recognize.ts";
 import { ApiError } from "../../errors.ts";
+import { sha256Hex } from "../ai-recognition/bytes.ts";
+import { recognitionCacheKey, withRecognitionCache } from "../ai-recognition/cache.ts";
+import { inspectRecognizeJpeg } from "../ai-recognition/inspect-jpeg.ts";
 import { refundAiUsage, tryConsumeAiUsage } from "../ai-usage.ts";
-import { ImageInspectFailure, inspectImageBytes } from "../image-inspect.ts";
 import type { LabelRecognizer } from "../label-recognizer/index.ts";
-import { RecognizeTimeoutError } from "../label-recognizer/recognize.ts";
+import { withTimeout } from "../label-recognizer/recognize.ts";
 
 export async function recognizeNotePhoto(input: {
   db: AppSqliteDb;
@@ -32,14 +38,27 @@ export async function recognizeNotePhoto(input: {
   let providerMs = 0;
   let parseMs = 0;
   try {
-    const output = await withTimeout(
-      input.recognizer.recognize(input.bytes),
-      input.timeoutMs ?? AI_RECOGNIZE_TIMEOUT_MS,
-    );
-    providerMs = Date.now() - started;
-    const parseStarted = Date.now();
-    const fields = parseNoteRecognizePayload(output);
-    parseMs = Date.now() - parseStarted;
+    const imageHash = await sha256Hex(input.bytes);
+    const key = recognitionCacheKey({
+      userId: input.userId,
+      imageHash,
+      profile: input.recognizer.profile,
+      modelId: input.recognizer.modelId,
+      promptVersion: NOTE_EXTRACT_PROMPT_VERSION,
+      schemaVersion: NOTE_OUTPUT_SCHEMA_VERSION,
+      searchEnabled: false,
+    });
+    const fields = await withRecognitionCache(key, async () => {
+      const output = await withTimeout(
+        input.recognizer.recognize(input.bytes),
+        input.timeoutMs ?? AI_RECOGNIZE_TIMEOUT_MS,
+      );
+      providerMs = Date.now() - started;
+      const parseStarted = Date.now();
+      const parsed = parseNoteRecognizePayload(output);
+      parseMs = Date.now() - parseStarted;
+      return parsed;
+    });
     fieldCount = Object.keys(fields).length;
     ok = true;
     return {
@@ -57,46 +76,5 @@ export async function recognizeNotePhoto(input: {
     console.info(
       `[note-recognize] ok=${ok} durationMs=${Date.now() - started} providerMs=${providerMs} parseMs=${parseMs} fieldCount=${fieldCount}`,
     );
-  }
-}
-
-function inspectRecognizeJpeg(bytes: Uint8Array) {
-  try {
-    const inspected = inspectImageBytes(bytes);
-    if (inspected.contentType !== "image/jpeg") {
-      throw new ApiError("unsupported_media_type");
-    }
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    if (error instanceof ImageInspectFailure) {
-      if (error.code === "payload_too_large") {
-        throw new ApiError("payload_too_large");
-      }
-      if (error.code === "unsupported_media_type") {
-        throw new ApiError("unsupported_media_type");
-      }
-      throw new ApiError("validation_error", {
-        fields: { file: ["画像のサイズが大きすぎます"] },
-      });
-    }
-    throw error;
-  }
-}
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new RecognizeTimeoutError());
-    }, timeoutMs);
-  });
-  try {
-    return await Promise.race([promise, timeout]);
-  } finally {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-    }
   }
 }

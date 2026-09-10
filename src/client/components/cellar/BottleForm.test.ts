@@ -12,7 +12,7 @@ const source = readFileSync(
 
 describe("BottleForm バリデーション表示", () => {
   it("フィールド直下に field-error を出し、保存は canSubmit で無効化する", () => {
-    expect(source).toContain("validateBottleForm(state)");
+    expect(source).toContain("validateBottleForm(state, new Date()");
     expect(source).toContain("canSubmitBottleForm");
     expect(source).toContain("errors.name");
     expect(source).toContain("errors.vintage");
@@ -37,22 +37,22 @@ describe("BottleForm バリデーション表示", () => {
     expect(validateBottleForm(INITIAL_BOTTLE_FORM).name).toBe(BOTTLE_MESSAGES.name);
   });
 
-  it("追加時だけ読み取り帯を出し、AI 印は触ると消える欄に付ける", () => {
-    expect(source).toContain('mode === "new" && recognizeStatus');
+  it("読み取り帯を出し、AI 印は触ると消える欄に付ける", () => {
+    expect(source).toContain("recognizeStatus ? <RecognizeBanner");
     expect(source).toContain("<RecognizeBanner");
     expect(source).toContain("FieldWithAiMark");
     expect(source).toContain("BOTTLE_FIELD_LABELS.name");
-    expect(source).toContain("BOTTLE_FIELD_LABELS.origin");
+    expect(source).toContain("<OriginCountryField");
+    expect(source).toContain('id="bottle-origin"');
     expect(source).toContain("capturedAtToCalendarDate");
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });
 
   it("読み取りは pendingRecognizeJpeg で先に始め、attachment 側は同じ Blob の結果に相乗りする", () => {
-    expect(source).toContain("startLabelRecognition(pendingRecognizeJpeg)");
+    expect(source).toContain("startLabelRecognition(pendingRecognize.jpeg)");
     expect(source).toContain("startLabelRecognition(jpeg)");
     expect(source).not.toContain("recognizeLabel(");
-    expect(source).toContain(
-      'mode !== "new" || !getCellarRecognizePref() || !pendingRecognizeJpeg',
-    );
+    expect(source).toContain("offerMatchesSession(pendingRecognize, session)");
+    expect(source).toContain('mode !== "new" && !attachment?.recognizeJpeg');
   });
 });

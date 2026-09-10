@@ -9,7 +9,10 @@ import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
-import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
+import {
+  usePhotoEdit,
+  usePhotoFormSession,
+} from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { BottlePickerRow, TargetBottleChip } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
@@ -66,6 +69,7 @@ import {
 import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
+import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { startNoteRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
@@ -183,7 +187,10 @@ function NoteNewFields({
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const photoStatus: PhotoSaveStatus = photos.photoStatus;
-  const errors: NoteFormErrors = { ...validateNoteForm(state), ...serverErrors };
+  const errors: NoteFormErrors = {
+    ...validateNoteForm(state, now, { existingOrigin: initial.origin }),
+    ...serverErrors,
+  };
   const visibleErrors = visibleNoteFormErrors(errors, { submitted, touched });
   const canSubmit = canSubmitNoteForm(state, errors, photoStatus);
   const dirty = isNoteFormDirty(state, initial) || photos.items.length > 0;
@@ -327,7 +334,10 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const photoStatus: PhotoSaveStatus = photos.photoStatus;
-  const errors = { ...validateNoteForm(state), ...serverErrors };
+  const errors = {
+    ...validateNoteForm(state, new Date(), { existingOrigin: initial.origin }),
+    ...serverErrors,
+  };
   const visibleErrors = visibleNoteFormErrors(errors, { submitted, touched });
   const dirty = isNoteFormDirty(state, initial) || photos.photosDirty;
   const canSubmit = dirty && canSubmitNoteForm(state, errors, photoStatus) && !deleteNote.isPending;
@@ -497,6 +507,7 @@ function NoteFormFields({
     retryPhoto: (key: string) => Promise<void>;
     removePhoto: (key: string) => Promise<void>;
     makeFirst: (key: string) => void;
+    inheritFrom: (sourcePhotoId: string) => Promise<void>;
   };
   keepPrefillDate?: boolean;
   onUpdate: (patch: Partial<NoteFormState>, field?: NoteFormField) => void;
@@ -506,7 +517,8 @@ function NoteFormFields({
   onDiscard: () => void;
   onCloseDiscard: () => void;
 }) {
-  const { pendingRecognizeJpeg } = usePhotoEdit();
+  const session = usePhotoFormSession("note", null);
+  const { pendingRecognize } = usePhotoEdit();
   const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | "failure" | null>(
     null,
   );
@@ -531,14 +543,17 @@ function NoteFormFields({
   onUpdateRef.current = onUpdate;
 
   useEffect(() => {
-    if (!pendingRecognizeJpeg) {
+    const jpeg = recognizeJpegForForm(undefined, pendingRecognize, session);
+    if (!jpeg) {
       return;
     }
-    startNoteRecognition(pendingRecognizeJpeg).catch(() => {});
-  }, [pendingRecognizeJpeg]);
+    startNoteRecognition(jpeg).catch(() => {});
+  }, [pendingRecognize, session]);
 
   useEffect(() => {
-    const jpeg = latestNoteRecognizeJpeg(photos.items) ?? pendingRecognizeJpeg;
+    const jpeg =
+      latestNoteRecognizeJpeg(photos.items) ??
+      recognizeJpegForForm(undefined, pendingRecognize, session);
     if (!jpeg || recognizedJpegRef.current === jpeg) {
       return;
     }
@@ -571,7 +586,7 @@ function NoteFormFields({
         }
         setRecognizeStatus("failure");
       });
-  }, [pendingRecognizeJpeg, photos.items]);
+  }, [pendingRecognize, photos.items, session]);
 
   useEffect(() => {
     const capturedAt = photos.items.find((item) => item.capturedAt)?.capturedAt;
@@ -668,6 +683,10 @@ function NoteFormFields({
         onSelect={(bottle) => {
           if (bottle) {
             onUpdate(applySelectedBottle(state, bottle, { preserveEdits: true }));
+            const userAdded = photos.items.some((item) => !item.key.startsWith("inherit-"));
+            if (bottle.thumbPhotoId && !userAdded) {
+              void photos.inheritFrom(bottle.thumbPhotoId);
+            }
           } else {
             onUpdate(clearSelectedBottle(state));
           }

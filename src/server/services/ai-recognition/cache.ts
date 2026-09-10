@@ -16,12 +16,12 @@ const TTL_MS = 10 * 60 * 1000;
 const MAX_ENTRIES = 32;
 
 type Entry = {
-  value: DrinkCacheValue;
+  value: unknown;
   expiresAt: number;
 };
 
 const memory = new Map<string, Entry>();
-const inflight = new Map<string, Promise<DrinkCacheValue>>();
+const inflight = new Map<string, Promise<unknown>>();
 
 export function recognitionCacheKey(parts: {
   userId: string;
@@ -43,7 +43,7 @@ export function recognitionCacheKey(parts: {
   ].join("|");
 }
 
-export function getCachedRecognition(key: string): DrinkCacheValue | null {
+export function getCachedRecognition<T = DrinkCacheValue>(key: string): T | null {
   const entry = memory.get(key);
   if (!entry) {
     return null;
@@ -52,10 +52,10 @@ export function getCachedRecognition(key: string): DrinkCacheValue | null {
     memory.delete(key);
     return null;
   }
-  return entry.value;
+  return entry.value as T;
 }
 
-export function setCachedRecognition(key: string, value: DrinkCacheValue): void {
+export function setCachedRecognition<T>(key: string, value: T): void {
   if (memory.size >= MAX_ENTRIES) {
     const first = memory.keys().next().value;
     if (first) {
@@ -65,11 +65,11 @@ export function setCachedRecognition(key: string, value: DrinkCacheValue): void 
   memory.set(key, { value, expiresAt: Date.now() + TTL_MS });
 }
 
-export function getInflightRecognition(key: string): Promise<DrinkCacheValue> | null {
-  return inflight.get(key) ?? null;
+export function getInflightRecognition<T = DrinkCacheValue>(key: string): Promise<T> | null {
+  return (inflight.get(key) as Promise<T> | undefined) ?? null;
 }
 
-export function setInflightRecognition(key: string, promise: Promise<DrinkCacheValue>): void {
+export function setInflightRecognition<T>(key: string, promise: Promise<T>): void {
   inflight.set(key, promise);
   void promise
     .finally(() => {
@@ -78,6 +78,22 @@ export function setInflightRecognition(key: string, promise: Promise<DrinkCacheV
     .catch(() => {
       // 呼び出し側が catch する。ここでは未処理拒否を残さない。
     });
+}
+
+export async function withRecognitionCache<T>(key: string, compute: () => Promise<T>): Promise<T> {
+  const cached = getCachedRecognition<T>(key);
+  if (cached !== null) {
+    return cached;
+  }
+  const pending = getInflightRecognition<T>(key);
+  if (pending) {
+    return pending;
+  }
+  const promise = compute();
+  setInflightRecognition(key, promise);
+  const value = await promise;
+  setCachedRecognition(key, value);
+  return value;
 }
 
 /** テスト用 */

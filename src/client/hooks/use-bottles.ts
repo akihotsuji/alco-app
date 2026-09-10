@@ -66,6 +66,7 @@ export function useBottles(query: BottlesListQuery = {}, enabled = true) {
       view: query.view,
       q: query.q,
       drinkType: query.drinkType,
+      ...(query.limit !== undefined ? { limit: query.limit } : {}),
     }),
     queryFn: () => getBottles(query),
     enabled,

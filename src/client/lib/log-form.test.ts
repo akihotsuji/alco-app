@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DRINK_LOG_MESSAGES, type DrinkLog } from "@/shared/drink-logs.ts";
+import { ORIGIN_MESSAGES } from "@/shared/origin-countries.ts";
 import { ApiClientError } from "./api.ts";
 import {
   applyDrinkType,
@@ -216,6 +217,15 @@ describe("validation", () => {
     ).toBe(false);
   });
 
+  it("生産国は実在国だけ通し、既存不正値の維持は許す", () => {
+    const base = initialLogFormState(null, NOW);
+    expect(validateLogForm({ ...base, origin: "DOCG" }, NOW).origin).toBe(ORIGIN_MESSAGES.invalid);
+    expect(validateLogForm({ ...base, origin: "フランス" }, NOW)).toEqual({});
+    expect(validateLogForm({ ...base, origin: "DOCG" }, NOW, { existingOrigin: "DOCG" })).toEqual(
+      {},
+    );
+  });
+
   it("空の量・度数はエラー文を出さずに保存だけ無効にする", () => {
     const base = { ...initialLogFormState(null, NOW), volumeMl: null };
     expect(validateLogForm(base, NOW)).toEqual({});
@@ -256,6 +266,10 @@ describe("body", () => {
       volumeMl: 125,
       abvPercent: 12,
       drunkAt: NOW.toISOString(),
+      drinkName: null,
+      producer: null,
+      origin: null,
+      variety: null,
       vintage: null,
       memo: "旨い",
       photoIds: ["11111111-1111-4111-8111-111111111111"],
@@ -271,6 +285,10 @@ describe("body", () => {
       volumeMl: 125,
       abvPercent: 12,
       drunkAt: NOW.toISOString(),
+      drinkName: null,
+      producer: null,
+      origin: null,
+      variety: null,
       vintage: null,
     });
     expect(toCreateDrinkLogBody({ ...state, volumeMl: null }, null)).toBeNull();

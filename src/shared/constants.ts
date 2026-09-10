@@ -114,7 +114,10 @@ export const AI_USAGE_RETENTION_DAYS = 30;
 /** ラベル読み取りの日次上限（ユーザー / JST 日）。api-design 4.5.3。env で上書き可 */
 export const AI_RECOGNIZE_DAILY_LIMIT = 30;
 export const AI_RECOGNIZE_TIMEOUT_MS = 20_000;
+/** 未使用だった全体寄り 20s。検索専用予算には使わない */
 export const AI_RECOGNIZE_LOOKUP_TIMEOUT_MS = 20_000;
+/** 商品検索だけの短い予算。切れたら抽出済みを返す */
+export const AI_RECOGNIZE_LOOKUP_BUDGET_MS = 4_000;
 export const AI_RECOGNIZE_OVERALL_TIMEOUT_MS = 40_000;
 export const AI_RECOGNIZE_RETRY_LIMIT = 1;
 /** クライアントが候補を捨てる確度の下限（サーバーは 0〜1 をそのまま返す） */

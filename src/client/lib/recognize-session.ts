@@ -132,3 +132,10 @@ export function startNoteRecognition(
 export function forgetNoteRecognition(jpeg: Blob): void {
   noteSessions.delete(jpeg);
 }
+
+/** 破棄・セッション失効。3 機能の WeakMap から同じ Blob を外す */
+export function forgetAllRecognition(jpeg: Blob): void {
+  forgetLabelRecognition(jpeg);
+  forgetDrinkRecognition(jpeg);
+  forgetNoteRecognition(jpeg);
+}

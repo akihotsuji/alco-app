@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BOTTLE_MESSAGES, type Bottle, DEFAULT_BOTTLE_STORAGE } from "@/shared/bottles.ts";
+import { ORIGIN_MESSAGES } from "@/shared/origin-countries.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiClientError } from "./api.ts";
 import {
@@ -49,6 +50,16 @@ describe("validateBottleForm", () => {
     expect(validateBottleForm({ ...EMPTY, name: "赤", storedOn: "2026-09-07" }, NOW).storedOn).toBe(
       BOTTLE_MESSAGES.storedOnFuture,
     );
+  });
+
+  it("生産国は実在国だけ通し、既存不正値の維持は許す", () => {
+    expect(validateBottleForm({ ...EMPTY, name: "赤", origin: "DOCG" }, NOW).origin).toBe(
+      ORIGIN_MESSAGES.invalid,
+    );
+    expect(validateBottleForm({ ...EMPTY, name: "赤", origin: "フランス" }, NOW)).toEqual({});
+    expect(
+      validateBottleForm({ ...EMPTY, name: "赤", origin: "DOCG" }, NOW, { existingOrigin: "DOCG" }),
+    ).toEqual({});
   });
 });
 

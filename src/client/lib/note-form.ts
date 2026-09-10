@@ -6,6 +6,7 @@ import {
   IDENTITY_MESSAGES,
   IDENTITY_TEXT_MAX_LENGTH,
   normalizeOptionalText,
+  originInputError,
 } from "@/shared/identity.ts";
 import {
   type CreateTastingNoteInput,
@@ -187,7 +188,11 @@ export function bottleRowLabel(name: string, status: BottleStatus | null): strin
   return `${name}（${status === "consumed" ? "貯蔵庫" : "セラー"}）`;
 }
 
-export function validateNoteForm(state: NoteFormState, now: Date = new Date()): NoteFormErrors {
+export function validateNoteForm(
+  state: NoteFormState,
+  now: Date = new Date(),
+  options: { existingOrigin?: string } = {},
+): NoteFormErrors {
   const errors: NoteFormErrors = {};
   if (state.ratingX10 === null || !isValidRatingX10(state.ratingX10)) {
     errors.ratingX10 = TASTING_NOTE_MESSAGES.rating;
@@ -210,9 +215,17 @@ export function validateNoteForm(state: NoteFormState, now: Date = new Date()): 
   if (vintage.length > 0 && !vintageSchema.safeParse(Number(vintage)).success) {
     errors.vintage = TASTING_NOTE_MESSAGES.vintage;
   }
-  for (const key of ["producer", "origin", "variety"] as const) {
+  for (const key of ["producer", "variety"] as const) {
     if (state[key].length > IDENTITY_TEXT_MAX_LENGTH) {
       errors[key] = IDENTITY_MESSAGES.text;
+    }
+  }
+  if (state.origin.length > IDENTITY_TEXT_MAX_LENGTH) {
+    errors.origin = IDENTITY_MESSAGES.text;
+  } else {
+    const originError = originInputError(state.origin, options.existingOrigin);
+    if (originError) {
+      errors.origin = originError;
     }
   }
   for (const key of ["appearance", "aroma", "taste", "finish"] as const) {
@@ -305,27 +318,21 @@ export function toCreateTastingNoteBody(
   };
   if (state.bottleId) {
     body.bottleId = state.bottleId;
-  } else {
-    if (!state.drinkType) {
-      return null;
-    }
-    body.drinkName = state.drinkName.trim();
+  } else if (!state.drinkType) {
+    return null;
+  }
+  if (state.drinkType) {
     body.drinkType = state.drinkType;
+  }
+  const name = state.drinkName.trim();
+  if (name.length > 0) {
+    body.drinkName = name;
   }
   const vintage = state.vintage.trim();
   body.vintage = vintage.length === 0 ? null : Number(vintage);
-  const producer = normalizeOptionalText(state.producer);
-  if (producer) {
-    body.producer = producer;
-  }
-  const origin = normalizeOptionalText(state.origin);
-  if (origin) {
-    body.origin = origin;
-  }
-  const variety = normalizeOptionalText(state.variety);
-  if (variety) {
-    body.variety = variety;
-  }
+  body.producer = normalizeOptionalText(state.producer);
+  body.origin = normalizeOptionalText(state.origin);
+  body.variety = normalizeOptionalText(state.variety);
   const appearance = optionalText(state.appearance);
   const aroma = optionalText(state.aroma);
   const taste = optionalText(state.taste);

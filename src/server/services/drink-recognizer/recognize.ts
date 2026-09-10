@@ -6,18 +6,19 @@ import {
   type RecognizeSource,
   type TokenUsage,
 } from "@/shared/ai-recognition.ts";
-import { AI_RECOGNIZE_DAILY_LIMIT, AI_RECOGNIZE_OVERALL_TIMEOUT_MS } from "@/shared/constants.ts";
+import {
+  AI_RECOGNIZE_DAILY_LIMIT,
+  AI_RECOGNIZE_LOOKUP_BUDGET_MS,
+  AI_RECOGNIZE_OVERALL_TIMEOUT_MS,
+} from "@/shared/constants.ts";
 import type { DrinkRecognizeFields, DrinkRecognizeResponse } from "@/shared/drink-recognize.ts";
 import { ApiError } from "../../errors.ts";
 import type { RecognitionAdapter } from "../ai-recognition/adapter.ts";
 import { sha256Hex } from "../ai-recognition/bytes.ts";
 import {
   type DrinkCacheValue,
-  getCachedRecognition,
-  getInflightRecognition,
   recognitionCacheKey,
-  setCachedRecognition,
-  setInflightRecognition,
+  withRecognitionCache,
 } from "../ai-recognition/cache.ts";
 import { isRecognizerConfigured } from "../ai-recognition/create-recognizer.ts";
 import {
@@ -32,6 +33,7 @@ import {
 } from "../ai-recognition/drink-extract.ts";
 import { summarizeAiError } from "../ai-recognition/error-summary.ts";
 import { createAdapterForProfile } from "../ai-recognition/factory.ts";
+import { inspectRecognizeJpeg } from "../ai-recognition/inspect-jpeg.ts";
 import {
   MODEL_PROFILES,
   type ModelProfile,
@@ -42,7 +44,6 @@ import {
 } from "../ai-recognition/profiles.ts";
 import { mergeUsage, normalizeTokenUsage } from "../ai-recognition/usage.ts";
 import { refundAiUsage, tryConsumeAiUsage } from "../ai-usage.ts";
-import { ImageInspectFailure, inspectImageBytes } from "../image-inspect.ts";
 import type { LabelRecognizer } from "../label-recognizer/index.ts";
 import { RecognizeTimeoutError } from "../label-recognizer/recognize.ts";
 
@@ -129,19 +130,7 @@ async function runDrinkRecognition(input: {
     schemaVersion: DRINK_OUTPUT_SCHEMA_VERSION,
     searchEnabled,
   });
-  const cached = getCachedRecognition(key);
-  if (cached) {
-    return cached;
-  }
-  const pending = getInflightRecognition(key);
-  if (pending) {
-    return pending;
-  }
-  const promise = executeDrinkRecognition(input, profile);
-  setInflightRecognition(key, promise);
-  const value = await promise;
-  setCachedRecognition(key, value);
-  return value;
+  return withRecognitionCache(key, () => executeDrinkRecognition(input, profile));
 }
 
 async function executeDrinkRecognition(
@@ -177,25 +166,33 @@ async function executeDrinkRecognition(
       needsProductLookup(selected.fields);
 
     if (canLookup && input.env && profile) {
+      const lookupMs = Math.min(
+        profile.lookupTimeoutMs ?? AI_RECOGNIZE_LOOKUP_BUDGET_MS,
+        Math.max(1, overallMs),
+      );
+      const lookupController = new AbortController();
+      const lookupTimer = setTimeout(() => lookupController.abort(), lookupMs);
+      const onOverallAbort = () => lookupController.abort();
+      controller.signal.addEventListener("abort", onOverallAbort);
       try {
         const lookup = await runLookup({
           env: input.env,
           profile,
           fields: selected.fields,
-          signal: controller.signal,
+          signal: lookupController.signal,
         });
         usage = mergeUsage(usage, lookup.usage);
         searchUsed = lookup.searchUsed;
         selected = selectDrinkAutofillFields(extract, lookup.parsed);
         sources = selected.sources;
       } catch (error) {
-        if (controller.signal.aborted) {
-          throw new RecognizeTimeoutError();
-        }
         if (error instanceof RecognitionConfigError) {
           throw error;
         }
         console.info("[drink-recognize] lookup_skipped");
+      } finally {
+        clearTimeout(lookupTimer);
+        controller.signal.removeEventListener("abort", onOverallAbort);
       }
     }
 
@@ -257,31 +254,6 @@ async function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T
       signal.addEventListener("abort", () => reject(new RecognizeTimeoutError()), { once: true });
     }),
   ]);
-}
-
-function inspectRecognizeJpeg(bytes: Uint8Array) {
-  try {
-    const inspected = inspectImageBytes(bytes);
-    if (inspected.contentType !== "image/jpeg") {
-      throw new ApiError("unsupported_media_type");
-    }
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    if (error instanceof ImageInspectFailure) {
-      if (error.code === "payload_too_large") {
-        throw new ApiError("payload_too_large");
-      }
-      if (error.code === "unsupported_media_type") {
-        throw new ApiError("unsupported_media_type");
-      }
-      throw new ApiError("validation_error", {
-        fields: { file: ["画像のサイズが大きすぎます"] },
-      });
-    }
-    throw error;
-  }
 }
 
 export function readDailyLimitFromEnv(env: object | undefined): number {

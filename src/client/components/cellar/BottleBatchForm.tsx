@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
+import { OriginCountryField } from "@/client/components/form/OriginCountryField.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
@@ -340,11 +341,9 @@ function BatchRowCard({
             aiMarked={marks.has("producer")}
             onChange={(producer) => onPatch({ producer })}
           />
-          <DetailField
+          <OriginCountryField
             id={`${id}-origin`}
-            label={BOTTLE_FIELD_LABELS.origin}
             value={row.form.origin}
-            maxLength={BOTTLE_TEXT_MAX_LENGTH}
             disabled={disabled}
             error={errors.origin}
             aiMarked={marks.has("origin")}

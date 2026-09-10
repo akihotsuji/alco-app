@@ -33,6 +33,7 @@ export type PickedBottle = {
   producer: string | null;
   origin: string | null;
   variety: string | null;
+  thumbPhotoId: string | null;
 };
 
 type BottlePickerRowProps = {
@@ -183,6 +184,7 @@ export function BottlePickerRow({
                       producer: item.producer,
                       origin: item.origin,
                       variety: item.variety,
+                      thumbPhotoId: item.thumbPhotoId,
                     });
                     setOpen(false);
                     setQ("");
@@ -236,6 +238,7 @@ export function usePrefillBottle(
         producer: query.data.producer,
         origin: query.data.origin,
         variety: query.data.variety,
+        thumbPhotoId: query.data.thumbPhotoId,
       });
     }
     if (query.isError) {

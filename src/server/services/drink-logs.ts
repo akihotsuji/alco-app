@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
 import { drinkLogs, myDrinks, photos } from "@/db/schema.ts";
@@ -26,7 +26,9 @@ import {
   tokyoToday,
 } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
+import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { requireOwnBottle } from "./bottles.ts";
+import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
 type DrinkLogRow = typeof drinkLogs.$inferSelect;
@@ -190,19 +192,28 @@ export async function createDrinkLog(input: {
   let bottleSnap: Awaited<ReturnType<typeof resolveBottle>> | null = null;
 
   const myDrinkId = body.myDrinkId ?? null;
-  if (myDrinkId) {
+  if (myDrinkId && body.drinkName === undefined) {
     drinkName = (await resolveMyDrink(db, userId, myDrinkId)).name;
+  } else if (myDrinkId) {
+    await resolveMyDrink(db, userId, myDrinkId);
   }
 
   const bottleId = body.bottleId ?? null;
   if (bottleId) {
-    // ボトル紐付きは種類と名前をボトルで上書き。量・度数はリクエストが正（api-design 4.3）
     bottleSnap = await resolveBottle(db, userId, bottleId);
-    drinkType = bottleSnap.drinkType;
-    drinkName = bottleSnap.name;
+    if (body.drinkName === undefined) {
+      drinkName = bottleSnap.name;
+    }
+    if (body.drinkType === undefined) {
+      drinkType = bottleSnap.drinkType;
+    }
   }
 
   const identity = resolveIdentityFields(body, bottleSnap);
+  const originWrite = writtenOrigin(body.origin, bottleSnap?.origin);
+  if (originWrite !== undefined) {
+    identity.origin = originWrite;
+  }
   const photoRows = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
 
   const drunkAt = body.drunkAt ? new Date(body.drunkAt) : now;
@@ -283,40 +294,59 @@ export async function listDrinkLogs(input: {
     await resolveBottle(db, userId, query.bottleId);
   }
 
-  const conditions = [eq(drinkLogs.userId, userId)];
+  const filterConditions = [eq(drinkLogs.userId, userId)];
   if (query.date) {
-    conditions.push(eq(drinkLogs.drunkOn, query.date));
+    filterConditions.push(eq(drinkLogs.drunkOn, query.date));
   } else {
     if (query.from) {
-      conditions.push(gte(drinkLogs.drunkOn, query.from));
+      filterConditions.push(gte(drinkLogs.drunkOn, query.from));
     }
     if (query.to) {
-      conditions.push(lte(drinkLogs.drunkOn, query.to));
+      filterConditions.push(lte(drinkLogs.drunkOn, query.to));
     }
   }
   if (query.bottleId) {
-    conditions.push(eq(drinkLogs.bottleId, query.bottleId));
+    filterConditions.push(eq(drinkLogs.bottleId, query.bottleId));
   }
 
-  const rows = await db
-    .select()
-    .from(drinkLogs)
-    .where(and(...conditions))
-    .orderBy(desc(drinkLogs.drunkAt), desc(drinkLogs.id));
-
-  let start = 0;
+  const pageConditions = [...filterConditions];
   if (query.cursor) {
     const cursor = decodeCursor(query.cursor);
-    const cursorIndex = rows.findIndex(
-      (row) => row.id === cursor.id && row.drunkAt.getTime() === cursor.drunkAt,
-    );
-    if (cursorIndex < 0) {
+    const [anchor] = await db
+      .select({ id: drinkLogs.id, drunkAt: drinkLogs.drunkAt })
+      .from(drinkLogs)
+      .where(and(eq(drinkLogs.id, cursor.id), eq(drinkLogs.userId, userId)));
+    if (!anchor || anchor.drunkAt.getTime() !== cursor.drunkAt) {
       throw cursorError();
     }
-    start = cursorIndex + 1;
+    pageConditions.push(
+      sql`(${drinkLogs.drunkAt} < ${cursor.drunkAt} or (${drinkLogs.drunkAt} = ${cursor.drunkAt} and ${drinkLogs.id} < ${cursor.id}))`,
+    );
   }
 
-  const page = rows.slice(start, start + query.limit);
+  const [agg, fetched, anyLog] = await Promise.all([
+    db
+      .select({
+        n: count(),
+        alcohol: sql<number>`coalesce(sum(${drinkLogs.alcoholG}), 0)`,
+      })
+      .from(drinkLogs)
+      .where(and(...filterConditions))
+      .then((rows) => rows[0]),
+    db
+      .select()
+      .from(drinkLogs)
+      .where(and(...pageConditions))
+      .orderBy(desc(drinkLogs.drunkAt), desc(drinkLogs.id))
+      .limit(query.limit + 1),
+    db
+      .select({ id: drinkLogs.id })
+      .from(drinkLogs)
+      .where(eq(drinkLogs.userId, userId))
+      .limit(1)
+      .then((rows) => rows[0]),
+  ]);
+  const { page, hasMore } = takeLimitPlusOne(fetched, query.limit);
   const pageIds = page.map((row) => row.id);
   const photoRows =
     pageIds.length === 0
@@ -333,17 +363,12 @@ export async function listDrinkLogs(input: {
     }
   }
 
-  const [anyLog] = await db
-    .select({ id: drinkLogs.id })
-    .from(drinkLogs)
-    .where(eq(drinkLogs.userId, userId))
-    .limit(1);
   const last = page.at(-1);
   return {
     items: page.map((row) => toDrinkLogItem(row, thumbByLogId.get(row.id) ?? null)),
-    nextCursor: start + page.length < rows.length && last ? encodeCursor(last) : null,
-    totalCount: rows.length,
-    totalAlcoholG: sumAlcoholGrams(rows.map((row) => row.alcoholG)),
+    nextCursor: hasMore && last ? encodeCursor(last) : null,
+    totalCount: Number(agg?.n ?? 0),
+    totalAlcoholG: sumAlcoholGrams([Number(agg?.alcohol ?? 0)]),
     hasAnyLogs: anyLog !== undefined,
   };
 }
@@ -424,18 +449,24 @@ export async function updateDrinkLog(input: {
   let bottleSnap: Awaited<ReturnType<typeof resolveBottle>> | null = null;
   if (body.bottleId) {
     bottleSnap = await resolveBottle(db, userId, body.bottleId);
-    drinkName = bottleSnap.name;
-    drinkType = bottleSnap.drinkType;
+    if (body.drinkName === undefined) {
+      drinkName = bottleSnap.name;
+    }
+    if (body.drinkType === undefined) {
+      drinkType = bottleSnap.drinkType;
+    }
   }
-  const identity = resolveIdentityFields(
-    body,
-    bottleSnap ?? {
-      producer: current.producer,
-      origin: current.origin,
-      variety: current.variety,
-      vintage: current.vintage,
-    },
-  );
+  const identityFallback = bottleSnap ?? {
+    producer: current.producer,
+    origin: current.origin,
+    variety: current.variety,
+    vintage: current.vintage,
+  };
+  const identity = resolveIdentityFields(body, identityFallback);
+  const originWrite = writtenOrigin(body.origin, current.origin);
+  if (originWrite !== undefined) {
+    identity.origin = originWrite;
+  }
 
   const desiredPhotoRows =
     body.photoIds === undefined

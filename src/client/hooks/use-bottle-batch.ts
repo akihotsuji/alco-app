@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router";
 import {
   type PhotoCollectSession,
   usePhotoEdit,
+  usePhotoFormSession,
 } from "@/client/components/layout/photo-edit-context.tsx";
 import { createBottles } from "@/client/hooks/use-bottles.ts";
 import { deletePhoto } from "@/client/hooks/use-photos.ts";
@@ -28,6 +29,7 @@ import { applyRecognizeToForm, countRecognizeFields } from "@/client/lib/label-r
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
 import { type ImagePickSource, pickImages } from "@/client/lib/photo/pick-image.ts";
 import { processCellarFile, takeFilesForBatch } from "@/client/lib/photo/process-file.ts";
+import { offerMatchesSession } from "@/client/lib/photo-recognize-offer.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
@@ -45,13 +47,9 @@ export type BatchSubmitResult = {
 export function useBottleBatch(autoCapture: boolean) {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const {
-    startCapture,
-    editFromBlob,
-    retryCollectedUpload,
-    pendingRecognizeJpeg,
-    ingestCollected,
-  } = usePhotoEdit();
+  const session = usePhotoFormSession("cellar", "batch");
+  const { startCapture, editFromBlob, retryCollectedUpload, pendingRecognize, ingestCollected } =
+    usePhotoEdit();
   const [rows, setRows] = useState<BottleBatchRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [libraryProgress, setLibraryProgress] = useState<{ current: number; total: number } | null>(
@@ -148,11 +146,11 @@ export function useBottleBatch(autoCapture: boolean) {
 
   // 「使う」直後、切り抜き・アップロードを待たずに読み取りを始める（Issue #48 D-1）
   useEffect(() => {
-    if (!getCellarRecognizePref() || !pendingRecognizeJpeg) {
+    if (!getCellarRecognizePref() || !offerMatchesSession(pendingRecognize, session)) {
       return;
     }
-    startLabelRecognition(pendingRecognizeJpeg).catch(() => {});
-  }, [pendingRecognizeJpeg]);
+    startLabelRecognition(pendingRecognize.jpeg).catch(() => {});
+  }, [pendingRecognize, session]);
 
   // 行ごとのラベル読み取り（04-cellar G7）。設定 OFF なら呼ばない
   useEffect(() => {

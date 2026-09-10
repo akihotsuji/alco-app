@@ -221,6 +221,37 @@ describe("POST /api/bottles", () => {
     expect(f.priceJpy).toEqual([BOTTLE_MESSAGES.priceJpy]);
   });
 
+  it("生産国の不正値は 400。France はフランス。既存不正値は無関係な PATCH で残す", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const invalid = await postBottle(ctx.app, a.cookie, { ...BASE, origin: "DOCG" });
+    expect(invalid.status).toBe(400);
+    expect((await fields(invalid)).origin).toBeDefined();
+
+    const created = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { ...BASE, origin: "France" })).json(),
+    );
+    expect(created.items[0]?.origin).toBe("フランス");
+
+    const now = new Date();
+    const staleId = crypto.randomUUID();
+    await ctx.db.insert(bottles).values({
+      id: staleId,
+      userId: a.userId,
+      name: "旧レコード",
+      drinkType: "wine",
+      origin: "DOCG",
+      status: "sealed",
+      createdAt: now,
+      updatedAt: now,
+    });
+    const kept = bottleSchema.parse(
+      await (await patchBottle(ctx.app, a.cookie, staleId, { name: "改名だけ" })).json(),
+    );
+    expect(kept.origin).toBe("DOCG");
+    expect(kept.name).toBe("改名だけ");
+  });
+
   it("未来の購入日は 400。同名は許可する", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");

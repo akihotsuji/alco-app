@@ -16,8 +16,14 @@ import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.t
 import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
 import { processLogFile } from "@/client/lib/photo/process-file.ts";
+import type {
+  PhotoEditContextKind,
+  PhotoFormSession,
+  PhotoRecognizeOffer,
+} from "@/client/lib/photo-recognize-offer.ts";
+import { forgetAllRecognition } from "@/client/lib/recognize-session.ts";
 
-export type PhotoEditContextKind = "log" | "cellar" | "note";
+export type { PhotoEditContextKind, PhotoFormSession, PhotoRecognizeOffer };
 
 export type PhotoAttachment = {
   previewUrl: string;
@@ -26,6 +32,7 @@ export type PhotoAttachment = {
   status: "uploading" | "ready" | "error";
   recognizeJpeg?: Blob;
   capturedAt?: string;
+  sessionId?: string;
 };
 
 /**
@@ -69,14 +76,19 @@ type PhotoEditValue = {
   /**
    * セラーで「使う」直後、切り抜きを待たずに渡す読み取り用 JPEG。
    * 呼び出し側（`bottle-new` / `bottle-batch`）はこれでラベル読み取りを先に始め、
-   * `attachments.cellar.recognizeJpeg` と同じ Blob なので結果は 1 リクエストにまとまる
+   * `attachments.cellar.recognizeJpeg` と同じ Blob なので結果は 1 リクエストにまとまる。
+   * 適用前に `pendingRecognize` のセッション一致を見る。
    */
   pendingRecognizeJpeg: Blob | null;
+  pendingRecognize: PhotoRecognizeOffer | null;
   burstActive: boolean;
   collectedCount: number;
   canCollectMore: () => boolean;
-  /** `photo-edit` が読み取り用 JPEG を作った時点で呼ぶ */
-  offerRecognizeJpeg: (jpeg: Blob) => void;
+  registerFormSession: (session: PhotoFormSession) => void;
+  unregisterFormSession: (kind: PhotoEditContextKind, sessionId: string) => void;
+  discardRecognize: (kind: PhotoEditContextKind) => void;
+  /** `photo-edit` が読み取り用 JPEG を作った時点で呼ぶ。`offerKind` 省略時は開いている overlay の kind */
+  offerRecognizeJpeg: (jpeg: Blob, offerKind?: PhotoEditContextKind) => void;
   /** 撮影またはライブラリ選択を始める。OS 側をキャンセルすると何も起きない。`intent` を渡すと「使う」で続きの処理を行う */
   startCapture: (kind: PhotoEditContextKind, options?: StartCaptureOptions) => Promise<void>;
   retake: (source?: ImagePickSource) => Promise<void>;
@@ -115,9 +127,13 @@ const PhotoEditContext = createContext<PhotoEditValue>({
   decodeError: null,
   attachments: {},
   pendingRecognizeJpeg: null,
+  pendingRecognize: null,
   burstActive: false,
   collectedCount: 0,
   canCollectMore: () => false,
+  registerFormSession: () => {},
+  unregisterFormSession: () => {},
+  discardRecognize: () => {},
   offerRecognizeJpeg: () => {},
   startCapture: async () => {},
   retake: async () => {},
@@ -158,7 +174,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const [attachments, setAttachments] = useState<
     Partial<Record<PhotoEditContextKind, PhotoAttachment>>
   >({});
-  const [pendingRecognizeJpeg, setPendingRecognizeJpeg] = useState<Blob | null>(null);
+  const [pendingRecognize, setPendingRecognize] = useState<PhotoRecognizeOffer | null>(null);
   const [collectedCount, setCollectedCount] = useState(0);
   const [burstActive, setBurstActive] = useState(false);
   // 「使う」まで持ち越す意図。閉じる・戻る・キャンセルで必ず捨てる（空の入力画面を開かないため）
@@ -168,36 +184,135 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const capturedAtRef = useRef<string | undefined>(undefined);
   const logIngestTokenRef = useRef(0);
   const ingestLogPhotoRef = useRef<(file: File) => Promise<void>>(async () => {});
+  const kindRef = useRef(kind);
+  kindRef.current = kind;
+  const formSessionsRef = useRef<Partial<Record<PhotoEditContextKind, PhotoFormSession>>>({});
+  const generationRef = useRef<Record<PhotoEditContextKind, number>>({
+    log: 0,
+    cellar: 0,
+    note: 0,
+  });
+  const pendingRecognizeJpeg = pendingRecognize?.jpeg ?? null;
 
   const canCollectMore = useCallback(() => burstRef.current?.canCollectMore() ?? false, []);
+
+  const forgetOffer = useCallback((offer: PhotoRecognizeOffer | null) => {
+    if (offer) {
+      forgetAllRecognition(offer.jpeg);
+    }
+  }, []);
+
+  const discardRecognize = useCallback((targetKind: PhotoEditContextKind) => {
+    setPendingRecognize((offer) => {
+      if (offer?.kind === targetKind) {
+        forgetAllRecognition(offer.jpeg);
+        return null;
+      }
+      return offer;
+    });
+    if (targetKind === "log") {
+      logIngestTokenRef.current += 1;
+    }
+    generationRef.current[targetKind] += 1;
+  }, []);
+
+  const registerFormSession = useCallback((session: PhotoFormSession) => {
+    formSessionsRef.current[session.kind] = session;
+    setAttachments((current) => {
+      const existing = current[session.kind];
+      if (!existing) {
+        return current;
+      }
+      if (existing.sessionId === session.sessionId) {
+        return current;
+      }
+      if (existing.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(existing.previewUrl);
+      }
+      if (existing.recognizeJpeg) {
+        forgetAllRecognition(existing.recognizeJpeg);
+      }
+      const next = { ...current };
+      delete next[session.kind];
+      return next;
+    });
+    setPendingRecognize((offer) => {
+      if (offer && offer.kind === session.kind && offer.sessionId !== session.sessionId) {
+        forgetAllRecognition(offer.jpeg);
+        return null;
+      }
+      return offer;
+    });
+  }, []);
+
+  const unregisterFormSession = useCallback(
+    (targetKind: PhotoEditContextKind, sessionId: string) => {
+      const current = formSessionsRef.current[targetKind];
+      if (current?.sessionId !== sessionId) {
+        return;
+      }
+      delete formSessionsRef.current[targetKind];
+      setPendingRecognize((offer) => {
+        if (offer && offer.kind === targetKind && offer.sessionId === sessionId) {
+          forgetAllRecognition(offer.jpeg);
+          return null;
+        }
+        return offer;
+      });
+      if (targetKind === "log") {
+        logIngestTokenRef.current += 1;
+      }
+      generationRef.current[targetKind] += 1;
+    },
+    [],
+  );
 
   useEffect(() => {
     const onPop = () => {
       intentRef.current = null;
       collectRef.current = null;
       burstRef.current = null;
-      setPendingRecognizeJpeg(null);
+      setPendingRecognize((offer) => {
+        forgetOffer(offer);
+        return null;
+      });
       setCollectedCount(0);
       setBurstActive(false);
       setOpen(false);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  }, [forgetOffer]);
 
   const closeOverlay = useCallback(() => {
     intentRef.current = null;
     collectRef.current = null;
     burstRef.current = null;
-    setPendingRecognizeJpeg(null);
+    setPendingRecognize((offer) => {
+      forgetOffer(offer);
+      return null;
+    });
     setCollectedCount(0);
     setBurstActive(false);
     setOpen(false);
     setDecodeError(null);
-  }, []);
+  }, [forgetOffer]);
 
-  const offerRecognizeJpeg = useCallback((jpeg: Blob) => {
-    setPendingRecognizeJpeg(jpeg);
+  const offerRecognizeJpeg = useCallback((jpeg: Blob, offerKind?: PhotoEditContextKind) => {
+    const targetKind = offerKind ?? kindRef.current;
+    const session = formSessionsRef.current[targetKind];
+    generationRef.current[targetKind] += 1;
+    setPendingRecognize((previous) => {
+      if (previous && previous.jpeg !== jpeg) {
+        forgetAllRecognition(previous.jpeg);
+      }
+      return {
+        jpeg,
+        kind: targetKind,
+        sessionId: session?.sessionId ?? "",
+        generation: generationRef.current[targetKind],
+      };
+    });
   }, []);
 
   const closePhotoEdit = useCallback(() => {
@@ -295,6 +410,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
             status: "uploading",
             recognizeJpeg: processed.recognizeJpeg,
             capturedAt: processed.capturedAt ?? capturedAtRef.current,
+            sessionId: formSessionsRef.current[targetKind]?.sessionId,
           },
         };
       });
@@ -357,8 +473,8 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       const burst = burstRef.current;
       const keepOpen = options?.keepOpen === true && burst !== null;
       collectRef.current = keepOpen && burst ? burst.nextCollect() : null;
-      // 読み取り用 JPEG は attachment 側へ移る
-      setPendingRecognizeJpeg(null);
+      // 読み取り用 JPEG は attachment 側へ移る。同じ Blob の WeakMap は残す
+      setPendingRecognize(null);
       const withCapture: ProcessedPhoto = {
         ...processed,
         capturedAt: processed.capturedAt ?? capturedAtRef.current,
@@ -423,7 +539,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       const token = logIngestTokenRef.current + 1;
       logIngestTokenRef.current = token;
       try {
-        const processed = await processLogFile(file, offerRecognizeJpeg);
+        const processed = await processLogFile(file, (jpeg) => offerRecognizeJpeg(jpeg, "log"));
         if (logIngestTokenRef.current !== token) {
           URL.revokeObjectURL(processed.previewUrl);
           return;
@@ -448,39 +564,55 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
   const clearAttachment = useCallback(
     async (targetKind: PhotoEditContextKind) => {
-      const current = attachments[targetKind];
-      if (!current) {
-        return;
-      }
-      if (current.photoId) {
-        try {
-          await deletePhoto(current.photoId);
-        } catch {
-          // 破棄に失敗してもローカルは消す。残党は 24h GC
+      const current = attachmentsRef.current[targetKind];
+      discardRecognize(targetKind);
+      if (current) {
+        if (current.recognizeJpeg) {
+          forgetAllRecognition(current.recognizeJpeg);
         }
+        if (current.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(current.previewUrl);
+        }
+        setAttachments((value) => {
+          const existing = value[targetKind];
+          if (!existing || existing.previewUrl !== current.previewUrl) {
+            return value;
+          }
+          const next = { ...value };
+          delete next[targetKind];
+          return next;
+        });
       }
-      URL.revokeObjectURL(current.previewUrl);
+      if (current?.photoId) {
+        void deletePhoto(current.photoId).catch(() => {
+          // 残党は 24h GC
+        });
+      }
+    },
+    [discardRecognize],
+  );
+
+  const releaseAttachment = useCallback(
+    (targetKind: PhotoEditContextKind) => {
+      discardRecognize(targetKind);
       setAttachments((value) => {
+        const current = value[targetKind];
+        if (!current) {
+          return value;
+        }
+        if (current.recognizeJpeg) {
+          forgetAllRecognition(current.recognizeJpeg);
+        }
+        if (current.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(current.previewUrl);
+        }
         const next = { ...value };
         delete next[targetKind];
         return next;
       });
     },
-    [attachments],
+    [discardRecognize],
   );
-
-  const releaseAttachment = useCallback((targetKind: PhotoEditContextKind) => {
-    setAttachments((value) => {
-      const current = value[targetKind];
-      if (!current) {
-        return value;
-      }
-      URL.revokeObjectURL(current.previewUrl);
-      const next = { ...value };
-      delete next[targetKind];
-      return next;
-    });
-  }, []);
 
   const editAttachment = useCallback(
     async (targetKind: PhotoEditContextKind) => {
@@ -532,6 +664,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
             blob: new Blob(),
             photoId: null,
             status: "uploading",
+            sessionId: formSessionsRef.current[targetKind]?.sessionId,
           },
         };
       });
@@ -550,6 +683,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
               blob: copied.blob,
               photoId: copied.meta.id,
               status: "ready",
+              sessionId: existing.sessionId ?? formSessionsRef.current[targetKind]?.sessionId,
             },
           };
         });
@@ -563,6 +697,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
           delete next[targetKind];
           return next;
         });
+        throw new Error("photo_copy_failed");
       }
     },
     [],
@@ -591,9 +726,13 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       decodeError,
       attachments,
       pendingRecognizeJpeg,
+      pendingRecognize,
       burstActive,
       collectedCount,
       canCollectMore,
+      registerFormSession,
+      unregisterFormSession,
+      discardRecognize,
       offerRecognizeJpeg,
       startCapture,
       retake,
@@ -616,9 +755,13 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       decodeError,
       attachments,
       pendingRecognizeJpeg,
+      pendingRecognize,
       burstActive,
       collectedCount,
       canCollectMore,
+      registerFormSession,
+      unregisterFormSession,
+      discardRecognize,
       offerRecognizeJpeg,
       startCapture,
       retake,
@@ -641,4 +784,22 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
 export function usePhotoEdit(): PhotoEditValue {
   return useContext(PhotoEditContext);
+}
+
+/** フォーム mount でセッションを登録し、unmount で pending を失効する */
+export function usePhotoFormSession(
+  kind: PhotoEditContextKind,
+  recordId: string | null = null,
+): PhotoFormSession {
+  const { registerFormSession, unregisterFormSession } = usePhotoEdit();
+  const sessionIdRef = useRef(crypto.randomUUID());
+  const session = useMemo<PhotoFormSession>(
+    () => ({ sessionId: sessionIdRef.current, kind, recordId }),
+    [kind, recordId],
+  );
+  useEffect(() => {
+    registerFormSession(session);
+    return () => unregisterFormSession(kind, session.sessionId);
+  }, [kind, registerFormSession, session, unregisterFormSession]);
+  return session;
 }

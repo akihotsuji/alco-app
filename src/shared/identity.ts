@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ORIGIN_MESSAGES, resolveWritableOrigin } from "./origin-countries.ts";
 
 /**
  * 記録・ノート・セラーで共通の識別項目。
@@ -54,6 +55,12 @@ export type IdentitySnapshot = {
 
 export function emptyIdentity(): IdentitySnapshot {
   return { producer: null, origin: null, variety: null, vintage: null };
+}
+
+/** 手入力の生産国エラー。既存不正値を変えていなければ通す */
+export function originInputError(raw: string, current?: string | null): string | undefined {
+  const resolved = resolveWritableOrigin(raw.length === 0 ? null : raw, current);
+  return resolved.status === "invalid" ? ORIGIN_MESSAGES.invalid : undefined;
 }
 
 /** ボディにあれば採用、省略時はボトル（または null） */

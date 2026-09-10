@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DrinkLog } from "@/shared/drink-logs.ts";
+import { ORIGIN_MESSAGES } from "@/shared/origin-countries.ts";
 import { TASTING_NOTE_MESSAGES } from "@/shared/tasting-notes.ts";
 import {
   applySelectedBottle,
@@ -66,10 +67,23 @@ describe("validateNoteForm / canSubmitNoteForm", () => {
     };
     expect(validateNoteForm(state, NOW).tastedOn).toBe(TASTING_NOTE_MESSAGES.tastedOnFuture);
   });
+
+  it("生産国は実在国だけ通し、既存不正値の維持は許す", () => {
+    const state = {
+      ...initialNoteFormState(NOW),
+      drinkName: "赤",
+      drinkType: "wine" as const,
+      ratingX10: 40,
+      origin: "DOCG",
+    };
+    expect(validateNoteForm(state, NOW).origin).toBe(ORIGIN_MESSAGES.invalid);
+    expect(validateNoteForm({ ...state, origin: "フランス" }, NOW)).toEqual({});
+    expect(validateNoteForm(state, NOW, { existingOrigin: "DOCG" }).origin).toBeUndefined();
+  });
 });
 
 describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
-  it("ボトルありでは銘柄を送らず、一言は taste に入る", () => {
+  it("ボトルありでもフォームの品名・種類をスナップショットし、一言は taste に入る", () => {
     const state = applySelectedBottle(initialNoteFormState(NOW), {
       id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       name: "棚の赤",
@@ -85,12 +99,16 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
     ]);
     expect(body).toMatchObject({
       bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      drinkName: "棚の赤",
+      drinkType: "wine",
       vintage: 2019,
+      origin: null,
+      producer: null,
+      variety: null,
       ratingX10: 40,
       taste: "酸がきれい",
       photoIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
     });
-    expect(body && "drinkName" in body).toBe(false);
   });
 
   it("PATCH は変えた欄とボトル解除だけ送る", () => {

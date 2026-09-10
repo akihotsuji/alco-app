@@ -254,7 +254,7 @@ describe("POST /api/drink-logs", () => {
     expect(row?.drinkLogId).toBeNull();
   });
 
-  it("ボトル紐付きは種類と名前をボトルで上書きし、他人・不明は 404", async () => {
+  it("ボトル紐付きは未指定の品名だけボトル名にし、明示した種類は残す。他人・不明は 404", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
     const b = await session(ctx.app, "b@example.com");
@@ -265,15 +265,27 @@ describe("POST /api/drink-logs", () => {
     expect(own.status).toBe(201);
     const body = drinkLogSchema.parse(await own.json());
     expect(body.bottleId).toBe(OWN_BOTTLE);
-    expect(body.drinkType).toBe("beer");
+    expect(body.drinkType).toBe("wine");
     expect(body.drinkName).toBe("サンプル赤");
     expect(body.volumeMl).toBe(125);
+
+    const snapped = drinkLogSchema.parse(
+      await (
+        await postLog(ctx.app, a.cookie, {
+          ...BASE,
+          bottleId: OWN_BOTTLE,
+          drinkName: "手入力赤",
+        })
+      ).json(),
+    );
+    expect(snapped.drinkName).toBe("手入力赤");
+    expect(snapped.drinkType).toBe("wine");
 
     const other = await postLog(ctx.app, a.cookie, { ...BASE, bottleId: OTHER_BOTTLE });
     expect(other.status).toBe(404);
     const missing = await postLog(ctx.app, a.cookie, { ...BASE, bottleId: MISSING });
     expect(missing.status).toBe(404);
-    expect(await ctx.db.select().from(drinkLogs)).toHaveLength(1);
+    expect(await ctx.db.select().from(drinkLogs)).toHaveLength(2);
   });
 
   it("myDrinkId は名前だけコピーし、量・度数・種類はリクエストが正。他人は 404", async () => {
@@ -385,6 +397,44 @@ describe("POST /api/drink-logs", () => {
     expect(overridden.producer).toBe("手の生産者");
     expect(overridden.origin).toBe("イタリア");
     expect(overridden.vintage).toBe(2020);
+  });
+
+  it("生産国の不正値は 400。既存不正値は無関係な PATCH で残す", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const invalid = await postLog(ctx.app, a.cookie, { ...BASE, origin: "DOCG" });
+    expect(invalid.status).toBe(400);
+    expect((await fields(invalid)).origin).toBeDefined();
+
+    const created = drinkLogSchema.parse(
+      await (await postLog(ctx.app, a.cookie, { ...BASE, origin: "France" })).json(),
+    );
+    expect(created.origin).toBe("フランス");
+
+    const now = new Date();
+    const staleId = crypto.randomUUID();
+    await ctx.db.insert(drinkLogs).values({
+      id: staleId,
+      userId: a.userId,
+      drunkAt: now,
+      drunkOn: tokyoToday(now),
+      drinkType: "wine",
+      drinkName: null,
+      producer: null,
+      origin: "DOCG",
+      variety: null,
+      vintage: null,
+      volumeMl: 125,
+      abvPercent: 12,
+      alcoholG: 12,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const kept = drinkLogSchema.parse(
+      await (await patchLog(ctx.app, a.cookie, staleId, { memo: "メモだけ" })).json(),
+    );
+    expect(kept.origin).toBe("DOCG");
+    expect(kept.memo).toBe("メモだけ");
   });
 });
 

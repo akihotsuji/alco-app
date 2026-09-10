@@ -8,9 +8,10 @@ import {
   type PhotoSubject,
   type RecognizeSource,
 } from "@/shared/ai-recognition.ts";
-import { DRINK_TYPES } from "@/shared/constants.ts";
+import { DRINK_TYPES, isWineFamily } from "@/shared/constants.ts";
 import { type DrinkRecognizeFields, pickDrinkRecognizeFields } from "@/shared/drink-recognize.ts";
 import { extractModelPayload } from "@/shared/label-recognize.ts";
+import { normalizeOriginToJa } from "@/shared/origin-countries.ts";
 import { countryFromVerifiedAppellation } from "@/shared/verified-origin.ts";
 import { normalizeTokenUsage } from "./usage.ts";
 
@@ -245,7 +246,10 @@ function coerceLooseExtractSource(payload: unknown): Record<string, unknown> {
       typeof source.origin === "string" &&
       source.origin.trim()
     ) {
-      next.printedOrigin = { value: source.origin.trim() };
+      const ja = normalizeOriginToJa(source.origin);
+      if (ja) {
+        next.printedOrigin = { value: ja };
+      }
     }
     if (
       !readText(next, "printedVariety") &&
@@ -382,11 +386,28 @@ export function selectDrinkAutofillFields(
   const mapped = extract.appellation ? countryFromVerifiedAppellation(extract.appellation) : null;
   let originEvidence = extract.originEvidence;
   if (extract.printedOrigin) {
-    originEvidence = "label";
-    fields.origin = { value: extract.printedOrigin, confidence: 0.9 };
+    const ja = normalizeOriginToJa(extract.printedOrigin);
+    if (ja) {
+      originEvidence = "label";
+      fields.origin = { value: ja, confidence: 0.9 };
+    } else {
+      delete fields.origin;
+    }
   } else if (mapped) {
-    originEvidence = "verified_origin";
-    fields.origin = { value: mapped, confidence: 0.85 };
+    const ja = normalizeOriginToJa(mapped);
+    if (ja) {
+      originEvidence = "verified_origin";
+      fields.origin = { value: ja, confidence: 0.85 };
+    } else {
+      delete fields.origin;
+    }
+  } else if (fields.origin) {
+    const ja = normalizeOriginToJa(fields.origin.value);
+    if (ja) {
+      fields.origin = { ...fields.origin, value: ja };
+    } else {
+      delete fields.origin;
+    }
   }
   if (!fields.origin || !canAutofillOrigin(originEvidence)) {
     delete fields.origin;
@@ -404,10 +425,13 @@ export function selectDrinkAutofillFields(
   const sources: RecognizeSource[] = [];
   if (lookup?.matched) {
     if (!fields.origin && lookup.origin) {
-      fields.origin = { value: lookup.origin, confidence: 0.8 };
-      sources.push(
-        ...lookup.sources.filter((item) => (item.supports ?? ["origin"]).includes("origin")),
-      );
+      const ja = normalizeOriginToJa(lookup.origin);
+      if (ja) {
+        fields.origin = { value: ja, confidence: 0.8 };
+        sources.push(
+          ...lookup.sources.filter((item) => (item.supports ?? ["origin"]).includes("origin")),
+        );
+      }
     }
     if (!fields.variety && lookup.variety) {
       fields.variety = { value: lookup.variety, confidence: 0.8 };
@@ -422,5 +446,12 @@ export function selectDrinkAutofillFields(
 
 export function needsProductLookup(fields: DrinkRecognizeFields): boolean {
   const named = Boolean(fields.drinkName?.value.trim() && fields.producer?.value.trim());
-  return named && (!fields.origin || !fields.variety);
+  if (!named) {
+    return false;
+  }
+  if (!fields.origin) {
+    return true;
+  }
+  const drinkType = fields.drinkType?.value;
+  return Boolean(drinkType && isWineFamily(drinkType) && !fields.variety);
 }

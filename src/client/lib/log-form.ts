@@ -22,6 +22,7 @@ import {
   IDENTITY_MESSAGES,
   IDENTITY_TEXT_MAX_LENGTH,
   normalizeOptionalText,
+  originInputError,
   vintageSchema,
 } from "@/shared/identity.ts";
 import { PLACE_MESSAGES, placeCoordsArePaired } from "@/shared/place.ts";
@@ -267,7 +268,11 @@ export function formatDrunkAtLabel(drunkAt: string, now: Date): string {
 }
 
 /** クライアント側の即時判定。サーバーの 400 が最終判定 */
-export function validateLogForm(state: LogFormState, now: Date): LogFormErrors {
+export function validateLogForm(
+  state: LogFormState,
+  now: Date,
+  options: { existingOrigin?: string } = {},
+): LogFormErrors {
   const errors: LogFormErrors = {};
   if (state.volumeMl !== null && !volumeMlSchema.safeParse(state.volumeMl).success) {
     errors.volumeMl = DRINK_LOG_MESSAGES.volumeMl;
@@ -290,9 +295,17 @@ export function validateLogForm(state: LogFormState, now: Date): LogFormErrors {
   if (state.drinkName.length > DRINK_NAME_MAX_LENGTH) {
     errors.drinkName = DRINK_LOG_MESSAGES.drinkName;
   }
-  for (const key of ["producer", "origin", "variety"] as const) {
+  for (const key of ["producer", "variety"] as const) {
     if (state[key].length > IDENTITY_TEXT_MAX_LENGTH) {
       errors[key] = IDENTITY_MESSAGES.text;
+    }
+  }
+  if (state.origin.length > IDENTITY_TEXT_MAX_LENGTH) {
+    errors.origin = IDENTITY_MESSAGES.text;
+  } else {
+    const originError = originInputError(state.origin, options.existingOrigin);
+    if (originError) {
+      errors.origin = originError;
     }
   }
   const vintage = state.vintage.trim();
@@ -398,22 +411,10 @@ export function toCreateDrinkLogBody(
   if (state.bottleId) {
     body.bottleId = state.bottleId;
   }
-  const drinkName = normalizeOptionalText(state.drinkName);
-  if (drinkName) {
-    body.drinkName = drinkName;
-  }
-  const producer = normalizeOptionalText(state.producer);
-  if (producer) {
-    body.producer = producer;
-  }
-  const origin = normalizeOptionalText(state.origin);
-  if (origin) {
-    body.origin = origin;
-  }
-  const variety = normalizeOptionalText(state.variety);
-  if (variety) {
-    body.variety = variety;
-  }
+  body.drinkName = normalizeOptionalText(state.drinkName);
+  body.producer = normalizeOptionalText(state.producer);
+  body.origin = normalizeOptionalText(state.origin);
+  body.variety = normalizeOptionalText(state.variety);
   const vintage = state.vintage.trim();
   body.vintage = vintage.length === 0 ? null : Number(vintage);
   const placeName = normalizeOptionalText(state.placeName);

@@ -1,6 +1,7 @@
 import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
+import { OriginCountryField } from "@/client/components/form/OriginCountryField.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { IDENTITY_FIELD_LABELS, IDENTITY_TEXT_MAX_LENGTH } from "@/shared/identity.ts";
 
@@ -60,11 +61,9 @@ export function IdentityFields({
         aiMarked={aiMarks?.has("producer") ?? false}
         onChange={(value) => onChange("producer", value)}
       />
-      <IdentityInput
+      <OriginCountryField
         id={`${idPrefix}-origin`}
-        label={IDENTITY_FIELD_LABELS.origin}
         value={values.origin}
-        maxLength={IDENTITY_TEXT_MAX_LENGTH}
         error={errors?.origin}
         aiMarked={aiMarks?.has("origin") ?? false}
         onChange={(value) => onChange("origin", value)}

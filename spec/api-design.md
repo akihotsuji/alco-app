@@ -443,12 +443,12 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | abvPercent | 必須 | 0〜100、小数第 1 位。**0 は可** |
 | memo | 任意 | 空は null |
 | myDrinkId | 任意 | 自分の ID のみ。他人・不明は 404。量・度数・種類はリクエストが正。`drinkName` はプリセット名をコピーする。量をサーバーに上書きさせない 1 タップは 4.4 |
-| drinkName | 任意 | ≦100。ボトルありではサーバーがボトル名で上書き |
-| producer / origin / variety | 任意 | ≦100。ボトルありではボディがあれば採用、省略時はボトルからコピー |
+| drinkName | 任意 | ≦100。ボトルありでもキーがあればスナップショット。省略時だけボトル名 |
+| producer / origin / variety | 任意 | ≦100。ボトルありではボディがあれば採用、省略時はボトルからコピー。`origin` は実在国の日本語名 |
 | vintage | 任意 | 1800〜2100 または null。ボトルありではボディがあれば採用、省略時はボトルからコピー |
 | placeName | 任意 | ≦100 |
 | placeLat / placeLng | 任意 | **両方揃える**。片方だけは 400。範囲 lat −90〜90、lng −180〜180 |
-| bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404。`drinkName` にボトル名、`drinkType` はボトルの種類で上書き（1-07） |
+| bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404。`drinkName` / `drinkType` は明示されていればスナップショット。未指定だけボトル現在値（1-07） |
 | photoIds | 任意 | 自分の **未紐付け**写真 id。最大 1。他人・紐付け済み・不明は 404。同一トランザクションで `drink_log_id` をセット（1-07） |
 
 通常の POST で `myDrinkId` を付けるのは「どのプリセットから始めたか」の記録用。1 タップ（サーバーコピー）とは別経路。`myDrinkId` と `bottleId` の同時指定は可（`drinkName` はボトル名が優先）。
@@ -463,7 +463,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 
 送ったフィールドだけ更新。`drunkAt` を変えたら `drunkOn` を再計算。`volumeMl` / `abvPercent` を変えたら `alcoholG` を再計算。
 
-`myDrinkId` を後から付けても、量・度数・種類は送られた値（または既存値）が正。プリセットの再コピーはしない。`bottleId` を変えたら `drinkName` を新しいボトル名で上書き、null にしたら `drinkName` は残す。`photoIds` は差し替え（送った id の集合にする。外れた写真は削除 = R2 も消す）。
+`myDrinkId` を後から付けても、量・度数・種類は送られた値（または既存値）が正。プリセットの再コピーはしない。`bottleId` を変えたとき、`drinkName` / `drinkType` が未指定なら新しいボトルからコピーする。明示されていればスナップショットを残す。null にしたら `drinkName` は残す。`photoIds` は差し替え（送った id の集合にする。外れた写真は削除 = R2 も消す）。
 
 #### DELETE /api/drink-logs/:id
 
@@ -662,7 +662,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | フィールド | 必須 | 備考 |
 |---|---|---|
 | bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404 |
-| drinkName | `bottleId` なしのとき必須 | ボトルありのときは**送っても無視**し、サーバーがボトルからコピー |
+| drinkName | `bottleId` なしのとき必須 | ボトルありでもキーがあればスナップショット。省略時だけボトルからコピー |
 | drinkType | `bottleId` なしのとき必須 | 同上 |
 | vintage | 任意 | 1800〜2100 または null。ボディがあれば採用、省略時はボトルからコピー（作成時） |
 | producer / origin / variety | 任意 | ≦100。ボディがあれば採用、省略時はボトルからコピー（作成時） |
@@ -679,7 +679,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 ノート写真（ラベル / グラス / 缶 / 瓶）から **品名・種類・識別 4 項目の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` および `POST /api/drink-logs/recognize` と **同じ 30 回 / 日（JST）** を共有する。`/:id` より **先に登録**する。`max_tokens` は 500 程度。
 
-`multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。
+`multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。出力上限はプロファイル（Llama は 500 程度）。
 
 ```json
 {
