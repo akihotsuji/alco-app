@@ -17,8 +17,8 @@ import {
   type TastingNotesResponse,
   type UpdateTastingNoteInput,
 } from "@/shared/tasting-notes.ts";
-import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { ApiError } from "../errors.ts";
+import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { requireOwnBottle } from "./bottles.ts";
 import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";

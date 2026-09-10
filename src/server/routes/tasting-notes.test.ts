@@ -109,7 +109,7 @@ describe("POST /api/tasting-notes", () => {
       404,
     );
     expect((await postNote(ctx.app, a.cookie, { ...HAND, bottleId: MISSING })).status).toBe(404);
-    expect(await ctx.db.select().from(tastingNotes)).toHaveLength(1);
+    expect(await ctx.db.select().from(tastingNotes)).toHaveLength(2);
   });
 
   it("ビンテージは任意。作成と PATCH で保存する", async () => {

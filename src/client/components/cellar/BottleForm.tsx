@@ -232,7 +232,7 @@ export function BottleFormFields({
       return;
     }
     startLabelRecognition(pendingRecognize.jpeg).catch(() => {});
-  }, [mode, pendingRecognize, session]);
+  }, [pendingRecognize, session]);
 
   useEffect(() => {
     if (!getCellarRecognizePref()) {

@@ -16,7 +16,7 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain('label="この行を外す"');
     expect(source).toContain("RECOGNIZE_BANNER[row.recognize]");
     expect(source).toContain('label="生産者"');
-    expect(source).toContain("BOTTLE_FIELD_LABELS.origin");
+    expect(source).toContain("<OriginCountryField");
     expect(source).toContain("BOTTLE_FIELD_LABELS.name");
     expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
     expect(source).toContain("BOTTLE_FIELD_LABELS.variety");

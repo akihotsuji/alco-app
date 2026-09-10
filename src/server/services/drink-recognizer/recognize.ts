@@ -20,7 +20,6 @@ import {
   recognitionCacheKey,
   withRecognitionCache,
 } from "../ai-recognition/cache.ts";
-import { inspectRecognizeJpeg } from "../ai-recognition/inspect-jpeg.ts";
 import { isRecognizerConfigured } from "../ai-recognition/create-recognizer.ts";
 import {
   DRINK_LOOKUP_GEMINI_SCHEMA,
@@ -34,6 +33,7 @@ import {
 } from "../ai-recognition/drink-extract.ts";
 import { summarizeAiError } from "../ai-recognition/error-summary.ts";
 import { createAdapterForProfile } from "../ai-recognition/factory.ts";
+import { inspectRecognizeJpeg } from "../ai-recognition/inspect-jpeg.ts";
 import {
   MODEL_PROFILES,
   type ModelProfile,

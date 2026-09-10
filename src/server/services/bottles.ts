@@ -22,10 +22,10 @@ import {
 import type { BottleStatus, DrinkType, PhotoContentType, PhotoKind } from "@/shared/constants.ts";
 import { DEFAULT_BOTTLE_STATUS, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
-import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { ApiError } from "../errors.ts";
-import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
+import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { writtenOrigin } from "./origin-write.ts";
+import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
 type BottleRow = typeof bottles.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
@@ -111,7 +111,7 @@ function cursorError(): ApiError {
   });
 }
 
-function sortAt(row: BottleRow, view: BottleView): number {
+function sortAt(row: { createdAt: Date; consumedAt: Date | null }, view: BottleView): number {
   if (view === "archive") {
     return row.consumedAt?.getTime() ?? 0;
   }

@@ -29,9 +29,9 @@ describe("offerMatchesSession", () => {
         session,
       ),
     ).toBe(false);
-    expect(offerMatchesSession({ jpeg: jpegA, kind: "log", sessionId: "", generation: 1 }, session)).toBe(
-      false,
-    );
+    expect(
+      offerMatchesSession({ jpeg: jpegA, kind: "log", sessionId: "", generation: 1 }, session),
+    ).toBe(false);
     expect(offerMatchesSession(null, session)).toBe(false);
   });
 });

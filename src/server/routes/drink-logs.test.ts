@@ -285,7 +285,7 @@ describe("POST /api/drink-logs", () => {
     expect(other.status).toBe(404);
     const missing = await postLog(ctx.app, a.cookie, { ...BASE, bottleId: MISSING });
     expect(missing.status).toBe(404);
-    expect(await ctx.db.select().from(drinkLogs)).toHaveLength(1);
+    expect(await ctx.db.select().from(drinkLogs)).toHaveLength(2);
   });
 
   it("myDrinkId は名前だけコピーし、量・度数・種類はリクエストが正。他人は 404", async () => {

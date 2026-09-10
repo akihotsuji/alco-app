@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
@@ -156,14 +156,17 @@ export function LogNewForm() {
   const inheritSourceRef = useRef<string | null>(null);
   const [inheritError, setInheritError] = useState<string | null>(null);
 
-  function inheritBottlePhoto(sourceId: string) {
-    inheritSourceRef.current = sourceId;
-    inheritedPhoto.current = true;
-    setInheritError(null);
-    void inheritOwnedPhoto("log", sourceId).catch(() => {
-      setInheritError(PHOTO_COPY_FAILED_MESSAGE);
-    });
-  }
+  const inheritBottlePhoto = useCallback(
+    (sourceId: string) => {
+      inheritSourceRef.current = sourceId;
+      inheritedPhoto.current = true;
+      setInheritError(null);
+      void inheritOwnedPhoto("log", sourceId).catch(() => {
+        setInheritError(PHOTO_COPY_FAILED_MESSAGE);
+      });
+    },
+    [inheritOwnedPhoto],
+  );
   useEffect(() => {
     if (!staleCleared || inheritedPhoto.current || isPhotoHandoff(location.state)) {
       return;
@@ -179,7 +182,7 @@ export function LogNewForm() {
   }, [
     attachments.log,
     bottleQuery.data?.photos,
-    inheritOwnedPhoto,
+    inheritBottlePhoto,
     location.state,
     queryBottleId,
     staleCleared,

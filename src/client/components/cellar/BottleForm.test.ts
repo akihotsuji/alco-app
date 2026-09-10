@@ -12,7 +12,7 @@ const source = readFileSync(
 
 describe("BottleForm バリデーション表示", () => {
   it("フィールド直下に field-error を出し、保存は canSubmit で無効化する", () => {
-    expect(source).toContain("validateBottleForm(state)");
+    expect(source).toContain("validateBottleForm(state, new Date()");
     expect(source).toContain("canSubmitBottleForm");
     expect(source).toContain("errors.name");
     expect(source).toContain("errors.vintage");
@@ -42,7 +42,8 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain("<RecognizeBanner");
     expect(source).toContain("FieldWithAiMark");
     expect(source).toContain("BOTTLE_FIELD_LABELS.name");
-    expect(source).toContain("BOTTLE_FIELD_LABELS.origin");
+    expect(source).toContain("<OriginCountryField");
+    expect(source).toContain('id="bottle-origin"');
     expect(source).toContain("capturedAtToCalendarDate");
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });

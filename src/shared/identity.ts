@@ -58,10 +58,7 @@ export function emptyIdentity(): IdentitySnapshot {
 }
 
 /** 手入力の生産国エラー。既存不正値を変えていなければ通す */
-export function originInputError(
-  raw: string,
-  current?: string | null,
-): string | undefined {
+export function originInputError(raw: string, current?: string | null): string | undefined {
   const resolved = resolveWritableOrigin(raw.length === 0 ? null : raw, current);
   return resolved.status === "invalid" ? ORIGIN_MESSAGES.invalid : undefined;
 }

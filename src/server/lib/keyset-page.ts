@@ -1,8 +1,11 @@
-import { sql, type SQL } from "drizzle-orm";
 import type { AnyColumn } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 
 /** limit+1 件からページと続き有無を切る */
-export function takeLimitPlusOne<T>(rows: readonly T[], limit: number): {
+export function takeLimitPlusOne<T>(
+  rows: readonly T[],
+  limit: number,
+): {
   page: T[];
   hasMore: boolean;
 } {

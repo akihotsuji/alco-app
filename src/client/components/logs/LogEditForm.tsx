@@ -32,6 +32,7 @@ import {
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
+import { PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
 import {
   applyRecognizeToLogForm,
   countDrinkRecognizeFields,
@@ -56,7 +57,6 @@ import {
   validateLogForm,
   visibleLogFormErrors,
 } from "@/client/lib/log-form.ts";
-import { PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
@@ -403,7 +403,12 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
             void inheritOwnedPhoto("log", bottle.thumbPhotoId).catch(() => {
               setInheritError(PHOTO_COPY_FAILED_MESSAGE);
             });
-          } else if (!bottle?.thumbPhotoId && attachment && !attachment.recognizeJpeg && !existingPhotoId) {
+          } else if (
+            !bottle?.thumbPhotoId &&
+            attachment &&
+            !attachment.recognizeJpeg &&
+            !existingPhotoId
+          ) {
             void clearAttachment("log");
           }
           setServerErrors({});

@@ -25,7 +25,9 @@ describe("pickRecognizeFields", () => {
       variety: { value: "カベルネ", confidence: 0.8 },
       abvPercent: { value: 13.6, confidence: 0.4 },
     });
-    expect(pickRecognizeFields({ origin: { value: "DOCG", confidence: 0.9 } }).origin).toBeUndefined();
+    expect(
+      pickRecognizeFields({ origin: { value: "DOCG", confidence: 0.9 } }).origin,
+    ).toBeUndefined();
     expect(pickRecognizeFields({ origin: { value: "France", confidence: 0.9 } }).origin).toEqual({
       value: "フランス",
       confidence: 0.9,

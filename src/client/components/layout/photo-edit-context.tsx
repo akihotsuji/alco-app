@@ -16,10 +16,10 @@ import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.t
 import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
 import { processLogFile } from "@/client/lib/photo/process-file.ts";
-import {
-  type PhotoEditContextKind,
-  type PhotoFormSession,
-  type PhotoRecognizeOffer,
+import type {
+  PhotoEditContextKind,
+  PhotoFormSession,
+  PhotoRecognizeOffer,
 } from "@/client/lib/photo-recognize-offer.ts";
 import { forgetAllRecognition } from "@/client/lib/recognize-session.ts";
 
@@ -202,22 +202,19 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const discardRecognize = useCallback(
-    (targetKind: PhotoEditContextKind) => {
-      setPendingRecognize((offer) => {
-        if (offer?.kind === targetKind) {
-          forgetAllRecognition(offer.jpeg);
-          return null;
-        }
-        return offer;
-      });
-      if (targetKind === "log") {
-        logIngestTokenRef.current += 1;
+  const discardRecognize = useCallback((targetKind: PhotoEditContextKind) => {
+    setPendingRecognize((offer) => {
+      if (offer?.kind === targetKind) {
+        forgetAllRecognition(offer.jpeg);
+        return null;
       }
-      generationRef.current[targetKind] += 1;
-    },
-    [],
-  );
+      return offer;
+    });
+    if (targetKind === "log") {
+      logIngestTokenRef.current += 1;
+    }
+    generationRef.current[targetKind] += 1;
+  }, []);
 
   const registerFormSession = useCallback((session: PhotoFormSession) => {
     formSessionsRef.current[session.kind] = session;
@@ -248,24 +245,27 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const unregisterFormSession = useCallback((targetKind: PhotoEditContextKind, sessionId: string) => {
-    const current = formSessionsRef.current[targetKind];
-    if (current?.sessionId !== sessionId) {
-      return;
-    }
-    delete formSessionsRef.current[targetKind];
-    setPendingRecognize((offer) => {
-      if (offer && offer.kind === targetKind && offer.sessionId === sessionId) {
-        forgetAllRecognition(offer.jpeg);
-        return null;
+  const unregisterFormSession = useCallback(
+    (targetKind: PhotoEditContextKind, sessionId: string) => {
+      const current = formSessionsRef.current[targetKind];
+      if (current?.sessionId !== sessionId) {
+        return;
       }
-      return offer;
-    });
-    if (targetKind === "log") {
-      logIngestTokenRef.current += 1;
-    }
-    generationRef.current[targetKind] += 1;
-  }, []);
+      delete formSessionsRef.current[targetKind];
+      setPendingRecognize((offer) => {
+        if (offer && offer.kind === targetKind && offer.sessionId === sessionId) {
+          forgetAllRecognition(offer.jpeg);
+          return null;
+        }
+        return offer;
+      });
+      if (targetKind === "log") {
+        logIngestTokenRef.current += 1;
+      }
+      generationRef.current[targetKind] += 1;
+    },
+    [],
+  );
 
   useEffect(() => {
     const onPop = () => {
@@ -562,51 +562,57 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
   ingestLogPhotoRef.current = ingestLogPhoto;
 
-  const clearAttachment = useCallback(async (targetKind: PhotoEditContextKind) => {
-    const current = attachmentsRef.current[targetKind];
-    discardRecognize(targetKind);
-    if (current) {
-      if (current.recognizeJpeg) {
-        forgetAllRecognition(current.recognizeJpeg);
+  const clearAttachment = useCallback(
+    async (targetKind: PhotoEditContextKind) => {
+      const current = attachmentsRef.current[targetKind];
+      discardRecognize(targetKind);
+      if (current) {
+        if (current.recognizeJpeg) {
+          forgetAllRecognition(current.recognizeJpeg);
+        }
+        if (current.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(current.previewUrl);
+        }
+        setAttachments((value) => {
+          const existing = value[targetKind];
+          if (!existing || existing.previewUrl !== current.previewUrl) {
+            return value;
+          }
+          const next = { ...value };
+          delete next[targetKind];
+          return next;
+        });
       }
-      if (current.previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(current.previewUrl);
+      if (current?.photoId) {
+        void deletePhoto(current.photoId).catch(() => {
+          // 残党は 24h GC
+        });
       }
+    },
+    [discardRecognize],
+  );
+
+  const releaseAttachment = useCallback(
+    (targetKind: PhotoEditContextKind) => {
+      discardRecognize(targetKind);
       setAttachments((value) => {
-        const existing = value[targetKind];
-        if (!existing || existing.previewUrl !== current.previewUrl) {
+        const current = value[targetKind];
+        if (!current) {
           return value;
+        }
+        if (current.recognizeJpeg) {
+          forgetAllRecognition(current.recognizeJpeg);
+        }
+        if (current.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(current.previewUrl);
         }
         const next = { ...value };
         delete next[targetKind];
         return next;
       });
-    }
-    if (current?.photoId) {
-      void deletePhoto(current.photoId).catch(() => {
-        // 残党は 24h GC
-      });
-    }
-  }, [discardRecognize]);
-
-  const releaseAttachment = useCallback((targetKind: PhotoEditContextKind) => {
-    discardRecognize(targetKind);
-    setAttachments((value) => {
-      const current = value[targetKind];
-      if (!current) {
-        return value;
-      }
-      if (current.recognizeJpeg) {
-        forgetAllRecognition(current.recognizeJpeg);
-      }
-      if (current.previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(current.previewUrl);
-      }
-      const next = { ...value };
-      delete next[targetKind];
-      return next;
-    });
-  }, [discardRecognize]);
+    },
+    [discardRecognize],
+  );
 
   const editAttachment = useCallback(
     async (targetKind: PhotoEditContextKind) => {
