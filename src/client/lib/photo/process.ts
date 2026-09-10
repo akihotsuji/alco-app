@@ -1,4 +1,8 @@
-import { PHOTO_CUTOUT_MASK_CACHE_SIZE, type PhotoMascotPose } from "@/shared/constants.ts";
+import {
+  PHOTO_CUTOUT_MASK_CACHE_SIZE,
+  PHOTO_RECOGNIZE_LONG_EDGE,
+  type PhotoMascotPose,
+} from "@/shared/constants.ts";
 import { composeMascot } from "./compose-mascot.ts";
 import { cropResize } from "./crop-resize.ts";
 import { createSharedSegmentation } from "./cutout-cache.ts";
@@ -52,6 +56,19 @@ export type ProcessPhotoInput = PhotoEditParams & {
    */
   onRecognizeJpeg?: (jpeg: Blob) => void;
 };
+
+/**
+ * 認識用 JPEG。表示用より小さい長辺（`PHOTO_RECOGNIZE_LONG_EDGE`）に落として
+ * 入力トークンと転送量を減らす（spec/features/ai-recognition.md 9）。既に小さければそのまま
+ */
+export function toRecognizeJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
+  const size = fitToLongEdge(canvas.width, canvas.height, PHOTO_RECOGNIZE_LONG_EDGE);
+  const source =
+    size.width === canvas.width && size.height === canvas.height
+      ? canvas
+      : resizeKeepAspect(canvas, canvas.width, canvas.height, size);
+  return toJpegBlobWithinLimit(source);
+}
 
 export type ProcessedPhoto = {
   blob: Blob;
@@ -231,7 +248,7 @@ export async function processLogPhoto(input: {
 }): Promise<ProcessedPhoto> {
   const output = fitToLongEdge(input.sourceWidth, input.sourceHeight);
   const full = resizeKeepAspect(input.source, input.sourceWidth, input.sourceHeight, output);
-  const recognizeJpeg = await toJpegBlobWithinLimit(full);
+  const recognizeJpeg = await toRecognizeJpeg(full);
   input.onRecognizeJpeg?.(recognizeJpeg);
   let canvas = full;
   if (input.mascotOn) {
@@ -264,7 +281,7 @@ export async function processPhoto(input: ProcessPhotoInput): Promise<ProcessedP
     return processCellarPhoto(input, prepared);
   }
 
-  const recognizeJpeg = await toJpegBlob(prepared.cropped);
+  const recognizeJpeg = await toRecognizeJpeg(prepared.cropped);
   input.onRecognizeJpeg?.(recognizeJpeg);
   let canvas = prepared.cropped;
   if (input.mascotOn) {
@@ -279,11 +296,11 @@ async function processCellarPhoto(
   prepared: PreparedPhoto,
 ): Promise<ProcessedPhoto> {
   const started = performance.now();
-  const recognizeJpeg = await toJpegBlob(prepared.cropped);
+  const recognizeJpeg = await toRecognizeJpeg(prepared.cropped);
   input.onRecognizeJpeg?.(recognizeJpeg);
 
   const fallback = async (cutout: CutoutOutcome): Promise<ProcessedPhoto> => {
-    const blob = recognizeJpeg;
+    const blob = await toJpegBlob(prepared.cropped);
     return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg, cutout };
   };
 
