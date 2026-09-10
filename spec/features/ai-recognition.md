@@ -5,12 +5,12 @@
 
 ## 1. 方針
 
-- 酒記録の写真補完は **Cloudflare AI Gateway の Unified Billing** 経由で外部モデルを呼ぶ。初期採用は **Gemini 3.7 Flash**。2026-09-10 から既定は **Gemini 3.5 Flash-Lite**（速度優先。§15 案 B。3.7 Flash は env で戻せる）
+- 酒記録の写真補完は **Cloudflare AI Gateway の Unified Billing** 経由で外部モデルを呼ぶ。既定は **Gemini 3.7 Flash**。2026-09-10 に 3.5 Flash-Lite（§15 案 B）を試したが実写真の認識品質が不十分で同日 3.7 Flash に戻した。Flash-Lite プロファイルは env で選べる形で残す
 - 対応済みモデル同士は、業務コードやフロントを変えず **サーバー側設定だけ**で切り替える
 - クライアントからモデル名・接続先・プロンプトは指定できない
 - 自動フォールバック（別モデルへ）は初期実装では無効。障害時は手入力を続け、運営が設定を戻して復旧する
 - 背景除去サービスは対象外
-- 記録・セラー・ノートの既定は同じ **Gemini 3.5 Flash-Lite**。3.7 Flash / Llama プロファイルは残し、env で戻せる
+- 記録・セラー・ノートの既定は同じ **Gemini 3.7 Flash**。3.5 Flash-Lite / Llama プロファイルは残し、env で切り替えられる
 - モデル ID を揃えることと解析パイプラインを揃えることは別。セラー・ノートは単段のまま（商品照合なし）
 - 記録は **二段階**（§7a）。抽出結果を先に返して欄を埋め、商品照合（検索）は別リクエストで国・品種だけ後追いする
 
@@ -28,14 +28,14 @@
 
 | 種別 | 値 |
 |---|---|
-| Cloudflare カタログ ID | `google/gemini-3.5-flash-lite`（定数 `GEMINI_35_FLASH_LITE_MODEL_ID`）。3.7 Flash は `google/gemini-3.7-flash`（`GEMINI_37_FLASH_MODEL_ID`） |
-| Google 原生 ID | `gemini-3.5-flash-lite` / `gemini-3.7-flash`（`*_NATIVE_ID`。混同しない） |
+| Cloudflare カタログ ID | `google/gemini-3.7-flash`（定数 `GEMINI_37_FLASH_MODEL_ID`）。3.5 Flash-Lite は `google/gemini-3.5-flash-lite`（`GEMINI_35_FLASH_LITE_MODEL_ID`） |
+| Google 原生 ID | `gemini-3.7-flash` / `gemini-3.5-flash-lite`（`*_NATIVE_ID`。混同しない） |
 | 呼び出し | 既存 binding `env.AI.run(modelId, body, { gateway: { id } })` |
 | 課金 | AI Gateway Unified Billing。追加の Google API キーは不要 |
 | 画像抽出 | 公式 `env.AI.run` 例どおり Generate Content（`contents` / `parts`）。画像は Image Understanding と同じ `inlineData` |
 | 構造化 | Gemini `responseMimeType` + `responseSchema`。平坦な JSON（文字列・数値だけ）も業務層で `{ value, confidence }` に直す。Llama の `guided_json` は流用しない |
 | 検索 | `tools: [{ googleSearch: {} }]`。プロファイルが `supportsSearch` のときだけ送る |
-| 思考量 | プロファイルの `thinkingLevel` を `thinkingConfig.thinkingLevel` に送る。3.5 Flash-Lite は `minimal`（抽出向き。既定でもある）。3.7 Flash が受け付けるのは `low` / `medium` / `high` のみで、`minimal` は 400（Gateway `7003: User Input Error`）になる |
+| 思考量 | プロファイルの `thinkingLevel` を `thinkingConfig.thinkingLevel` に送る。3.7 Flash（既定）は `low`。3.5 Flash-Lite は `minimal`。3.7 Flash が受け付けるのは `low` / `medium` / `high` のみで、`minimal` は 400（Gateway `7003: User Input Error`）になる |
 | 出力上限 | 抽出 JSON は数百トークンなので `maxOutputTokens` は Flash-Lite 1024 / 3.7 Flash 2048（思考トークンを含み得るため 3.7 は余裕を持つ）。照合は 1536。`finishReason=MAX_TOKENS` が出たら `[drink-recognize] parse` で分かる |
 | 検証区分 | Gemini プロファイルは `mock-only`。Llama は既存本番経路 `production-llama` |
 
@@ -47,9 +47,9 @@
 
 | キー | 既定 | 意味 |
 |---|---|---|
-| `AI_RECOGNITION_PROFILE` | `gemini-3.5-flash-lite` | 酒記録（抽出と照合の両方） |
-| `AI_LABEL_RECOGNITION_PROFILE` | `gemini-3.5-flash-lite` | セラー |
-| `AI_NOTE_RECOGNITION_PROFILE` | `gemini-3.5-flash-lite` | ノート |
+| `AI_RECOGNITION_PROFILE` | `gemini-3.7-flash` | 酒記録（抽出と照合の両方） |
+| `AI_LABEL_RECOGNITION_PROFILE` | `gemini-3.7-flash` | セラー |
+| `AI_NOTE_RECOGNITION_PROFILE` | `gemini-3.7-flash` | ノート |
 | `AI_GATEWAY_ID` | `default` | AI Gateway の ID |
 | `AI_GATEWAY_COLLECT_LOG` | `0` | `1` / `true` のときだけ Gateway 本文ログを取る。既定は取らない |
 | `AI_RECOGNIZE_DAILY_LIMIT` | `30` | ユーザー / JST 日のアプリ側上限。無制限化しない |
@@ -171,7 +171,7 @@
 2. `wrangler deploy --env dev` または本番 vars を更新して再デプロイ
 3. ローカルは `.dev.vars` または `wrangler.jsonc` の `vars`
 
-3.7 Flash へ戻す: 対象タスクのキーを `gemini-3.7-flash` にする。以前の Llama へ戻す: `workers-ai-llama`（3機能とも戻すなら 3 キー）
+Flash-Lite を試す: 対象タスクのキーを `gemini-3.5-flash-lite` にする。以前の Llama へ戻す: `workers-ai-llama`（3機能とも戻すなら 3 キー）
 
 新しいモデルを足す手順:
 
@@ -192,14 +192,14 @@
 
 ## 13. 未検証
 
-- Gemini 3.5 Flash-Lite の実 API（画像抽出の精度・実測レイテンシ。3.7 Flash と同じ Generate Content 形式で `env.AI.run` 例が公式にある）
+- Gemini 3.5 Flash-Lite の実測レイテンシの記録（品質不足は本番で確認済み。§15.3）
 - Gemini 3.7 Flash の実 API（検索 grounding・実測レイテンシ / 料金。画像抽出は本番でクレジット不足のあと `ok=true fieldCount=0` を確認済み）
 - 同じ実写真 30 枚での現行 Llama との品質比較
 - Unified Billing のクレジット残高と Gateway 支出上限の実機確認
 
 ## 14. 切り分け（認識 502）
 
-- 既定では記録・セラー・ノートとも Gemini（3.5 Flash-Lite）を `gateway.id` 経由で呼ぶ。Llama に戻した経路だけ Gateway なし
+- 既定では記録・セラー・ノートとも Gemini（3.7 Flash）を `gateway.id` 経由で呼ぶ。Llama に戻した経路だけ Gateway なし
 - 照合は `[drink-lookup] ok= durationMs= matched= profile= reason=` に出る（抽出とは別行）
 - Gateway にリクエストは届きトークン 0 なら、モデル実行前の失敗（課金・形式・認可）
 - 切り分けは Workers Logs の `[drink-recognize]` / `[recognize]` / `[note-recognize]`。クライアントは `upstream_error` だけ
@@ -225,11 +225,12 @@
 - 変更点: `/api/logs/recognize` を `phase=extract|lookup` に分けるか、抽出結果を返した後に `lookup` を追加呼び出し。§8 の上書き規則（触った欄は守る）はそのまま
 - 追加コスト: 無し（呼び出し回数は同じ）。フォームの「読み取り中」ピルは国・品種だけ第 2 段まで残す
 
-### 15.3 案 B: 抽出モデルを Gemini 3.5 Flash-Lite にする（採用済み。既定を切替。3.7 Flash は env で戻せる）
+### 15.3 案 B: 抽出モデルを Gemini 3.5 Flash-Lite にする（試行後に不採用。2026-09-10 に既定を切り替えたが実写真の認識品質が不十分で同日 3.7 Flash に戻した。プロファイルは env で選べる形で残す）
 
 - 公開ベンチ（商品写真の構造化抽出）で 3.5 Flash-Lite ≈ 1.5 秒 / 3.7 Flash ≈ 3.0 秒。料金 $0.30 / $2.50（1M トークン。3.7 Flash は $0.75 / $3.75）
 - Priority 推論にも対応。プロファイル追加だけで済む（§11 の手順）
-- リスク: 小さい文字・手書き・光沢ラベルでの読み落ちが増える可能性。実写真 30 枚で 3.7 Flash と比較してから既定を変える
+- リスク: 小さい文字・手書き・光沢ラベルでの読み落ちが増える可能性
+- 結果: 実写真で品名・生産者の読み落ちが目立ち、速度の利点を打ち消した。既定には使わない
 
 ### 15.4 案 C: Gemini Priority 推論（`service_tier: "priority"`）
 
@@ -260,4 +261,4 @@
 
 ### 15.8 推奨順と状況
 
-A（二段階）→ F（小調整）→ E-2（候補チップ）→ B（Flash-Lite）まで実施。実写真での 3.7 Flash との比較（§13）はこれから。必要なら C。D は予備。
+A（二段階）→ F（小調整）→ E-2（候補チップ）を採用。B（Flash-Lite）は試して品質不足のため既定には不採用（プロファイルのみ残す）。次の候補は C（Priority 推論）。D は予備。
