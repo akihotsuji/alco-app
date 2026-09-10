@@ -21,10 +21,7 @@ export const BIRTH_ON_PART_MAX_LENGTH: Record<keyof BirthOnParts, number> = {
 
 /** 全角数字を半角にし、数字以外を落として桁数で切る */
 export function sanitizeBirthOnPart(part: keyof BirthOnParts, raw: string): string {
-  return raw
-    .normalize("NFKC")
-    .replace(/\D+/g, "")
-    .slice(0, BIRTH_ON_PART_MAX_LENGTH[part]);
+  return raw.normalize("NFKC").replace(/\D+/g, "").slice(0, BIRTH_ON_PART_MAX_LENGTH[part]);
 }
 
 /** 打ち終わったら次の欄へ移す（年は 4 桁、月・日は 2 桁、または 1 桁でも 4〜9 / 4〜9 なら確定） */

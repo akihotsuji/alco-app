@@ -10,8 +10,8 @@ import { useMe } from "@/client/hooks/use-me.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import {
   BIRTH_ON_PART_MAX_LENGTH,
-  birthOnPartsLookComplete,
   type BirthOnParts,
+  birthOnPartsLookComplete,
   composeBirthOn,
   EMPTY_BIRTH_ON_PARTS,
   sanitizeBirthOnPart,
@@ -168,7 +168,7 @@ export function AgePage() {
         <legend className="birth-on-legend">生年月日</legend>
         <div className="birth-on-row">
           {PART_ORDER.map((part) => (
-            <label key={part} className={`birth-on-part birth-on-part-${part}`}>
+            <div key={part} className={`birth-on-part birth-on-part-${part}`}>
               <Input
                 id={`age-birth-${part}`}
                 ref={(node) => {
@@ -181,16 +181,15 @@ export function AgePage() {
                 maxLength={BIRTH_ON_PART_MAX_LENGTH[part]}
                 placeholder={PART_PLACEHOLDERS[part]}
                 value={parts[part]}
-                aria-label={PART_LABELS[part]}
                 aria-invalid={shownError ? true : undefined}
                 aria-describedby={shownError ? "auth-form-error" : undefined}
                 onChange={(event) => updatePart(part, event.target.value)}
                 required
               />
-              <span className="birth-on-unit" aria-hidden>
+              <label className="birth-on-unit" htmlFor={`age-birth-${part}`}>
                 {PART_LABELS[part]}
-              </span>
-            </label>
+              </label>
+            </div>
           ))}
         </div>
         <p className="birth-on-hint">例: 1990 年 1 月 15 日</p>
