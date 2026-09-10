@@ -10,6 +10,7 @@ import { createAgeGuard } from "./middleware/age.ts";
 import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
 import { createBottlesRoute } from "./routes/bottles.ts";
+import { createConfigRoute } from "./routes/config.ts";
 import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
 import { healthRoute } from "./routes/health.ts";
 import { createMeRoute } from "./routes/me.ts";
@@ -31,6 +32,8 @@ export type CreateAppOptions = {
   drinkRecognizer?: LabelRecognizer;
   noteRecognizer?: LabelRecognizer;
   recognizeTimeoutMs?: number;
+  turnstileSiteKey?: string | null;
+  photoDailyLimit?: number;
 };
 
 /**
@@ -91,7 +94,14 @@ export function createApp(options: CreateAppOptions = {}) {
     getDb: (c: { env: Env }) => getDb(c),
     getBucket: (c: { env: Env }) => getBucket(c),
   };
-  const photosRoute = createPhotosRoute(routeDeps);
+  const photosRoute = createPhotosRoute({
+    ...routeDeps,
+    dailyLimit: options.photoDailyLimit,
+  });
+  const configRoute = createConfigRoute({
+    getSiteKey:
+      options.turnstileSiteKey === undefined ? undefined : () => options.turnstileSiteKey ?? null,
+  });
   const drinkLogsRoute = createDrinkLogsRoute({
     ...routeDeps,
     getDrinkRecognizer: (c) => options.drinkRecognizer ?? createTaskRecognizer(c.env, "drink"),
@@ -113,6 +123,7 @@ export function createApp(options: CreateAppOptions = {}) {
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app
     .route("/api/health", healthRoute)
+    .route("/api/config", configRoute)
     .route("/api/me", createMeRoute({ getDb }))
     .route("/api/drink-logs", drinkLogsRoute)
     .route("/api/my-drinks", myDrinksRoute)

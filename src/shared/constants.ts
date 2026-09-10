@@ -108,6 +108,8 @@ export const PHOTO_JPEG_QUALITY = 0.82;
 export const PHOTO_WEBP_QUALITY = 0.9;
 export const PHOTO_GC_TTL_MS = 24 * 60 * 60 * 1000;
 export const PHOTO_GC_BATCH_SIZE = 500;
+/** 写真アップロードの日次上限（ユーザー / JST 日）。UI / PP には数値を出さない（8-05） */
+export const PHOTO_UPLOAD_DAILY_LIMIT = 80;
 export const AI_USAGE_RETENTION_DAYS = 30;
 /** ラベル読み取りの日次上限（ユーザー / JST 日）。api-design 4.5.3。env で上書き可 */
 export const AI_RECOGNIZE_DAILY_LIMIT = 30;

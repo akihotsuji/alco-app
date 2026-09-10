@@ -48,7 +48,7 @@
 | 規約同意 | サインアップの既存チェックが必須。`/sign-in/social` で `requestSignUp` のとき `additionalData` を 8-01 と同じスキーマで検証。成功後 `legal_consents` に現行版を残す | チェックをクライアントだけで迂回できない |
 | 年齢 | 新規は `newUserCallbackURL` を `/age`（`redirect` があれば引き継ぐ）。既存はこれまでどおり `RequireAgeVerified` | 8-02 |
 | 失敗 | 汎用文だけ。Google / Better Auth の `error` クエリは画面に出さずアドレスバーから消す | 存在推測・内部コードの露出を避ける |
-| 公開 API | **増やさない**。`/api/auth/*` の公式ルートだけ | [api-design.md](../api-design.md) 2.3 |
+| 公開 API | 8-04 では増やさない。`/api/auth/*` の公式ルートだけ。公開設定は 8-05 の `GET /api/config` | [api-design.md](../api-design.md) 2.3 |
 | プロフィール画像 | `user.image` に Google の URL を残さない。`GET /api/me` にも出さない | `javascript:` / 外部 URL を `href` にしない。表示もしない |
 | `state` / PKCE | 無効化しない。`skipStateCookieCheck` は付けない | タスクの監査項目 |
 | トークン保管 | `encryptOAuthTokens: true`。アプリは `account` の token 列を SELECT しない | DB 漏洩時の外部トークン悪用を減らす |
@@ -59,8 +59,8 @@
 
 ### 4.1 ログイン（既存 Google）
 
-1. `/login` の「Google で続行」
-2. `POST /api/auth/sign-in/social`（`provider: google`。`requestSignUp` なし）
+1. `/login` の「Google で続行」（キーがあるときは Turnstile 完了後）
+2. `POST /api/auth/sign-in/social`（`provider: google`。`requestSignUp` なし。ヘッダー `x-captcha-response`）
 3. Google の同意画面（`prompt: select_account`、PKCE）
 4. `{origin}/api/auth/callback/google`
 5. 既存の Google `account` があればセッション。未確認なら `/age`
@@ -68,8 +68,8 @@
 
 ### 4.2 サインアップ（新規 Google）
 
-1. `/signup` で規約チェックを入れて「Google で続行」
-2. 同じ公式エンドポイント。`requestSignUp: true` と `additionalData: { acceptedLegal, legalVersion }`
+1. `/signup` で規約チェックを入れて「Google で続行」（キーがあるときは Turnstile 完了後）
+2. 同じ公式エンドポイント。`requestSignUp: true` と `additionalData: { acceptedLegal, legalVersion }`。同じ Turnstile トークン
 3. 同意なし・旧版は 400。Google へは進まない
 4. 新規なら `legal_consents` を書き、`/age` へ
 5. 同じメールのパスワードユーザーがいるときはリンクせず失敗（メール＋パスワードのまま）
@@ -142,4 +142,5 @@ Google Cloud コンソールの「承認済みのリダイレクト URI」に、
 - [password-reset.md](password-reset.md)
 - [secrets.md](../secrets.md)
 - [api-design.md](../api-design.md) 2.3
+- [rate-limit-abuse.md](rate-limit-abuse.md)
 - [custom-domain.md](custom-domain.md)

@@ -37,11 +37,13 @@
 | 長辺 1600 超 | 400 |
 | 他人の photo / 紐付け先 | 404 |
 | 所有者 2 つ以上 | 400 |
+| 同一ユーザーの JST 当日枚数が上限 | 429 `rate_limited`（8-05。数値は UI / PP に出さない） |
 
 - `r2_key` は `{photoId}.jpg` 等。ファイル名・`user_id` を含めない
 - レスポンスに `r2Key` / `userId` を出さない
 - 配信: `Cache-Control: private, max-age=300`
 - Cron（`0 18 * * *`）: 未紐付け 24h 超を最大 500 件、R2 → D1。件数だけログ。HTTP の GC は無い
+- 日次上限は `photos.created_at` をユーザー単位で数える。R2 書き込み前に判定する。詳細は [rate-limit-abuse.md](rate-limit-abuse.md)
 
 ## 対象外（後続）
 

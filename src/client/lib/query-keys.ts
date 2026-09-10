@@ -5,6 +5,7 @@
  */
 export const queryKeys = {
   me: ["me"] as const,
+  publicConfig: ["public-config"] as const,
   photos: ["photos"] as const,
   drinkLogs: ["drink-logs"] as const,
   drinkLogsDay: (date: string) => ["drink-logs", { date }] as const,

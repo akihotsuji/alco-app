@@ -10,9 +10,10 @@ function readRepo(relativePath: string): string {
 }
 
 describe("7-07 リリースゲート", () => {
-  it("公開 API は GET /api/health と /api/auth/ だけ", () => {
+  it("公開 API は GET /api/health と GET /api/config と /api/auth/ だけ", () => {
     expect(PUBLIC_API_ROUTES).toEqual([
       { method: "GET", path: "/api/health" },
+      { method: "GET", path: "/api/config" },
       { method: "*", prefix: "/api/auth/" },
     ]);
   });

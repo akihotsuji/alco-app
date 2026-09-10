@@ -10,6 +10,9 @@ RESEND_API_KEY=
 # Google OAuth（8-04）。未設定なら Google ログインは失敗する。値はチャットに貼らない
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+# Turnstile（8-05）。両方揃ったときだけ有効。サイトキーは公開値。シークレットはチャットに貼らない
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
 # EMAIL_FROM=酒のしおり <noreply@sake-shiori.com>
 # 認識モデル。未設定なら wrangler.jsonc の vars（酒記録は gemini-3.7-flash）
 # AI_RECOGNITION_PROFILE=gemini-3.7-flash

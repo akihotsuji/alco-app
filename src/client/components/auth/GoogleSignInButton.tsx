@@ -11,12 +11,14 @@ import {
   OAUTH_ERROR_MESSAGE,
   OAUTH_SIGNUP_ERROR_MESSAGE,
 } from "@/shared/oauth.ts";
+import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 
 type GoogleSignInButtonProps = {
   mode: "login" | "signup";
   redirectQuery: string | null;
   acceptedLegal: boolean;
   disabled: boolean;
+  turnstileToken?: string | null;
   onError: (message: string | null) => void;
   onBusyChange: (busy: boolean) => void;
 };
@@ -26,6 +28,7 @@ export function GoogleSignInButton({
   redirectQuery,
   acceptedLegal,
   disabled,
+  turnstileToken = null,
   onError,
   onBusyChange,
 }: GoogleSignInButtonProps) {
@@ -50,6 +53,9 @@ export function GoogleSignInButton({
       additionalData: requestSignUp
         ? { acceptedLegal: true, legalVersion: LEGAL_VERSION }
         : undefined,
+      fetchOptions: {
+        headers: turnstileRequestHeaders(turnstileToken),
+      },
     });
     if (result.error) {
       onBusyChange(false);

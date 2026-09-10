@@ -7,13 +7,16 @@ describe("isPublicApiRoute", () => {
   it("公開リストは health と auth のみ（spec/api-design.md 2.3）", () => {
     expect(PUBLIC_API_ROUTES).toEqual([
       { method: "GET", path: "/api/health" },
+      { method: "GET", path: "/api/config" },
       { method: "*", prefix: "/api/auth/" },
     ]);
   });
 
-  it("GET / HEAD /api/health は公開", () => {
+  it("GET / HEAD /api/health と /api/config は公開", () => {
     expect(isPublicApiRoute("GET", "/api/health")).toBe(true);
     expect(isPublicApiRoute("head", "/api/health")).toBe(true);
+    expect(isPublicApiRoute("GET", "/api/config")).toBe(true);
+    expect(isPublicApiRoute("head", "/api/config")).toBe(true);
   });
 
   it("health は GET 以外・前後にパスが付くものは非公開", () => {
@@ -21,6 +24,8 @@ describe("isPublicApiRoute", () => {
     expect(isPublicApiRoute("GET", "/api/health/")).toBe(false);
     expect(isPublicApiRoute("GET", "/api/healthz")).toBe(false);
     expect(isPublicApiRoute("GET", "/api/health/../me")).toBe(false);
+    expect(isPublicApiRoute("POST", "/api/config")).toBe(false);
+    expect(isPublicApiRoute("GET", "/api/config/")).toBe(false);
   });
 
   it("/api/auth/ 配下は全メソッド公開。/api/auth 自体や /api/authors は非公開", () => {

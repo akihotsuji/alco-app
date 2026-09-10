@@ -31,7 +31,7 @@
 - ログイン中のパスワード変更（設定画面。将来）
 - メーリングリスト
 - Cloudflare Email Service（Workers **有料**プラン。本アプリは無料枠）
-- アプリ全体の WAF / Turnstile（8-05）
+- アプリ全体の WAF / Turnstile（8-05。[rate-limit-abuse.md](rate-limit-abuse.md) で実装）
 
 ---
 
@@ -49,7 +49,7 @@
 | 秘密 | `RESEND_API_KEY` は `.dev.vars` / wrangler secret。未設定なら送らない（CI・ローカル） | [secrets.md](../secrets.md) |
 | ログ | リセット URL・トークン・メール本文を出さない。失敗は `reset email send failed` だけ | security 規約 |
 | 公開 API | **増やさない**。`/api/auth/*` の公式ルートだけ | [api-design.md](../api-design.md) 2.3 |
-| レート制限 | Better Auth 既定（`/request-password-reset` は 60 秒 3 回）。8-05 の WAF は別タスク | メール爆撃の最低限 |
+| レート制限 | Better Auth 既定（`/request-password-reset` は 60 秒 3 回）。Turnstile と WAF は 8-05 | メール爆撃の最低限 |
 | 文面 | テキストのみ。飲酒を勧める文言は置かない | [character.md](../character.md) |
 
 ---
@@ -139,5 +139,6 @@
 - [legal.md](../legal.md) / [legal.md](legal.md)（Resend を委託先に追加）
 - [secrets.md](../secrets.md)
 - [api-design.md](../api-design.md) 2.3
+- [rate-limit-abuse.md](rate-limit-abuse.md)
 - [data-model.md](../data-model.md) `verification`
 - [age-verification.md](age-verification.md)（登録後は `/age` のまま）

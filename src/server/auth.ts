@@ -16,16 +16,19 @@ import {
 } from "@/shared/auth.ts";
 import { LEGAL_VERSION, signupLegalAcceptanceSchema } from "@/shared/legal.ts";
 import { googleSignupAdditionalDataSchema, readSocialSignInLegal } from "@/shared/oauth.ts";
+import { isTurnstileProtectedAuthPath, TURNSTILE_TOKEN_HEADER } from "@/shared/turnstile.ts";
 import {
   type GoogleOAuthConfig,
   readAuthSecret,
   readGoogleOAuthConfig,
+  readTurnstileConfig,
   resolveAuthBaseURL,
 } from "./env.ts";
 import {
   createResetPasswordMailer,
   type SendResetPasswordEmail,
 } from "./services/reset-password-mail.ts";
+import { createTurnstileVerifier, type VerifyTurnstile } from "./services/turnstile.ts";
 
 export type AuthDb = AppDb | LibSQLDatabase<typeof schema>;
 
@@ -37,7 +40,12 @@ export type CreateAuthOptions = {
   useSecureCookies: boolean;
   sendResetPassword?: SendResetPasswordEmail;
   google?: GoogleOAuthConfig;
+  verifyTurnstile?: VerifyTurnstile;
 };
+
+function readHookHeader(ctx: { headers?: Headers; request?: Request }, name: string): string {
+  return ctx.headers?.get(name)?.trim() ?? ctx.request?.headers.get(name)?.trim() ?? "";
+}
 
 /** Better Auth 既定の sign-up/sign-in は 10 秒 3 回。E2E は同一 IP から連続登録するため HTTP だけ緩める。 */
 export function authRateLimitConfig(useSecureCookies: boolean) {
@@ -150,19 +158,28 @@ export function createAuth(options: CreateAuthOptions) {
               message: "利用規約への同意が必要です",
             });
           }
+        } else if (ctx.path === "/sign-in/social") {
+          const social = readSocialSignInLegal(ctx.body);
+          if (social.requestSignUp) {
+            const parsed = googleSignupAdditionalDataSchema.safeParse(social.additionalData);
+            if (!parsed.success) {
+              throw new APIError("BAD_REQUEST", {
+                message: "利用規約への同意が必要です",
+              });
+            }
+          }
+        }
+
+        if (!options.verifyTurnstile || !isTurnstileProtectedAuthPath(ctx.path)) {
           return;
         }
-        if (ctx.path !== "/sign-in/social") {
-          return;
-        }
-        const social = readSocialSignInLegal(ctx.body);
-        if (!social.requestSignUp) {
-          return;
-        }
-        const parsed = googleSignupAdditionalDataSchema.safeParse(social.additionalData);
-        if (!parsed.success) {
+        const ok = await options.verifyTurnstile({
+          token: readHookHeader(ctx, TURNSTILE_TOKEN_HEADER),
+          remoteIp: readHookHeader(ctx, "cf-connecting-ip") || undefined,
+        });
+        if (!ok) {
           throw new APIError("BAD_REQUEST", {
-            message: "利用規約への同意が必要です",
+            message: "確認を完了してください",
           });
         }
       }),
@@ -193,6 +210,7 @@ export function createAuthFromEnv(env: Env, requestUrl: string): Auth {
   const baseURL = resolveAuthBaseURL(env, requestUrl);
   const requestOrigin = new URL(requestUrl).origin;
   const trustedOrigins = Array.from(new Set([baseURL, requestOrigin]));
+  const turnstile = readTurnstileConfig(env);
   return createAuth({
     db: createD1Db(env.DB),
     secret: readAuthSecret(env),
@@ -201,5 +219,6 @@ export function createAuthFromEnv(env: Env, requestUrl: string): Auth {
     useSecureCookies: new URL(baseURL).protocol === "https:",
     sendResetPassword: createResetPasswordMailer(env),
     google: readGoogleOAuthConfig(env),
+    verifyTurnstile: turnstile ? createTurnstileVerifier(turnstile.secret) : undefined,
   });
 }

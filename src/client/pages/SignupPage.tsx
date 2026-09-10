@@ -4,9 +4,14 @@ import { ageGatePath } from "@/client/auth/age-path.ts";
 import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
 import { hrefWithRedirect } from "@/client/auth/login-path.ts";
 import { hasOAuthErrorQuery, stripOAuthErrorParams } from "@/client/auth/oauth.ts";
+import {
+  TURNSTILE_LOAD_ERROR_MESSAGE,
+  useTurnstileGate,
+} from "@/client/auth/use-turnstile-gate.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
 import { GoogleSignInButton } from "@/client/components/auth/GoogleSignInButton.tsx";
 import { PasswordField } from "@/client/components/auth/PasswordField.tsx";
+import { TurnstileField } from "@/client/components/auth/TurnstileField.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { Label } from "@/client/components/ui/label.tsx";
@@ -15,6 +20,7 @@ import { cn } from "@/client/lib/utils.ts";
 import { AUTH_NAME_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH, signupFormSchema } from "@/shared/auth.ts";
 import { LEGAL_VERSION, legalHref } from "@/shared/legal.ts";
 import { OAUTH_SIGNUP_ERROR_MESSAGE } from "@/shared/oauth.ts";
+import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 
 export function SignupPage() {
   const [searchParams] = useSearchParams();
@@ -27,6 +33,8 @@ export function SignupPage() {
   const [password, setPassword] = useState("");
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [widgetKey, setWidgetKey] = useState(0);
+  const turnstile = useTurnstileGate();
   const oauthFailed = hasOAuthErrorQuery(searchParams);
   const [error, setError] = useState<string | null>(
     oauthFailed ? OAUTH_SIGNUP_ERROR_MESSAGE : null,
@@ -47,7 +55,12 @@ export function SignupPage() {
     password,
     acceptedLegal,
   });
-  const canSubmit = parsed.success && !submitting;
+  const canSubmit = parsed.success && !submitting && turnstile.canAct;
+
+  function refreshTurnstile() {
+    turnstile.setToken(null);
+    setWidgetKey((value) => value + 1);
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,9 +76,15 @@ export function SignupPage() {
       acceptedLegal: true,
       legalVersion: LEGAL_VERSION,
     };
-    const result = await authClient.signUp.email(signupInput);
+    const result = await authClient.signUp.email({
+      ...signupInput,
+      fetchOptions: {
+        headers: turnstileRequestHeaders(turnstile.token),
+      },
+    });
     setSubmitting(false);
     if (result.error) {
+      refreshTurnstile();
       setError(
         authClientErrorMessage(
           result.error.status,
@@ -80,7 +99,7 @@ export function SignupPage() {
   return (
     <AuthPageLayout
       title="アカウント作成"
-      error={error}
+      error={turnstile.blocked ? TURNSTILE_LOAD_ERROR_MESSAGE : error}
       onSubmit={onSubmit}
       canSubmit={canSubmit}
       submitting={submitting}
@@ -92,7 +111,8 @@ export function SignupPage() {
             mode="signup"
             redirectQuery={redirectQuery}
             acceptedLegal={acceptedLegal}
-            disabled={submitting}
+            disabled={submitting || !turnstile.canAct}
+            turnstileToken={turnstile.token}
             onError={setError}
             onBusyChange={setSubmitting}
           />
@@ -152,6 +172,14 @@ export function SignupPage() {
           <Link to={legalHref("/privacy", "signup")}>プライバシーポリシー</Link>
         </p>
       </div>
+      {turnstile.siteKey ? (
+        <TurnstileField
+          key={widgetKey}
+          siteKey={turnstile.siteKey}
+          onTokenChange={turnstile.setToken}
+          onLoadError={() => setError(TURNSTILE_LOAD_ERROR_MESSAGE)}
+        />
+      ) : null}
     </AuthPageLayout>
   );
 }

@@ -24,6 +24,8 @@ describe("法務文書", () => {
     expect(privacy).toContain("生年月日");
     expect(privacy).toContain("Resend");
     expect(privacy).toContain("Google");
+    expect(privacy).toContain("Turnstile");
+    expect(privacy).toContain("ボット対策");
     expect(terms).toContain("Googleアカウント");
     expect(terms).toContain("再設定");
     expect(terms).toContain("年齢確認画面");

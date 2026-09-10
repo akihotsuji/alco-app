@@ -22,7 +22,7 @@
 
 - [x] CI（lint / typecheck / test / e2e）が対象 commit でグリーンになること（ローカル 2026-09-09。マージ後は Actions の `CI`）
 - [x] [security-audit-release.md](security-audit-release.md) が Critical / High ゼロ
-- [x] 公開 API が `GET /api/health` と `/api/auth/*` だけ（`src/ci/security-release-gates.test.ts`）
+- [x] 公開 API が `GET /api/health`、`GET /api/config`、`/api/auth/*` だけ（`src/ci/security-release-gates.test.ts`）
 - [x] 本番 `BETTER_AUTH_SECRET` 投入済み（7-03。dev と別値。値は残さない）
 - [ ] GitHub Environment `production` に必須レビューアがある（[deploy-prod.md](features/deploy-prod.md)）
 - [ ] 6-05 の実機確認をオーナーが了承している（[qa-devices.md](qa-devices.md)）

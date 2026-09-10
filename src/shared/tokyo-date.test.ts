@@ -14,6 +14,7 @@ import {
   isoWeekDates,
   isoWeekMonday,
   parseCalendarDate,
+  tokyoDayStartMs,
   tokyoEveningIso,
   tokyoLocalToIso,
   tokyoToday,
@@ -127,5 +128,11 @@ describe("datetime-local と JST", () => {
   it("過去日の既定時刻は 20:00 JST", () => {
     expect(tokyoEveningIso("2026-09-04")).toBe("2026-09-04T11:00:00.000Z");
     expect(() => tokyoEveningIso("2026-13-01")).toThrow("invalid calendar date: 2026-13-01");
+  });
+
+  it("JST 日の始まりは UTC 前日 15:00", () => {
+    expect(tokyoDayStartMs("2026-09-05")).toBe(Date.parse("2026-09-04T15:00:00.000Z"));
+    expect(tokyoDayStartMs("2026-09-04")).toBe(Date.parse("2026-09-03T15:00:00.000Z"));
+    expect(() => tokyoDayStartMs("2026-13-01")).toThrow("invalid calendar date: 2026-13-01");
   });
 });

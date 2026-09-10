@@ -82,6 +82,10 @@ describe("PWA 設定ファイル", () => {
     expect(headers).toContain("manifest-src 'self'");
     const csp = headers.split("\n").find((line) => line.includes("Content-Security-Policy:"));
     expect(csp).toBeTruthy();
+    expect(csp).toContain("https://challenges.cloudflare.com");
+    expect(csp).toMatch(/script-src[^;]*https:\/\/challenges\.cloudflare\.com/);
+    expect(csp).toMatch(/frame-src[^;]*https:\/\/challenges\.cloudflare\.com/);
+    expect(csp).toMatch(/connect-src[^;]*https:\/\/challenges\.cloudflare\.com/);
     expect(csp).not.toContain("unsafe-inline");
   });
 });

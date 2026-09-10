@@ -9,8 +9,13 @@ import {
   readResetToken,
   shouldStripResetQuery,
 } from "@/client/auth/password-reset.ts";
+import {
+  TURNSTILE_LOAD_ERROR_MESSAGE,
+  useTurnstileGate,
+} from "@/client/auth/use-turnstile-gate.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
 import { PasswordField } from "@/client/components/auth/PasswordField.tsx";
+import { TurnstileField } from "@/client/components/auth/TurnstileField.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { Label } from "@/client/components/ui/label.tsx";
@@ -23,15 +28,23 @@ import {
   RESET_PASSWORD_PATH,
   resetPasswordFormSchema,
 } from "@/shared/auth.ts";
+import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [widgetKey, setWidgetKey] = useState(0);
+  const turnstile = useTurnstileGate();
   const [error, setError] = useState<string | null>(null);
 
   const parsed = forgotPasswordFormSchema.safeParse({ email: email.trim() });
-  const canSubmit = parsed.success && !submitting;
+  const canSubmit = parsed.success && !submitting && turnstile.canAct;
+
+  function refreshTurnstile() {
+    turnstile.setToken(null);
+    setWidgetKey((value) => value + 1);
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,9 +56,13 @@ export function ForgotPasswordPage() {
     const result = await authClient.requestPasswordReset({
       email: parsed.data.email,
       redirectTo: RESET_PASSWORD_PATH,
+      fetchOptions: {
+        headers: turnstileRequestHeaders(turnstile.token),
+      },
     });
     setSubmitting(false);
     if (result.error) {
+      refreshTurnstile();
       setError(
         authClientErrorMessage(
           result.error.status,
@@ -82,7 +99,7 @@ export function ForgotPasswordPage() {
   return (
     <AuthPageLayout
       title="パスワード再設定"
-      error={error}
+      error={turnstile.blocked ? TURNSTILE_LOAD_ERROR_MESSAGE : error}
       onSubmit={onSubmit}
       canSubmit={canSubmit}
       submitting={submitting}
@@ -109,6 +126,14 @@ export function ForgotPasswordPage() {
         onChange={(event) => setEmail(event.target.value)}
         required
       />
+      {turnstile.siteKey ? (
+        <TurnstileField
+          key={widgetKey}
+          siteKey={turnstile.siteKey}
+          onTokenChange={turnstile.setToken}
+          onLoadError={() => setError(TURNSTILE_LOAD_ERROR_MESSAGE)}
+        />
+      ) : null}
     </AuthPageLayout>
   );
 }

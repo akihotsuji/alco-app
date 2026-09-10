@@ -213,3 +213,12 @@ export function tokyoEveningIso(date: string): string {
   }
   return iso;
 }
+
+/** JST カレンダー日 00:00:00 の UTC ミリ秒。写真の日次上限に使う。 */
+export function tokyoDayStartMs(date: string): number {
+  const iso = tokyoLocalToIso(`${date}T00:00`);
+  if (!iso) {
+    throw new Error(`invalid calendar date: ${date}`);
+  }
+  return Date.parse(iso);
+}
