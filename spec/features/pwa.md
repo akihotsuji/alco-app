@@ -2,7 +2,7 @@
 
 実装: Phase 6-01。要件は [01-requirements.md](../01-requirements.md) 非機能「PWA」、技術は [02-tech-stack.md](../02-tech-stack.md)、手順は [roadmap/phase-06-pwa-quality/01-vite-plugin-pwa.md](../../roadmap/phase-06-pwa-quality/01-vite-plugin-pwa.md)。アイコンの見た目は [character.md](../character.md)、色は [design-system.md](../design-system.md)。
 
-- 状態: **6-01 済み**（表示名は さけしおり。アイコン地はライトの地色。[custom-domain.md](custom-domain.md)）
+- 状態: **6-01 済み**（表示名は 酒のしおり。アイコン地はライトの地色。[custom-domain.md](custom-domain.md)）
 - 実機でのホーム追加確認は 6-05（[qa-devices.md](../qa-devices.md)。手順は README）
 
 ---
@@ -15,12 +15,12 @@
 
 ## 2. 表示名
 
-公開名称は **さけしおり**。リポジトリ名 `alco-app` は変えない。ログイン L2・設定の版表記・マニフェストが同じ値を使う。
+公開名称は **酒のしおり**。リポジトリ名 `alco-app` は変えない。ログイン L2・設定の版表記・マニフェストが同じ値を使う。
 
 | 項目 | 値 | 理由 |
 |---|---|---|
-| `name` | `さけしおり` | ワードマークと同じ。インストール一覧・スプラッシュで使う |
-| `short_name` | `さけしおり` | ホームアイコン下。短い和名 |
+| `name` | `酒のしおり` | ワードマークと同じ。インストール一覧・スプラッシュで使う |
+| `short_name` | `酒のしおり` | ホームアイコン下。短い和名 |
 | `lang` | `ja` | UI が日本語 |
 | `description` | `お酒の記録・セラー・テイスティングノート` | 誘飲にならない説明 |
 
@@ -34,8 +34,8 @@
 
 | キー | 値 |
 |---|---|
-| `name` | `さけしおり` |
-| `short_name` | `さけしおり` |
+| `name` | `酒のしおり` |
+| `short_name` | `酒のしおり` |
 | `start_url` | `/`（未ログインなら既存の認証境界で `/login` へ） |
 | `scope` | `/` |
 | `display` | `standalone` |
@@ -127,7 +127,7 @@ SW 登録は `updateViaCache: "none"`（ブラウザが `sw.js` を HTTP キャ�
 | 項目 | 値 |
 |---|---|
 | `apple-mobile-web-app-capable` / `mobile-web-app-capable` | `yes` |
-| `apple-mobile-web-app-title` | `さけしおり`（`short_name` と同じ） |
+| `apple-mobile-web-app-title` | `酒のしおり`（`short_name` と同じ） |
 | `apple-mobile-web-app-status-bar-style` | `default`（`theme-color` に合わせる） |
 | `apple-touch-icon` | `/pwa/apple-touch-icon.png` |
 
@@ -163,6 +163,6 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 - [ ] `boot.css` が `data-theme` 付きの html/body に色を残さない。SW 登録は `updateViaCache: "none"`
 - [ ] 起動中に「読み込み中」が見え、失敗時に説明と再試行がある
 - [ ] 初回インストールで不要な再読み込みをしない。更新再読み込みはループしない
-- [ ] 表示名は さけしおり。アイコン地はライトの地色。キャラのワイン色は変えない
+- [ ] 表示名は 酒のしおり。アイコン地はライトの地色。キャラのワイン色は変えない
 - [ ] lint / typecheck / test がパスする
 - [ ] 監査: SW が秘密・認可レスポンスをキャッシュしない

@@ -9,7 +9,7 @@
 
 ## 1. 概要
 
-公開名称は **さけしおり**。正ホストは apex。www と本番 `workers.dev` は正へ 308。dev は開発用 `workers.dev` のまま。
+公開名称は **酒のしおり**。正ホストは apex。www と本番 `workers.dev` は正へ 308。dev は開発用 `workers.dev` のまま。ドメイン `sake-shiori.com` は変えない。
 
 ## 2. 前提条件
 
@@ -31,7 +31,7 @@
 - dev のカスタムドメイン
 - 本番 `workers.dev` の無効化
 - メール（MX）
-- 画面表示名の差し替え（さけしおり。表示名タスクで実施）
+- 画面表示名の差し替え（酒のしおり。表示名タスクで実施）
 
 ## 4. 成果物
 
@@ -41,7 +41,7 @@
 ## 5. 細分化タスク
 
 1. 実施する（済み）
-2. 名前は さけしおり / `sake-shiori.com`（済み）
+2. 名前は 酒のしおり / `sake-shiori.com`（済み。ドメインはそのまま）
 3. Workers カスタムドメインは `wrangler.jsonc` に書いた。ゾーン作成後の Deploy prod で付く
 4. Auth は `CANONICAL_ORIGIN`（同オリジン維持）
 5. 本番 `workers.dev` はリダイレクト。閉じない。dev はそのまま

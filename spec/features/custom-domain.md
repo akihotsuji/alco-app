@@ -3,7 +3,7 @@
 実装: Phase 7-06。手順は [06-custom-domain.md](../../roadmap/phase-07-production-release/06-custom-domain.md)。
 
 - 状態: **ゾーン接続済み**（2026-09-09）。apex / www を Worker `alco-app-prod` に付けた。ホスト正規化（308）は Deploy prod のあと
-- 公開名称: **さけしおり**（ラテン表記 `sake-shiori`）
+- 公開名称: **酒のしおり**（ラテン表記 `sake-shiori`。ドメインはそのまま）
 - 正ホスト: **`sake-shiori.com`**（TLD は Web の既定として `.com`）
 - 正オリジン: `https://sake-shiori.com`
 
@@ -37,7 +37,7 @@
 
 | 項目 | 決定 |
 |---|---|
-| サービス名 | さけしおり |
+| サービス名 | 酒のしおり |
 | ラテン | sake-shiori |
 | 正 | `https://sake-shiori.com`（apex） |
 | www | `https://www.sake-shiori.com` → 正へ 308（パス・クエリ維持） |

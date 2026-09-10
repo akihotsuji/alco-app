@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DARK_COLOR_TOKENS, LIGHT_COLOR_TOKENS } from "@/client/lib/design-tokens.ts";
+import { SERVICE_NAME_JA } from "./prod-canonical.ts";
 import {
   isPwaNetworkOnlyPath,
   PWA_BACKGROUND_COLOR,
@@ -19,8 +20,9 @@ import {
 
 describe("pwa 契約", () => {
   it("表示名とスタンドアロン起動の値が仕様どおり", () => {
-    expect(PWA_NAME).toBe("さけしおり");
-    expect(PWA_SHORT_NAME).toBe("さけしおり");
+    expect(SERVICE_NAME_JA).toBe("酒のしおり");
+    expect(PWA_NAME).toBe(SERVICE_NAME_JA);
+    expect(PWA_SHORT_NAME).toBe(SERVICE_NAME_JA);
     expect(PWA_START_URL).toBe("/");
     expect(PWA_DISPLAY).toBe("standalone");
     expect(PWA_VITE_ENVIRONMENT).toBe("client");

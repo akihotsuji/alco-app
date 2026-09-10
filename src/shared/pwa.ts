@@ -1,10 +1,12 @@
+import { SERVICE_NAME_JA } from "./prod-canonical.ts";
+
 /**
  * PWA の契約（6-01）。正本は spec/features/pwa.md。
  * マニフェスト・SW・テーマカラー・アイコン生成が同じ値を使う。
  */
 
-export const PWA_NAME = "さけしおり";
-export const PWA_SHORT_NAME = "さけしおり";
+export const PWA_NAME = SERVICE_NAME_JA;
+export const PWA_SHORT_NAME = SERVICE_NAME_JA;
 export const PWA_DESCRIPTION = "お酒の記録・セラー・テイスティングノート";
 export const PWA_LANG = "ja";
 export const PWA_START_URL = "/";
