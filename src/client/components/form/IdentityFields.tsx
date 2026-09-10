@@ -20,6 +20,8 @@ type IdentityFieldsProps = {
   aiMarks?: ReadonlySet<string>;
   /** 読み取り中に AI が入れる可能性のある欄（「読み取り中」ピル） */
   aiPending?: ReadonlySet<string>;
+  /** 写真からの生産国の候補（自動では入れない） */
+  originCandidate?: string | null;
   idPrefix?: string;
   onChange: (field: IdentityFieldKey, value: string) => void;
 };
@@ -29,6 +31,7 @@ export function IdentityFields({
   errors,
   aiMarks,
   aiPending,
+  originCandidate,
   idPrefix = "identity",
   onChange,
 }: IdentityFieldsProps) {
@@ -73,6 +76,7 @@ export function IdentityFields({
         error={errors?.origin}
         aiMarked={aiMarks?.has("origin") ?? false}
         aiPending={aiPending?.has("origin") ?? false}
+        candidate={originCandidate}
         onChange={(value) => onChange("origin", value)}
       />
     </div>

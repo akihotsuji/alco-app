@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { GEMINI_37_FLASH_MODEL_ID, WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
+import {
+  GEMINI_35_FLASH_LITE_MODEL_ID,
+  GEMINI_37_FLASH_MODEL_ID,
+  WORKERS_AI_VISION_MODEL,
+} from "@/shared/constants.ts";
 import { recognitionCacheKey } from "./cache.ts";
 import {
   RecognitionConfigError,
@@ -9,13 +13,23 @@ import {
 } from "./profiles.ts";
 
 describe("resolveModelProfile", () => {
-  it("未設定なら3機能とも Gemini 3.7 Flash", () => {
-    expect(resolveModelProfile({}, "drink").modelId).toBe(GEMINI_37_FLASH_MODEL_ID);
-    expect(resolveModelProfile({}, "label").modelId).toBe(GEMINI_37_FLASH_MODEL_ID);
-    expect(resolveModelProfile({}, "note").modelId).toBe(GEMINI_37_FLASH_MODEL_ID);
-    expect(resolveModelProfile({}, "drink").key).toBe("gemini-3.7-flash");
-    expect(resolveModelProfile({}, "label").key).toBe("gemini-3.7-flash");
-    expect(resolveModelProfile({}, "note").key).toBe("gemini-3.7-flash");
+  it("未設定なら3機能とも Gemini 3.5 Flash-Lite", () => {
+    expect(resolveModelProfile({}, "drink").modelId).toBe(GEMINI_35_FLASH_LITE_MODEL_ID);
+    expect(resolveModelProfile({}, "label").modelId).toBe(GEMINI_35_FLASH_LITE_MODEL_ID);
+    expect(resolveModelProfile({}, "note").modelId).toBe(GEMINI_35_FLASH_LITE_MODEL_ID);
+    expect(resolveModelProfile({}, "drink").key).toBe("gemini-3.5-flash-lite");
+    expect(resolveModelProfile({}, "label").key).toBe("gemini-3.5-flash-lite");
+    expect(resolveModelProfile({}, "note").key).toBe("gemini-3.5-flash-lite");
+  });
+
+  it("Flash-Lite は minimal 思考・小さい出力上限。3.7 Flash は low で minimal を送らない", () => {
+    const lite = resolveModelProfile({}, "drink");
+    expect(lite.thinkingLevel).toBe("minimal");
+    expect(lite.maxOutputTokens).toBe(1024);
+    expect(lite.supportsSearch).toBe(true);
+    const flash = resolveModelProfile({ AI_RECOGNITION_PROFILE: "gemini-3.7-flash" }, "drink");
+    expect(flash.thinkingLevel).toBe("low");
+    expect(flash.maxOutputTokens).toBe(2048);
   });
 
   it("環境変数だけで呼び出し先が変わる", () => {
@@ -48,11 +62,12 @@ describe("resolveModelProfile", () => {
     expect(gemini.structuredOutputStyle).toBe("gemini-response-schema");
     expect(gemini.supportsThinking).toBe(true);
     expect(gemini.emitThinkingConfig).toBe(true);
-    expect(gemini.thinkingLevel).toBe("low");
+    expect(gemini.thinkingLevel).toBe("minimal");
   });
 
   it("打ち切り時間はプロファイルに従い、指定があればそれを使う", () => {
     expect(timeoutMsForRecognizer({ profile: "gemini-3.7-flash" })).toBe(25_000);
+    expect(timeoutMsForRecognizer({ profile: "gemini-3.5-flash-lite" })).toBe(20_000);
     expect(timeoutMsForRecognizer({ profile: "workers-ai-llama" })).toBe(20_000);
     expect(timeoutMsForRecognizer({ profile: "gemini-3.7-flash" }, 20)).toBe(20);
   });

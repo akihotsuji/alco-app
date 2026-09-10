@@ -1,15 +1,20 @@
 import { DRINK_TYPE_PRESETS } from "@/shared/alcohol.ts";
 import { AI_RECOGNIZE_MIN_CONFIDENCE } from "@/shared/constants.ts";
-import type { DrinkRecognizeFields } from "@/shared/drink-recognize.ts";
+import type {
+  DrinkLookupRequest,
+  DrinkRecognizeFields,
+  DrinkRecognizeResponse,
+} from "@/shared/drink-recognize.ts";
 import type { LogFormState } from "./log-form.ts";
 
 /**
  * 写真欄の下の読み取り状態（spec/screen-designs/03-log.md N2）。
- * loading: 欄側にも「読み取り中」ピルを出す。success: 入れた件数を出す。
- * empty / failure: 黙らず 1 行で知らせ、手入力を続けられることを示す。
+ * loading: 欄側にも「読み取り中」ピルを出す。lookup: 抽出は済み、国・品種だけ照合中（二段階の後半）。
+ * success: 入れた件数を出す。empty / failure: 黙らず 1 行で知らせ、手入力を続けられることを示す。
  */
 export const DRINK_RECOGNIZE_BANNER = {
   loading: "写真を読み取っています…",
+  lookup: "生産国・品種を調べています…",
   success: "写真から入れました",
   empty: "写真から読み取れる項目がありませんでした。手で入力できます",
   failure: "読み取れませんでした（手で入力してください）",
@@ -17,16 +22,30 @@ export const DRINK_RECOGNIZE_BANNER = {
 
 export type DrinkRecognizeStatus = keyof typeof DRINK_RECOGNIZE_BANNER;
 
+function appliedMessage(appliedCount: number): string {
+  return `写真から ${appliedCount} 項目を入れました`;
+}
+
 export function drinkRecognizeBannerMessage(
   status: DrinkRecognizeStatus,
   appliedCount: number,
 ): string {
   if (status === "success") {
     return appliedCount > 0
-      ? `写真から ${appliedCount} 項目を入れました（AI 印の欄。修正できます）`
+      ? `${appliedMessage(appliedCount)}（AI 印の欄。修正できます）`
       : DRINK_RECOGNIZE_BANNER.success;
   }
+  if (status === "lookup") {
+    return appliedCount > 0
+      ? `${appliedMessage(appliedCount)}。${DRINK_RECOGNIZE_BANNER.lookup}`
+      : DRINK_RECOGNIZE_BANNER.lookup;
+  }
   return DRINK_RECOGNIZE_BANNER[status];
+}
+
+/** 抽出が終わったあとの結果文（照合が入らなかった / 失敗したときもここへ戻す） */
+export function settledRecognizeStatus(appliedCount: number): DrinkRecognizeStatus {
+  return appliedCount > 0 ? "success" : "empty";
 }
 
 export type DrinkRecognizeTouched = {
@@ -85,22 +104,63 @@ export const DRINK_RECOGNIZE_TEXT_FIELDS = [
   "vintage",
 ] as const satisfies readonly (keyof DrinkRecognizeTouched)[];
 
+/** 照合（二段階の後半）が入れうる欄 */
+export const DRINK_LOOKUP_FIELDS = ["origin", "variety"] as const satisfies readonly (
+  | "origin"
+  | "variety"
+)[];
+
 /**
  * 読み取り中に「AI が入れるかもしれない欄」。空欄と直前の AI 値の欄で、ユーザーが触っていないもの。
  * 欄側に「読み取り中」ピルを出して、まだ反映されていないことを示す（種類は行ピルで別扱い）。
+ * 照合中は `fields` を国・品種だけに絞る。
  */
 export function pendingDrinkRecognizeFields(
   state: Pick<LogFormState, (typeof DRINK_RECOGNIZE_TEXT_FIELDS)[number]>,
   touched: DrinkRecognizeTouched,
   marks: ReadonlySet<string>,
+  fields: readonly (typeof DRINK_RECOGNIZE_TEXT_FIELDS)[number][] = DRINK_RECOGNIZE_TEXT_FIELDS,
 ): Set<string> {
   const pending = new Set<string>();
-  for (const field of DRINK_RECOGNIZE_TEXT_FIELDS) {
+  for (const field of fields) {
     if (canFillText(state[field], touched[field], marks.has(field))) {
       pending.add(field);
     }
   }
   return pending;
+}
+
+/**
+ * 抽出のあと照合を呼ぶか（ai-recognition.md 7a）。サーバーが勧め、品名・生産者が取れていて、
+ * 国か品種のどちらかがまだ AI で埋められる欄のときだけ。呼ぶなら送る本文を返す。
+ */
+export function planDrinkLookup(
+  result: Pick<DrinkRecognizeResponse, "fields" | "lookupSuggested" | "appellation">,
+  state: Pick<LogFormState, (typeof DRINK_RECOGNIZE_TEXT_FIELDS)[number]>,
+  touched: DrinkRecognizeTouched,
+  marks: ReadonlySet<string>,
+): DrinkLookupRequest | null {
+  if (!result.lookupSuggested) {
+    return null;
+  }
+  const drinkName = result.fields.drinkName?.value.trim();
+  const producer = result.fields.producer?.value.trim();
+  if (!drinkName || !producer) {
+    return null;
+  }
+  if (pendingDrinkRecognizeFields(state, touched, marks, DRINK_LOOKUP_FIELDS).size === 0) {
+    return null;
+  }
+  const vintage = result.fields.vintage?.value;
+  const drinkType = result.fields.drinkType?.value;
+  const appellation = result.appellation?.trim();
+  return {
+    drinkName,
+    producer,
+    ...(vintage !== undefined ? { vintage } : {}),
+    ...(drinkType !== undefined ? { drinkType } : {}),
+    ...(appellation ? { appellation } : {}),
+  };
 }
 
 /**

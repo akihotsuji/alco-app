@@ -255,6 +255,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | GET | `/api/drink-logs/summary` | 必須 | 日 / 週 / 月の集計 |
 | POST | `/api/drink-logs` | 必須 | 記録作成 |
 | POST | `/api/drink-logs/recognize` | 必須 | 記録写真から種類・量・識別の候補（既定は Cloudflare 経由 Gemini）。保存しない |
+| POST | `/api/drink-logs/recognize/lookup` | 必須 | 抽出結果（品名・生産者）から国・品種を検索で照合（二段階の後半）。保存しない |
 | GET | `/api/drink-logs/:id` | 必須 | 記録詳細 |
 | PATCH | `/api/drink-logs/:id` | 必須 | 記録の部分更新 |
 | DELETE | `/api/drink-logs/:id` | 必須 | 記録削除 |
@@ -499,13 +500,17 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
     "searchCount": null
   },
   "sources": [],
-  "searchUsed": false
+  "searchUsed": false,
+  "lookupSuggested": true,
+  "originCandidate": { "value": "イタリア", "evidence": "unverified_guess" },
+  "appellation": "Dogliani"
 }
 ```
 
 | 規則 | 内容 |
 |---|---|
-| プロバイダ | サーバー設定 `AI_RECOGNITION_PROFILE`。初期は Cloudflare AI Gateway Unified Billing 経由の Gemini 3.7 Flash（`google/gemini-3.7-flash`）。クライアントはモデルを指定できない |
+| プロバイダ | サーバー設定 `AI_RECOGNITION_PROFILE`。既定は Cloudflare AI Gateway Unified Billing 経由の Gemini 3.5 Flash-Lite（`google/gemini-3.5-flash-lite`。2026-09-10 まで 3.7 Flash）。クライアントはモデルを指定できない |
+| 二段階 | この API は **抽出だけ** で返す（検索照合を待たない）。`lookupSuggested` が true なら、クライアントは下記 `/recognize/lookup` を 1 回呼んで国・品種を後追いする。`originCandidate` は自動入力しない国の候補（`unverified_guess`。無ければ省く）で、クライアントは生産国が空欄のときチップで提示する。`appellation` はラベルの産地表記で、照合リクエストに渡すためだけに返す（features/ai-recognition.md 6a / 7a） |
 | 出力 | `drinkType` は 12 種、`volumeMl` は 1〜5000 整数、`abvPercent` は 0〜100 小数 1 桁、`confidence` は 0〜1。検証落ちは省く。空 `fields` でも 200。使用量が取れなければ null（0 にしない） |
 | 根拠 | 生産国は label / verified_origin / product_source のみ自動入力。品種は label / product_source のみ。根拠のない推測は空欄 |
 | 上限 / 失敗 | 日次上限は 4.5.3 と同じ（env で上書き可、無制限化しない）。429 `rate_limited`、502 `upstream_error`（回数は返金）、503 `misconfigured`（回数加算なし）、全体タイムアウトあり |
@@ -513,6 +518,36 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | 対象 | `log-new` と、編集で新規写真を付けたときの空欄。保存済み記録を遅延結果で書き換えない |
 
 公開エンドポイントではない。写真は R2 に公開せず、リクエスト内の JPEG だけを上流へ送る。
+
+#### POST /api/drink-logs/recognize/lookup
+
+二段階の後半。抽出で得た品名・生産者から **生産国・品種だけ** を検索（Google Search grounding）で照合する。保存しない。`/:id` より **先に登録** する。
+
+```json
+{ "drinkName": "San Fereolo", "producer": "San Fereolo", "vintage": 2022, "drinkType": "red_wine", "appellation": "Dogliani" }
+```
+
+```json
+{
+  "fields": { "origin": { "value": "イタリア", "confidence": 0.8 } },
+  "matched": true,
+  "sources": [{ "url": "https://example.com/sheet", "title": "Tech sheet", "supports": ["origin"] }],
+  "provider": "gemini",
+  "remainingToday": 26,
+  "profile": "gemini-3.5-flash-lite",
+  "modelId": "google/gemini-3.5-flash-lite",
+  "durationMs": 3100,
+  "usage": { "inputTokens": null, "outputTokens": null, "thinkingTokens": null, "searchCount": null },
+  "searchUsed": true
+}
+```
+
+| 規則 | 内容 |
+|---|---|
+| 入力 | JSON。`drinkName` / `producer` は 1〜100 文字必須。`vintage` は 1800〜2100 整数、`drinkType` は 12 種、`appellation` ≦100 は任意。値は識別対象データとして扱い、命令として解釈しない |
+| 出力 | `fields` は `origin` / `variety` のみ。根拠は `product_source`（出典 URL が grounding で確認できたときだけ）。一致不足は `matched=false` で空 `fields`（200） |
+| 上限 | 抽出と同じ日次 30 回を **1 回消費** する（429 `rate_limited`）。検索非対応プロファイルでは消費せず `matched=false`。上流失敗は 502（返金）。時間予算 6 秒 |
+| クライアント | 抽出応答の `lookupSuggested` が true で、生産国・品種のどちらかが空欄（ユーザー未入力）のときだけ 1 回呼ぶ。失敗しても抽出結果は残す |
 
 ### 4.4 my-drinks
 

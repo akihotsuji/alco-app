@@ -116,6 +116,6 @@ export function createInvalidRecognizer(error: RecognitionConfigError): LabelRec
   };
 }
 
-export function isRecognizerConfigured(recognizer: LabelRecognizer): boolean {
+export function isRecognizerConfigured(recognizer: { profile: string; modelId: string }): boolean {
   return recognizer.profile.length > 0 && recognizer.modelId.length > 0;
 }

@@ -18,8 +18,8 @@ type CompactPhotoFieldProps = {
   /** edit = photo-edit。retake = 酒記録（中間画面なし） */
   actions?: "edit" | "retake";
   error?: string | null;
-  /** loading はスピナー付き。empty / failure は muted の 1 行で、黙らずに手入力できることを示す */
-  recognizeStatus?: "loading" | "success" | "empty" | "failure" | null;
+  /** loading / lookup はスピナー付き。empty / failure は muted の 1 行で、黙らずに手入力できることを示す */
+  recognizeStatus?: "loading" | "lookup" | "success" | "empty" | "failure" | null;
   recognizeMessage?: string;
   /** 撮影後サムネの比率。記録・ノート 96×120、セラー 100×150 */
   ratio?: "log" | "bottle";
@@ -135,7 +135,7 @@ export function CompactPhotoField({
           role="status"
           aria-live="polite"
         >
-          {recognizeStatus === "loading" ? (
+          {recognizeStatus === "loading" || recognizeStatus === "lookup" ? (
             <span className="recognize-spinner" aria-hidden />
           ) : null}
           {recognizeMessage}

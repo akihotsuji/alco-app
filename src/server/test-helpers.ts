@@ -5,12 +5,17 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { z } from "zod";
 import * as schema from "@/db/schema.ts";
-import { WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
+import {
+  AI_RECOGNIZE_LOOKUP_BUDGET_MS,
+  GEMINI_35_FLASH_LITE_MODEL_ID,
+  WORKERS_AI_VISION_MODEL,
+} from "@/shared/constants.ts";
 import { LEGAL_VERSION } from "@/shared/legal.ts";
 import { createAuth } from "./auth.ts";
 import type { GoogleOAuthConfig } from "./env.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
+import type { DrinkLookupRunner } from "./services/drink-recognizer/lookup-runner.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import type { ResetPasswordMail, SendResetPasswordEmail } from "./services/reset-password-mail.ts";
 import type { VerifyTurnstile } from "./services/turnstile.ts";
@@ -82,12 +87,34 @@ export function createStubLabelRecognizer(
   };
 }
 
+/** 照合のスタブ。既定は検索対応・一致なし */
+export function createStubDrinkLookupRunner(
+  lookup: DrinkLookupRunner["lookup"] = async () => ({
+    payload: { matched: false },
+    sources: [],
+    usage: { inputTokens: null, outputTokens: null, thinkingTokens: null, searchCount: null },
+    searchUsed: true,
+  }),
+  options: { supportsSearch?: boolean } = {},
+): DrinkLookupRunner {
+  return {
+    provider: "gemini",
+    profile: "gemini-3.5-flash-lite",
+    modelId: GEMINI_35_FLASH_LITE_MODEL_ID,
+    supportsSearch: options.supportsSearch ?? true,
+    timeoutMs: AI_RECOGNIZE_LOOKUP_BUDGET_MS,
+    lookup,
+  };
+}
+
 export async function createTestApp(
   options: {
     labelRecognizer?: LabelRecognizer;
     drinkRecognizer?: LabelRecognizer;
+    drinkLookup?: DrinkLookupRunner;
     noteRecognizer?: LabelRecognizer;
     recognizeTimeoutMs?: number;
+    lookupTimeoutMs?: number;
     sendResetPassword?: SendResetPasswordEmail;
     google?: GoogleOAuthConfig;
     verifyTurnstile?: VerifyTurnstile;
@@ -139,7 +166,9 @@ export async function createTestApp(
         drinkType: { value: "wine", confidence: 0.8 },
         vintage: { value: 2020, confidence: 0.7 },
       })),
+    drinkLookup: options.drinkLookup ?? createStubDrinkLookupRunner(),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
+    lookupTimeoutMs: options.lookupTimeoutMs,
     turnstileSiteKey: options.turnstileSiteKey,
     photoDailyLimit: options.photoDailyLimit,
   });

@@ -86,12 +86,13 @@ describe("forgetAllRecognition", () => {
         fields: {},
         provider: "gemini",
         remainingToday: 29,
-        profile: "gemini-3.7-flash",
+        profile: "gemini-3.5-flash-lite",
         modelId: "test",
         durationMs: 1,
         usage: { inputTokens: null, outputTokens: null, thinkingTokens: null, searchCount: null },
         sources: [],
         searchUsed: false,
+        lookupSuggested: false,
       };
     });
     await startNoteRecognition(jpeg, async () => {

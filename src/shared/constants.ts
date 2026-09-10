@@ -104,6 +104,8 @@ export type PhotoContentType = (typeof PHOTO_CONTENT_TYPES)[number];
 export const PHOTO_MAX_BYTES = 1_048_576;
 export const PHOTO_MAX_LONG_EDGE = 1600;
 export const PHOTO_OUTPUT_LONG_EDGE = 1280;
+/** 認識用 JPEG の長辺。表示用より小さくして入力トークンと転送量を減らす（ai-recognition.md 9） */
+export const PHOTO_RECOGNIZE_LONG_EDGE = 1024;
 export const PHOTO_JPEG_QUALITY = 0.82;
 export const PHOTO_WEBP_QUALITY = 0.9;
 export const PHOTO_GC_TTL_MS = 24 * 60 * 60 * 1000;
@@ -116,8 +118,8 @@ export const AI_RECOGNIZE_DAILY_LIMIT = 30;
 export const AI_RECOGNIZE_TIMEOUT_MS = 20_000;
 /** 未使用だった全体寄り 20s。検索専用予算には使わない */
 export const AI_RECOGNIZE_LOOKUP_TIMEOUT_MS = 20_000;
-/** 商品検索だけの短い予算。切れたら抽出済みを返す */
-export const AI_RECOGNIZE_LOOKUP_BUDGET_MS = 4_000;
+/** 商品照合（二段階の後半）だけの予算。抽出の体感には影響しない。切れたら matched=false */
+export const AI_RECOGNIZE_LOOKUP_BUDGET_MS = 6_000;
 export const AI_RECOGNIZE_OVERALL_TIMEOUT_MS = 40_000;
 export const AI_RECOGNIZE_RETRY_LIMIT = 1;
 /** クライアントが候補を捨てる確度の下限（サーバーは 0〜1 をそのまま返す） */
@@ -128,6 +130,9 @@ export const WORKERS_AI_VISION_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"
 export const GEMINI_37_FLASH_MODEL_ID = "google/gemini-3.7-flash";
 /** Google 側のモデル ID。Cloudflare カタログ ID と混同しない */
 export const GEMINI_37_FLASH_NATIVE_ID = "gemini-3.7-flash";
+/** Cloudflare AI カタログ上の Gemini 3.5 Flash-Lite（速度優先の既定。spec/features/ai-recognition.md 15.3） */
+export const GEMINI_35_FLASH_LITE_MODEL_ID = "google/gemini-3.5-flash-lite";
+export const GEMINI_35_FLASH_LITE_NATIVE_ID = "gemini-3.5-flash-lite";
 export const LABEL_RECOGNIZE_PROVIDERS = ["workers-ai", "gemini", "openai"] as const;
 export type LabelRecognizeProvider = (typeof LABEL_RECOGNIZE_PROVIDERS)[number];
 export const DEFAULT_LABEL_RECOGNIZE_PROVIDER: LabelRecognizeProvider = "gemini";

@@ -9,6 +9,7 @@ import {
   drinkLogsQuerySchema,
   updateDrinkLogSchema,
 } from "@/shared/drink-logs.ts";
+import { drinkLookupRequestSchema } from "@/shared/drink-recognize.ts";
 import type { AppEnv } from "../app-env.ts";
 import { ApiError, MALFORMED_REQUEST_MESSAGE } from "../errors.ts";
 import {
@@ -19,7 +20,9 @@ import {
   listDrinkLogs,
   updateDrinkLog,
 } from "../services/drink-logs.ts";
+import type { DrinkLookupRunner } from "../services/drink-recognizer/lookup-runner.ts";
 import {
+  lookupDrinkProduct,
   readDailyLimitFromEnv,
   recognizeDrinkPhoto,
 } from "../services/drink-recognizer/recognize.ts";
@@ -31,12 +34,14 @@ export type DrinkLogRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppBatchDb;
   getBucket: (c: Context<AppEnv>) => PhotoBucket;
   getDrinkRecognizer: (c: Context<AppEnv>) => LabelRecognizer;
+  getDrinkLookup: (c: Context<AppEnv>) => DrinkLookupRunner;
   getEnv?: (c: Context<AppEnv>) => object;
   recognizeTimeoutMs?: number;
+  lookupTimeoutMs?: number;
 };
 
 /**
- * 固定パスの `/summary` と `/recognize` は `/:id` より前に登録する。
+ * 固定パスの `/summary` と `/recognize` `/recognize/lookup` は `/:id` より前に登録する。
  */
 export function createDrinkLogsRoute(deps: DrinkLogRouteDeps) {
   return new Hono<AppEnv>()
@@ -83,6 +88,19 @@ export function createDrinkLogsRoute(deps: DrinkLogRouteDeps) {
         recognizer: deps.getDrinkRecognizer(c),
         env: deps.getEnv?.(c) ?? c.env,
         timeoutMs: deps.recognizeTimeoutMs,
+        dailyLimit: readDailyLimitFromEnv(deps.getEnv?.(c) ?? c.env),
+      });
+      return c.json(result);
+    })
+    .post("/recognize/lookup", validate("json", drinkLookupRequestSchema), async (c) => {
+      const user = c.get("user");
+      const request = c.req.valid("json");
+      const result = await lookupDrinkProduct({
+        db: deps.getDb(c),
+        userId: user.id,
+        request,
+        runner: deps.getDrinkLookup(c),
+        timeoutMs: deps.lookupTimeoutMs,
         dailyLimit: readDailyLimitFromEnv(deps.getEnv?.(c) ?? c.env),
       });
       return c.json(result);

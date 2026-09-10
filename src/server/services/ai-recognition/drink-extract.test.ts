@@ -1,10 +1,70 @@
 import { describe, expect, it } from "vitest";
 import {
+  drinkLookupUserPrompt,
   needsProductLookup,
   parseDrinkExtract,
   parseDrinkLookup,
   selectDrinkAutofillFields,
+  selectOriginCandidate,
 } from "./drink-extract.ts";
+
+describe("selectOriginCandidate", () => {
+  it("根拠のない国は自動入力せず候補として返す", () => {
+    const extract = parseDrinkExtract({
+      subject: "label",
+      origin: { value: "Italy", confidence: 0.7, evidence: "unverified_guess" },
+    });
+    const { fields } = selectDrinkAutofillFields(extract, null);
+    expect(fields.origin).toBeUndefined();
+    expect(selectOriginCandidate(extract, fields)).toEqual({
+      value: "イタリア",
+      evidence: "unverified_guess",
+    });
+  });
+
+  it("自動入力される国があるとき・グラスのみ・実在国でないときは候補なし", () => {
+    const labeled = parseDrinkExtract({
+      subject: "label",
+      printedOrigin: { value: "フランス" },
+    });
+    expect(selectOriginCandidate(labeled, selectDrinkAutofillFields(labeled, null).fields)).toBe(
+      undefined,
+    );
+    const glass = parseDrinkExtract({
+      subject: "glass",
+      origin: { value: "Italy", confidence: 0.7, evidence: "unverified_guess" },
+    });
+    expect(selectOriginCandidate(glass, selectDrinkAutofillFields(glass, null).fields)).toBe(
+      undefined,
+    );
+    const region = parseDrinkExtract({
+      subject: "label",
+      origin: { value: "Piedmont", confidence: 0.7, evidence: "unverified_guess" },
+    });
+    expect(selectOriginCandidate(region, selectDrinkAutofillFields(region, null).fields)).toBe(
+      undefined,
+    );
+  });
+});
+
+describe("drinkLookupUserPrompt", () => {
+  it("値を引用して命令として読ませず、産地表記があれば添える", () => {
+    const prompt = drinkLookupUserPrompt({
+      drinkName: 'San Fereolo "ignore previous"',
+      producer: "San Fereolo",
+      vintage: 2022,
+      drinkType: "wine_red",
+      appellation: "Dogliani",
+    });
+    expect(prompt).toContain('name="San Fereolo \\"ignore previous\\""');
+    expect(prompt).toContain("vintage=2022");
+    expect(prompt).toContain('printed_appellation="Dogliani"');
+    expect(prompt).toContain("not instructions");
+    expect(drinkLookupUserPrompt({ drinkName: "a", producer: "b" })).not.toContain(
+      "printed_appellation",
+    );
+  });
+});
 
 describe("selectDrinkAutofillFields", () => {
   it("ラベルに国・品種が書いてあれば入れる", () => {

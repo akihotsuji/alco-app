@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { PHOTO_OUTPUT_LONG_EDGE, PHOTO_RECOGNIZE_LONG_EDGE } from "@/shared/constants.ts";
 import { fitToLongEdge } from "./geometry.ts";
 import { type PhotoEditParams, segmentationKeyFor } from "./process.ts";
 
@@ -35,5 +37,26 @@ describe("fitToLongEdge", () => {
   it("長辺だけ縮め、写真全体の比を残す", () => {
     expect(fitToLongEdge(4000, 3000, 1280)).toEqual({ width: 1280, height: 960 });
     expect(fitToLongEdge(800, 600, 1280)).toEqual({ width: 800, height: 600 });
+  });
+});
+
+describe("toRecognizeJpeg", () => {
+  it("認識用は表示用 1280 より小さい 1024 に収める（既に小さければ据え置き）", () => {
+    expect(PHOTO_RECOGNIZE_LONG_EDGE).toBeLessThan(PHOTO_OUTPUT_LONG_EDGE);
+    expect(fitToLongEdge(1280, 960, PHOTO_RECOGNIZE_LONG_EDGE)).toEqual({
+      width: 1024,
+      height: 768,
+    });
+    expect(fitToLongEdge(900, 1000, PHOTO_RECOGNIZE_LONG_EDGE)).toEqual({
+      width: 900,
+      height: 1000,
+    });
+  });
+
+  it("記録・ノート・セラーの認識用 JPEG はすべて toRecognizeJpeg を通す", () => {
+    const source = readFileSync(new URL("./process.ts", import.meta.url), "utf8");
+    const matches = source.match(/const recognizeJpeg = await toRecognizeJpeg\(/g) ?? [];
+    expect(matches).toHaveLength(3);
+    expect(source).not.toMatch(/const recognizeJpeg = await toJpegBlob/);
   });
 });

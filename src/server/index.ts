@@ -18,6 +18,10 @@ import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
 import { createTaskRecognizer } from "./services/ai-recognition/create-recognizer.ts";
+import {
+  createDrinkLookupRunner,
+  type DrinkLookupRunner,
+} from "./services/drink-recognizer/lookup-runner.ts";
 import { reportUnexpectedError } from "./services/error-alert.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
@@ -30,8 +34,10 @@ export type CreateAppOptions = {
   photos?: PhotoBucket;
   labelRecognizer?: LabelRecognizer;
   drinkRecognizer?: LabelRecognizer;
+  drinkLookup?: DrinkLookupRunner;
   noteRecognizer?: LabelRecognizer;
   recognizeTimeoutMs?: number;
+  lookupTimeoutMs?: number;
   turnstileSiteKey?: string | null;
   photoDailyLimit?: number;
 };
@@ -105,7 +111,9 @@ export function createApp(options: CreateAppOptions = {}) {
   const drinkLogsRoute = createDrinkLogsRoute({
     ...routeDeps,
     getDrinkRecognizer: (c) => options.drinkRecognizer ?? createTaskRecognizer(c.env, "drink"),
+    getDrinkLookup: (c) => options.drinkLookup ?? createDrinkLookupRunner(c.env),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
+    lookupTimeoutMs: options.lookupTimeoutMs,
     getEnv: (c) => c.env,
   });
   const myDrinksRoute = createMyDrinksRoute(routeDeps);

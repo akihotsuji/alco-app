@@ -29,18 +29,15 @@ import {
   useDrinkLog,
   useUpdateDrinkLog,
 } from "@/client/hooks/use-drink-logs.ts";
+import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
 import { PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
 import {
-  applyRecognizeToLogForm,
-  countDrinkRecognizeFields,
-  type DrinkRecognizeStatus,
   type DrinkRecognizeTouched,
   drinkRecognizeBannerMessage,
   lockInheritedRecognizeFields,
-  pendingDrinkRecognizeFields,
 } from "@/client/lib/drink-recognize.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import {
@@ -62,13 +59,10 @@ import {
 import type { MotionState } from "@/client/lib/motion.ts";
 import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
-import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import { DRINK_NAME_MAX_LENGTH, type DrinkLog } from "@/shared/drink-logs.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
-
-const EMPTY_PENDING: ReadonlySet<string> = new Set();
 
 export function LogEditForm({ logId }: { logId: string | undefined }) {
   const query = useDrinkLog(logId);
@@ -116,11 +110,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   const inheritSourceRef = useRef<string | null>(null);
   const [inheritError, setInheritError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [recognizeStatus, setRecognizeStatus] = useState<DrinkRecognizeStatus | null>(null);
-  const [recognizeAppliedCount, setRecognizeAppliedCount] = useState(0);
   const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
-  const aiMarksRef = useRef(aiMarks);
-  aiMarksRef.current = aiMarks;
   const touchedRef = useRef<DrinkRecognizeTouched>(
     (() => {
       const touched: DrinkRecognizeTouched = {
@@ -140,11 +130,18 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
       return touched;
     })(),
   );
-  const recognizedJpegRef = useRef<Blob | null>(null);
-  const recognizeRequestRef = useRef(0);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const attachment = attachments.log?.sessionId === session.sessionId ? attachments.log : undefined;
+  const recognition = useDrinkPhotoRecognition({
+    jpeg: recognizeJpegForForm(attachment, pendingRecognize, session),
+    state,
+    setState,
+    touchedRef,
+    aiMarks,
+    setAiMarks,
+    savedRef,
+  });
   const photoStatus: PhotoSaveStatus = attachment ? attachment.status : "none";
   const errors = {
     ...validateLogForm(state, new Date(), { existingOrigin: initial.origin }),
@@ -166,67 +163,6 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
     });
     return () => setGuard(null);
   }, [dirty, setGuard]);
-
-  useEffect(() => {
-    const jpeg = recognizeJpegForForm(attachment, pendingRecognize, session);
-    if (!jpeg) {
-      return;
-    }
-    startDrinkRecognition(jpeg).catch(() => {});
-  }, [attachment, pendingRecognize, session]);
-
-  useEffect(() => {
-    const jpeg = recognizeJpegForForm(attachment, pendingRecognize, session);
-    if (!jpeg || recognizedJpegRef.current === jpeg) {
-      return;
-    }
-    recognizedJpegRef.current = jpeg;
-    const requestId = recognizeRequestRef.current + 1;
-    recognizeRequestRef.current = requestId;
-    setRecognizeStatus("loading");
-    setRecognizeAppliedCount(0);
-    void startDrinkRecognition(jpeg)
-      .then((result) => {
-        if (requestId !== recognizeRequestRef.current || savedRef.current) {
-          return;
-        }
-        if (countDrinkRecognizeFields(result.fields) === 0) {
-          setRecognizeStatus("empty");
-          return;
-        }
-        setState((current) => {
-          const applied = applyRecognizeToLogForm({
-            state: current,
-            fields: result.fields,
-            touched: touchedRef.current,
-            marks: aiMarksRef.current,
-          });
-          setAiMarks(applied.marks);
-          setRecognizeAppliedCount(applied.applied.length);
-          setRecognizeStatus(applied.applied.length > 0 ? "success" : "empty");
-          return applied.next;
-        });
-      })
-      .catch(() => {
-        if (requestId !== recognizeRequestRef.current || savedRef.current) {
-          return;
-        }
-        setRecognizeStatus("failure");
-      });
-  }, [attachment, pendingRecognize, session]);
-
-  const aiPending =
-    recognizeStatus === "loading"
-      ? pendingDrinkRecognizeFields(state, touchedRef.current, aiMarks)
-      : EMPTY_PENDING;
-  const typeAiPending =
-    recognizeStatus === "loading" && !touchedRef.current.drinkType && !state.bottleId;
-
-  useEffect(() => {
-    return () => {
-      recognizeRequestRef.current += 1;
-    };
-  }, []);
 
   function update(patch: Partial<typeof state>, field?: LogFormField) {
     if (field) {
@@ -351,9 +287,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           void retryUpload("log");
         }}
         onClear={() => {
-          recognizeRequestRef.current += 1;
-          recognizedJpegRef.current = null;
-          setRecognizeStatus(null);
+          recognition.reset();
           setPreviewOpen(false);
           if (attachment) {
             void clearAttachment("log");
@@ -362,10 +296,10 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           void removeExistingPhoto();
         }}
         error={visibleErrors.photoIds ?? inheritError}
-        recognizeStatus={recognizeStatus}
+        recognizeStatus={recognition.status}
         recognizeMessage={
-          recognizeStatus
-            ? drinkRecognizeBannerMessage(recognizeStatus, recognizeAppliedCount)
+          recognition.status
+            ? drinkRecognizeBannerMessage(recognition.status, recognition.appliedCount)
             : undefined
         }
       />
@@ -379,7 +313,10 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         <FieldLabel htmlFor="log-edit-drink-name" optional>
           {IDENTITY_FIELD_LABELS.drinkName}
         </FieldLabel>
-        <FieldWithAiMark marked={aiMarks.has("drinkName")} pending={aiPending.has("drinkName")}>
+        <FieldWithAiMark
+          marked={aiMarks.has("drinkName")}
+          pending={recognition.aiPending.has("drinkName")}
+        >
           <Input
             id="log-edit-drink-name"
             value={state.drinkName}
@@ -397,7 +334,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
       <DrinkTypeSelect
         value={state.drinkType}
         aiMarked={aiMarks.has("drinkType")}
-        aiPending={typeAiPending}
+        aiPending={recognition.typeAiPending}
         onChange={(drinkType) => {
           touchedRef.current.drinkType = true;
           setAiMarks((current) => {
@@ -455,7 +392,8 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           origin: visibleErrors.origin,
         }}
         aiMarks={aiMarks}
-        aiPending={aiPending}
+        aiPending={recognition.aiPending}
+        originCandidate={recognition.originCandidate}
         onChange={(field, value) => update({ [field]: value }, field)}
       />
       <VolumeField

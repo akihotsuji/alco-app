@@ -2606,6 +2606,15 @@ input:focus-visible {
   font-size: 14px;
 }
 
+/* 写真からの候補（03-log.md N8b）。自動では入れない国を primary 縁のチップ 1 つで示す */
+.origin-candidate .chip {
+  box-shadow:
+    var(--shadow-outset-sm),
+    inset 0 0 0 1.5px var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
 .home-page,
 .log-day,
 .settings-page,

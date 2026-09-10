@@ -6,9 +6,13 @@ import { LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
  * クライアントからモデルや接続先は指定できない。
  */
 
-export const AI_RECOGNITION_PROFILE_KEYS = ["gemini-3.7-flash", "workers-ai-llama"] as const;
+export const AI_RECOGNITION_PROFILE_KEYS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.7-flash",
+  "workers-ai-llama",
+] as const;
 export type AiRecognitionProfileKey = (typeof AI_RECOGNITION_PROFILE_KEYS)[number];
-export const DEFAULT_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey = "gemini-3.7-flash";
+export const DEFAULT_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey = "gemini-3.5-flash-lite";
 export const DEFAULT_LABEL_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey =
   DEFAULT_AI_RECOGNITION_PROFILE;
 export const DEFAULT_NOTE_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey =
@@ -30,8 +34,8 @@ export const PHOTO_SUBJECTS = ["label", "glass", "can", "bottle", "mixed", "unkn
 export type PhotoSubject = (typeof PHOTO_SUBJECTS)[number];
 
 export const DRINK_EXTRACT_PROMPT_VERSION = "drink-extract-v2";
-export const DRINK_LOOKUP_PROMPT_VERSION = "drink-lookup-v1";
-export const DRINK_OUTPUT_SCHEMA_VERSION = "drink-fields-v4";
+export const DRINK_LOOKUP_PROMPT_VERSION = "drink-lookup-v2";
+export const DRINK_OUTPUT_SCHEMA_VERSION = "drink-fields-v5";
 export const LABEL_EXTRACT_PROMPT_VERSION = "label-extract-v2";
 export const LABEL_OUTPUT_SCHEMA_VERSION = "label-fields-v2";
 export const NOTE_EXTRACT_PROMPT_VERSION = "note-extract-v2";

@@ -6,6 +6,8 @@ import {
 import {
   AI_RECOGNIZE_LOOKUP_BUDGET_MS,
   AI_RECOGNIZE_TIMEOUT_MS,
+  GEMINI_35_FLASH_LITE_MODEL_ID,
+  GEMINI_35_FLASH_LITE_NATIVE_ID,
   GEMINI_37_FLASH_MODEL_ID,
   GEMINI_37_FLASH_NATIVE_ID,
   type LabelRecognizeProvider,
@@ -33,9 +35,9 @@ export type ModelProfile = {
   supportsThinking: boolean;
   /**
    * Gemini 3.7 Flash が受け付けるのは low / medium / high のみ。
-   * minimal は 3.6 Flash 以前専用で、3.7 に送ると 400（Gateway 7003）になる
+   * minimal は 3.5 Flash-Lite / 3.6 Flash 以前専用で、3.7 に送ると 400（Gateway 7003）になる
    */
-  thinkingLevel?: "low" | "medium" | "high";
+  thinkingLevel?: "minimal" | "low" | "medium" | "high";
   /** true のとき generationConfig.thinkingConfig を送る */
   emitThinkingConfig: boolean;
   timeoutMs: number;
@@ -47,6 +49,26 @@ export type ModelProfile = {
 };
 
 export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
+  "gemini-3.5-flash-lite": {
+    key: "gemini-3.5-flash-lite",
+    provider: "gemini",
+    modelId: GEMINI_35_FLASH_LITE_MODEL_ID,
+    nativeModelId: GEMINI_35_FLASH_LITE_NATIVE_ID,
+    requestFormat: "gemini-generate-content",
+    supportsImage: true,
+    supportsStructuredOutput: true,
+    structuredOutputStyle: "gemini-response-schema",
+    supportsSearch: true,
+    supportsThinking: true,
+    thinkingLevel: "minimal",
+    emitThinkingConfig: true,
+    timeoutMs: 20_000,
+    lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_BUDGET_MS,
+    maxOutputTokens: 1024,
+    lookupMaxOutputTokens: 1536,
+    temperature: 0,
+    verification: "mock-only",
+  },
   "gemini-3.7-flash": {
     key: "gemini-3.7-flash",
     provider: "gemini",
@@ -62,8 +84,8 @@ export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
     emitThinkingConfig: true,
     timeoutMs: 25_000,
     lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_BUDGET_MS,
-    maxOutputTokens: 4096,
-    lookupMaxOutputTokens: 2048,
+    maxOutputTokens: 2048,
+    lookupMaxOutputTokens: 1536,
     temperature: 0,
     verification: "mock-only",
   },
@@ -95,9 +117,9 @@ export const PROFILE_ENV_KEYS = {
 } as const satisfies Record<AiRecognitionTask, string>;
 
 export const DEFAULT_PROFILE_BY_TASK: Record<AiRecognitionTask, AiRecognitionProfileKey> = {
-  drink: "gemini-3.7-flash",
-  label: "gemini-3.7-flash",
-  note: "gemini-3.7-flash",
+  drink: "gemini-3.5-flash-lite",
+  label: "gemini-3.5-flash-lite",
+  note: "gemini-3.5-flash-lite",
 };
 
 /** 経路ごとのアプリ側打ち切り。未指定ならそのプロファイルの timeoutMs */

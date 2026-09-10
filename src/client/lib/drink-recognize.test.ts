@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   applyRecognizeToLogForm,
+  DRINK_LOOKUP_FIELDS,
   DRINK_RECOGNIZE_BANNER,
   drinkRecognizeBannerMessage,
   lockInheritedRecognizeFields,
   pendingDrinkRecognizeFields,
+  planDrinkLookup,
+  settledRecognizeStatus,
 } from "./drink-recognize.ts";
 import { initialLogFormState } from "./log-form.ts";
 
@@ -200,6 +203,73 @@ describe("pendingDrinkRecognizeFields", () => {
     expect(pending.has("variety")).toBe(false);
     expect(pending.has("vintage")).toBe(false);
   });
+
+  it("照合中は生産国・品種だけに絞る（品名などは確定済み）", () => {
+    const state = { ...initialLogFormState(null, NOW), drinkName: "", origin: "", variety: "" };
+    const pending = pendingDrinkRecognizeFields(state, untouched, new Set(), DRINK_LOOKUP_FIELDS);
+    expect([...pending].sort()).toEqual(["origin", "variety"]);
+  });
+});
+
+describe("planDrinkLookup", () => {
+  const extracted = {
+    lookupSuggested: true,
+    appellation: "Dogliani",
+    fields: {
+      drinkName: { value: "Dogliani Superiore", confidence: 0.9 },
+      producer: { value: "Pecchenino", confidence: 0.9 },
+      vintage: { value: 2020, confidence: 0.9 },
+      drinkType: { value: "wine" as const, confidence: 0.8 },
+    },
+  };
+
+  it("サーバーが勧め、国か品種が空なら品名・生産者・年・種類・原産地呼称を送る", () => {
+    const state = initialLogFormState(null, NOW);
+    expect(planDrinkLookup(extracted, state, untouched, new Set())).toEqual({
+      drinkName: "Dogliani Superiore",
+      producer: "Pecchenino",
+      vintage: 2020,
+      drinkType: "wine",
+      appellation: "Dogliani",
+    });
+  });
+
+  it("勧められていない・品名か生産者が無い・国と品種が埋まっているときは呼ばない", () => {
+    const state = initialLogFormState(null, NOW);
+    expect(
+      planDrinkLookup({ ...extracted, lookupSuggested: false }, state, untouched, new Set()),
+    ).toBeNull();
+    expect(
+      planDrinkLookup(
+        { ...extracted, fields: { drinkName: extracted.fields.drinkName } },
+        state,
+        untouched,
+        new Set(),
+      ),
+    ).toBeNull();
+    expect(
+      planDrinkLookup(
+        extracted,
+        { ...state, origin: "イタリア", variety: "Dolcetto" },
+        { ...untouched, origin: true, variety: true },
+        new Set(),
+      ),
+    ).toBeNull();
+  });
+
+  it("直前の AI 値が入っている欄はまだ埋め直せるので呼ぶ", () => {
+    const state = { ...initialLogFormState(null, NOW), origin: "フランス", variety: "Merlot" };
+    expect(
+      planDrinkLookup(extracted, state, untouched, new Set(["origin", "variety"])),
+    ).not.toBeNull();
+  });
+});
+
+describe("settledRecognizeStatus", () => {
+  it("1 件以上なら success、0 件なら empty", () => {
+    expect(settledRecognizeStatus(2)).toBe("success");
+    expect(settledRecognizeStatus(0)).toBe("empty");
+  });
 });
 
 describe("drinkRecognizeBannerMessage", () => {
@@ -210,5 +280,12 @@ describe("drinkRecognizeBannerMessage", () => {
     );
     expect(drinkRecognizeBannerMessage("empty", 0)).toContain("手で入力できます");
     expect(drinkRecognizeBannerMessage("failure", 0)).toContain("手で入力してください");
+  });
+
+  it("照合中は入れた件数を先に出して「調べています…」を添える", () => {
+    expect(drinkRecognizeBannerMessage("lookup", 4)).toBe(
+      "写真から 4 項目を入れました。生産国・品種を調べています…",
+    );
+    expect(drinkRecognizeBannerMessage("lookup", 0)).toBe(DRINK_RECOGNIZE_BANNER.lookup);
   });
 });

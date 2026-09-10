@@ -6,6 +6,7 @@ import type {
   DrinkLogsResponse,
   UpdateDrinkLogInput,
 } from "@/shared/drink-logs.ts";
+import type { DrinkLookupRequest } from "@/shared/drink-recognize.ts";
 
 export function createDrinkLog(body: CreateDrinkLogInput, client: ApiClient = api) {
   return unwrap(client.api["drink-logs"].$post({ json: body }));
@@ -19,6 +20,11 @@ export function recognizeDrinkPhoto(file: Blob, client: ApiClient = api) {
       },
     }),
   );
+}
+
+/** 二段階の後半。抽出で得た品名・生産者から国・品種だけを照合する（ai-recognition.md 7a） */
+export function lookupDrinkProduct(body: DrinkLookupRequest, client: ApiClient = api) {
+  return unwrap(client.api["drink-logs"].recognize.lookup.$post({ json: body }));
 }
 
 export function deleteDrinkLog(id: string, client: ApiClient = api) {
