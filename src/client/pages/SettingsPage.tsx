@@ -104,7 +104,7 @@ export function SettingsPage() {
               }}
             />
           </span>
-          <span className="settings-caption">写真を Cloudflare Workers AI に送ります</span>
+          <span className="settings-caption">写真を Cloudflare 経由の外部 AI に送ります</span>
         </div>
       </section>
 

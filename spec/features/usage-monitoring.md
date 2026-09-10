@@ -66,8 +66,8 @@ Workers / D1 / R2 / Workers AI / AI Gateway / Resend / GitHub Actions の使用�
 | R2 保存 | 10 GB-month（Standard） | 8 GB | 従量（$0.015/GB-month） | [R2 Pricing](https://developers.cloudflare.com/r2/pricing/) | 未リサイズ、バックアップ合算 |
 | R2 Class A | 100 万/月 | 80 万/月 | 従量 | 同上 | PUT（写真・backup put） |
 | R2 Class B | 1000 万/月 | 800 万/月 | 従量 | 同上 | GET（サムネ連打） |
-| Workers AI | 1 万 Neurons/日 | 8000/日 | それ以上は Workers Paid | [Workers AI Pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) | セラー / ノートの Llama |
-| AI Gateway（Gemini） | 無料枠なし。Unified Billing | ダッシュボードの支出 | 請求。spend limit で 429 | [Spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) | 酒記録の認識。**最初に $ が付きやすい** |
+| Workers AI | 1 万 Neurons/日 | 8000/日 | それ以上は Workers Paid | [Workers AI Pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) | Llama に戻したとき |
+| AI Gateway（Gemini） | 無料枠なし。Unified Billing | ダッシュボードの支出 | 請求。spend limit で 429 | [Spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) | 記録・セラー・ノートの既定認識。**最初に $ が付きやすい** |
 | Resend | 100 通/日・3000 通/月 | 80 / 2400 | 送信失敗 | [password-reset.md](password-reset.md) | リセット爆撃（8-05） |
 | GitHub Actions | **public** の標準 runner は分が無料。artifact 500 MB | artifact 400 MB | private 化すると Free は 2000 分/月 | [Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions) | E2E を毎 PR。リポジトリは public |
 
@@ -125,7 +125,7 @@ pnpm exec wrangler r2 object get alco-app-photos-prod/<key> --file=backups/sampl
 | レバー | やり方 | いつ |
 |---|---|---|
 | 認識 | `AI_RECOGNIZE_DAILY_LIMIT` を 30 より小さく（env。無制限化しない） | Neurons / Gateway 支出 |
-| 認識先 | 酒記録プロファイルを `workers-ai-llama` に戻す | Gemini の $ を止めたいとき |
+| 認識先 | 対象タスクのプロファイルを `workers-ai-llama` に戻す | Gemini の $ を止めたいとき |
 | 写真枚数 | `PHOTO_UPLOAD_DAILY_LIMIT` を下げる（定数。同じ PR） | R2 Class A / 容量 |
 | 写真サイズ | `PHOTO_OUTPUT_LONG_EDGE` / 品質を下げる（同じ PR。画面設計も直す） | R2 容量。最後の手段 |
 
