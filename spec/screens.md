@@ -237,7 +237,7 @@ API が 404 を返した詳細（他ユーザーのボトル、存在しない I
 | auth-reset | パスワードリセット | Phase 8 | メール送信基盤が前提 |
 | settings-goals | 目標設定 | v1.x | 週あたり純アルコール上限、休肝日目標 |
 
-OAuth（Google 等）は独立画面にせず、`auth-login` / `auth-signup` 上の追加手段として Phase 8 で足す。
+OAuth（Google）は独立画面にせず、`auth-login` / `auth-signup` 上の「Google で続行」（8-04）。
 
 ---
 

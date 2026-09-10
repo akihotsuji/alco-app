@@ -7,7 +7,7 @@
 - 認証は **Better Auth のみ**。独自 JWT / パスワードハッシュは作らない
 - **招待制は採用しない**（招待コード・登録クローズフラグなし）
 - 個人利用ではアプリ URL を公開しない。ボット対策は Phase 8
-- メール検証・OAuth は MVP 対象外（OAuth は Phase 8-04）
+- メール検証は MVP 対象外。OAuth（Google）は 8-04（[oauth-login.md](oauth-login.md)）
 - パスワードリセットは 8-03（[password-reset.md](password-reset.md)）。Better Auth 標準。自前トークンは作らない
 - サインアップは現行の利用規約・プライバシーポリシーへの同意が必須（8-01。[legal.md](legal.md)）
 
@@ -15,7 +15,7 @@
 
 | 方法 | パス | 認証 | 備考 |
 |---|---|---|---|
-| * | `/api/auth/*` | Better Auth が処理 | サインアップ / ログイン / ログアウト / セッション / パスワードリセット |
+| * | `/api/auth/*` | Better Auth が処理 | サインアップ / ログイン / ログアウト / セッション / パスワードリセット / Google OAuth |
 | GET | `/api/health` | なし | 別契約 |
 
 これ以外の `/api/*` はセッション必須。`GET /api/me` は `{ id, email, name, ageVerified }` を返す（`birthOn` は出さない）。年齢確認は [age-verification.md](age-verification.md)。
@@ -30,7 +30,7 @@
 - 期限切れは延長して復活させない。保護 API は 401 `{ "error": "unauthorized" }`。Cookie の失効ヘッダーがあれば転送する
 - 既存セッションは設定変更だけでは 30 日に置き換わらない（一括 UPDATE はしない）。次回のセッション確認で延長条件を満たせば、その時点から 30 日になる
 - `baseURL` は `BETTER_AUTH_URL`、未設定なら `CANONICAL_ORIGIN`、それも無ければリクエスト origin。本番 URL を dev に書かない。本番の正は `https://sake-shiori.com`（[custom-domain.md](custom-domain.md)）
-- ログイン試行のレート制限は Better Auth 標準（有効のまま。2-01 スキーマに `rate_limit` が無いためストレージはメモリ）。オフにしない。`/sign-up` `/sign-in` の既定は 10 秒 3 回。`/request-password-reset` の既定は 60 秒 3 回。HTTP（ローカル Vite / E2E）だけ同一 IP の連続登録・再設定要求用に上限を緩める。本番 HTTPS は既定のまま
+- ログイン試行のレート制限は Better Auth 標準（有効のまま。2-01 スキーマに `rate_limit` が無いためストレージはメモリ）。オフにしない。`/sign-up` `/sign-in` の既定は 10 秒 3 回。`/request-password-reset` の既定は 60 秒 3 回。HTTP（ローカル Vite / E2E）だけ同一 IP の連続登録・再設定要求・`/sign-in/social` 用に上限を緩める。本番 HTTPS は既定のまま
 - クライアントの `redirect` はアプリ内相対パスのみ（`/` 始まり、`//` とスキーム不可）
 - **API が 401 を返したら**（期限切れ・別端末での失効）クライアントは `endSession()` でサインアウトし、セッション store が空になった `RequireAuth` が query キャッシュを捨てて `/login?redirect=` へ送る（2-04。[02-tech-stack.md](../02-tech-stack.md) 「クライアントのデータ取得」）。ログアウトも同じ経路。ネットワーク障害や 5xx は期限切れと扱わない
 - **`GET /api/auth/get-session` の通信失敗と未ログインは分ける**。失敗（タイムアウト・ネットワーク・5xx）ではログインへ送らず、起動画面の再試行に留める。待ち時間が長いだけでもログアウト扱いにしない
@@ -41,8 +41,8 @@
 
 | ルート | 内容 |
 |---|---|
-| `/login` | メール＋パスワード。エラーは「メールまたはパスワードが正しくありません」。L7「パスワードを忘れた」。`?reset=1` で再設定完了文 |
-| `/signup` | 表示名（任意 1〜40）・メール・パスワード（8 文字以上）。規約・PP への必須同意（8-01）。成功後は `/age`（`redirect` があれば引き継ぐ）。既存メールも汎用文。招待コードは置かない |
+| `/login` | メール＋パスワード。エラーは「メールまたはパスワードが正しくありません」。L7「パスワードを忘れた」。`?reset=1` で再設定完了文。L8「Google で続行」（8-04。既存 Google のみ） |
+| `/signup` | 表示名（任意 1〜40）・メール・パスワード（8 文字以上）。規約・PP への必須同意（8-01）。成功後は `/age`（`redirect` があれば引き継ぐ）。既存メールも汎用文。招待コードは置かない。S8「Google で続行」（規約チェック必須） |
 | `/forgot-password` | 再設定メール。登録の有無で完了文を変えない。ログイン中でも表示（8-03） |
 | `/reset-password` | 新パスワード。トークンは query からメモリへ移して消す。ログイン中でも表示（8-03） |
 | `/age` | 生年月日で満 20 歳を確認（8-02）。タブバーなし。未確認のタブ配下はここへ |
@@ -58,5 +58,6 @@
 
 - `BETTER_AUTH_SECRET` は `.dev.vars` / `wrangler secret` のみ。値はコード・spec・チャットに書かない
 - `RESEND_API_KEY` も同じ置き場（8-03。未設定ならリセットメールは送らない）
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` も同じ置き場（8-04。未設定なら Google ログインは失敗する）
 - `.dev.vars.example` はキー名のみ
 - 本番と dev で別の値にする（7-03）

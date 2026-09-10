@@ -1,9 +1,11 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { ageGatePath } from "@/client/auth/age-path.ts";
 import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
 import { hrefWithRedirect } from "@/client/auth/login-path.ts";
+import { hasOAuthErrorQuery, stripOAuthErrorParams } from "@/client/auth/oauth.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
+import { GoogleSignInButton } from "@/client/components/auth/GoogleSignInButton.tsx";
 import { PasswordField } from "@/client/components/auth/PasswordField.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
@@ -12,6 +14,7 @@ import { authClient } from "@/client/lib/auth-client.ts";
 import { cn } from "@/client/lib/utils.ts";
 import { AUTH_NAME_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH, signupFormSchema } from "@/shared/auth.ts";
 import { LEGAL_VERSION, legalHref } from "@/shared/legal.ts";
+import { OAUTH_SIGNUP_ERROR_MESSAGE } from "@/shared/oauth.ts";
 
 export function SignupPage() {
   const [searchParams] = useSearchParams();
@@ -24,7 +27,19 @@ export function SignupPage() {
   const [password, setPassword] = useState("");
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const oauthFailed = hasOAuthErrorQuery(searchParams);
+  const [error, setError] = useState<string | null>(
+    oauthFailed ? OAUTH_SIGNUP_ERROR_MESSAGE : null,
+  );
+
+  useEffect(() => {
+    if (!oauthFailed) {
+      return;
+    }
+    const next = stripOAuthErrorParams(searchParams);
+    const search = next.toString();
+    navigate({ pathname: "/signup", search: search ? `?${search}` : "" }, { replace: true });
+  }, [navigate, oauthFailed, searchParams]);
 
   const parsed = signupFormSchema.safeParse({
     name: name.trim(),
@@ -72,12 +87,22 @@ export function SignupPage() {
       submitLabel="登録する"
       submittingLabel="登録中"
       footer={
-        <Link
-          className={cn(buttonVariants({ variant: "link" }), "mt-4 self-center")}
-          to={loginHref}
-        >
-          ログインへ
-        </Link>
+        <>
+          <GoogleSignInButton
+            mode="signup"
+            redirectQuery={redirectQuery}
+            acceptedLegal={acceptedLegal}
+            disabled={submitting}
+            onError={setError}
+            onBusyChange={setSubmitting}
+          />
+          <Link
+            className={cn(buttonVariants({ variant: "link" }), "mt-4 self-center")}
+            to={loginHref}
+          >
+            ログインへ
+          </Link>
+        </>
       }
     >
       <Label htmlFor="signup-name">表示名</Label>

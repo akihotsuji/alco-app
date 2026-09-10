@@ -5,12 +5,22 @@ import { describe, expect, it } from "vitest";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-describe("認証画面 8-03", () => {
+describe("認証画面 8-03 / 8-04", () => {
   it("ログインにパスワード再設定の導線がある", () => {
     const login = readFileSync(join(here, "LoginPage.tsx"), "utf8");
     expect(login).toContain("パスワードを忘れた");
     expect(login).toContain("/forgot-password");
     expect(login).toContain("loginNoticeFromSearch");
+  });
+
+  it("ログインとサインアップに Google で続行がある", () => {
+    const login = readFileSync(join(here, "LoginPage.tsx"), "utf8");
+    const signup = readFileSync(join(here, "SignupPage.tsx"), "utf8");
+    expect(login).toContain("GoogleSignInButton");
+    expect(login).toContain('mode="login"');
+    expect(signup).toContain("GoogleSignInButton");
+    expect(signup).toContain('mode="signup"');
+    expect(signup).toContain("acceptedLegal={acceptedLegal}");
   });
 
   it("サインアップに招待コード欄が無い", () => {

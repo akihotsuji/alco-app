@@ -9,12 +9,19 @@ import { legalConsents } from "@/db/schema.ts";
 import {
   AUTH_PASSWORD_MAX_LENGTH,
   AUTH_PASSWORD_MIN_LENGTH,
+  clipDisplayName,
   RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
 } from "@/shared/auth.ts";
 import { LEGAL_VERSION, signupLegalAcceptanceSchema } from "@/shared/legal.ts";
-import { readAuthSecret, resolveAuthBaseURL } from "./env.ts";
+import { googleSignupAdditionalDataSchema, readSocialSignInLegal } from "@/shared/oauth.ts";
+import {
+  type GoogleOAuthConfig,
+  readAuthSecret,
+  readGoogleOAuthConfig,
+  resolveAuthBaseURL,
+} from "./env.ts";
 import {
   createResetPasswordMailer,
   type SendResetPasswordEmail,
@@ -29,6 +36,7 @@ export type CreateAuthOptions = {
   trustedOrigins: string[];
   useSecureCookies: boolean;
   sendResetPassword?: SendResetPasswordEmail;
+  google?: GoogleOAuthConfig;
 };
 
 /** Better Auth 既定の sign-up/sign-in は 10 秒 3 回。E2E は同一 IP から連続登録するため HTTP だけ緩める。 */
@@ -42,8 +50,27 @@ export function authRateLimitConfig(useSecureCookies: boolean) {
             "/sign-up/email": { window: 10, max: 100 },
             "/sign-in/email": { window: 10, max: 100 },
             "/request-password-reset": { window: 10, max: 100 },
+            "/sign-in/social": { window: 10, max: 100 },
           },
         }),
+  };
+}
+
+function googleSocialProviders(google: GoogleOAuthConfig | undefined) {
+  if (!google) {
+    return undefined;
+  }
+  return {
+    google: {
+      clientId: google.clientId,
+      clientSecret: google.clientSecret,
+      disableImplicitSignUp: true,
+      prompt: "select_account" as const,
+      mapProfileToUser: (profile: { name?: string }) => ({
+        name: clipDisplayName(profile.name),
+        image: "",
+      }),
+    },
   };
 }
 
@@ -92,12 +119,47 @@ export function createAuth(options: CreateAuthOptions) {
     telemetry: {
       enabled: false,
     },
-    hooks: {
-      before: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== "/sign-up/email") {
+    socialProviders: googleSocialProviders(options.google),
+    account: {
+      accountLinking: {
+        enabled: true,
+        disableImplicitLinking: true,
+        requireLocalEmailVerified: true,
+        trustedProviders: [],
+        allowDifferentEmails: false,
+      },
+      encryptOAuthTokens: true,
+    },
+    user: {
+      validateUserInfo: ({ user, source }) => {
+        if (source.method !== "oauth" || source.oauth?.providerId !== "google") {
           return;
         }
-        const parsed = signupLegalAcceptanceSchema.safeParse(ctx.body);
+        if (user.emailVerified === true) {
+          return;
+        }
+        return { error: "email_not_verified" };
+      },
+    },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/sign-up/email") {
+          const parsed = signupLegalAcceptanceSchema.safeParse(ctx.body);
+          if (!parsed.success) {
+            throw new APIError("BAD_REQUEST", {
+              message: "利用規約への同意が必要です",
+            });
+          }
+          return;
+        }
+        if (ctx.path !== "/sign-in/social") {
+          return;
+        }
+        const social = readSocialSignInLegal(ctx.body);
+        if (!social.requestSignUp) {
+          return;
+        }
+        const parsed = googleSignupAdditionalDataSchema.safeParse(social.additionalData);
         if (!parsed.success) {
           throw new APIError("BAD_REQUEST", {
             message: "利用規約への同意が必要です",
@@ -108,10 +170,7 @@ export function createAuth(options: CreateAuthOptions) {
     databaseHooks: {
       user: {
         create: {
-          after: async (user, ctx) => {
-            if (ctx?.path !== "/sign-up/email") {
-              return;
-            }
+          after: async (user) => {
             const now = new Date();
             await options.db.insert(legalConsents).values({
               id: crypto.randomUUID(),
@@ -141,5 +200,6 @@ export function createAuthFromEnv(env: Env, requestUrl: string): Auth {
     trustedOrigins,
     useSecureCookies: new URL(baseURL).protocol === "https:",
     sendResetPassword: createResetPasswordMailer(env),
+    google: readGoogleOAuthConfig(env),
   });
 }

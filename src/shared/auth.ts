@@ -19,6 +19,15 @@ const emailSchema = z.pipe(z.string().trim(), z.email());
 /** 表示名（任意。空は未設定。1〜40。spec/screen-designs/06-settings.md S1） */
 export const displayNameSchema = z.string().trim().max(AUTH_NAME_MAX_LENGTH);
 
+/** Google の表示名など、サーバーが切り詰めるとき用。 */
+export function clipDisplayName(value: string | undefined): string {
+  const trimmed = value?.trim() ?? "";
+  if (trimmed.length <= AUTH_NAME_MAX_LENGTH) {
+    return trimmed;
+  }
+  return trimmed.slice(0, AUTH_NAME_MAX_LENGTH);
+}
+
 export const loginFormSchema = z.object({
   email: emailSchema,
   password: z.string().min(1),

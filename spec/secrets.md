@@ -38,6 +38,8 @@
 | `BETTER_AUTH_URL` | 省略可（`.dev.vars`）。未設定ならリクエスト origin | 置かない（本番 URL を書かない） | 省略可。未設定なら `CANONICAL_ORIGIN` | 置かない |
 | `ALERT_WEBHOOK_URL` | 省略可（`.dev.vars`）。未設定なら送らない | wrangler secret（任意） | wrangler secret（任意） | 置かない |
 | `RESEND_API_KEY` | 省略可（`.dev.vars`）。未設定ならリセットメールは送らない | wrangler secret（8-03。公開時は必須） | wrangler secret（8-03。公開時は必須） | 置かない |
+| `GOOGLE_CLIENT_ID` | 省略可（`.dev.vars`）。未設定なら Google ログインは失敗する | wrangler secret（8-04。公開時は必須） | wrangler secret（8-04。公開時は必須） | 置かない |
+| `GOOGLE_CLIENT_SECRET` | 省略可（`.dev.vars`）。未設定なら Google ログインは失敗する | wrangler secret（8-04。公開時は必須） | wrangler secret（8-04。公開時は必須） | 置かない |
 | `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml`） |
 | `CLOUDFLARE_ACCOUNT_ID` | 使わない | — | — | Actions（同上） |
 
@@ -98,6 +100,17 @@ pnpm exec wrangler secret put RESEND_API_KEY --env dev
 pnpm exec wrangler secret put RESEND_API_KEY --env production
 ```
 
+### Google OAuth（8-04）
+
+未設定ならアプリは起動するが、Google ログインは失敗する。公開前に両 env へ入れる。値はチャットに貼らない。dev と本番で別クライアントにする。
+
+```powershell
+pnpm exec wrangler secret put GOOGLE_CLIENT_ID --env dev
+pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET --env dev
+pnpm exec wrangler secret put GOOGLE_CLIENT_ID --env production
+pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET --env production
+```
+
 ### GitHub
 
 Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` のみ。`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml` が同じ名前を読む。トークン権限は [dev-deploy-ci.md](features/dev-deploy-ci.md) のとおり（Account 全権限は付けない）。
@@ -112,6 +125,7 @@ Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TO
 | `CLOUDFLARE_API_TOKEN` | Cloudflare でトークンを再発行 → GitHub Secret を更新 → 旧トークンを無効化 | デプロイ CI が新トークンになるまで失敗しうる |
 | `ALERT_WEBHOOK_URL` | 新しい HTTPS URL を対象 env だけ `wrangler secret put`（local は `.dev.vars`） | 旧 URL への通知は止まる |
 | `RESEND_API_KEY` | 新しいキーを対象 env だけ `wrangler secret put`（local は `.dev.vars`）。Resend 側の旧キーは無効化 | 旧キーでの送信は止まる |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud でクライアントを再発行し、対象 env だけ `wrangler secret put`（local は `.dev.vars`）。旧クライアントは無効化 | 旧クライアントでの Google ログインは止まる |
 | `CLOUDFLARE_ACCOUNT_ID` | アカウントを変えない限りローテーションしない | — |
 
 Auth secret は **env 単位**で回す。dev を回しても本番は変えない。
@@ -140,7 +154,7 @@ git log --all --pretty=format: --name-only -- ".dev.vars" ".env" ":!.dev.vars.ex
 
 ```powershell
 git ls-files "*.dev.vars" ".env"
-rg -n "BEGIN PRIVATE|sk_live_|sk_test_|ghp_|re_|BETTER_AUTH_SECRET=|RESEND_API_KEY=" --glob "!roadmap/**" --glob "!spec/**"
+rg -n "BEGIN PRIVATE|sk_live_|sk_test_|ghp_|re_|BETTER_AUTH_SECRET=|RESEND_API_KEY=|GOOGLE_CLIENT_SECRET=" --glob "!roadmap/**" --glob "!spec/**"
 ```
 
 ヒットしたら値かどうか目視する。`.dev.vars.example` の空キー、CI の `openssl rand`、テストの短いダミーは可。

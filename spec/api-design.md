@@ -88,7 +88,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 方法 | パス | 認証 | 理由 |
 |---|---|---|---|
 | GET | `/api/health` | なし | 死活確認。本文に内部情報を出さない |
-| * | `/api/auth/*` | なし（Better Auth が各ルートを処理） | サインアップ / ログイン / ログアウト / セッション取得 / パスワードリセット |
+| * | `/api/auth/*` | なし（Better Auth が各ルートを処理） | サインアップ / ログイン / ログアウト / セッション取得 / パスワードリセット / Google OAuth |
 
 Better Auth 配下のうち、本アプリが使う操作（パスは `basePath` からの相対。公式クライアントを使い、手で組み立てない）:
 
@@ -102,7 +102,8 @@ Better Auth 配下のうち、本アプリが使う操作（パスは `basePath`
 | パスワードリセット要求 | `POST /request-password-reset` | 使う（8-03）。未登録でも同じ 200。`redirectTo` は `/reset-password` |
 | リセット callback | `GET /reset-password/:token` | Better Auth が `/reset-password?token=` へ 302 |
 | パスワード再設定 | `POST /reset-password` | 使う（8-03）。トークンは Better Auth。自前発行しない |
-| OAuth | プロバイダ経路 | **使わない**（Phase 8-04） |
+| Google で続行 | `POST /sign-in/social` | 使う（8-04）。`provider: google`。新規は `requestSignUp: true` と規約同意（`additionalData`）。ログインは既存 Google のみ |
+| Google callback | `GET /callback/google` | Better Auth が処理。リダイレクト URI は `{baseURL}/api/auth/callback/google` |
 
 `/api/auth/*` のレスポンス形式は Better Auth の契約に従う。本ドキュメントの `{ "error": "..." }` には包まない。
 
@@ -850,8 +851,8 @@ src/server/
 | 記録・ノート写真の AI 推定 | 記録は `POST /api/drink-logs/recognize`。ノートは `POST /api/tasting-notes/recognize`（本変更） |
 | CSV エクスポート | 将来構想 |
 | アカウント削除 API | 将来（FK CASCADE は data-model 済み） |
-| パスワードリセットメール | Phase 8-03 |
-| OAuth | Phase 8-04 |
+| パスワードリセットメール | Phase 8-03（実装済み） |
+| OAuth | Phase 8-04（Google。実装済み） |
 | アプリ全体のレート制限 | Phase 8-05 |
 | Idempotency-Key | 見送り（ボタン disable + undo） |
 | 署名付き URL 発行 | 見送り（Worker GET を正とする） |

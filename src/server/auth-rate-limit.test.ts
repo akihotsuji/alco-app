@@ -12,5 +12,6 @@ describe("authRateLimitConfig", () => {
     expect(config.customRules?.["/sign-up/email"]).toEqual({ window: 10, max: 100 });
     expect(config.customRules?.["/sign-in/email"]).toEqual({ window: 10, max: 100 });
     expect(config.customRules?.["/request-password-reset"]).toEqual({ window: 10, max: 100 });
+    expect(config.customRules?.["/sign-in/social"]).toEqual({ window: 10, max: 100 });
   });
 });

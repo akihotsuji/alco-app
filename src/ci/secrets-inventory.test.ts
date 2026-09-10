@@ -12,6 +12,8 @@ const INVENTORY_KEYS = [
   "CLOUDFLARE_API_TOKEN",
   "CLOUDFLARE_ACCOUNT_ID",
   "RESEND_API_KEY",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
 ] as const;
 
 const SKIP_SUFFIX = [
@@ -86,6 +88,10 @@ describe("secret inventory", () => {
     expect(example).not.toMatch(/^ALERT_WEBHOOK_URL=.+$/m);
     expect(example).toMatch(/^RESEND_API_KEY=$/m);
     expect(example).not.toMatch(/^RESEND_API_KEY=.+$/m);
+    expect(example).toMatch(/^GOOGLE_CLIENT_ID=$/m);
+    expect(example).not.toMatch(/^GOOGLE_CLIENT_ID=.+$/m);
+    expect(example).toMatch(/^GOOGLE_CLIENT_SECRET=$/m);
+    expect(example).not.toMatch(/^GOOGLE_CLIENT_SECRET=.+$/m);
     expect(example).not.toContain("CLOUDFLARE_API_TOKEN");
     expect(example).not.toContain("CLOUDFLARE_ACCOUNT_ID");
   });
@@ -119,6 +125,7 @@ describe("secret inventory", () => {
           "BETTER_AUTH_SECRET",
           "CLOUDFLARE_API_TOKEN",
           "RESEND_API_KEY",
+          "GOOGLE_CLIENT_SECRET",
         ] as const) {
           const value = assignmentValue(line, key);
           if (value === undefined || isPlaceholder(value)) {

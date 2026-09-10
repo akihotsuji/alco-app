@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AUTH_NAME_MAX_LENGTH,
+  clipDisplayName,
   displayNameSchema,
   forgotPasswordFormSchema,
   loginFormSchema,
@@ -72,6 +73,14 @@ describe("displayNameSchema", () => {
 
   it("41 文字は拒否する", () => {
     expect(displayNameSchema.safeParse("あ".repeat(AUTH_NAME_MAX_LENGTH + 1)).success).toBe(false);
+  });
+
+  it("clipDisplayName は 40 文字で切る", () => {
+    expect(clipDisplayName("  名前  ")).toBe("名前");
+    expect(clipDisplayName(undefined)).toBe("");
+    expect(clipDisplayName("あ".repeat(AUTH_NAME_MAX_LENGTH + 5))).toBe(
+      "あ".repeat(AUTH_NAME_MAX_LENGTH),
+    );
   });
 });
 

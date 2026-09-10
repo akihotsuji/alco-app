@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readAuthSecret, resolveAuthBaseURL } from "./env.ts";
+import { readAuthSecret, readGoogleOAuthConfig, resolveAuthBaseURL } from "./env.ts";
 
 describe("readAuthSecret", () => {
   it("文字列のシークレットを返す", () => {
@@ -14,6 +14,29 @@ describe("readAuthSecret", () => {
     expect(() => readAuthSecret({ BETTER_AUTH_SECRET: 1 })).toThrow(
       "BETTER_AUTH_SECRET is not configured",
     );
+  });
+});
+
+describe("readGoogleOAuthConfig", () => {
+  it("両方あるときだけ返す", () => {
+    expect(
+      readGoogleOAuthConfig({
+        GOOGLE_CLIENT_ID: "id.apps.googleusercontent.com",
+        GOOGLE_CLIENT_SECRET: "gsec",
+      }),
+    ).toEqual({
+      clientId: "id.apps.googleusercontent.com",
+      clientSecret: "gsec",
+    });
+  });
+
+  it("片方だけ・空は未設定", () => {
+    expect(readGoogleOAuthConfig({})).toBeUndefined();
+    expect(readGoogleOAuthConfig({ GOOGLE_CLIENT_ID: "id" })).toBeUndefined();
+    expect(readGoogleOAuthConfig({ GOOGLE_CLIENT_SECRET: "sec" })).toBeUndefined();
+    expect(
+      readGoogleOAuthConfig({ GOOGLE_CLIENT_ID: "", GOOGLE_CLIENT_SECRET: "sec" }),
+    ).toBeUndefined();
   });
 });
 

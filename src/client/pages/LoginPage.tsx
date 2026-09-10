@@ -1,9 +1,11 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
 import { hrefWithRedirect } from "@/client/auth/login-path.ts";
+import { hasOAuthErrorQuery, stripOAuthErrorParams } from "@/client/auth/oauth.ts";
 import { loginNoticeFromSearch } from "@/client/auth/password-reset.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
+import { GoogleSignInButton } from "@/client/components/auth/GoogleSignInButton.tsx";
 import { PasswordField } from "@/client/components/auth/PasswordField.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
@@ -11,6 +13,7 @@ import { Label } from "@/client/components/ui/label.tsx";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { cn } from "@/client/lib/utils.ts";
 import { loginFormSchema, resolveSafeRedirect } from "@/shared/auth.ts";
+import { OAUTH_ERROR_MESSAGE } from "@/shared/oauth.ts";
 
 export function LoginPage() {
   const [searchParams] = useSearchParams();
@@ -22,7 +25,17 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const oauthFailed = hasOAuthErrorQuery(searchParams);
+  const [error, setError] = useState<string | null>(oauthFailed ? OAUTH_ERROR_MESSAGE : null);
+
+  useEffect(() => {
+    if (!oauthFailed) {
+      return;
+    }
+    const next = stripOAuthErrorParams(searchParams);
+    const search = next.toString();
+    navigate({ pathname: "/login", search: search ? `?${search}` : "" }, { replace: true });
+  }, [navigate, oauthFailed, searchParams]);
 
   const parsed = loginFormSchema.safeParse({
     email: email.trim(),
@@ -75,6 +88,14 @@ export function LoginPage() {
           >
             アカウントを作成
           </Link>
+          <GoogleSignInButton
+            mode="login"
+            redirectQuery={redirectQuery}
+            acceptedLegal
+            disabled={submitting}
+            onError={setError}
+            onBusyChange={setSubmitting}
+          />
         </>
       }
     >
