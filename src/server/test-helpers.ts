@@ -8,6 +8,7 @@ import * as schema from "@/db/schema.ts";
 import { WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
 import { LEGAL_VERSION } from "@/shared/legal.ts";
 import { createAuth } from "./auth.ts";
+import type { VerifyTurnstile } from "./services/turnstile.ts";
 import type { GoogleOAuthConfig } from "./env.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
@@ -89,6 +90,9 @@ export async function createTestApp(
     recognizeTimeoutMs?: number;
     sendResetPassword?: SendResetPasswordEmail;
     google?: GoogleOAuthConfig;
+    verifyTurnstile?: VerifyTurnstile;
+    turnstileSiteKey?: string | null;
+    photoDailyLimit?: number;
   } = {},
 ) {
   const client = createClient({ url: ":memory:" });
@@ -108,6 +112,7 @@ export async function createTestApp(
         mailbox.push(mail);
       }),
     google: options.google,
+    verifyTurnstile: options.verifyTurnstile,
   });
 
   const photos = createMemoryR2();
@@ -130,6 +135,8 @@ export async function createTestApp(
         vintage: { value: 2020, confidence: 0.7 },
       })),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
+    turnstileSiteKey: options.turnstileSiteKey,
+    photoDailyLimit: options.photoDailyLimit,
   });
   appCount += 1;
   clientIpByApp.set(app, `10.0.${Math.floor(appCount / 256)}.${appCount % 256}`);
@@ -152,10 +159,14 @@ export function cookieHeaderFrom(response: Response): string {
     .join("; ");
 }
 
-export async function signUpWithBody(app: TestApp, body: unknown) {
+export async function signUpWithBody(
+  app: TestApp,
+  body: unknown,
+  extraHeaders: Record<string, string> = {},
+) {
   return app.request("/api/auth/sign-up/email", {
     method: "POST",
-    headers: authHeaders(app),
+    headers: { ...authHeaders(app), ...extraHeaders },
     body: JSON.stringify(body),
   });
 }

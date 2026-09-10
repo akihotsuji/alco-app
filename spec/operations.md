@@ -2,7 +2,7 @@
 
 オーナーがエージェントなしでも、Logs を見て復元を試みられる手順。値・トークン・SQL 本文・Cookie は書かない。コマンドは **2026-09-09** の wrangler 公式（Workers rollback / D1 Time Travel）に合わせた。バージョンが変わっていたら実行前に `--help` を見る。
 
-- 状態: **作成済み**（2026-09-09）
+- 状態: **作成済み**（2026-09-09）。8-05 で WAF / 誤ブロック解除を追記（2026-09-10）
 - 監視の正本: [features/monitoring.md](features/monitoring.md)
 - バックアップの正本: [features/d1-backup.md](features/d1-backup.md)
 - デプロイの正本: [features/deploy-prod.md](features/deploy-prod.md)
@@ -39,6 +39,7 @@
 | 全体が 500 | Observability で `$workers.outcome = "exception"` | 未捕捉例外、D1 障害 | 3 章。短時間なら rollback（4 章） |
 | 写真 404 | 自分の記録か、他人のを開いていないか | 未紐付け GC、R2 と D1 のズレ、別環境 | 自分の別写真が生きていればデータ。R2 誤削除は 5.3 |
 | 認識が 429 / 502 / 503 | 日次上限、Gateway、プロファイル | 上限・上流障害・設定キー誤り | 手入力は止めない。[ai-recognition.md](features/ai-recognition.md) |
+| 正規ユーザーがログインできない（確認は通る） | WAF / Rate limiting がブロックしていないか（8 章） | 厳しすぎるルール、全世界ブロック | ルールを無効化またはログモードへ戻す。閾値は緩める |
 | CI / Deploy / Backup が赤い | GitHub の失敗メール | トークン期限、migrate 失敗 | Actions ログ。SQL は出さない実装 |
 
 `wrangler d1 execute` にユーザー入力を連結しない。ログを public Issue に貼らない。
@@ -180,3 +181,30 @@ pnpm exec wrangler d1 export alco-app-prod --remote --env production --output=ba
 - 本番上書きはしていない
 
 本ファイルの 5.1 / 5.2 はその記録と同じコマンドである。
+
+---
+
+## 8. WAF / レート制限（8-05）
+
+数値ルールは **ダッシュボードだけ**。コードと本ファイルに閾値を書かない。Workers 有料の Rate Limiting バインディングは使わない。
+
+### 8.1 場所
+
+1. [Cloudflare ダッシュボード](https://dash.cloudflare.com/) → 対象ゾーン（本番は `sake-shiori.com`）
+2. Security → WAF / Rate limiting rules
+3. 対象は `/api/auth*` の POST など。アプリ Worker のコードには出さない
+
+### 8.2 始め方
+
+- **ログ（模擬）モード**から見る。正規ユーザーの誤ブロックを先に確認する
+- 全世界ブロックはしない
+- バイパス IP を広くしない
+- IPv6 / 共有 NAT を想定し、緩めの値から始める
+
+### 8.3 誤ブロックの解除
+
+1. 該当ルールを無効化する、またはログモードへ戻す
+2. 閾値を緩める（値はチャットや Issue に残しすぎない）
+3. Turnstile キーの片方欠けは、ウィジェットも検証も無効になる（[rate-limit-abuse.md](features/rate-limit-abuse.md)）。両方揃っているかを [secrets.md](secrets.md) で確認する
+
+アプリ側の写真日次上限はユーザー単位（セッション）。IP ヘッダではバイパスできない。

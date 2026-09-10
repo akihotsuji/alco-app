@@ -41,7 +41,7 @@
 | 言語 | 日本語のみ | 公開対象はまず日本 |
 | 事業者 | 公開ページは「本サービスの運営者（個人）」。氏名・住所・連絡先メールは **オーナー承認時に [legal.md](../legal.md) へ記入** | 個人情報保護法の公表事項。勝手に氏名を置かない |
 | 公開ルート | `/terms` `/privacy`。ログイン前後どちらでも閲覧可。`GuestOnly` にも `RequireAuth` にも入れない | サインアップ・設定から辿る。ログイン済みを `/` に飛ばさない |
-| 公開 API | **増やさない**。死活確認は従来どおり `GET /api/health` のみ | [api-design.md](../api-design.md) 2.3 |
+| 公開 API | 8-01 では増やさない。死活確認は `GET /api/health`。公開設定は 8-05 の `GET /api/config` | [api-design.md](../api-design.md) 2.3 |
 | 同意の保存 | Better Auth の `user` は触らない。アプリテーブル `legal_consents`（`user_id` UNIQUE、版、`accepted_at`） | Auth CLI 生成物を手で ALTER しない。[data-model.md](../data-model.md) 6.7 |
 | サーバー強制 | `POST /api/auth/sign-up/email` の before hook。`acceptedLegal === true` かつ `legalVersion` が現行版と一致しなければ拒否 | チェックをクライアントだけで迂回できない |
 | 再同意 | 8-01 では作らない。版と施行日を公開ページに出す。重大変更時の再同意は将来 | 要確認のまま実装しない |

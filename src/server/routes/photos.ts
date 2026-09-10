@@ -19,6 +19,7 @@ import { validate } from "../validation.ts";
 export type PhotoRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppSqliteDb;
   getBucket: (c: Context<AppEnv>) => PhotoBucket;
+  dailyLimit?: number;
 };
 
 export function createPhotosRoute(deps: PhotoRouteDeps) {
@@ -62,6 +63,7 @@ export function createPhotosRoute(deps: PhotoRouteDeps) {
         userId: user.id,
         bytes,
         fields,
+        dailyLimit: deps.dailyLimit,
       });
       return c.json(meta, 201);
     })

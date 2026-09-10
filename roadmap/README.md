@@ -45,7 +45,7 @@
 | 見た目 | **ニューモーフィズム**。主アクションはワイン系の塗り。Win98 / ヴェイパーは不採用。ゲーミフィケーションはスコア・押下・短いトーストまで |
 | セラー背景 | 撮影写真を加工してセラー風に並べる見せ方は **将来**（MVP では作らない） |
 | データモデル | 当面このまま |
-| 公開 API | アプリ独自は `GET /api/health` のみ。`/api/auth/*` は Better Auth |
+| 公開 API | アプリ独自は `GET /api/health` と `GET /api/config`（8-05。サイトキーだけ）。`/api/auth/*` は Better Auth |
 | 表示丸め | 純アルコール量は小数第 1 位 |
 | `volume_ml` | 整数 1〜5000 |
 | `abv_percent` | **0〜100**、小数第 1 位。**0% 可**。0g の記録は休肝日にしない |
@@ -112,7 +112,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 5.5 実機検証・機能安定化 | [phase-05-5-device-hardening](phase-05-5-device-hardening/00-phase.md) | Phase 3〜5の実機探索、Issue化、1件ずつ修正 | 未着手（Phase 5完了直後） |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
 | Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 進行中（7-01〜7-05・7-07〜7-09。2026-09-09。7-06 の 308 と初回 Deploy prod はオーナー） |
-| Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 8-01〜8-04 実装済み。8-05 / 8-06 未着手 |
+| Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 8-01〜8-05 実装済み。8-06 未着手 |
 
 ## ロードマップ ↔ ファイル対応表
 
@@ -235,7 +235,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 8-02 | 年齢確認（20歳以上） | [02-age-verification.md](phase-08-public-launch/02-age-verification.md) | 完了（2026-09-10） |
 | 8-03 | 公開登録確認・パスワードリセット | [03-open-signup-password-reset.md](phase-08-public-launch/03-open-signup-password-reset.md) | 完了（2026-09-10。Resend 投入はオーナー） |
 | 8-04 | OAuthログイン | [04-oauth-login.md](phase-08-public-launch/04-oauth-login.md) | 完了（2026-09-10。Google 投入はオーナー） |
-| 8-05 | レート制限・不正利用対策 | [05-rate-limit-abuse.md](phase-08-public-launch/05-rate-limit-abuse.md) | 未着手 |
+| 8-05 | レート制限・不正利用対策 | [05-rate-limit-abuse.md](phase-08-public-launch/05-rate-limit-abuse.md) | 完了（2026-09-10。キーと WAF 投入はオーナー） |
 | 8-06 | 無料枠の使用量監視 | [06-usage-monitoring.md](phase-08-public-launch/06-usage-monitoring.md) | 未着手 |
 
 **合計: フェーズフォルダ 10、タスクファイル 69、フェーズ概要 10、本インデックス 1。**

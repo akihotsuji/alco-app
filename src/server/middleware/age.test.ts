@@ -5,6 +5,7 @@ import { isPublicApiRoute } from "./auth.ts";
 describe("isAgeExemptApiRoute", () => {
   it("公開ルートと me / 確認 API だけ通す", () => {
     expect(isAgeExemptApiRoute("GET", "/api/health")).toBe(true);
+    expect(isAgeExemptApiRoute("GET", "/api/config")).toBe(true);
     expect(isAgeExemptApiRoute("POST", "/api/auth/sign-in/email")).toBe(true);
     expect(isAgeExemptApiRoute("GET", "/api/me")).toBe(true);
     expect(isAgeExemptApiRoute("HEAD", "/api/me")).toBe(true);

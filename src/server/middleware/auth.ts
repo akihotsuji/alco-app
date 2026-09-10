@@ -12,6 +12,7 @@ export type AuthResolver = (c: Context<AppEnv>) => Auth;
  */
 export const PUBLIC_API_ROUTES = [
   { method: "GET", path: "/api/health" },
+  { method: "GET", path: "/api/config" },
   { method: "*", prefix: "/api/auth/" },
 ] as const satisfies readonly ({ method: "GET"; path: string } | { method: "*"; prefix: string })[];
 

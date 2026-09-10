@@ -31,7 +31,7 @@ src/server/
 ## 認可（最重要）
 
 - 認証は `index.ts` の `createAuthGuard` が `/api/*` 全体に掛ける。ルート側で個別に外せない
-- 公開ルートは `middleware/auth.ts` の **`PUBLIC_API_ROUTES` だけ**（`GET /api/health`、`/api/auth/*`）。追加は spec 2.3 の更新とオーナー承認が先。ルートファイルに「認証なし」の分岐を書かない
+- 公開ルートは `middleware/auth.ts` の **`PUBLIC_API_ROUTES` だけ**（`GET /api/health`、`GET /api/config`、`/api/auth/*`）。追加は spec 2.3 の更新とオーナー承認が先。ルートファイルに「認証なし」の分岐を書かない
 - ハンドラは **`c.get("user").id` のみ**を所有者キーにする。ボディ・クエリ・パスの `userId` を読まない。Zod スキーマにも `userId` を置かない（送られてきたら `.strict()` で 400）
 - 一覧・詳細・更新・削除・集計・写真配信はすべて `eq(table.userId, user.id)` を条件に含める
 - 更新・削除は `and(eq(table.id, id), eq(table.userId, user.id))`。「存在確認してから更新」にしない

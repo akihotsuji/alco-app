@@ -47,6 +47,7 @@
 | 方法 | パス | 認証 | 本文 |
 |---|---|---|---|
 | GET / HEAD | `/api/health` | なし | `{ "ok": true }` のみ。環境変数を返さない |
+| GET / HEAD | `/api/config` | なし | `{ "turnstileSiteKey": string \| null }` のみ。シークレットを返さない（8-05） |
 | * | `/api/auth/*` | Better Auth | サインアップ / ログイン / ログアウト / セッション。独自トークンなし |
 
 これ以外の `/api/*` は未認証なら **401**（未定義パスも 401。存在を漏らさない）。固定したテスト: `src/ci/security-release-gates.test.ts`、`src/server/middleware/auth.test.ts`。

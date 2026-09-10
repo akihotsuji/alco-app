@@ -5,7 +5,7 @@ import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { makeGif, makeHeic, makeHtml, makeJpeg, makeSvg, makeWebpVp8x } from "../image-fixtures.ts";
-import { createTestApp, createTestUser } from "../test-helpers.ts";
+import { createTestApp, createTestUser, createTestUserPair } from "../test-helpers.ts";
 
 async function session(app: Awaited<ReturnType<typeof createTestApp>>["app"], email: string) {
   const user = await createTestUser(app, {
@@ -98,6 +98,20 @@ describe("POST /api/photos", () => {
 
     const heic = await postPhoto(app, cookie, makeHeic(), {}, "x.heic", "image/heic");
     expect(heic.status).toBe(415);
+  });
+
+  it("同一ユーザーの日次上限を超えると 429。他ユーザーは数えない", async () => {
+    const { app } = await createTestApp({ photoDailyLimit: 2 });
+    const [a, b] = await createTestUserPair(app, [
+      { name: "A", email: "limit-a@example.com", password: "password1" },
+      { name: "B", email: "limit-b@example.com", password: "password1" },
+    ]);
+    expect((await postPhoto(app, a.cookie, makeJpeg(80, 80))).status).toBe(201);
+    expect((await postPhoto(app, a.cookie, makeJpeg(80, 80))).status).toBe(201);
+    const limited = await postPhoto(app, a.cookie, makeJpeg(80, 80));
+    expect(limited.status).toBe(429);
+    expect(await limited.json()).toEqual({ error: "rate_limited" });
+    expect((await postPhoto(app, b.cookie, makeJpeg(80, 80))).status).toBe(201);
   });
 
   it("1MB 超は 413", async () => {

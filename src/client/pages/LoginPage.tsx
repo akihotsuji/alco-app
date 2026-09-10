@@ -4,8 +4,13 @@ import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
 import { hrefWithRedirect } from "@/client/auth/login-path.ts";
 import { hasOAuthErrorQuery, stripOAuthErrorParams } from "@/client/auth/oauth.ts";
 import { loginNoticeFromSearch } from "@/client/auth/password-reset.ts";
+import {
+  TURNSTILE_LOAD_ERROR_MESSAGE,
+  useTurnstileGate,
+} from "@/client/auth/use-turnstile-gate.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
 import { GoogleSignInButton } from "@/client/components/auth/GoogleSignInButton.tsx";
+import { TurnstileField } from "@/client/components/auth/TurnstileField.tsx";
 import { PasswordField } from "@/client/components/auth/PasswordField.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
@@ -13,6 +18,7 @@ import { Label } from "@/client/components/ui/label.tsx";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { cn } from "@/client/lib/utils.ts";
 import { loginFormSchema, resolveSafeRedirect } from "@/shared/auth.ts";
+import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 import { OAUTH_ERROR_MESSAGE } from "@/shared/oauth.ts";
 
 export function LoginPage() {
@@ -25,6 +31,8 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [widgetKey, setWidgetKey] = useState(0);
+  const turnstile = useTurnstileGate();
   const oauthFailed = hasOAuthErrorQuery(searchParams);
   const [error, setError] = useState<string | null>(oauthFailed ? OAUTH_ERROR_MESSAGE : null);
 
@@ -41,7 +49,12 @@ export function LoginPage() {
     email: email.trim(),
     password,
   });
-  const canSubmit = parsed.success && !submitting;
+  const canSubmit = parsed.success && !submitting && turnstile.canAct;
+
+  function refreshTurnstile() {
+    turnstile.setToken(null);
+    setWidgetKey((value) => value + 1);
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,9 +66,13 @@ export function LoginPage() {
     const result = await authClient.signIn.email({
       email: parsed.data.email,
       password: parsed.data.password,
+      fetchOptions: {
+        headers: turnstileRequestHeaders(turnstile.token),
+      },
     });
     setSubmitting(false);
     if (result.error) {
+      refreshTurnstile();
       setError(
         authClientErrorMessage(result.error.status, "メールまたはパスワードが正しくありません"),
       );
@@ -68,7 +85,7 @@ export function LoginPage() {
     <AuthPageLayout
       title="ログイン"
       notice={resetNotice}
-      error={error}
+      error={turnstile.blocked ? TURNSTILE_LOAD_ERROR_MESSAGE : error}
       onSubmit={onSubmit}
       canSubmit={canSubmit}
       submitting={submitting}
@@ -92,7 +109,8 @@ export function LoginPage() {
             mode="login"
             redirectQuery={redirectQuery}
             acceptedLegal
-            disabled={submitting}
+            disabled={submitting || !turnstile.canAct}
+            turnstileToken={turnstile.token}
             onError={setError}
             onBusyChange={setSubmitting}
           />
@@ -120,6 +138,14 @@ export function LoginPage() {
         aria-describedby={error ? "auth-form-error" : undefined}
         onChange={setPassword}
       />
+      {turnstile.siteKey ? (
+        <TurnstileField
+          key={widgetKey}
+          siteKey={turnstile.siteKey}
+          onTokenChange={turnstile.setToken}
+          onLoadError={() => setError(TURNSTILE_LOAD_ERROR_MESSAGE)}
+        />
+      ) : null}
     </AuthPageLayout>
   );
 }

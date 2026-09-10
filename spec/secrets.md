@@ -40,12 +40,14 @@
 | `RESEND_API_KEY` | 省略可（`.dev.vars`）。未設定ならリセットメールは送らない | wrangler secret（8-03。公開時は必須） | wrangler secret（8-03。公開時は必須） | 置かない |
 | `GOOGLE_CLIENT_ID` | 省略可（`.dev.vars`）。未設定なら Google ログインは失敗する | wrangler secret（8-04。公開時は必須） | wrangler secret（8-04。公開時は必須） | 置かない |
 | `GOOGLE_CLIENT_SECRET` | 省略可（`.dev.vars`）。未設定なら Google ログインは失敗する | wrangler secret（8-04。公開時は必須） | wrangler secret（8-04。公開時は必須） | 置かない |
+| `TURNSTILE_SECRET_KEY` | 省略可（`.dev.vars`）。サイトキーと両方揃ったときだけ有効 | wrangler secret（8-05。公開時は必須） | wrangler secret（8-05。公開時は必須） | 置かない |
 | `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml`） |
 | `CLOUDFLARE_ACCOUNT_ID` | 使わない | — | — | Actions（同上） |
 
 - `database_id` は secret ではない。`wrangler.jsonc` のみ（[production-env.md](features/production-env.md)）
 - 本番の公開オリジンは `CANONICAL_ORIGIN`（wrangler `vars`。秘密ではない。[custom-domain.md](features/custom-domain.md)）
 - リセットメールの From は `EMAIL_FROM`（wrangler `vars`。秘密ではない。8-03。[password-reset.md](features/password-reset.md)）
+- Turnstile のサイトキーは `TURNSTILE_SITE_KEY`（wrangler `vars`。公開値。8-05。未投入ならウィジェットも検証も無い。[rate-limit-abuse.md](features/rate-limit-abuse.md)）
 - 認識プロファイル（`AI_RECOGNITION_PROFILE` 等）は wrangler `vars`。秘密ではない。Google API キーは増やさない。[ai-recognition.md](features/ai-recognition.md)
 - E2E / CI の `BETTER_AUTH_SECRET` はジョブ内で使い捨て生成する。GitHub Secrets にも本番 wrangler secret にもしない（[e2e.md](features/e2e.md)）
 - アプリコードは `src/server/env.ts` と `src/server/services/error-alert.ts` のキー名だけで読む。値は `.dev.vars` / wrangler secret から入る
@@ -111,6 +113,15 @@ pnpm exec wrangler secret put GOOGLE_CLIENT_ID --env production
 pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET --env production
 ```
 
+### Turnstile（8-05）
+
+サイトキーは公開値（wrangler `vars`）。シークレットだけ wrangler secret。両方揃ったときだけ有効。未設定でもアプリは起動する。公開前に両 env へ入れる。値はチャットに貼らない。
+
+```powershell
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env dev
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env production
+```
+
 ### GitHub
 
 Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` のみ。`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml` が同じ名前を読む。トークン権限は [dev-deploy-ci.md](features/dev-deploy-ci.md) のとおり（Account 全権限は付けない）。
@@ -126,6 +137,7 @@ Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TO
 | `ALERT_WEBHOOK_URL` | 新しい HTTPS URL を対象 env だけ `wrangler secret put`（local は `.dev.vars`） | 旧 URL への通知は止まる |
 | `RESEND_API_KEY` | 新しいキーを対象 env だけ `wrangler secret put`（local は `.dev.vars`）。Resend 側の旧キーは無効化 | 旧キーでの送信は止まる |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud でクライアントを再発行し、対象 env だけ `wrangler secret put`（local は `.dev.vars`）。旧クライアントは無効化 | 旧クライアントでの Google ログインは止まる |
+| `TURNSTILE_SECRET_KEY` | 対象 env だけ `wrangler secret put`（local は `.dev.vars`）。サイトキーは wrangler `vars` を合わせて更新 | 片方だけだとボット対策は無効のまま |
 | `CLOUDFLARE_ACCOUNT_ID` | アカウントを変えない限りローテーションしない | — |
 
 Auth secret は **env 単位**で回す。dev を回しても本番は変えない。
@@ -154,7 +166,7 @@ git log --all --pretty=format: --name-only -- ".dev.vars" ".env" ":!.dev.vars.ex
 
 ```powershell
 git ls-files "*.dev.vars" ".env"
-rg -n "BEGIN PRIVATE|sk_live_|sk_test_|ghp_|re_|BETTER_AUTH_SECRET=|RESEND_API_KEY=|GOOGLE_CLIENT_SECRET=" --glob "!roadmap/**" --glob "!spec/**"
+rg -n "BEGIN PRIVATE|sk_live_|sk_test_|ghp_|re_|BETTER_AUTH_SECRET=|RESEND_API_KEY=|GOOGLE_CLIENT_SECRET=|TURNSTILE_SECRET_KEY=" --glob "!roadmap/**" --glob "!spec/**"
 ```
 
 ヒットしたら値かどうか目視する。`.dev.vars.example` の空キー、CI の `openssl rand`、テストの短いダミーは可。

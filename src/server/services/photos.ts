@@ -1,12 +1,14 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, eq, gte } from "drizzle-orm";
 import type { AppSqliteDb } from "@/db/index.ts";
 import { bottles, drinkLogs, photos, tastingNotes } from "@/db/schema.ts";
 import {
   PHOTO_CONTENT_TYPES,
   PHOTO_OWNER_LIMITS,
+  PHOTO_UPLOAD_DAILY_LIMIT,
   type PhotoContentType,
   type PhotoKind,
 } from "@/shared/constants.ts";
+import { tokyoDayStartMs, tokyoToday } from "@/shared/tokyo-date.ts";
 import {
   PHOTO_SINGLE_OWNER_MESSAGE,
   type PhotoMeta,
@@ -217,13 +219,38 @@ async function assertOwnerCapacity(
   }
 }
 
+export async function assertPhotoDailyLimit(input: {
+  db: AppSqliteDb;
+  userId: string;
+  limit?: number;
+  now?: Date;
+}): Promise<void> {
+  const limit = input.limit ?? PHOTO_UPLOAD_DAILY_LIMIT;
+  const start = new Date(tokyoDayStartMs(tokyoToday(input.now)));
+  const [row] = await input.db
+    .select({ total: count() })
+    .from(photos)
+    .where(and(eq(photos.userId, input.userId), gte(photos.createdAt, start)));
+  if ((row?.total ?? 0) >= limit) {
+    throw new ApiError("rate_limited");
+  }
+}
+
 export async function createPhoto(input: {
   db: AppSqliteDb;
   bucket: PhotoBucket;
   userId: string;
   bytes: Uint8Array;
   fields: PhotoUploadFields;
+  dailyLimit?: number;
+  now?: Date;
 }): Promise<PhotoMeta> {
+  await assertPhotoDailyLimit({
+    db: input.db,
+    userId: input.userId,
+    limit: input.dailyLimit,
+    now: input.now,
+  });
   const inspected = inspectOrThrow(input.bytes);
 
   const owners = normalizeUploadOwners(input.fields);

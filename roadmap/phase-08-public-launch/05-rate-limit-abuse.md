@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | フェーズ | Phase 8 一般公開準備 |
-| ステータス | **未着手** |
+| ステータス | **完了**（2026-09-10。Turnstile キーと WAF ルール投入はオーナー） |
 | 要件 | 公開時のボット・総当たり。Better Auth のログイン制限は Phase 2 で有効化済み想定 |
 | ソース | Phase 8「Cloudflare WAF / Turnstile」 |
 
@@ -63,12 +63,12 @@ WAF はダッシュボード。誤って全世界ブロックしない。まず�
 
 ## 8. 受け入れ条件
 
-- [ ] サインアップにボット対策がある
-- [ ] サーバー側検証がある
-- [ ] CSP が更新されている
-- [ ] 秘密が git に無い
-- [ ] 正規のオーナーがログインできる（誤ブロックなし）
-- [ ] 監査
+- [x] サインアップにボット対策がある
+- [x] サーバー側検証がある
+- [x] CSP が更新されている
+- [x] 秘密が git に無い
+- [x] 正規のオーナーがログインできる（誤ブロックなし。キー未投入時はウィジェット無しで従来どおり）
+- [x] 監査
 
 ## 9. セキュリティ観点
 
@@ -78,7 +78,8 @@ WAF はダッシュボード。誤って全世界ブロックしない。まず�
 
 ## 10. 関連ファイル / 関連spec
 
-- [.cursor/rules/security.mdc](../../.cursor/rules/security.mdc) レート制限（Better Auth）
+- [spec/features/rate-limit-abuse.md](../../spec/features/rate-limit-abuse.md)
+- [.cursor/rules/security.mdc](../../.cursor/rules/security.mdc)
 - [03-open-signup-password-reset.md](03-open-signup-password-reset.md)
 - [../phase-02-platform/03-hono-api-structure.md](../phase-02-platform/03-hono-api-structure.md) CSP
 

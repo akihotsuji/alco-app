@@ -7,6 +7,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 - 列・enum・削除方針の正本: [data-model.md](data-model.md)
 - セキュリティ正本: [`.cursor/rules/security.mdc`](../.cursor/rules/security.mdc)
 - 公開 `GET /api/health` の個別契約: [features/health.md](features/health.md)
+- 公開 `GET /api/config` の個別契約: [features/rate-limit-abuse.md](features/rate-limit-abuse.md)（8-05）
 
 ハンドラ実装・RPC クライアント生成・写真のバイト数確定は対象外（2-03 / 2-04 / 4-04）。
 
@@ -20,7 +21,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 |---|---|---|
 | プレフィックス | アプリ API は `/api`。Hono の `basePath` は使わず、各ルートに `/api` を書く | 既存 `GET /api/health` と一致。RPC の型を浅く保つ |
 | Auth マウント | Better Auth `basePath` 既定の **`/api/auth`**。`app.all("/api/auth/*", (c) => auth.handler(c.req.raw))` | [公式 Hono 統合](https://www.better-auth.com/docs/integrations/hono)。独自トークンは作らない |
-| 公開エンドポイント | **`GET /api/health`** と **`/api/auth/*` のみ**。法務ページ `/terms` `/privacy` は SPA ルートであり `/api/*` ではない（8-01） | 2026-09-04 オーナー承認。追加は仕様更新＋再承認 |
+| 公開エンドポイント | **`GET /api/health`**、**`GET /api/config`**（8-05。サイトキーだけ）、**`/api/auth/*`**。法務ページ `/terms` `/privacy` は SPA ルートであり `/api/*` ではない（8-01） | 2026-09-04 オーナー承認。`/api/config` は 8-05。追加は仕様更新＋再承認 |
 | バリデーションエラー | **400** でフィールドエラーを返す。内部パス・Zod コードパスは出さない | フォーム UX。情報漏えい防止 |
 | 存在 / 権限 | 存在しない ID と他人の ID は **同じ 404・同じ本文** | IDOR・存在推測防止（security.mdc） |
 | ページング | **`limit`（既定 50、最大 100）+ 不透明 `cursor`**。offset は使わない | 個人利用で十分。日付降順と相性が良い |
@@ -79,7 +80,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 - リクエストのボディ・クエリ・パスに `userId` を**含めない**（Zod スキーマにも置かない）。送ってきても無視せず、スキーマ不一致で 400
 - 未認証の保護ルートは **401** `{ "error": "unauthorized" }`。未定義の `/api/*` も未認証なら 401（認証 MW はルート解決より前に走る）
 - 認証 MW は `/api/*` 全体に 1 箇所で掛ける（`src/server/middleware/auth.ts` の `createAuthGuard`）。公開ルートの除外は同ファイルの `PUBLIC_API_ROUTES` だけで判定し、ルート側に認証の分岐を書かない（2-03）
-- ログイン試行のレート制限は Better Auth 標準を有効化する（2-02）。アプリ全体のレート制限は Phase 8
+- ログイン試行のレート制限は Better Auth 標準を有効化する（2-02）。Turnstile・写真日次上限・WAF の置き場は 8-05（[features/rate-limit-abuse.md](features/rate-limit-abuse.md)）
 
 ### 2.3 公開エンドポイント（オーナー承認対象）
 
@@ -88,7 +89,8 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 方法 | パス | 認証 | 理由 |
 |---|---|---|---|
 | GET | `/api/health` | なし | 死活確認。本文に内部情報を出さない |
-| * | `/api/auth/*` | なし（Better Auth が各ルートを処理） | サインアップ / ログイン / ログアウト / セッション取得 / パスワードリセット / Google OAuth |
+| GET | `/api/config` | なし | 公開設定。本文は `{ "turnstileSiteKey": string \| null }` だけ（8-05）。シークレット・閾値は出さない |
+| * | `/api/auth/*` | なし（Better Auth が各ルートを処理） | サインアップ / ログイン / ログアウト / セッション取得 / パスワードリセット / Google OAuth。登録・ログイン・再設定要求・Google 開始はキー投入後に Turnstile 検証 |
 
 Better Auth 配下のうち、本アプリが使う操作（パスは `basePath` からの相対。公式クライアントを使い、手で組み立てない）:
 
@@ -159,7 +161,7 @@ WHERE id = :id AND user_id = :sessionUserId
 | 404 | `not_found` | 未定義ルート、存在しない ID、他人の ID、他人の参照 ID |
 | 413 | `payload_too_large` | 写真サイズ超過（1MB） |
 | 415 | `unsupported_media_type` | 許可外 MIME（SVG / GIF / HEIC 等） |
-| 429 | `rate_limited` | ラベル読み取りの日次上限 |
+| 429 | `rate_limited` | ラベル読み取りの日次上限。写真アップロードのユーザー日次上限（8-05。数値は UI に出さない） |
 | 502 | `upstream_error` | 上流 AI が失敗 / タイムアウト（認識 API。詳細は出さない） |
 | 503 | `misconfigured` | 認識プロファイル不明など。手入力は継続できる |
 | 500 | `internal_error` | それ以外。スタック・SQL・内部パスは出さない |
@@ -219,11 +221,12 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | 経路 | 対象 | 付与場所 | CSP |
 |---|---|---|---|
 | Worker | `/api/*` の JSON・写真バイナリ | `src/server/index.ts` の `hono/secure-headers` | `default-src 'none'; frame-ancestors 'none'`（API 応答にスクリプトは要らない）。加えて `X-Frame-Options: DENY`、nosniff、`Referrer-Policy: no-referrer`、CORP `same-origin` |
-| 静的アセット | SPA の HTML / JS / CSS | `public/_headers`（Workers Static Assets が読む。`run_worker_first` は `/api/*` のみなので Worker のヘッダーは届かない） | `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob: 'wasm-unsafe-eval'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`。加えて nosniff、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`、`Permissions-Policy: geolocation=(self), microphone=()` |
+| 静的アセット | SPA の HTML / JS / CSS | `public/_headers`（Workers Static Assets が読む。`run_worker_first` は `/api/*` のみなので Worker のヘッダーは届かない） | `default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob: 'wasm-unsafe-eval'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`。加えて nosniff、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`、`Permissions-Policy: geolocation=(self), microphone=()` |
 
 - `script-src` / `style-src` に `'unsafe-inline'` を入れない。Vite のビルド出力は外部ファイル参照のみで、React の `style` prop は CSSOM 経由なので CSP に当たらない
 - Zod v4 は既定で `new Function("")` を試して JIT 可否を判定し、これが CSP 違反として記録される。`z.config({ jitless: true })`（`src/shared/zod-config.ts`）で抑止する。`'unsafe-eval'` は足さない
 - 4-06: 端末内 WASM 背景除去のため `script-src` / `worker-src` に `'wasm-unsafe-eval'` を追加。モデルと ORT（`.mjs` / `.wasm`）は同一オリジン `/models/`（`connect-src 'self'` のまま。CDN は使わない）。`/models/*` の Content-Type は `_headers` で固定し、欠落時の SPA fallback HTML をモデルや WASM 用 JS と誤認しないようにする
+- 8-05: Turnstile のため `script-src` / `frame-src` / `connect-src` に `https://challenges.cloudflare.com` を足す。`'unsafe-inline'` は足さない。API 応答の CSP（`default-src 'none'`）は変えない
 - `Permissions-Policy` の `geolocation=(self)` は飲酒記録の新規フォームが現在地を 1 回取るため（[register-identity.md](features/register-identity.md) 4）。`geolocation=()` だとブラウザが Geolocation API を拒否する。マイクは使わないので `microphone=()` のまま
 - Vite 開発サーバー（`pnpm dev`）では `_headers` は適用されない（React Fast Refresh がインラインスクリプトを使うため、適用すると開発が止まる）。CSP の確認は `pnpm build` → `wrangler dev --env dev` で行う
 - 6-01: Service Worker（`/sw.js`）は静的アセット。`_headers` で `Cache-Control: no-cache`。`/api/*` は Workbox の NetworkOnly（セッション JSON と認可付き写真を SW キャッシュしない）。登録はバンドル JS の `navigator.serviceWorker.register` で、`script-src` に `'unsafe-inline'` は足さない。詳細は [features/pwa.md](features/pwa.md)
@@ -244,6 +247,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | 方法 | パス | 認証 | 概要 |
 |---|---|---|---|
 | GET | `/api/health` | なし | 死活確認 |
+| GET | `/api/config` | なし | 公開設定（Turnstile サイトキーだけ） |
 | * | `/api/auth/*` | Better Auth | 認証（公式ハンドラ） |
 | GET | `/api/me` | 必須 | 自分の id / email / name / ageVerified |
 | POST | `/api/me/age-verification` | 必須 | 生年月日で満 20 歳を確認。年齢ゲート対象外 |
@@ -295,6 +299,10 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 
 [features/health.md](features/health.md) どおり。`{ "ok": true }`。認証なし。D1/R2 の接続確認はしない。
 
+### 4.1.1 GET /api/config
+
+[features/rate-limit-abuse.md](features/rate-limit-abuse.md) どおり。認証なし。本文は `{ "turnstileSiteKey": string | null }` だけ。シークレット・閾値・内部名は出さない。未設定は `null`。`GET /api/health` の契約は変えない。
+
 ### 4.2 GET /api/me
 
 | | |
@@ -321,7 +329,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 - 未来日・1900 年より前・形式不正は 400 `validation_error`（`fields.birthOn`）
 - 生年月日をログに出さない
 
-記録・セラー・ノート・写真・マイドリンクなど、上記以外の機能 API は未確認なら 403 `age_required`。`GET /api/health` と `/api/auth/*` は対象外。
+記録・セラー・ノート・写真・マイドリンクなど、上記以外の機能 API は未確認なら 403 `age_required`。`GET /api/health`、`GET /api/config`、`/api/auth/*` は対象外。
 
 ### 4.3 drink-logs
 
@@ -744,6 +752,7 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 3. `r2_key` はサーバー生成（例 `{photoId}.jpg`）。`user_id` も元ファイル名もキーに含めない
 4. `user_id` はセッションから付与
 5. 紐付け先の枚数上限（記録 1 / ボトル 1 / ノート 6）を超えるなら 400
+6. 同一ユーザーの JST 当日枚数が上限なら 429 `rate_limited`（R2 には書かない。数値は UI に出さない。8-05）
 
 成功: 201 とメタ。
 
@@ -808,14 +817,14 @@ src/server/
 
 ```text
 1. secure-headers
-2. 認証 MW（/api/* 全体。PUBLIC_API_ROUTES = GET /api/health, /api/auth/* は内部で除外）
+2. 認証 MW（/api/* 全体。PUBLIC_API_ROUTES = GET /api/health, GET /api/config, /api/auth/* は内部で除外）
 3. 年齢確認 MW（未確認の機能 API は 403 `age_required`。GET /api/me と POST /api/me/age-verification と公開ルートは除外）
 4. /api/auth/*（Better Auth handler）
 5. 業務ルート（/api/health, /api/me, …。固定パスを :id より前）
 6. 未定義 /api/* → 404 { "error": "not_found" }（未認証なら 2 で 401。年齢未確認なら 3 で 403）
 ```
 
-認証 MW は公開ルートを自分で除外するので、登録順に依存せずログインが通る。Auth（Better Auth インスタンス）の組み立ては保護ルートと `/api/auth/*` でだけ行い、`GET /api/health` は D1 に触らない。
+認証 MW は公開ルートを自分で除外するので、登録順に依存せずログインが通る。Auth（Better Auth インスタンス）の組み立ては保護ルートと `/api/auth/*` でだけ行い、`GET /api/health` と `GET /api/config` は D1 に触らない。
 
 `export type AppType = ReturnType<typeof createApp>`（`src/server/index.ts`。2-03 で export 済み。2-04 の `hc<AppType>` が `src/client/lib/api.ts` で型のみ import して使う）。業務ルートは `createApp` 内の `.route()` チェーンに繋いで型に載せる。クライアント側の規約（staleTime・retry・401・hooks の置き場）は [02-tech-stack.md](02-tech-stack.md) 「クライアントのデータ取得（2-04 FIX）」。
 
@@ -826,7 +835,7 @@ src/server/
 2-03 で [`.cursor/rules/api-conventions.mdc`](../.cursor/rules/api-conventions.mdc)（globs: `src/server/**`）に落とした。ルール側が実装制約の正本で、以下は要点。
 
 1. ルートはリソース単位。チェーンは浅く、固定パスをパラメータより前に置く
-2. 公開パスは一箇所（`/api/health`, `/api/auth/*`）。追加は spec 更新が先
+2. 公開パスは一箇所（`/api/health`, `/api/config`, `/api/auth/*`）。追加は spec 更新が先
 3. ハンドラは `c.get("user").id` のみ使う。Zod に `userId` を置かない
 4. 更新・削除は `and(eq(id), eq(userId))`
 5. 入力は `src/shared` の Zod + `@hono/zod-validator`

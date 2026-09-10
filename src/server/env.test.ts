@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readAuthSecret, readGoogleOAuthConfig, resolveAuthBaseURL } from "./env.ts";
+import { readAuthSecret, readGoogleOAuthConfig, readTurnstileConfig, resolveAuthBaseURL } from "./env.ts";
 
 describe("readAuthSecret", () => {
   it("文字列のシークレットを返す", () => {
@@ -36,6 +36,40 @@ describe("readGoogleOAuthConfig", () => {
     expect(readGoogleOAuthConfig({ GOOGLE_CLIENT_SECRET: "sec" })).toBeUndefined();
     expect(
       readGoogleOAuthConfig({ GOOGLE_CLIENT_ID: "", GOOGLE_CLIENT_SECRET: "sec" }),
+    ).toBeUndefined();
+  });
+});
+
+describe("readTurnstileConfig", () => {
+  it("両方ありサイトキー形式が正しいときだけ返す", () => {
+    expect(
+      readTurnstileConfig({
+        TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
+        TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
+      }),
+    ).toEqual({
+      siteKey: "1x00000000000000000000AA",
+      secret: "1x0000000000000000000000000000000AA",
+    });
+  });
+
+  it("片方だけ・空・不正形式は未設定", () => {
+    expect(readTurnstileConfig({})).toBeUndefined();
+    expect(
+      readTurnstileConfig({ TURNSTILE_SITE_KEY: "1x00000000000000000000AA" }),
+    ).toBeUndefined();
+    expect(readTurnstileConfig({ TURNSTILE_SECRET_KEY: "secret-value" })).toBeUndefined();
+    expect(
+      readTurnstileConfig({
+        TURNSTILE_SITE_KEY: "not a key",
+        TURNSTILE_SECRET_KEY: "secret-value",
+      }),
+    ).toBeUndefined();
+    expect(
+      readTurnstileConfig({
+        TURNSTILE_SITE_KEY: "",
+        TURNSTILE_SECRET_KEY: "secret-value",
+      }),
     ).toBeUndefined();
   });
 });

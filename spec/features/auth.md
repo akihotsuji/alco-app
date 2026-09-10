@@ -6,7 +6,7 @@
 
 - 認証は **Better Auth のみ**。独自 JWT / パスワードハッシュは作らない
 - **招待制は採用しない**（招待コード・登録クローズフラグなし）
-- 個人利用ではアプリ URL を公開しない。ボット対策は Phase 8
+- 個人利用ではアプリ URL を公開しない。ボット対策は 8-05（[rate-limit-abuse.md](rate-limit-abuse.md)）
 - メール検証は MVP 対象外。OAuth（Google）は 8-04（[oauth-login.md](oauth-login.md)）
 - パスワードリセットは 8-03（[password-reset.md](password-reset.md)）。Better Auth 標準。自前トークンは作らない
 - サインアップは現行の利用規約・プライバシーポリシーへの同意が必須（8-01。[legal.md](legal.md)）
@@ -15,8 +15,9 @@
 
 | 方法 | パス | 認証 | 備考 |
 |---|---|---|---|
-| * | `/api/auth/*` | Better Auth が処理 | サインアップ / ログイン / ログアウト / セッション / パスワードリセット / Google OAuth |
+| * | `/api/auth/*` | Better Auth が処理 | サインアップ / ログイン / ログアウト / セッション / パスワードリセット / Google OAuth。キー投入後は登録・ログイン・再設定要求・Google 開始に Turnstile |
 | GET | `/api/health` | なし | 別契約 |
+| GET | `/api/config` | なし | サイトキーだけ（8-05） |
 
 これ以外の `/api/*` はセッション必須。`GET /api/me` は `{ id, email, name, ageVerified }` を返す（`birthOn` は出さない）。年齢確認は [age-verification.md](age-verification.md)。
 
@@ -41,9 +42,9 @@
 
 | ルート | 内容 |
 |---|---|
-| `/login` | メール＋パスワード。エラーは「メールまたはパスワードが正しくありません」。L7「パスワードを忘れた」。`?reset=1` で再設定完了文。L8「Google で続行」（8-04。既存 Google のみ） |
-| `/signup` | 表示名（任意 1〜40）・メール・パスワード（8 文字以上）。規約・PP への必須同意（8-01）。成功後は `/age`（`redirect` があれば引き継ぐ）。既存メールも汎用文。招待コードは置かない。S8「Google で続行」（規約チェック必須） |
-| `/forgot-password` | 再設定メール。登録の有無で完了文を変えない。ログイン中でも表示（8-03） |
+| `/login` | メール＋パスワード。エラーは「メールまたはパスワードが正しくありません」。L7「パスワードを忘れた」。`?reset=1` で再設定完了文。L8「Google で続行」（8-04。既存 Google のみ）。L10 Turnstile（8-05。キーがあるとき） |
+| `/signup` | 表示名（任意 1〜40）・メール・パスワード（8 文字以上）。規約・PP への必須同意（8-01）。成功後は `/age`（`redirect` があれば引き継ぐ）。既存メールも汎用文。招待コードは置かない。S8「Google で続行」（規約チェック必須）。S10 Turnstile（8-05） |
+| `/forgot-password` | 再設定メール。登録の有無で完了文を変えない。ログイン中でも表示（8-03）。F9 Turnstile（8-05） |
 | `/reset-password` | 新パスワード。トークンは query からメモリへ移して消す。ログイン中でも表示（8-03） |
 | `/age` | 生年月日で満 20 歳を確認（8-02）。タブバーなし。未確認のタブ配下はここへ |
 | `/terms` `/privacy` | 認証なしの公開ページ。ログイン済みでも表示（8-01） |
@@ -59,5 +60,6 @@
 - `BETTER_AUTH_SECRET` は `.dev.vars` / `wrangler secret` のみ。値はコード・spec・チャットに書かない
 - `RESEND_API_KEY` も同じ置き場（8-03。未設定ならリセットメールは送らない）
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` も同じ置き場（8-04。未設定なら Google ログインは失敗する）
+- `TURNSTILE_SITE_KEY` は公開値（wrangler `vars`）。`TURNSTILE_SECRET_KEY` は同じ置き場の秘密（8-05。両方揃ったときだけ有効）
 - `.dev.vars.example` はキー名のみ
 - 本番と dev で別の値にする（7-03）

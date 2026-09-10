@@ -45,6 +45,7 @@ pnpm dev
 - `/login` `/signup` … メール＋パスワード（仕様は [spec/features/auth.md](spec/features/auth.md)）
 - `/` … ログイン後の空ホーム
 - `/api/health` … `{ "ok": true }`（公開エンドポイント。仕様は [spec/features/health.md](spec/features/health.md)）
+- `/api/config` … `{ "turnstileSiteKey": string | null }`（公開。サイトキーだけ。仕様は [spec/features/rate-limit-abuse.md](spec/features/rate-limit-abuse.md)）
 
 初回は `.dev.vars.example` をコピーして `.dev.vars` を作り、`BETTER_AUTH_SECRET` を入れる（値は git に含めない。置き場は [spec/secrets.md](spec/secrets.md)）。ローカル D1 へ初回マイグレーション（`0000_init`）を適用する:
 

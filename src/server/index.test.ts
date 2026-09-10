@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { app, handleScheduled } from "@/server/index.ts";
+import { app, createApp, handleScheduled } from "@/server/index.ts";
 import { resetErrorAlertCooldownForTests } from "@/server/services/error-alert.ts";
+import { publicConfigSchema } from "@/shared/turnstile.ts";
 
 function envWith(values: object): Env {
   return values as unknown as Env;
@@ -23,6 +24,21 @@ describe("GET /api/health", () => {
     expect(res.headers.get("referrer-policy")).toBe("no-referrer");
     expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
+  });
+});
+
+describe("GET /api/config", () => {
+  it("未認証でサイトキーだけ返し、秘密を含まない", async () => {
+    const empty = await app.request("/api/config");
+    expect(empty.status).toBe(200);
+    expect(publicConfigSchema.parse(await empty.json())).toEqual({ turnstileSiteKey: null });
+
+    const configured = createApp({ turnstileSiteKey: "1x00000000000000000000AA" });
+    const res = await configured.request("/api/config");
+    expect(res.status).toBe(200);
+    const body = publicConfigSchema.parse(await res.json());
+    expect(body).toEqual({ turnstileSiteKey: "1x00000000000000000000AA" });
+    expect(JSON.stringify(body)).not.toMatch(/secret|TURNSTILE_SECRET/i);
   });
 });
 
