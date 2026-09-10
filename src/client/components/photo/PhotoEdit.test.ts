@@ -52,8 +52,12 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
       'kind === "cellar" || kind === "note" ? offerRecognizeJpeg : undefined',
     );
     expect(context).toContain("pendingRecognizeJpeg");
+    expect(context).toContain("pendingRecognize");
     expect(context).toContain("offerRecognizeJpeg");
-    expect(context).toContain("setPendingRecognizeJpeg(null)");
+    expect(context).toContain("setPendingRecognize(null)");
+    expect(context).toContain("forgetAllRecognition");
+    expect(context).toContain("discardRecognize");
+    expect(context).toContain("usePhotoFormSession");
   });
 
   it("セラーの処理中はマスコットと『この写真を切り抜いています』で伝える", () => {

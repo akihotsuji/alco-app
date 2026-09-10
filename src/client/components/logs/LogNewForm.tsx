@@ -5,7 +5,10 @@ import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
-import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
+import {
+  usePhotoEdit,
+  usePhotoFormSession,
+} from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import {
@@ -24,7 +27,7 @@ import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { logDayHref, noteFromLogHref } from "@/client/lib/app-routes.ts";
-import { firstPhotoId } from "@/client/lib/copy-owned-photo.ts";
+import { firstPhotoId, PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
 import {
   applyRecognizeToLogForm,
   countDrinkRecognizeFields,
@@ -56,6 +59,7 @@ import {
 import type { MotionState } from "@/client/lib/motion.ts";
 import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import { capturedAtToDrunkAt, shouldKeepQueryDrunkAt } from "@/client/lib/photo/captured-at.ts";
+import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { getRecordLocationPref } from "@/client/lib/preferences.ts";
 import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { DRINK_LOG_MESSAGES, DRINK_NAME_MAX_LENGTH } from "@/shared/drink-logs.ts";
@@ -74,9 +78,10 @@ export function LogNewForm() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { setGuard } = useLeaveGuard();
+  const session = usePhotoFormSession("log", null);
   const {
     releaseAttachment,
-    pendingRecognizeJpeg,
+    pendingRecognize,
     startCapture,
     attachments,
     retryUpload,
@@ -123,9 +128,12 @@ export function LogNewForm() {
   const appliedCapturedAtRef = useRef<string | null>(null);
   const geoRequested = useRef(false);
 
-  const attachment = attachments.log;
+  const attachment = attachments.log?.sessionId === session.sessionId ? attachments.log : undefined;
   const photoStatus: PhotoSaveStatus = attachment ? attachment.status : "none";
-  const errors: LogFormErrors = { ...validateLogForm(state, new Date()), ...serverErrors };
+  const errors: LogFormErrors = {
+    ...validateLogForm(state, new Date(), { existingOrigin: initial.origin }),
+    ...serverErrors,
+  };
   const visibleErrors = visibleLogFormErrors(errors, { submitted, touched });
   const canSubmit = canSubmitLogForm(state, errors, photoStatus);
   const dirty = isLogFormDirty(state, initial) || attachment !== undefined;
@@ -145,6 +153,17 @@ export function LogNewForm() {
 
   const bottleQuery = useBottle(queryBottleId ?? undefined);
   const inheritedPhoto = useRef(false);
+  const inheritSourceRef = useRef<string | null>(null);
+  const [inheritError, setInheritError] = useState<string | null>(null);
+
+  function inheritBottlePhoto(sourceId: string) {
+    inheritSourceRef.current = sourceId;
+    inheritedPhoto.current = true;
+    setInheritError(null);
+    void inheritOwnedPhoto("log", sourceId).catch(() => {
+      setInheritError(PHOTO_COPY_FAILED_MESSAGE);
+    });
+  }
   useEffect(() => {
     if (!staleCleared || inheritedPhoto.current || isPhotoHandoff(location.state)) {
       return;
@@ -156,8 +175,7 @@ export function LogNewForm() {
     if (!queryBottleId || !sourceId) {
       return;
     }
-    inheritedPhoto.current = true;
-    void inheritOwnedPhoto("log", sourceId);
+    inheritBottlePhoto(sourceId);
   }, [
     attachments.log,
     bottleQuery.data?.photos,
@@ -232,14 +250,15 @@ export function LogNewForm() {
   );
 
   useEffect(() => {
-    if (!pendingRecognizeJpeg) {
+    const jpeg = recognizeJpegForForm(attachment, pendingRecognize, session);
+    if (!jpeg) {
       return;
     }
-    startDrinkRecognition(pendingRecognizeJpeg).catch(() => {});
-  }, [pendingRecognizeJpeg]);
+    startDrinkRecognition(jpeg).catch(() => {});
+  }, [attachment, pendingRecognize, session]);
 
   useEffect(() => {
-    const jpeg = attachment?.recognizeJpeg ?? pendingRecognizeJpeg;
+    const jpeg = recognizeJpegForForm(attachment, pendingRecognize, session);
     if (!jpeg || recognizedJpegRef.current === jpeg) {
       return;
     }
@@ -274,7 +293,7 @@ export function LogNewForm() {
         }
         setRecognizeStatus(null);
       });
-  }, [attachment?.recognizeJpeg, pendingRecognizeJpeg]);
+  }, [attachment, pendingRecognize, session]);
 
   useEffect(() => {
     return () => {
@@ -370,7 +389,13 @@ export function LogNewForm() {
         onLibrary={() => void startCapture("log", { source: "library" })}
         attachment={attachment}
         onPreview={() => setPreviewOpen(true)}
-        onRetry={() => void retryUpload("log")}
+        onRetry={() => {
+          if (inheritError && inheritSourceRef.current) {
+            inheritBottlePhoto(inheritSourceRef.current);
+            return;
+          }
+          void retryUpload("log");
+        }}
         onClear={() => {
           recognizeRequestRef.current += 1;
           recognizedJpegRef.current = null;
@@ -378,7 +403,7 @@ export function LogNewForm() {
           setPreviewOpen(false);
           void clearAttachment("log");
         }}
-        error={visibleErrors.photoIds}
+        error={visibleErrors.photoIds ?? inheritError}
         recognizeStatus={recognizeStatus}
         recognizeMessage={recognizeStatus ? DRINK_RECOGNIZE_BANNER[recognizeStatus] : undefined}
       />
@@ -432,6 +457,11 @@ export function LogNewForm() {
             lockInheritedRecognizeFields(touchedRef.current, next, { lockDrinkType: true });
             return next;
           });
+          if (bottle?.thumbPhotoId && !attachment?.recognizeJpeg) {
+            inheritBottlePhoto(bottle.thumbPhotoId);
+          } else if (!bottle?.thumbPhotoId && attachment && !attachment.recognizeJpeg) {
+            void clearAttachment("log");
+          }
           setServerErrors({});
           setFormError(null);
         }}

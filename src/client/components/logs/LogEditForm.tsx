@@ -9,7 +9,10 @@ import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
-import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
+import {
+  usePhotoEdit,
+  usePhotoFormSession,
+} from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
@@ -53,7 +56,9 @@ import {
   validateLogForm,
   visibleLogFormErrors,
 } from "@/client/lib/log-form.ts";
+import { PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { startDrinkRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
@@ -81,13 +86,15 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { setGuard } = useLeaveGuard();
+  const session = usePhotoFormSession("log", log.id);
   const {
     attachments,
     startCapture,
-    pendingRecognizeJpeg,
+    pendingRecognize,
     retryUpload,
     clearAttachment,
     releaseAttachment,
+    inheritOwnedPhoto,
   } = usePhotoEdit();
   const updateLog = useUpdateDrinkLog();
   const deleteLog = useDeleteDrinkLog();
@@ -102,6 +109,8 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   const [touched, setTouched] = useState<Partial<Record<LogFormField, boolean>>>({});
   const [discardOpen, setDiscardOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const inheritSourceRef = useRef<string | null>(null);
+  const [inheritError, setInheritError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [recognizeStatus, setRecognizeStatus] = useState<"loading" | "success" | null>(null);
   const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
@@ -130,9 +139,12 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   const recognizeRequestRef = useRef(0);
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
-  const attachment = attachments.log;
+  const attachment = attachments.log?.sessionId === session.sessionId ? attachments.log : undefined;
   const photoStatus: PhotoSaveStatus = attachment ? attachment.status : "none";
-  const errors = { ...validateLogForm(state, new Date()), ...serverErrors };
+  const errors = {
+    ...validateLogForm(state, new Date(), { existingOrigin: initial.origin }),
+    ...serverErrors,
+  };
   const visibleErrors = visibleLogFormErrors(errors, { submitted, touched });
   const dirty = isLogFormDirty(state, initial) || attachment !== undefined;
   const canSubmit =
@@ -151,14 +163,15 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   }, [dirty, setGuard]);
 
   useEffect(() => {
-    if (!pendingRecognizeJpeg) {
+    const jpeg = recognizeJpegForForm(attachment, pendingRecognize, session);
+    if (!jpeg) {
       return;
     }
-    startDrinkRecognition(pendingRecognizeJpeg).catch(() => {});
-  }, [pendingRecognizeJpeg]);
+    startDrinkRecognition(jpeg).catch(() => {});
+  }, [attachment, pendingRecognize, session]);
 
   useEffect(() => {
-    const jpeg = attachment?.recognizeJpeg ?? pendingRecognizeJpeg;
+    const jpeg = recognizeJpegForForm(attachment, pendingRecognize, session);
     if (!jpeg || recognizedJpegRef.current === jpeg) {
       return;
     }
@@ -193,7 +206,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         }
         setRecognizeStatus(null);
       });
-  }, [attachment?.recognizeJpeg, pendingRecognizeJpeg]);
+  }, [attachment, pendingRecognize, session]);
 
   useEffect(() => {
     return () => {
@@ -312,7 +325,17 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         attachment={attachment}
         existingPreviewUrl={existingPhotoId ? photoContentUrl(existingPhotoId) : null}
         onPreview={() => setPreviewOpen(true)}
-        onRetry={() => void retryUpload("log")}
+        onRetry={() => {
+          if (inheritError && inheritSourceRef.current) {
+            const sourceId = inheritSourceRef.current;
+            setInheritError(null);
+            void inheritOwnedPhoto("log", sourceId).catch(() => {
+              setInheritError(PHOTO_COPY_FAILED_MESSAGE);
+            });
+            return;
+          }
+          void retryUpload("log");
+        }}
         onClear={() => {
           recognizeRequestRef.current += 1;
           recognizedJpegRef.current = null;
@@ -324,7 +347,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           }
           void removeExistingPhoto();
         }}
-        error={visibleErrors.photoIds}
+        error={visibleErrors.photoIds ?? inheritError}
         recognizeStatus={recognizeStatus}
         recognizeMessage={recognizeStatus ? DRINK_RECOGNIZE_BANNER[recognizeStatus] : undefined}
       />
@@ -374,6 +397,15 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
             lockInheritedRecognizeFields(touchedRef.current, next, { lockDrinkType: true });
             return next;
           });
+          if (bottle?.thumbPhotoId && !attachment?.recognizeJpeg && !existingPhotoId) {
+            inheritSourceRef.current = bottle.thumbPhotoId;
+            setInheritError(null);
+            void inheritOwnedPhoto("log", bottle.thumbPhotoId).catch(() => {
+              setInheritError(PHOTO_COPY_FAILED_MESSAGE);
+            });
+          } else if (!bottle?.thumbPhotoId && attachment && !attachment.recognizeJpeg && !existingPhotoId) {
+            void clearAttachment("log");
+          }
           setServerErrors({});
           setFormError(null);
         }}

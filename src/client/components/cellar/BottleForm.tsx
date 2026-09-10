@@ -5,8 +5,12 @@ import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx"
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
+import { OriginCountryField } from "@/client/components/form/OriginCountryField.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
-import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
+import {
+  usePhotoEdit,
+  usePhotoFormSession,
+} from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
@@ -41,6 +45,7 @@ import {
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
+import { offerMatchesSession } from "@/client/lib/photo-recognize-offer.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
@@ -100,7 +105,8 @@ export function BottleFormFields({
   onClearServer,
 }: BottleFormProps) {
   const { setGuard } = useLeaveGuard();
-  const { editAttachment, pendingRecognizeJpeg } = usePhotoEdit();
+  const session = usePhotoFormSession("cellar", mode === "edit" ? "edit" : null);
+  const { editAttachment, pendingRecognize } = usePhotoEdit();
   const { startCapture, attachments, retryUpload, clearAttachment } = useCaptureOnCameraQuery(
     "cellar",
     mode === "new",
@@ -131,13 +137,14 @@ export function BottleFormFields({
   drinkTypeTouchedRef.current = drinkTypeTouched;
   aiMarksRef.current = aiMarks;
   storedOnTouchedRef.current = storedOnTouched;
-  const attachment = attachments.cellar;
+  const attachment =
+    attachments.cellar?.sessionId === session.sessionId ? attachments.cellar : undefined;
   const photoStatus: PhotoSaveStatus = attachment
     ? attachment.status
     : keptPhotoId
       ? "ready"
       : "none";
-  const clientErrors = validateBottleForm(state);
+  const clientErrors = validateBottleForm(state, new Date(), { existingOrigin: baseline.origin });
   const errors: BottleFormErrors = visibleFieldErrors(clientErrors, serverErrors, {
     touched,
     submitAttempted,
@@ -221,15 +228,18 @@ export function BottleFormFields({
   // 「使う」直後、切り抜き・アップロードを待たずに読み取りを始める（Issue #48 D-1）。
   // 結果は attachment 側の effect が同じ Blob で受け取る（1 リクエストにまとまる）
   useEffect(() => {
-    if (mode !== "new" || !getCellarRecognizePref() || !pendingRecognizeJpeg) {
+    if (!getCellarRecognizePref() || !offerMatchesSession(pendingRecognize, session)) {
       return;
     }
-    startLabelRecognition(pendingRecognizeJpeg).catch(() => {});
-  }, [mode, pendingRecognizeJpeg]);
+    startLabelRecognition(pendingRecognize.jpeg).catch(() => {});
+  }, [mode, pendingRecognize, session]);
 
   useEffect(() => {
-    if (mode !== "new" || !getCellarRecognizePref()) {
+    if (!getCellarRecognizePref()) {
       setRecognizeStatus(null);
+      return;
+    }
+    if (mode !== "new" && !attachment?.recognizeJpeg) {
       return;
     }
     const jpeg = attachment?.recognizeJpeg;
@@ -323,7 +333,10 @@ export function BottleFormFields({
     if (mode === "new" && resolvedState.storedOn !== state.storedOn) {
       setState(resolvedState);
     }
-    const nextErrors = { ...validateBottleForm(resolvedState, now), ...serverErrors };
+    const nextErrors = {
+      ...validateBottleForm(resolvedState, now, { existingOrigin: baseline.origin }),
+      ...serverErrors,
+    };
     const detailsField = firstBottleDetailsErrorField(nextErrors);
     if (detailsField) {
       setDetailsOpen(true);
@@ -403,7 +416,7 @@ export function BottleFormFields({
         }
         error={errors.photoIds}
       />
-      {mode === "new" && recognizeStatus ? <RecognizeBanner status={recognizeStatus} /> : null}
+      {recognizeStatus ? <RecognizeBanner status={recognizeStatus} /> : null}
       <div className="log-form-section">
         <label className="field-label" htmlFor="bottle-name">
           {BOTTLE_FIELD_LABELS.name}
@@ -464,12 +477,9 @@ export function BottleFormFields({
         aiMarked={aiMarks.has("producer")}
         onChange={(producer) => update({ producer })}
       />
-      <DetailField
+      <OriginCountryField
         id="bottle-origin"
-        label={BOTTLE_FIELD_LABELS.origin}
         value={state.origin}
-        maxLength={BOTTLE_TEXT_MAX_LENGTH}
-        placeholder="例：シチリア"
         error={errors.origin}
         aiMarked={aiMarks.has("origin")}
         onChange={(origin) => update({ origin })}

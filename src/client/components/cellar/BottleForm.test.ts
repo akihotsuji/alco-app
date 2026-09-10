@@ -37,8 +37,8 @@ describe("BottleForm バリデーション表示", () => {
     expect(validateBottleForm(INITIAL_BOTTLE_FORM).name).toBe(BOTTLE_MESSAGES.name);
   });
 
-  it("追加時だけ読み取り帯を出し、AI 印は触ると消える欄に付ける", () => {
-    expect(source).toContain('mode === "new" && recognizeStatus');
+  it("読み取り帯を出し、AI 印は触ると消える欄に付ける", () => {
+    expect(source).toContain("recognizeStatus ? <RecognizeBanner");
     expect(source).toContain("<RecognizeBanner");
     expect(source).toContain("FieldWithAiMark");
     expect(source).toContain("BOTTLE_FIELD_LABELS.name");
@@ -48,11 +48,10 @@ describe("BottleForm バリデーション表示", () => {
   });
 
   it("読み取りは pendingRecognizeJpeg で先に始め、attachment 側は同じ Blob の結果に相乗りする", () => {
-    expect(source).toContain("startLabelRecognition(pendingRecognizeJpeg)");
+    expect(source).toContain("startLabelRecognition(pendingRecognize.jpeg)");
     expect(source).toContain("startLabelRecognition(jpeg)");
     expect(source).not.toContain("recognizeLabel(");
-    expect(source).toContain(
-      'mode !== "new" || !getCellarRecognizePref() || !pendingRecognizeJpeg',
-    );
+    expect(source).toContain("offerMatchesSession(pendingRecognize, session)");
+    expect(source).toContain('mode !== "new" && !attachment?.recognizeJpeg');
   });
 });

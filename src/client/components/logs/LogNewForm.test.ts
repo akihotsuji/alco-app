@@ -17,6 +17,10 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("touchedRef.current.drinkType = true");
     expect(source).toContain("touchedRef.current.volumeMl = true");
     expect(source).toContain("usePhotoEdit");
+    expect(source).toContain("usePhotoFormSession");
+    expect(source).toContain("recognizeJpegForForm");
+    expect(edit).toContain("usePhotoFormSession");
+    expect(edit).toContain("recognizeJpegForForm");
     expect(source).not.toContain("useCaptureOnCameraQuery");
     expect(source).toContain("CompactPhotoField");
     expect(source).toContain("PhotoViewer");
@@ -41,7 +45,10 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("TargetBottleChip");
     expect(source).toContain("preserveEdits: true");
     expect(source).toContain("inheritOwnedPhoto");
+    expect(source).toContain("PHOTO_COPY_FAILED_MESSAGE");
     expect(source).toContain("firstPhotoId");
+    expect(source).toContain("clearAttachment(\"log\")");
+    expect(edit).toContain("clearAttachment(\"log\")");
     expect(source).toContain("記録した品名・識別と写真を引き継ぎます。");
     expect(source).not.toContain("写真はコピーしません");
     expect(edit).toContain("<IdentityFields");

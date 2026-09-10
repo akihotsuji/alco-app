@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { RecognizeResponse } from "@/shared/label-recognize.ts";
 import { clearPhotoMetrics, getRecentPhotoMetrics } from "./photo/photo-metrics.ts";
-import { forgetLabelRecognition, startLabelRecognition } from "./recognize-session.ts";
+import {
+  forgetAllRecognition,
+  forgetLabelRecognition,
+  startDrinkRecognition,
+  startLabelRecognition,
+  startNoteRecognition,
+} from "./recognize-session.ts";
 
 const response: RecognizeResponse = {
   fields: { name: { value: "Test", confidence: 0.9 } },
@@ -61,5 +67,44 @@ describe("startLabelRecognition", () => {
     const metric = getRecentPhotoMetrics()[0];
     expect(metric).toMatchObject({ kind: "recognize", ok: true, fieldCount: 1 });
     expect(JSON.stringify(metric)).not.toContain("Test");
+  });
+});
+
+describe("forgetAllRecognition", () => {
+  it("3 機能の同じ Blob を捨てて再実行できる", async () => {
+    const jpeg = new Blob([new Uint8Array([3])], { type: "image/jpeg" });
+    let label = 0;
+    let drink = 0;
+    let note = 0;
+    await startLabelRecognition(jpeg, async () => {
+      label += 1;
+      return response;
+    });
+    await startDrinkRecognition(jpeg, async () => {
+      drink += 1;
+      return {
+        fields: {},
+        provider: "gemini",
+        remainingToday: 29,
+        profile: "gemini-3.7-flash",
+        modelId: "test",
+        durationMs: 1,
+        usage: { inputTokens: null, outputTokens: null, thinkingTokens: null, searchCount: null },
+        sources: [],
+        searchUsed: false,
+      };
+    });
+    await startNoteRecognition(jpeg, async () => {
+      note += 1;
+      return { fields: {}, provider: "workers-ai", remainingToday: 29 };
+    });
+    forgetAllRecognition(jpeg);
+    await startLabelRecognition(jpeg, async () => {
+      label += 1;
+      return response;
+    });
+    expect(label).toBe(2);
+    expect(drink).toBe(1);
+    expect(note).toBe(1);
   });
 });

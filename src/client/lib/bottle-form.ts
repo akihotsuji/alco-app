@@ -22,6 +22,7 @@ import {
   vintageSchema,
 } from "@/shared/bottles.ts";
 import type { DrinkType } from "@/shared/constants.ts";
+import { originInputError } from "@/shared/identity.ts";
 import { formatShortMonthDay, parseCalendarDate, tokyoToday } from "@/shared/tokyo-date.ts";
 
 export const DEFAULT_BOTTLE_DRINK_TYPE: DrinkType = "wine_red";
@@ -122,6 +123,7 @@ function optionalTextError(value: string, max: number, message: string): string 
 export function validateBottleForm(
   state: BottleFormState,
   now: Date = new Date(),
+  options: { existingOrigin?: string } = {},
 ): BottleFormErrors {
   const errors: BottleFormErrors = {};
   if (!bottleNameSchema.safeParse(state.name).success) {
@@ -137,6 +139,11 @@ export function validateBottleForm(
   }
   if (!bottleTextSchema.safeParse(state.origin).success) {
     errors.origin = BOTTLE_MESSAGES.text;
+  } else {
+    const originError = originInputError(state.origin, options.existingOrigin);
+    if (originError) {
+      errors.origin = originError;
+    }
   }
   if (!bottleTextSchema.safeParse(state.variety).success) {
     errors.variety = BOTTLE_MESSAGES.text;

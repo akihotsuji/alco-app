@@ -105,46 +105,12 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
     [bindKey, editFromBlob, startCapture],
   );
 
-  const retryPhoto = useCallback(
-    async (key: string) => {
-      const current = itemsRef.current.find((item) => item.key === key);
-      if (!current?.blob) {
-        return;
-      }
-      await retryCollectedUpload(
-        {
-          previewUrl: current.previewUrl,
-          blob: current.blob,
-          photoId: current.photoId,
-          status: current.status,
-        },
-        bindKey(key, false, undefined, current.capturedAt),
-      );
-    },
-    [bindKey, retryCollectedUpload],
-  );
-
-  const removePhoto = useCallback(async (key: string) => {
-    const current = itemsRef.current.find((item) => item.key === key);
-    if (!current) {
+  const inheritFrom = useCallback(async (sourcePhotoId: string) => {
+    if (inheritedRef.current === sourcePhotoId) {
       return;
     }
-    if (!current.persisted && current.photoId) {
-      try {
-        await deletePhoto(current.photoId);
-      } catch {
-        // 破棄に失敗してもローカルは消す。残党は 24h GC
-      }
-    }
-    setItems((items) => removeNotePhoto(items, key));
-  }, []);
-
-  const makeFirst = useCallback((key: string) => {
-    setItems((current) => movePhotoFirst(current, key));
-  }, []);
-
-  const inheritFrom = useCallback(async (sourcePhotoId: string) => {
-    if (inheritedRef.current === sourcePhotoId || itemsRef.current.length > 0) {
+    const userAdded = itemsRef.current.some((item) => !item.key.startsWith("inherit-"));
+    if (userAdded) {
       return;
     }
     inheritedRef.current = sourcePhotoId;
@@ -173,8 +139,60 @@ export function useNotePhotos(initialPhotos: readonly PhotoMeta[] = []) {
       );
     } catch {
       inheritedRef.current = null;
-      setItems((current) => removeNotePhoto(current, key));
+      setItems((current) =>
+        upsertNotePhoto(current, key, {
+          key,
+          photoId: null,
+          previewUrl: photoContentUrl(sourcePhotoId),
+          blob: null,
+          status: "error",
+          persisted: false,
+        }),
+      );
     }
+  }, []);
+
+  const retryPhoto = useCallback(
+    async (key: string) => {
+      const current = itemsRef.current.find((item) => item.key === key);
+      if (current?.key.startsWith("inherit-") && !current.blob) {
+        inheritedRef.current = null;
+        await inheritFrom(current.key.slice("inherit-".length));
+        return;
+      }
+      if (!current?.blob) {
+        return;
+      }
+      await retryCollectedUpload(
+        {
+          previewUrl: current.previewUrl,
+          blob: current.blob,
+          photoId: current.photoId,
+          status: current.status,
+        },
+        bindKey(key, false, undefined, current.capturedAt),
+      );
+    },
+    [bindKey, inheritFrom, retryCollectedUpload],
+  );
+
+  const removePhoto = useCallback(async (key: string) => {
+    const current = itemsRef.current.find((item) => item.key === key);
+    if (!current) {
+      return;
+    }
+    if (!current.persisted && current.photoId) {
+      try {
+        await deletePhoto(current.photoId);
+      } catch {
+        // 破棄に失敗してもローカルは消す。残党は 24h GC
+      }
+    }
+    setItems((items) => removeNotePhoto(items, key));
+  }, []);
+
+  const makeFirst = useCallback((key: string) => {
+    setItems((current) => movePhotoFirst(current, key));
   }, []);
 
   const discardUnpersisted = useCallback(async () => {

@@ -2,6 +2,8 @@ import { photoContentUrl, uploadPhoto } from "@/client/hooks/use-photos.ts";
 import type { PhotoMeta } from "@/shared/photos.ts";
 
 export const PHOTO_COPY_FAILED = "photo_copy_failed";
+export const PHOTO_COPY_FAILED_MESSAGE =
+  "写真をコピーできませんでした。再試行するか、写真なしで続けられます";
 
 export type CopiedOwnedPhoto = {
   meta: PhotoMeta;
