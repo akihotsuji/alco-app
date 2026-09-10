@@ -268,9 +268,7 @@ export const ORIGIN_SEARCH_LIMIT = 8;
 
 /** ひらがな → カタカナ（IME 変換前の入力でも国名に当てる） */
 function hiraganaToKatakana(text: string): string {
-  return text.replace(/[\u3041-\u3096]/g, (char) =>
-    String.fromCharCode(char.charCodeAt(0) + 0x60),
-  );
+  return text.replace(/[\u3041-\u3096]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0x60));
 }
 
 type SearchEntry = {
