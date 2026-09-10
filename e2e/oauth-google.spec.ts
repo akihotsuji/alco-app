@@ -1,14 +1,19 @@
 import { expect, test } from "@playwright/test";
-import { OAUTH_ERROR_MESSAGE } from "../src/shared/oauth.ts";
+import { GOOGLE_SIGN_IN_VISIBLE, OAUTH_ERROR_MESSAGE } from "../src/shared/oauth.ts";
 
-test("ログインとサインアップに Google で続行がある", async ({ page }) => {
+test("Google で続行はフラグで出し分け、OAuth 失敗のクエリは汎用文にして消す", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
-  await expect(page.getByText("または")).toBeVisible();
   const loginGoogle = page.getByRole("button", { name: "Google で続行" });
-  await expect(loginGoogle).toBeEnabled();
-  await loginGoogle.click();
-  await expect(page.getByRole("alert")).toHaveText(OAUTH_ERROR_MESSAGE);
+  if (GOOGLE_SIGN_IN_VISIBLE) {
+    await expect(page.getByText("または")).toBeVisible();
+    await expect(loginGoogle).toBeEnabled();
+    await loginGoogle.click();
+    await expect(page.getByRole("alert")).toHaveText(OAUTH_ERROR_MESSAGE);
+  } else {
+    await expect(loginGoogle).toHaveCount(0);
+    await expect(page.getByText("または")).toHaveCount(0);
+  }
 
   await page.goto("/login?error=access_denied&error_description=internal");
   await expect(page.getByRole("alert")).toHaveText(OAUTH_ERROR_MESSAGE);
@@ -18,8 +23,13 @@ test("ログインとサインアップに Google で続行がある", async ({ 
   await page.goto("/signup");
   await expect(page.getByRole("heading", { name: "アカウント作成" })).toBeVisible();
   const signupGoogle = page.getByRole("button", { name: "Google で続行" });
-  await expect(signupGoogle).toBeDisabled();
-  await page.getByLabel("利用規約とプライバシーポリシーに同意する").check();
-  await expect(signupGoogle).toBeEnabled();
+  if (GOOGLE_SIGN_IN_VISIBLE) {
+    await expect(signupGoogle).toBeDisabled();
+    await page.getByLabel("利用規約とプライバシーポリシーに同意する").check();
+    await expect(signupGoogle).toBeEnabled();
+  } else {
+    await expect(signupGoogle).toHaveCount(0);
+    await expect(page.getByText("または")).toHaveCount(0);
+  }
   await expect(page.getByText("招待コード")).toHaveCount(0);
 });
