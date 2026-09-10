@@ -14,6 +14,8 @@ describe("boot-prefetch の経路", () => {
       "/login",
       "/signup",
       "/age",
+      "/forgot-password",
+      "/reset-password",
       "/terms",
       "/privacy",
       "/",

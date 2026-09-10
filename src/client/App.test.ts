@@ -21,6 +21,9 @@ describe("ルート分割", () => {
     expect(app).not.toContain("AppShell");
     expect(lazyPages).toContain('import("@/client/layout/AuthenticatedLayout.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/AgePage.tsx")');
+    expect(lazyPages).toContain('import("@/client/pages/PasswordResetPages.tsx")');
+    expect(app).toContain('path="/forgot-password"');
+    expect(app).toContain('path="/reset-password"');
     expect(lazyPages).toContain('import("@/client/pages/HomePage.tsx")');
     expect(app).toContain("RequireAgeVerified");
     expect(app).toContain('path="/age"');

@@ -76,7 +76,7 @@ viewBox `0 0 120 160`。比率は 3:4。
 
 | 画面 | ポーズ | サイズ | 位置 | 出す条件 |
 |---|---|---|---|---|
-| `auth-login` / `auth-signup` / `auth-age` | default | 120px | カードの上、中央 | 常時（`auth-age` の拒否時も `default`。叱らない） |
+| `auth-login` / `auth-signup` / `auth-age` / `auth-forgot-password` / `auth-reset-password` | default | 120px | カードの上、中央 | 常時（`auth-age` の拒否時も `default`。叱らない） |
 | `home` | default / rest | 72px | 今日カードの右側（カード内。数値・文言に重ねない） | 記録あり = default、未記録 = rest |
 | `home` 1 タップ直後 | cheer | 72px | 同位置 | 300ms だけ差し替え、その後 default |
 | トースト（保存成功） | cheer | 32px | 文言の左 | 保存成功時のみ。エラートーストには出さない |

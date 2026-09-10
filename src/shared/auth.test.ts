@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   AUTH_NAME_MAX_LENGTH,
   displayNameSchema,
+  forgotPasswordFormSchema,
   loginFormSchema,
+  RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS,
+  resetPasswordFormSchema,
   resolveSafeRedirect,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
@@ -34,6 +37,8 @@ describe("resolveSafeRedirect", () => {
     expect(resolveSafeRedirect("/signup?x=1")).toBe("/");
     expect(resolveSafeRedirect("/age")).toBe("/");
     expect(resolveSafeRedirect("/age?redirect=%2Flogs")).toBe("/");
+    expect(resolveSafeRedirect("/forgot-password")).toBe("/");
+    expect(resolveSafeRedirect("/reset-password")).toBe("/");
   });
 });
 
@@ -96,5 +101,42 @@ describe("signupFormSchema", () => {
         acceptedLegal: false,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("password reset schemas", () => {
+  it("トークン有効期限は 1 時間", () => {
+    expect(RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS).toBe(3600);
+  });
+
+  it("再設定要求は trim したメールだけ受け付ける", () => {
+    expect(forgotPasswordFormSchema.parse({ email: " user@example.com " }).email).toBe(
+      "user@example.com",
+    );
+    expect(forgotPasswordFormSchema.safeParse({ email: "" }).success).toBe(false);
+  });
+
+  it("新しいパスワードは確認欄と一致し、8 文字以上", () => {
+    expect(
+      resetPasswordFormSchema.safeParse({
+        password: "1234567",
+        confirmPassword: "1234567",
+      }).success,
+    ).toBe(false);
+    expect(
+      resetPasswordFormSchema.safeParse({
+        password: "12345678",
+        confirmPassword: "12345679",
+      }).success,
+    ).toBe(false);
+    expect(
+      resetPasswordFormSchema.parse({
+        password: "12345678",
+        confirmPassword: "12345678",
+      }),
+    ).toEqual({
+      password: "12345678",
+      confirmPassword: "12345678",
+    });
   });
 });

@@ -5,6 +5,9 @@ BETTER_AUTH_SECRET=
 # BETTER_AUTH_URL=
 # 未設定なら実行時エラーのウェブフックは送らない。値はチャットに貼らない
 # ALERT_WEBHOOK_URL=
+# パスワードリセット（8-03）。未設定ならメールは送らない。値はチャットに貼らない
+RESEND_API_KEY=
+# EMAIL_FROM=酒のしおり <noreply@sake-shiori.com>
 # 認識モデル。未設定なら wrangler.jsonc の vars（酒記録は gemini-3.7-flash）
 # AI_RECOGNITION_PROFILE=gemini-3.7-flash
 # AI_LABEL_RECOGNITION_PROFILE=workers-ai-llama

@@ -50,6 +50,7 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 | 区分 | 対象 | 未ログイン時 | ログイン済みで当該 URL に来たとき |
 |---|---|---|---|
 | 公開 | `auth-login` `/login`、`auth-signup` `/signup` | 表示 | `/` へリダイレクト（未確認なら続けて `/age`） |
+| 公開（リセット） | `auth-forgot-password` `/forgot-password`、`auth-reset-password` `/reset-password` | 表示 | **そのまま表示**（メールのリンクをログイン中でも使える。8-03） |
 | 公開（法務） | `legal-terms` `/terms`、`legal-privacy` `/privacy` | 表示 | **そのまま表示**（`/` へ送らない） |
 | 認証後（年齢未確認） | `auth-age` `/age`（タブバーなし） | `/login?redirect=/age` | 表示。確認済みなら `redirect` または `/` |
 | 認証後（年齢確認済み） | 下部タブ配下の全画面、サマリー、作成・編集、404（認証後シェル） | `/login?redirect=<元パス>` へ | 未確認なら `/age?redirect=`。確認済みなら表示 |
@@ -86,8 +87,10 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 
 | ID | 画面 | パス | 備考 |
 |---|---|---|---|
-| auth-login | ログイン | `/login` | メール＋パスワード |
+| auth-login | ログイン | `/login` | メール＋パスワード。8-03 で「パスワードを忘れた」 |
 | auth-signup | サインアップ | `/signup` | メール＋パスワード。招待制は置かない。8-01 で規約・PP への同意 |
+| auth-forgot-password | パスワード再設定（メール） | `/forgot-password` | 8-03。ログイン中でも表示 |
+| auth-reset-password | 新しいパスワード | `/reset-password` | 8-03。トークンは query。ログイン中でも表示 |
 | legal-terms | 利用規約 | `/terms` | 認証なし。ログイン済みでも表示。8-01 |
 | legal-privacy | プライバシーポリシー | `/privacy` | 同上 |
 

@@ -11,6 +11,7 @@ import { createAuth } from "./auth.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
+import type { ResetPasswordMail, SendResetPasswordEmail } from "./services/reset-password-mail.ts";
 
 const TEST_AUTH_SECRET = "test-only-not-a-production-secret!!";
 const TEST_ORIGIN = "http://localhost";
@@ -85,18 +86,25 @@ export async function createTestApp(
     drinkRecognizer?: LabelRecognizer;
     noteRecognizer?: LabelRecognizer;
     recognizeTimeoutMs?: number;
+    sendResetPassword?: SendResetPasswordEmail;
   } = {},
 ) {
   const client = createClient({ url: ":memory:" });
   await applyDrizzleMigrations(client);
 
   const db = drizzle(client, { schema });
+  const mailbox: ResetPasswordMail[] = [];
   const auth = createAuth({
     db,
     secret: TEST_AUTH_SECRET,
     baseURL: TEST_ORIGIN,
     trustedOrigins: [TEST_ORIGIN],
     useSecureCookies: false,
+    sendResetPassword:
+      options.sendResetPassword ??
+      (async (mail) => {
+        mailbox.push(mail);
+      }),
   });
 
   const photos = createMemoryR2();
@@ -122,7 +130,7 @@ export async function createTestApp(
   });
   appCount += 1;
   clientIpByApp.set(app, `10.0.${Math.floor(appCount / 256)}.${appCount % 256}`);
-  return { app, auth, db, photos };
+  return { app, auth, db, photos, mailbox };
 }
 
 function authHeaders(app: TestApp): Record<string, string> {
@@ -163,6 +171,33 @@ export async function signIn(app: TestApp, input: { email: string; password: str
     headers: authHeaders(app),
     body: JSON.stringify(input),
   });
+}
+
+export async function requestPasswordReset(app: TestApp, email: string) {
+  return app.request("/api/auth/request-password-reset", {
+    method: "POST",
+    headers: authHeaders(app),
+    body: JSON.stringify({
+      email,
+      redirectTo: "/reset-password",
+    }),
+  });
+}
+
+export async function resetPassword(app: TestApp, input: { token: string; newPassword: string }) {
+  return app.request("/api/auth/reset-password", {
+    method: "POST",
+    headers: authHeaders(app),
+    body: JSON.stringify(input),
+  });
+}
+
+export function resetTokenFromUrl(resetUrl: string): string {
+  const token = new URL(resetUrl).pathname.split("/").filter(Boolean).at(-1);
+  if (!token) {
+    throw new Error("リセット URL からトークンを取れませんでした");
+  }
+  return token;
 }
 
 export async function updateUserName(app: TestApp, cookie: string | undefined, name: string) {

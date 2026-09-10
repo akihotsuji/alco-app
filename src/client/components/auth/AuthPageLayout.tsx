@@ -6,6 +6,7 @@ import { PWA_NAME } from "@/shared/pwa.ts";
 
 type AuthPageLayoutProps = {
   title: string;
+  notice?: string | null;
   error: string | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   canSubmit: boolean;
@@ -19,6 +20,7 @@ type AuthPageLayoutProps = {
 
 export function AuthPageLayout({
   title,
+  notice = null,
   error,
   onSubmit,
   canSubmit,
@@ -37,6 +39,7 @@ export function AuthPageLayout({
         <CardContent>
           <form className="flex flex-col" onSubmit={onSubmit} noValidate>
             <h1 className="mb-4 text-2xl font-semibold leading-[1.3]">{title}</h1>
+            {notice ? <p className="mb-4 text-base leading-normal">{notice}</p> : null}
             {error ? (
               <p id="auth-form-error" className="mb-4 text-danger" role="alert">
                 {error}

@@ -25,6 +25,20 @@ export const AgePage = lazy(async () => {
   return { default: Page };
 });
 
+const ForgotPasswordPageLazy = lazy(async () => {
+  const { ForgotPasswordPage: Page } = await import("@/client/pages/PasswordResetPages.tsx");
+  return { default: Page };
+});
+
+export function ForgotPasswordPage() {
+  return <ForgotPasswordPageLazy />;
+}
+
+export const ResetPasswordPage = lazy(async () => {
+  const { ResetPasswordPage: Page } = await import("@/client/pages/PasswordResetPages.tsx");
+  return { default: Page };
+});
+
 const LegalDocumentPage = lazy(async () => {
   const { LegalPage: Page } = await import("@/client/pages/LegalPage.tsx");
   return { default: Page };

@@ -11,6 +11,7 @@ const INVENTORY_KEYS = [
   "ALERT_WEBHOOK_URL",
   "CLOUDFLARE_API_TOKEN",
   "CLOUDFLARE_ACCOUNT_ID",
+  "RESEND_API_KEY",
 ] as const;
 
 const SKIP_SUFFIX = [
@@ -61,7 +62,7 @@ function looksLikeSecretValue(value: string): boolean {
   if (/^-----BEGIN /.test(value)) {
     return true;
   }
-  return /^(sk_live_|sk_test_|ghp_|github_pat_)/.test(value);
+  return /^(sk_live_|sk_test_|ghp_|github_pat_|re_)/.test(value);
 }
 
 describe("secret inventory", () => {
@@ -83,6 +84,8 @@ describe("secret inventory", () => {
     expect(example).not.toMatch(/^BETTER_AUTH_SECRET=.+$/m);
     expect(example).toContain("ALERT_WEBHOOK_URL=");
     expect(example).not.toMatch(/^ALERT_WEBHOOK_URL=.+$/m);
+    expect(example).toMatch(/^RESEND_API_KEY=$/m);
+    expect(example).not.toMatch(/^RESEND_API_KEY=.+$/m);
     expect(example).not.toContain("CLOUDFLARE_API_TOKEN");
     expect(example).not.toContain("CLOUDFLARE_ACCOUNT_ID");
   });
@@ -112,7 +115,11 @@ describe("secret inventory", () => {
           hits.push(`${file}:${index + 1}`);
           continue;
         }
-        for (const key of ["BETTER_AUTH_SECRET", "CLOUDFLARE_API_TOKEN"] as const) {
+        for (const key of [
+          "BETTER_AUTH_SECRET",
+          "CLOUDFLARE_API_TOKEN",
+          "RESEND_API_KEY",
+        ] as const) {
           const value = assignmentValue(line, key);
           if (value === undefined || isPlaceholder(value)) {
             continue;
