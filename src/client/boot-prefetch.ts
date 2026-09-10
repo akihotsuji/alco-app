@@ -24,6 +24,26 @@ const loaders = {
 type BootChunkId = keyof typeof loaders;
 
 export const SESSION_PATH = "/api/auth/get-session";
+/** 年齢確認ゲート（RequireAgeVerified）が待つ。セッション GET と並べて飛ばし、直列の 1 往復を消す */
+export const ME_PATH = "/api/me";
+
+/** 認証後の画面だけ `/api/me` を先読みする（ゲスト画面では 401 を踏むだけ） */
+export const GUEST_ONLY_PATHS: readonly string[] = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/terms",
+  "/privacy",
+];
+
+/* 以下は src/shared/constants.ts・cellar-shelf.ts・各 hooks の値の写し。boot-prefetch.test.ts が一致を検証する */
+const CELLAR_LIST_VIEW_PREF_KEY = "cellar.listView";
+const DEFAULT_CELLAR_LIST_VIEW = "one";
+const SHELF_WIDE_MIN_PX = 480;
+const SHELF_COLUMNS_NARROW = 3;
+const SHELF_COLUMNS_WIDE = 4;
+const TASTING_NOTES_LIST_LIMIT = 50;
 
 export function homeDataPaths(today: string): readonly string[] {
   return [
@@ -31,6 +51,73 @@ export function homeDataPaths(today: string): readonly string[] {
     `/api/drink-logs/summary?period=week&date=${today}`,
     "/api/my-drinks?limit=30",
   ];
+}
+
+export type CellarBootInput = {
+  search: string;
+  storedView: string | null;
+  viewportWidth: number;
+};
+
+/** セラー一覧（`/cellar`）が最初に投げる GET。絞り込み中は先読みしない（hooks の debounce と食い違う） */
+export function cellarDataPaths(input: CellarBootInput): readonly string[] {
+  const params = new URLSearchParams(input.search);
+  if (params.has("q") || params.has("drinkType")) {
+    return [];
+  }
+  const urlView = params.get("view");
+  const view =
+    urlView === "one" || urlView === "type"
+      ? urlView
+      : input.storedView === "one" || input.storedView === "type"
+        ? input.storedView
+        : DEFAULT_CELLAR_LIST_VIEW;
+  if (view === "type") {
+    return ["/api/bottles?view=cellar&limit=1"];
+  }
+  const columns =
+    input.viewportWidth >= SHELF_WIDE_MIN_PX ? SHELF_COLUMNS_WIDE : SHELF_COLUMNS_NARROW;
+  return [`/api/bottles?view=cellar&limit=${columns * 2}`];
+}
+
+/** ノート一覧（`/notes`）が最初に投げる GET。絞り込み・ボトル別は先読みしない */
+export function notesDataPaths(search: string): readonly string[] {
+  const params = new URLSearchParams(search);
+  if (
+    params.has("q") ||
+    params.has("drinkType") ||
+    params.has("ratingX10Min") ||
+    params.has("bottleId")
+  ) {
+    return [];
+  }
+  return [`/api/tasting-notes?limit=${TASTING_NOTES_LIST_LIMIT}`];
+}
+
+function readStoredCellarView(): string | null {
+  try {
+    return localStorage.getItem(CELLAR_LIST_VIEW_PREF_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function initialDataPaths(
+  pathname: string,
+  search: string,
+  today: string,
+  cellar: Pick<CellarBootInput, "storedView" | "viewportWidth">,
+): readonly string[] {
+  if (pathname === "/") {
+    return homeDataPaths(today);
+  }
+  if (pathname === "/cellar") {
+    return cellarDataPaths({ search, ...cellar });
+  }
+  if (pathname === "/notes") {
+    return notesDataPaths(search);
+  }
+  return [];
 }
 
 export function initialRouteChunkIds(pathname: string): readonly BootChunkId[] {
@@ -117,12 +204,21 @@ export function prefetchInitialRoute(pathname = window.location.pathname): void 
   }
 }
 
-export function prefetchEarlyGets(pathname = window.location.pathname): void {
+export function prefetchEarlyGets(
+  pathname = window.location.pathname,
+  search = window.location.search,
+): void {
   startEarlyFetch(SESSION_PATH);
-  if (pathname === "/") {
-    for (const path of homeDataPaths(tokyoToday())) {
-      startEarlyFetch(path);
-    }
+  if (GUEST_ONLY_PATHS.includes(pathname)) {
+    return;
+  }
+  startEarlyFetch(ME_PATH);
+  const paths = initialDataPaths(pathname, search, tokyoToday(), {
+    storedView: readStoredCellarView(),
+    viewportWidth: window.innerWidth,
+  });
+  for (const path of paths) {
+    startEarlyFetch(path);
   }
 }
 

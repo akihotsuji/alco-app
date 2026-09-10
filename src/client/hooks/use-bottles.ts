@@ -1,4 +1,11 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  infiniteQueryOptions,
+  queryOptions,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type { BottleView, CreateBottleInput, UpdateBottleInput } from "@/shared/bottles.ts";
@@ -60,8 +67,9 @@ export function recognizeLabel(file: Blob, client: ApiClient = api) {
   );
 }
 
-export function useBottles(query: BottlesListQuery = {}, enabled = true) {
-  return useQuery({
+/** 単発の一覧（種類ごと表示の meta 等）。タブ先読みと同じキー・同じ queryFn を使う */
+export function bottlesQueryOptions(query: BottlesListQuery = {}) {
+  return queryOptions({
     queryKey: queryKeys.bottlesList({
       view: query.view,
       q: query.q,
@@ -69,12 +77,12 @@ export function useBottles(query: BottlesListQuery = {}, enabled = true) {
       ...(query.limit !== undefined ? { limit: query.limit } : {}),
     }),
     queryFn: () => getBottles(query),
-    enabled,
   });
 }
 
-export function useInfiniteBottles(query: BottlesListQuery = {}, enabled = true) {
-  return useInfiniteQuery({
+/** 無限スクロールの一覧（1 本ずつ・種類ごとの棚・貯蔵庫）。タブ先読みと同じキー・同じ queryFn を使う */
+export function bottlesInfiniteQueryOptions(query: BottlesListQuery = {}) {
+  return infiniteQueryOptions({
     queryKey: queryKeys.bottlesList({
       view: query.view,
       q: query.q,
@@ -84,8 +92,15 @@ export function useInfiniteBottles(query: BottlesListQuery = {}, enabled = true)
     queryFn: ({ pageParam }) => getBottles({ ...query, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    enabled,
   });
+}
+
+export function useBottles(query: BottlesListQuery = {}, enabled = true) {
+  return useQuery({ ...bottlesQueryOptions(query), enabled });
+}
+
+export function useInfiniteBottles(query: BottlesListQuery = {}, enabled = true) {
+  return useInfiniteQuery({ ...bottlesInfiniteQueryOptions(query), enabled });
 }
 
 export function useBottle(id: string | undefined) {

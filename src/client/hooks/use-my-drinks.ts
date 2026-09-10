@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type { DrinkType } from "@/shared/constants.ts";
@@ -41,11 +41,15 @@ export function logMyDrink(
 
 export type MyDrink = Awaited<ReturnType<typeof getMyDrink>>;
 
-export function useMyDrinks() {
-  return useQuery({
+export function myDrinksQueryOptions() {
+  return queryOptions({
     queryKey: queryKeys.myDrinks,
     queryFn: () => getMyDrinks(),
   });
+}
+
+export function useMyDrinks() {
+  return useQuery(myDrinksQueryOptions());
 }
 
 export function useMyDrink(id: string | undefined) {

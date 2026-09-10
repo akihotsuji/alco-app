@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 
@@ -14,9 +14,13 @@ export function getDrinkLogSummary(period: SummaryPeriod, date: string, client: 
 
 export type DrinkLogSummary = Awaited<ReturnType<typeof getDrinkLogSummary>>;
 
-export function useDrinkLogSummary(period: SummaryPeriod, date: string) {
-  return useQuery({
+export function drinkLogSummaryQueryOptions(period: SummaryPeriod, date: string) {
+  return queryOptions({
     queryKey: queryKeys.drinkLogSummary(period, date),
     queryFn: () => getDrinkLogSummary(period, date),
   });
+}
+
+export function useDrinkLogSummary(period: SummaryPeriod, date: string) {
+  return useQuery(drinkLogSummaryQueryOptions(period, date));
 }
