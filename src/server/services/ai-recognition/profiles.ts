@@ -96,9 +96,20 @@ export const PROFILE_ENV_KEYS = {
 
 export const DEFAULT_PROFILE_BY_TASK: Record<AiRecognitionTask, AiRecognitionProfileKey> = {
   drink: "gemini-3.7-flash",
-  label: "workers-ai-llama",
-  note: "workers-ai-llama",
+  label: "gemini-3.7-flash",
+  note: "gemini-3.7-flash",
 };
+
+/** 経路ごとのアプリ側打ち切り。未指定ならそのプロファイルの timeoutMs */
+export function timeoutMsForRecognizer(recognizer: { profile: string }, override?: number): number {
+  if (override !== undefined) {
+    return override;
+  }
+  if (isAiRecognitionProfileKey(recognizer.profile)) {
+    return MODEL_PROFILES[recognizer.profile].timeoutMs;
+  }
+  return AI_RECOGNIZE_TIMEOUT_MS;
+}
 
 export class RecognitionConfigError extends Error {
   readonly reason: "unknown_profile" | "missing_binding";

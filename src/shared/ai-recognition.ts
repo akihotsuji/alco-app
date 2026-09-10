@@ -9,8 +9,10 @@ import { LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
 export const AI_RECOGNITION_PROFILE_KEYS = ["gemini-3.7-flash", "workers-ai-llama"] as const;
 export type AiRecognitionProfileKey = (typeof AI_RECOGNITION_PROFILE_KEYS)[number];
 export const DEFAULT_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey = "gemini-3.7-flash";
-export const DEFAULT_LABEL_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey = "workers-ai-llama";
-export const DEFAULT_NOTE_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey = "workers-ai-llama";
+export const DEFAULT_LABEL_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey =
+  DEFAULT_AI_RECOGNITION_PROFILE;
+export const DEFAULT_NOTE_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey =
+  DEFAULT_AI_RECOGNITION_PROFILE;
 
 export const AI_RECOGNITION_TASKS = ["drink", "label", "note"] as const;
 export type AiRecognitionTask = (typeof AI_RECOGNITION_TASKS)[number];

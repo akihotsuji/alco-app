@@ -34,6 +34,35 @@ export const NOTE_RECOGNIZE_SYSTEM_PROMPT = [
 export const NOTE_RECOGNIZE_USER_PROMPT =
   "Extract the drink name, type, vintage, producer, country of origin, and variety from this photo when evidence exists. Return the JSON object described in the system message.";
 
+const geminiTextProperty = {
+  type: "OBJECT",
+  properties: {
+    value: { type: "STRING" },
+    confidence: { type: "NUMBER" },
+  },
+};
+
+const geminiIntProperty = {
+  type: "OBJECT",
+  properties: {
+    value: { type: "INTEGER" },
+    confidence: { type: "NUMBER" },
+  },
+};
+
+/** Gemini responseSchema（uppercase types）。Workers AI guided_json には使わない */
+export const NOTE_RECOGNIZE_GEMINI_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    drinkName: geminiTextProperty,
+    drinkType: geminiTextProperty,
+    vintage: geminiIntProperty,
+    producer: geminiTextProperty,
+    origin: geminiTextProperty,
+    variety: geminiTextProperty,
+  },
+} as const;
+
 export const NOTE_RECOGNIZE_GUIDED_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,

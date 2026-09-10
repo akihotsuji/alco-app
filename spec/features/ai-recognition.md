@@ -10,7 +10,8 @@
 - クライアントからモデル名・接続先・プロンプトは指定できない
 - 自動フォールバック（別モデルへ）は初期実装では無効。障害時は手入力を続け、運営が設定を戻して復旧する
 - 背景除去サービスは対象外
-- セラー・ノートの呼び出し先は当面 **Workers AI Llama** のまま。共有のプロファイル解決と `LabelRecognizer` 口だけ整合させる
+- 記録・セラー・ノートの既定は同じ **Gemini 3.7 Flash**。Llama プロファイルは残し、env で戻せる
+- モデル ID を揃えることと解析パイプラインを揃えることは別。セラー・ノートは単段のまま（商品照合なし）
 
 ## 2. 役割の分離
 
@@ -45,8 +46,8 @@
 | キー | 既定 | 意味 |
 |---|---|---|
 | `AI_RECOGNITION_PROFILE` | `gemini-3.7-flash` | 酒記録 |
-| `AI_LABEL_RECOGNITION_PROFILE` | `workers-ai-llama` | セラー |
-| `AI_NOTE_RECOGNITION_PROFILE` | `workers-ai-llama` | ノート |
+| `AI_LABEL_RECOGNITION_PROFILE` | `gemini-3.7-flash` | セラー |
+| `AI_NOTE_RECOGNITION_PROFILE` | `gemini-3.7-flash` | ノート |
 | `AI_GATEWAY_ID` | `default` | AI Gateway の ID |
 | `AI_GATEWAY_COLLECT_LOG` | `0` | `1` / `true` のときだけ Gateway 本文ログを取る。既定は取らない |
 | `AI_RECOGNIZE_DAILY_LIMIT` | `30` | ユーザー / JST 日のアプリ側上限。無制限化しない |
@@ -104,7 +105,7 @@
 - 矛盾や一致不足は空欄。強い根拠を後続の弱い根拠で上書きしない
 - 検索失敗時は出典なし推測で埋めず、画像認識結果だけを返す
 - 検索専用の時間予算は **4 秒**（`AI_RECOGNIZE_LOOKUP_BUDGET_MS`）。全体タイムアウトとは別。検索だけ切れたときは抽出済みを返す
-- セラー / ノートの既定プロファイル（Llama）は検索非対応なので照合しない。モデル ID は task 別キーのまま揃えない
+- セラー / ノートは既定が Gemini でも照合しない（`createTaskRecognizer` は `search: false`）。Llama に戻したときも照合しない
 
 実 API での Google Search 通過は未検証。失敗しても手入力は継続できる。
 
@@ -144,7 +145,7 @@
 2. `wrangler deploy --env dev` または本番 vars を更新して再デプロイ
 3. ローカルは `.dev.vars` または `wrangler.jsonc` の `vars`
 
-以前の Llama へ戻す: `AI_RECOGNITION_PROFILE=workers-ai-llama`
+以前の Llama へ戻す: 対象タスクのキーを `workers-ai-llama` にする（3機能とも戻すなら 3 キー）
 
 新しいモデルを足す手順:
 
@@ -169,12 +170,12 @@
 - 同じ実写真 30 枚での現行 Llama との品質比較
 - Unified Billing のクレジット残高と Gateway 支出上限の実機確認
 
-## 14. 切り分け（ノート成功・酒記録 502）
+## 14. 切り分け（認識 502）
 
-- ノート / セラーは Workers AI Llama を Gateway なしで呼ぶ。酒記録 Gemini は `gateway.id` 経由の第三者モデル
+- 既定では記録・セラー・ノートとも Gemini を `gateway.id` 経由で呼ぶ。Llama に戻した経路だけ Gateway なし
 - Gateway にリクエストは届きトークン 0 なら、モデル実行前の失敗（課金・形式・認可）
-- 切り分けは Workers Logs の `[drink-recognize] ok=false reason=`。クライアントは `upstream_error` だけ
+- 切り分けは Workers Logs の `[drink-recognize]` / `[recognize]` / `[note-recognize]`。クライアントは `upstream_error` だけ
 - `ok=true fieldCount=0` は課金成功のあと JSON が業務形に落ちたとき。`[drink-recognize] parse` の finishReason / payloadKeys / thinkingTokens を見る
 - `reason=AiGatewayError:2021: Insufficient AI Gateway credits` は Unified Billing のクレジット不足。ダッシュボードで補充する
 - `reason=AiGatewayError:7003: User Input Error` は Gemini がリクエスト本文を 400 で拒否したとき（モデルが受け付けない `thinkingLevel`、`responseSchema` に未対応キーなど）。`profiles.ts` の値を公式表と照合する
-- 応急は `AI_RECOGNITION_PROFILE=workers-ai-llama` にして再デプロイ（手入力は継続できる）
+- 応急は対象タスクのプロファイルを `workers-ai-llama` にして再デプロイ（手入力は継続できる）

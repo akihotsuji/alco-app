@@ -123,7 +123,7 @@ export const TERMS_DOCUMENT: LegalDocument = {
       blocks: [
         {
           type: "p",
-          text: "ラベルや写真からの候補入力のため、設定が有効なときは画像をCloudflare上のAI（セラー・ノートはWorkers AI、酒記録はCloudflare経由の外部モデル）へ送ります。自動では保存しません。候補が間違っていても、登録は手入力で続けられます。",
+          text: "ラベルや写真からの候補入力のため、設定が有効なときは画像をCloudflare経由の外部モデルへ送ります。記録・セラー・ノートで同じ経路です。自動では保存しません。候補が間違っていても、登録は手入力で続けられます。",
         },
       ],
     },
@@ -211,7 +211,7 @@ export const PRIVACY_DOCUMENT: LegalDocument = {
       blocks: [
         {
           type: "p",
-          text: "設定がONのとき、ラベルや酒の写真を送り、候補だけ返します。結果は自動保存しません。セラー・ノートはCloudflare Workers AI、酒記録はCloudflare AI Gateway経由の外部モデル（初期設定はGemini）です。プロンプトやモデル名を利用者から指定することはできません。日次の回数上限があります。",
+          text: "設定がONのとき、ラベルや酒の写真を送り、候補だけ返します。結果は自動保存しません。記録・セラー・ノートはいずれもCloudflare AI Gateway経由の外部モデル（初期設定はGemini）です。プロンプトやモデル名を利用者から指定することはできません。日次の回数上限があります。",
         },
       ],
     },
@@ -238,7 +238,7 @@ export const PRIVACY_DOCUMENT: LegalDocument = {
       blocks: [
         {
           type: "p",
-          text: "法令に基づく場合を除き、個人情報を第三者に販売・提供しません。Cloudflare（インフラとボット対策のTurnstile）、Resend（パスワード再設定メール）、Google（ログイン）、および（酒記録の推定時）その先のモデル提供者は、サービス提供のための委託先です。",
+          text: "法令に基づく場合を除き、個人情報を第三者に販売・提供しません。Cloudflare（インフラとボット対策のTurnstile）、Resend（パスワード再設定メール）、Google（ログイン）、および（写真からの推定時）その先のモデル提供者は、サービス提供のための委託先です。",
         },
       ],
     },
