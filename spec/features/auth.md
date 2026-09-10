@@ -28,7 +28,7 @@
 - 期限更新の間隔: **1 日**（`session.updateAge = 60 * 60 * 24`）。自動延長は有効（`disableSessionRefresh: false`）
 - 延長の意味: 毎日定時に足す／期限に 1 日を加算する、ではない。**前回の更新から 1 日以上経過し、まだ期限内のセッションを確認したとき**、その時点から 30 日後へ `expiresAt` と Cookie の `Max-Age` を書き換える。1 日未満の確認では延長しない
 - 確認経路: ブラウザは `authClient.useSession()` → `GET /api/auth/get-session`（Better Auth handler が Set-Cookie を返す）。保護 API は認証 MW が `auth.api.getSession({ returnHeaders: true })` し、返った Set-Cookie を Hono 応答へ append する（内部呼び出しのヘッダーは自動では乗らない）
-- **Cookie キャッシュ**（`session.cookieCache`、**60 秒**、`strategy: "compact"`）: セッション確認のたびに D1 へ行かず、署名付きの `session_data` Cookie（httpOnly / sameSite=Lax / secure。トークンと同じ属性）に session + user を 60 秒だけ持つ。D1 1 往復 ≈ 230 ms が毎 API から消える（[performance.md](performance.md) 6.4）。トレードオフ: 別端末でのサインアウト・管理者による失効は **最長 60 秒**遅れて効く（この間の API は 200）。同じ端末のサインアウトは両 Cookie を即失効させるので遅れない。`session_data` が `session_token` と一致しない・署名が壊れているときは無視して D1 を見る。60 秒を超えたら D1 で再確認し、期限切れなら 401
+- **Cookie キャッシュ**（`session.cookieCache`、**60 秒**、`strategy: "compact"`）: セッション確認のたびに D1 へ行かず、署名付きの `session_data` Cookie（httpOnly / sameSite=Lax / secure。トークンと同じ属性）に session + user を 60 秒だけ持つ。D1 1 往復 ≈ 230 ms が毎 API から消える（[performance.md](performance.md) 6.4）。トレードオフ: 別端末でのサインアウト・パスワード再設定による全セッション失効（`revokeSessionsOnPasswordReset`）・管理者による失効は、その端末で **最長 60 秒**遅れて効く（この間の API は 200）。同じ端末のサインアウトは両 Cookie を即失効させるので遅れない。`session_data` が `session_token` と一致しない・署名が壊れているときは無視して D1 を見る。60 秒を超えたら D1 で再確認し、期限切れなら 401
 - 期限切れは延長して復活させない。保護 API は 401 `{ "error": "unauthorized" }`。Cookie の失効ヘッダーがあれば転送する
 - 既存セッションは設定変更だけでは 30 日に置き換わらない（一括 UPDATE はしない）。次回のセッション確認で延長条件を満たせば、その時点から 30 日になる
 - `baseURL` は `BETTER_AUTH_URL`、未設定なら `CANONICAL_ORIGIN`、それも無ければリクエスト origin。本番 URL を dev に書かない。本番の正は `https://sake-shiori.com`（[custom-domain.md](custom-domain.md)）
