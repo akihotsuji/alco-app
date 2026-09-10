@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   readAuthSecret,
   readGoogleOAuthConfig,
+  readSignupsClosed,
   readTurnstileConfig,
   resolveAuthBaseURL,
 } from "./env.ts";
@@ -74,6 +75,17 @@ describe("readTurnstileConfig", () => {
         TURNSTILE_SECRET_KEY: "secret-value",
       }),
     ).toBeUndefined();
+  });
+});
+
+describe("readSignupsClosed", () => {
+  it("1 と true だけ閉じる", () => {
+    expect(readSignupsClosed({})).toBe(false);
+    expect(readSignupsClosed({ SIGNUPS_CLOSED: "0" })).toBe(false);
+    expect(readSignupsClosed({ SIGNUPS_CLOSED: "1" })).toBe(true);
+    expect(readSignupsClosed({ SIGNUPS_CLOSED: "true" })).toBe(true);
+    expect(readSignupsClosed({ SIGNUPS_CLOSED: "TRUE" })).toBe(true);
+    expect(readSignupsClosed({ SIGNUPS_CLOSED: "yes" })).toBe(false);
   });
 });
 

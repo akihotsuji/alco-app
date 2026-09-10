@@ -11,7 +11,10 @@ describe("GET /api/health", () => {
   it("{ ok: true } を返す", async () => {
     const res = await app.request("/api/health");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true });
+    const body: unknown = await res.json();
+    expect(body).toEqual({ ok: true });
+    expect(Object.keys(body as object)).toEqual(["ok"]);
+    expect(JSON.stringify(body)).not.toMatch(/usage|neuron|storage|billing|requests/i);
   });
 
   it("セキュリティヘッダーが付く", async () => {
@@ -38,7 +41,8 @@ describe("GET /api/config", () => {
     expect(res.status).toBe(200);
     const body = publicConfigSchema.parse(await res.json());
     expect(body).toEqual({ turnstileSiteKey: "1x00000000000000000000AA" });
-    expect(JSON.stringify(body)).not.toMatch(/secret|TURNSTILE_SECRET/i);
+    expect(Object.keys(body)).toEqual(["turnstileSiteKey"]);
+    expect(JSON.stringify(body)).not.toMatch(/secret|TURNSTILE_SECRET|usage|neuron|billing/i);
   });
 });
 

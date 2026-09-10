@@ -1,3 +1,4 @@
+import { isSignupsClosedFlag } from "@/shared/auth.ts";
 import { TURNSTILE_SITE_KEY_RE } from "@/shared/turnstile.ts";
 import { readCanonicalOrigin } from "./canonical-redirect.ts";
 
@@ -8,6 +9,7 @@ const GOOGLE_CLIENT_ID_KEY = "GOOGLE_CLIENT_ID";
 const GOOGLE_CLIENT_SECRET_KEY = "GOOGLE_CLIENT_SECRET";
 const TURNSTILE_SITE_KEY_KEY = "TURNSTILE_SITE_KEY";
 const TURNSTILE_SECRET_KEY_KEY = "TURNSTILE_SECRET_KEY";
+const SIGNUPS_CLOSED_KEY = "SIGNUPS_CLOSED";
 
 export type GoogleOAuthConfig = {
   clientId: string;
@@ -49,6 +51,10 @@ export function readTurnstileConfig(env: object): TurnstileEnvConfig | undefined
     return undefined;
   }
   return { siteKey, secret };
+}
+
+export function readSignupsClosed(env: object): boolean {
+  return isSignupsClosedFlag(readOptionalString(env, SIGNUPS_CLOSED_KEY));
 }
 
 export function resolveAuthBaseURL(env: object, requestUrl: string): string {

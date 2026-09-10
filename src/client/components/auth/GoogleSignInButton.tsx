@@ -63,6 +63,7 @@ export function GoogleSignInButton({
         authClientErrorMessage(
           result.error.status,
           requestSignUp ? OAUTH_SIGNUP_ERROR_MESSAGE : OAUTH_ERROR_MESSAGE,
+          result.error.message,
         ),
       );
     }

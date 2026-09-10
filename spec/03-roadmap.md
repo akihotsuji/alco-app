@@ -274,7 +274,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] 公開時の新規登録フロー確認、パスワードリセットメール（メール送信基盤の導入）。招待制は採用していないため「解除」作業は不要 → [features/password-reset.md](features/password-reset.md)（8-03。2026-09-10。Resend キー投入はオーナー）
 - [x] OAuthログイン（Google等）→ [features/oauth-login.md](features/oauth-login.md)（8-04。2026-09-10。Google クライアント投入はオーナー）
 - [x] レート制限・不正利用対策（Cloudflare WAF / Turnstile）→ [features/rate-limit-abuse.md](features/rate-limit-abuse.md)（8-05。2026-09-10。Turnstile キーと WAF ルール投入はオーナー）
-- [ ] 無料枠の使用量監視と、超過時の課金プラン検討
+- [x] 無料枠の使用量監視と、超過時の課金プラン検討 → [features/usage-monitoring.md](features/usage-monitoring.md)（8-06。2026-09-10。Budget alert / Gateway spend limit はオーナー）
 
 ---
 

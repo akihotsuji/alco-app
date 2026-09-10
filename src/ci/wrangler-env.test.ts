@@ -150,6 +150,16 @@ describe("wrangler.jsonc env split", () => {
     ]);
   });
 
+  it("keeps signups open by default on both named envs", () => {
+    expect(wrangler.env.dev.vars?.SIGNUPS_CLOSED).toBe("0");
+    expect(wrangler.env.production.vars?.SIGNUPS_CLOSED).toBe("0");
+  });
+
+  it("keeps the public Turnstile site key on both named envs", () => {
+    expect(wrangler.env.dev.vars?.TURNSTILE_SITE_KEY).toBe("0x4AAAAAAEuo60JFIyHGB5kM");
+    expect(wrangler.env.production.vars?.TURNSTILE_SITE_KEY).toBe("0x4AAAAAAEuo60JFIyHGB5kM");
+  });
+
   it("enables Workers Logs and traces on both named envs", () => {
     const expected = {
       enabled: true,

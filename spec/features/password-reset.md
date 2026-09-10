@@ -39,7 +39,7 @@
 
 | 項目 | 決定 | 根拠 |
 |---|---|---|
-| 招待 | **何もしない**。検索しても登録クローズフラグは無い | 2026-08-13 FIX |
+| 招待 | **何もしない**。招待コードは置かない。容量超過時の一時停止は 8-06 の `SIGNUPS_CLOSED` | 2026-08-13 FIX。8-06 |
 | トークン | Better Auth の `verification`（`reset-password:` + 24 文字 ID）。自前テーブル・自前乱数は置かない | security 規約。2-01 の Auth テーブルを流用 |
 | 有効期限 | **3600 秒（1 時間）**。`resetPasswordTokenExpiresIn` を明示 | Better Auth 既定。spec に書く |
 | セッション | 再設定成功で **全セッション失効**（`revokeSessionsOnPasswordReset: true`） | 奪取済み Cookie を残さない |
@@ -62,7 +62,7 @@
 | Cloudflare Email Service | 不採用 | 2026 時点で Workers **有料**プラン。無料枠運用と両立しない |
 | SES / 自前 SMTP | 不採用 | AWS アカウント増。Workers から SMTP 不可 |
 
-コスト: Resend Free は 1 日 100 通・月 3000 通。パスワード再設定だけなら余裕。超過したら有料枠か 8-06 で見直す。
+コスト: Resend Free は 1 日 100 通・月 3000 通。パスワード再設定だけなら余裕。超過したら [usage-monitoring.md](usage-monitoring.md)（8-06）。
 
 ---
 

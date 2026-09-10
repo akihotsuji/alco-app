@@ -195,7 +195,7 @@ alco-app/
 | R2（本番） | 名前 `alco-app-photos-prod`、binding **`PHOTOS`**、非公開 |
 | アカウント | dev と同じ Cloudflare アカウントの別リソース（2026-09-09） |
 | 公開ホスト（本番） | `https://sake-shiori.com`（7-06。[custom-domain.md](features/custom-domain.md)） |
-| 監視 | Workers Logs / Traces（`observability`）。実行時エラーは任意の `ALERT_WEBHOOK_URL`。ジョブ失敗は Actions メール（[monitoring.md](features/monitoring.md)） |
+| 監視 | Workers Logs / Traces（`observability`）。実行時エラーは任意の `ALERT_WEBHOOK_URL`。ジョブ失敗は Actions メール（[monitoring.md](features/monitoring.md)）。無料枠の週次確認は [usage-monitoring.md](features/usage-monitoring.md)（8-06） |
 | 詳細 | [features/production-env.md](features/production-env.md)（7-01） |
 
 コードからは `env.DB` / `env.PHOTOS` で参照する。
@@ -217,13 +217,18 @@ alco-app/
 
 ## ランニングコスト見積り
 
-| サービス | 無料枠 | 想定 |
+公式の再確認日: **2026-09-10**。監視・超過時は [features/usage-monitoring.md](features/usage-monitoring.md)。数字が公式と食い違ったら同じ PR で直す。
+
+| サービス | 無料枠（確認日時点） | 想定 |
 |---|---|---|
-| Workers | 10万リクエスト/日、Cron 含む | 個人利用では余裕。一般公開後も当面無料枠内 |
-| Workers AI | 日次の無料 Neurons 枠（導入時点の値を 4-07 で確認） | ラベル読み取りは 1 本の登録につき 1 回。ユーザー日次上限 30 回で枠を守る。一般公開時は上限を見直す |
-| D1 | 5GB・500万行読取/日 | テキスト中心のデータなので余裕 |
-| R2 | 10GB保存 | 加工済み写真(〜300KB/枚)で3万枚以上。記録・ノート・セラーを合わせても個人利用で年 300MB 程度 |
-| GitHub | Free | Actions無料枠 |
+| Workers | 10 万リクエスト/日（UTC 0:00 リセット）。静的アセットは無料・無制限。CPU 10 ms/起動。Cron 含む | 個人利用では余裕。一般公開後はボットを先に見る（8-05）。超過は Error 1027 |
+| Workers Logs | 20 万イベント/日、保持 3 日 | サンプリング 100%。`console.log` を増やさない |
+| Workers AI | 1 万 Neurons/日 | セラー・ノートの Llama。ユーザー日次 30 回。超過は Workers Paid |
+| AI Gateway（Gemini） | 無料枠なし（Unified Billing） | 酒記録。spend limit をオーナーが付ける。最初に $ が付きやすい |
+| D1 | 5 GB（アカウント合計）・読取 500 万行/日・書込 10 万行/日 | テキスト中心。全件スキャンを避ける |
+| R2 | 10 GB-month・Class A 100 万/月・Class B 1000 万/月・転送無料 | 加工済み写真（〜300KB/枚）。バックアップバケットも同じ 10 GB |
+| Resend | 100 通/日・3000 通/月 | パスワード再設定。[password-reset.md](features/password-reset.md) |
+| GitHub | public の標準 runner は分が無料。artifact 500 MB | リポジトリは public。E2E は毎 PR |
 | 独自ドメイン | 約1,000〜2,000円/年 | 本番は `sake-shiori.com`（[custom-domain.md](features/custom-domain.md)）。dev は `workers.dev` のまま |
 
-**合計: 年千円台**（ドメイン更新）。画像処理を端末内に置いたことで、写真機能を足しても月額は増えない。
+**合計の目安: 年千円台**（ドメイン更新）＋ Gemini を使う場合は Gateway の実費。画像処理を端末内に置いたことで、写真機能を足しても Workers / R2 の月額は増えない。Paid に進む判断は usage-monitoring 8 章。

@@ -8,6 +8,13 @@ export const AUTH_NAME_MESSAGE = `${AUTH_NAME_MAX_LENGTH}文字以内で入力�
 export const RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS = 60 * 60;
 export const FORGOT_PASSWORD_PATH = "/forgot-password";
 export const RESET_PASSWORD_PATH = "/reset-password";
+/** 無料枠超過時の一時停止。招待ではない（8-06） */
+export const SIGNUPS_CLOSED_MESSAGE = "現在、新規登録を停止しています";
+
+export function isSignupsClosedFlag(value: string | undefined): boolean {
+  const raw = value?.trim().toLowerCase();
+  return raw === "1" || raw === "true";
+}
 
 /** Better Auth `session.expiresIn`（秒）。確認時の延長は、その時点からこの秒数後へ書き換える。 */
 export const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30;

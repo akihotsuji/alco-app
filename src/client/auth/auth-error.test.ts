@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SIGNUPS_CLOSED_MESSAGE } from "@/shared/auth.ts";
 import { authClientErrorMessage } from "./auth-error.ts";
 
 describe("authClientErrorMessage", () => {
@@ -15,5 +16,22 @@ describe("authClientErrorMessage", () => {
     expect(
       authClientErrorMessage(undefined, "登録できませんでした。入力内容を確認してください"),
     ).toBe("登録できませんでした。入力内容を確認してください");
+    expect(
+      authClientErrorMessage(
+        400,
+        "登録できませんでした。入力内容を確認してください",
+        "内部パス /src/server",
+      ),
+    ).toBe("登録できませんでした。入力内容を確認してください");
+  });
+
+  it("登録停止の許可した文言だけ出す", () => {
+    expect(
+      authClientErrorMessage(
+        400,
+        "登録できませんでした。入力内容を確認してください",
+        SIGNUPS_CLOSED_MESSAGE,
+      ),
+    ).toBe(SIGNUPS_CLOSED_MESSAGE);
   });
 });
