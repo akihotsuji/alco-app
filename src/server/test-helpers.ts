@@ -8,12 +8,12 @@ import * as schema from "@/db/schema.ts";
 import { WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
 import { LEGAL_VERSION } from "@/shared/legal.ts";
 import { createAuth } from "./auth.ts";
-import type { VerifyTurnstile } from "./services/turnstile.ts";
 import type { GoogleOAuthConfig } from "./env.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import type { ResetPasswordMail, SendResetPasswordEmail } from "./services/reset-password-mail.ts";
+import type { VerifyTurnstile } from "./services/turnstile.ts";
 
 const TEST_AUTH_SECRET = "test-only-not-a-production-secret!!";
 const TEST_ORIGIN = "http://localhost";

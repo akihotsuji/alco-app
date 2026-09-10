@@ -10,8 +10,8 @@ import {
 } from "@/client/auth/use-turnstile-gate.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
 import { GoogleSignInButton } from "@/client/components/auth/GoogleSignInButton.tsx";
-import { TurnstileField } from "@/client/components/auth/TurnstileField.tsx";
 import { PasswordField } from "@/client/components/auth/PasswordField.tsx";
+import { TurnstileField } from "@/client/components/auth/TurnstileField.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { Label } from "@/client/components/ui/label.tsx";
@@ -19,8 +19,8 @@ import { authClient } from "@/client/lib/auth-client.ts";
 import { cn } from "@/client/lib/utils.ts";
 import { AUTH_NAME_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH, signupFormSchema } from "@/shared/auth.ts";
 import { LEGAL_VERSION, legalHref } from "@/shared/legal.ts";
-import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 import { OAUTH_SIGNUP_ERROR_MESSAGE } from "@/shared/oauth.ts";
+import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 
 export function SignupPage() {
   const [searchParams] = useSearchParams();

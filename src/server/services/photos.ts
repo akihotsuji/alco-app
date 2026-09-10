@@ -8,7 +8,6 @@ import {
   type PhotoContentType,
   type PhotoKind,
 } from "@/shared/constants.ts";
-import { tokyoDayStartMs, tokyoToday } from "@/shared/tokyo-date.ts";
 import {
   PHOTO_SINGLE_OWNER_MESSAGE,
   type PhotoMeta,
@@ -16,6 +15,7 @@ import {
   type PhotoUploadFields,
   photoOwnerIds,
 } from "@/shared/photos.ts";
+import { tokyoDayStartMs, tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { ImageInspectFailure, inspectImageBytes } from "./image-inspect.ts";
 

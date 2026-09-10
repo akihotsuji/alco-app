@@ -16,12 +16,10 @@ function jsonResponse(body: unknown, status = 200): Response {
 describe("verifyTurnstileToken", () => {
   it("空・長すぎるトークンは上流を呼ばず失敗する", async () => {
     const fetchImpl = vi.fn();
-    expect(
-      await verifyTurnstileToken({ secret: "s", token: "", fetchImpl }),
-    ).toBe(false);
-    expect(
-      await verifyTurnstileToken({ secret: "s", token: "x".repeat(2049), fetchImpl }),
-    ).toBe(false);
+    expect(await verifyTurnstileToken({ secret: "s", token: "", fetchImpl })).toBe(false);
+    expect(await verifyTurnstileToken({ secret: "s", token: "x".repeat(2049), fetchImpl })).toBe(
+      false,
+    );
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 

@@ -122,8 +122,9 @@ export function TurnstileField({ siteKey, onTokenChange, onLoadError }: Turnstil
   }, [siteKey]);
 
   return (
-    <div className="auth-turnstile">
-      <div ref={containerRef} role="group" aria-label="ボット対策の確認" />
-    </div>
+    <fieldset className="auth-turnstile">
+      <legend className="sr-only">ボット対策の確認</legend>
+      <div ref={containerRef} />
+    </fieldset>
   );
 }

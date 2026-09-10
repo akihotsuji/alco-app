@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { readAuthSecret, readGoogleOAuthConfig, readTurnstileConfig, resolveAuthBaseURL } from "./env.ts";
+import {
+  readAuthSecret,
+  readGoogleOAuthConfig,
+  readTurnstileConfig,
+  resolveAuthBaseURL,
+} from "./env.ts";
 
 describe("readAuthSecret", () => {
   it("文字列のシークレットを返す", () => {
@@ -55,9 +60,7 @@ describe("readTurnstileConfig", () => {
 
   it("片方だけ・空・不正形式は未設定", () => {
     expect(readTurnstileConfig({})).toBeUndefined();
-    expect(
-      readTurnstileConfig({ TURNSTILE_SITE_KEY: "1x00000000000000000000AA" }),
-    ).toBeUndefined();
+    expect(readTurnstileConfig({ TURNSTILE_SITE_KEY: "1x00000000000000000000AA" })).toBeUndefined();
     expect(readTurnstileConfig({ TURNSTILE_SECRET_KEY: "secret-value" })).toBeUndefined();
     expect(
       readTurnstileConfig({

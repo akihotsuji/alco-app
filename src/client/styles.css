@@ -606,9 +606,12 @@ select {
   justify-content: center;
   width: 100%;
   margin: var(--space-4) 0 var(--space-2);
+  border: 0;
+  padding: 0;
+  min-inline-size: 0;
 }
 
-.auth-turnstile [role="group"] {
+.auth-turnstile > div {
   width: min(100%, 300px);
 }
 

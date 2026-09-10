@@ -14,8 +14,8 @@ import {
   useTurnstileGate,
 } from "@/client/auth/use-turnstile-gate.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
-import { TurnstileField } from "@/client/components/auth/TurnstileField.tsx";
 import { PasswordField } from "@/client/components/auth/PasswordField.tsx";
+import { TurnstileField } from "@/client/components/auth/TurnstileField.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { Label } from "@/client/components/ui/label.tsx";
