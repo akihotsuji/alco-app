@@ -54,7 +54,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 未紐付け GC | **Cron Trigger（日次）** で作成 24h 超の未紐付け写真を R2 + D1 から削除。公開エンドポイントではない（Worker の `scheduled` ハンドラ） | 放棄分の掃除 |
 | 一覧のサムネ | drink-log 一覧にも `thumbPhotoId` を含める。bottles 一覧は `thumbPhotoKind`（`photo` / `cutout`）も返す | 日別の行サムネ、棚の描き分け |
 | 写真の種別 | 写真メタに `kind`（`photo` / `cutout`）。サーバーが WebP の alpha フラグで判定し、クライアント申告は受け取らない | 切り抜き（2026-09-05） |
-| ラベル読み取り | **`POST /api/bottles/recognize`** を追加。Workers AI（Vision）で候補を返す。**保存しない**。日次上限 30 回 / ユーザー（429） | オーナー決定（2026-09-05）。プロバイダは差し替え可能に |
+| ラベル読み取り | **`POST /api/bottles/recognize`** を追加。認識プロファイルで候補を返す。**保存しない**。日次上限 30 回 / ユーザー（429） | オーナー決定（2026-09-05）。既定は記録と同じ Gemini。プロバイダは差し替え可能 |
 
 ---
 
@@ -271,7 +271,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | DELETE | `/api/bottles/:id` | 必須 | 削除（写真 CASCADE、ノート・記録は残す） |
 | POST | `/api/bottles/:id/consume` | 必須 | 開栓 → 貯蔵庫。記録は作らない |
 | POST | `/api/bottles/:id/restore` | 必須 | 貯蔵庫 → 棚（undo / セラーに戻す） |
-| POST | `/api/bottles/recognize` | 必須 | ラベル写真から候補フィールド（Workers AI）。保存しない |
+| POST | `/api/bottles/recognize` | 必須 | ラベル写真から候補フィールド。保存しない |
 | GET | `/api/tasting-notes` | 必須 | ノート一覧 |
 | POST | `/api/tasting-notes` | 必須 | ノート作成 |
 | GET | `/api/tasting-notes/:id` | 必須 | 詳細（写真メタ含む） |
@@ -628,18 +628,18 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 | 規則 | 内容 |
 |---|---|
-| プロバイダ | **Cloudflare Workers AI**（binding `AI`。モデルは `@cf/meta/llama-4-scout-17b-16e-instruct`。公式一覧の Vision 対応・指示追従。定数は `WORKERS_AI_VISION_MODEL`）。実装は `LabelRecognizer` インターフェースにし、将来 Gemini 等を差し替えられるようにする |
+| プロバイダ | 設定可能な認識プロファイル（binding `AI` + AI Gateway）。既定は `google/gemini-3.7-flash`。Llama（`@cf/meta/llama-4-scout-17b-16e-instruct`）は env で戻せる。実装は `LabelRecognizer` |
 | プロンプト | サーバー固定。ユーザー入力を含めない。「JSON のみで返す」指示 + スキーマ例。言語は日本語ラベル・英語ラベル両対応 |
 | 出力の扱い | モデル出力は **信頼しない入力**として Zod で検証する。`name` / `producer` / `origin` / `variety` ≦100 文字、`vintage` 1800〜2100 の整数、`drinkType` 12 種、`abvPercent` 0〜100 小数 1 桁、`confidence` 0〜1。検証に落ちたフィールドは **省く**（全体を失敗にしない）。文字列は制御文字を除去 |
 | 欠落 | 読めなかったフィールドは省く。`fields` が空でも 200 |
 | 上限 | ユーザーごと **30 回 / 日（JST）**。`ai_usage` を先に加算し、超過は 429 `rate_limited`。失敗（502）は加算しない |
-| タイムアウト | 20 秒。超過は 502 `upstream_error` |
+| タイムアウト | プロファイルに従う（Gemini 25 秒 / Llama 20 秒）。超過は 502 `upstream_error` |
 | ログ | 件数・所要時間・成否のみ。画像・出力テキストをログに出さない |
 | 保存 | 画像も結果も保存しない。写真の保存は別途 4.7 |
 
 成功: 200。クライアントは確度 0.5 未満の候補を捨て、空欄と直前の AI 印の欄に入れる。
 
-公開エンドポイントではない（認証必須）。セラー・ノートは Cloudflare Workers AI（アカウント内）。酒記録の既定は Cloudflare 経由で Google Gemini へ画像を送る（設定画面の記録節に外部 AI である旨を書く。モデル名は出さない）。
+公開エンドポイントではない（認証必須）。記録・セラー・ノートの既定は Cloudflare 経由で Google Gemini へ画像を送る（設定画面に外部 AI である旨を書く。モデル名は出さない）。Llama は env で戻せる。
 
 ### 4.6 tasting-notes
 
@@ -698,9 +698,9 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 | 規則 | 内容 |
 |---|---|
-| プロバイダ | 4.5.3 と同じ Workers AI Vision。実装は `NoteRecognizer`（`LabelRecognizer` と同じ口）。プロンプトはサーバー固定（ユーザー文を混ぜない） |
+| プロバイダ | 4.5.3 と同じ認識プロファイル。実装は `NoteRecognizer`（`LabelRecognizer` と同じ口）。プロンプトはサーバー固定（ユーザー文を混ぜない） |
 | 出力 | `drinkName` ≦100、`drinkType` 12 種、`producer` / `origin` / `variety` ≦100、`vintage` 1800〜2100、`confidence` 0〜1。検証落ちは省く。空 `fields` でも 200。`name` / `drinkName` はどちらも品名 |
-| 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）、20 秒タイムアウト |
+| 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）。タイムアウトはプロファイルに従う |
 | クライアント | 確度 0.5 未満は捨てる。空欄と直前の AI 値は再読取で上書きする。ボトル選択中は種類を変えない |
 | 対象 | `note-new` / `note-edit` |
 
@@ -856,7 +856,7 @@ src/server/
 | 在庫金額サマリー、飲み頃アラート | v1.x |
 | ノートと飲酒記録の同時作成 | v1.x（開栓 → 記録も作らない。2026-09-06） |
 | 切り抜きと長方形の両方を保存 | v1.x（MVP はどちらか 1 枚） |
-| Gemini / OpenAI 等の外部 Vision API | 酒記録は Gemini 3.7 Flash（Cloudflare Unified Billing）を初期採用。セラー・ノートは Workers AI のまま。設定キーで切替。[features/ai-recognition.md](features/ai-recognition.md) |
+| Gemini / OpenAI 等の外部 Vision API | 記録・セラー・ノートの既定は Gemini 3.7 Flash（Cloudflare Unified Billing）。Llama は設定キーで戻せる。[features/ai-recognition.md](features/ai-recognition.md) |
 | 記録・ノート写真の AI 推定 | 記録は `POST /api/drink-logs/recognize`。ノートは `POST /api/tasting-notes/recognize`（本変更） |
 | CSV エクスポート | 将来構想 |
 | アカウント削除 API | 将来（FK CASCADE は data-model 済み） |

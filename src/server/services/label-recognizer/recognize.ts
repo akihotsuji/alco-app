@@ -3,7 +3,7 @@ import {
   LABEL_EXTRACT_PROMPT_VERSION,
   LABEL_OUTPUT_SCHEMA_VERSION,
 } from "@/shared/ai-recognition.ts";
-import { AI_RECOGNIZE_DAILY_LIMIT, AI_RECOGNIZE_TIMEOUT_MS } from "@/shared/constants.ts";
+import { AI_RECOGNIZE_DAILY_LIMIT } from "@/shared/constants.ts";
 import {
   extractModelPayload,
   pickRecognizeFields,
@@ -13,6 +13,7 @@ import { ApiError } from "../../errors.ts";
 import { sha256Hex } from "../ai-recognition/bytes.ts";
 import { recognitionCacheKey, withRecognitionCache } from "../ai-recognition/cache.ts";
 import { inspectRecognizeJpeg } from "../ai-recognition/inspect-jpeg.ts";
+import { timeoutMsForRecognizer } from "../ai-recognition/profiles.ts";
 import { refundAiUsage, tryConsumeAiUsage } from "../ai-usage.ts";
 import type { LabelRecognizer } from "./index.ts";
 
@@ -61,7 +62,7 @@ export async function recognizeBottleLabel(input: {
     const fields = await withRecognitionCache(key, async () => {
       const output = await withTimeout(
         input.recognizer.recognize(input.bytes),
-        input.timeoutMs ?? AI_RECOGNIZE_TIMEOUT_MS,
+        timeoutMsForRecognizer(input.recognizer, input.timeoutMs),
       );
       providerMs = Date.now() - started;
       const parseStarted = Date.now();

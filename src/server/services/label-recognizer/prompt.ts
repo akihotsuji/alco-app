@@ -35,6 +35,44 @@ export const LABEL_RECOGNIZE_SYSTEM_PROMPT = [
 export const LABEL_RECOGNIZE_USER_PROMPT =
   "Read this bottle and return the JSON object described in the system message. Omit fields without printed or verified evidence.";
 
+const geminiTextProperty = {
+  type: "OBJECT",
+  properties: {
+    value: { type: "STRING" },
+    confidence: { type: "NUMBER" },
+  },
+};
+
+const geminiIntProperty = {
+  type: "OBJECT",
+  properties: {
+    value: { type: "INTEGER" },
+    confidence: { type: "NUMBER" },
+  },
+};
+
+const geminiNumberProperty = {
+  type: "OBJECT",
+  properties: {
+    value: { type: "NUMBER" },
+    confidence: { type: "NUMBER" },
+  },
+};
+
+/** Gemini responseSchema（uppercase types）。Workers AI guided_json には使わない */
+export const LABEL_RECOGNIZE_GEMINI_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    name: geminiTextProperty,
+    producer: geminiTextProperty,
+    origin: geminiTextProperty,
+    variety: geminiTextProperty,
+    vintage: geminiIntProperty,
+    drinkType: geminiTextProperty,
+    abvPercent: geminiNumberProperty,
+  },
+} as const;
+
 export const LABEL_RECOGNIZE_GUIDED_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,

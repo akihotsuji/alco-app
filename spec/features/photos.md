@@ -49,4 +49,4 @@
 
 ## 対象外（後続）
 
-- 酒記録の外部モデル切替は [ai-recognition.md](ai-recognition.md)。セラー・ノートは Workers AI のまま
+- 認識モデルの切替は [ai-recognition.md](ai-recognition.md)。記録・セラー・ノートの既定は同じ Gemini 3.7 Flash。セラー・ノートは単段（照合なし）
