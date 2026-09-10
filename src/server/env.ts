@@ -13,7 +13,11 @@ export type GoogleOAuthConfig = {
 
 function readOptionalString(env: object, key: string): string | undefined {
   const value = Reflect.get(env, key);
-  return typeof value === "string" ? value : undefined;
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function readAuthSecret(env: object): string {

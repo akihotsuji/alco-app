@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app, handleScheduled } from "@/server/index.ts";
 import { resetErrorAlertCooldownForTests } from "@/server/services/error-alert.ts";
@@ -23,6 +24,14 @@ describe("GET /api/health", () => {
     expect(res.headers.get("referrer-policy")).toBe("no-referrer");
     expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
+  });
+});
+
+describe("Auth 組み立て", () => {
+  it("Google 設定の有無でキャッシュを分ける", () => {
+    const source = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+    expect(source).toContain("readGoogleOAuthConfig");
+    expect(source).toContain('? "g" : "-"');
   });
 });
 

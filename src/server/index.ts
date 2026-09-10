@@ -6,6 +6,7 @@ import { createD1Db } from "@/db/index.ts";
 import type { AppEnv } from "./app-env.ts";
 import { type Auth, createAuthFromEnv } from "./auth.ts";
 import { canonicalRedirectResponse } from "./canonical-redirect.ts";
+import { readGoogleOAuthConfig } from "./env.ts";
 import { createAgeGuard } from "./middleware/age.ts";
 import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
@@ -47,7 +48,7 @@ const apiSecureHeaders = secureHeaders({
   xFrameOptions: "DENY",
 });
 
-/** Better Auth は baseURL 依存なので、リクエストの origin ごとに 1 つ組み立てて再利用する。 */
+/** Better Auth は baseURL 依存。origin と Google 設定の有無ごとに 1 つ組み立てて再利用する。 */
 function createAuthResolver(options: CreateAppOptions): AuthResolver {
   const authByOrigin = new Map<string, Auth>();
   return (c) => {
@@ -55,10 +56,11 @@ function createAuthResolver(options: CreateAppOptions): AuthResolver {
       return options.auth;
     }
     const origin = new URL(c.req.url).origin;
-    let auth = authByOrigin.get(origin);
+    const cacheKey = `${origin}:${readGoogleOAuthConfig(c.env) ? "g" : "-"}`;
+    let auth = authByOrigin.get(cacheKey);
     if (!auth) {
       auth = createAuthFromEnv(c.env, c.req.url);
-      authByOrigin.set(origin, auth);
+      authByOrigin.set(cacheKey, auth);
     }
     return auth;
   };

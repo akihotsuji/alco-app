@@ -1,6 +1,6 @@
 import { ageGatePath } from "@/client/auth/age-path.ts";
 import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
-import { oauthErrorCallbackPath } from "@/client/auth/oauth.ts";
+import { oauthClientFailed, oauthErrorCallbackPath } from "@/client/auth/oauth.ts";
 import { Button } from "@/client/components/ui/button.tsx";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { resolveSafeRedirect } from "@/shared/auth.ts";
@@ -38,27 +38,29 @@ export function GoogleSignInButton({
     }
     onBusyChange(true);
     onError(null);
-    const result = await authClient.signIn.social({
-      provider: GOOGLE_OAUTH_PROVIDER,
-      callbackURL: resolveSafeRedirect(redirectQuery),
-      newUserCallbackURL: ageGatePath(redirectQuery),
-      errorCallbackURL: oauthErrorCallbackPath(
-        mode === "signup" ? "/signup" : "/login",
-        redirectQuery,
-      ),
-      requestSignUp,
-      additionalData: requestSignUp
-        ? { acceptedLegal: true, legalVersion: LEGAL_VERSION }
-        : undefined,
-    });
-    if (result.error) {
-      onBusyChange(false);
-      onError(
-        authClientErrorMessage(
-          result.error.status,
-          requestSignUp ? OAUTH_SIGNUP_ERROR_MESSAGE : OAUTH_ERROR_MESSAGE,
+    const fallback = requestSignUp ? OAUTH_SIGNUP_ERROR_MESSAGE : OAUTH_ERROR_MESSAGE;
+    try {
+      const result = await authClient.signIn.social({
+        provider: GOOGLE_OAUTH_PROVIDER,
+        callbackURL: resolveSafeRedirect(redirectQuery),
+        newUserCallbackURL: ageGatePath(redirectQuery),
+        errorCallbackURL: oauthErrorCallbackPath(
+          mode === "signup" ? "/signup" : "/login",
+          redirectQuery,
         ),
-      );
+        requestSignUp,
+        additionalData: requestSignUp
+          ? { acceptedLegal: true, legalVersion: LEGAL_VERSION }
+          : undefined,
+      });
+      const outcome = oauthClientFailed(result);
+      if (outcome.failed) {
+        onError(authClientErrorMessage(outcome.status, fallback));
+      }
+    } catch {
+      onError(authClientErrorMessage(undefined, fallback));
+    } finally {
+      onBusyChange(false);
     }
   }
 

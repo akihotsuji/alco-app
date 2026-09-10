@@ -155,6 +155,12 @@ export function createAuth(options: CreateAuthOptions) {
         if (ctx.path !== "/sign-in/social") {
           return;
         }
+        if (!options.google) {
+          // 404 だと SPA の HTML フォールバックやクライアント無反応になる
+          throw new APIError("BAD_REQUEST", {
+            message: "ログインできませんでした",
+          });
+        }
         const social = readSocialSignInLegal(ctx.body);
         if (!social.requestSignUp) {
           return;

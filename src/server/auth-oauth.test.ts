@@ -87,6 +87,16 @@ describe("Google OAuth", () => {
     vi.restoreAllMocks();
   });
 
+  it("未設定の sign-in/social は 400 の JSON。ユーザーを作らず Provider not found を返さない", async () => {
+    const { app, db } = await createTestApp();
+    const response = await startGoogleOAuth(app, {});
+    expect(response.status).toBe(400);
+    expect(response.headers.get("content-type") ?? "").toMatch(/json/);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(JSON.stringify(body).toLowerCase()).not.toContain("provider not found");
+    expect(await db.select({ email: user.email }).from(user)).toEqual([]);
+  });
+
   it("requestSignUp は同意なし・旧版で 400。ユーザーを作らない", async () => {
     const { app, db } = await createTestApp({
       google: { clientId: TEST_GOOGLE_CLIENT_ID, clientSecret: TEST_GOOGLE_CLIENT_SECRET },

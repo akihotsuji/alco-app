@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { hasOAuthErrorQuery, oauthErrorCallbackPath, stripOAuthErrorParams } from "./oauth.ts";
+import {
+  hasOAuthErrorQuery,
+  oauthClientFailed,
+  oauthErrorCallbackPath,
+  stripOAuthErrorParams,
+} from "./oauth.ts";
 
 describe("oauth query", () => {
   it("error または oauth=1 を失敗と見る", () => {
@@ -21,5 +26,19 @@ describe("oauth query", () => {
   it("失敗時の戻り先はログイン／サインアップ", () => {
     expect(oauthErrorCallbackPath("/login", null)).toBe("/login");
     expect(oauthErrorCallbackPath("/signup", "/cellar")).toBe("/signup?redirect=%2Fcellar");
+  });
+});
+
+describe("oauthClientFailed", () => {
+  it("error または認可 URL なしを失敗とする", () => {
+    expect(oauthClientFailed({ error: { status: 400 } })).toEqual({ failed: true, status: 400 });
+    expect(oauthClientFailed({ data: {} })).toEqual({ failed: true });
+    expect(oauthClientFailed(null)).toEqual({ failed: true });
+  });
+
+  it("認可 URL があれば成功", () => {
+    expect(
+      oauthClientFailed({ data: { url: "https://accounts.google.com/o/oauth2/v2/auth" } }),
+    ).toEqual({ failed: false });
   });
 });

@@ -37,6 +37,21 @@ describe("readGoogleOAuthConfig", () => {
     expect(
       readGoogleOAuthConfig({ GOOGLE_CLIENT_ID: "", GOOGLE_CLIENT_SECRET: "sec" }),
     ).toBeUndefined();
+    expect(
+      readGoogleOAuthConfig({ GOOGLE_CLIENT_ID: "  ", GOOGLE_CLIENT_SECRET: "sec" }),
+    ).toBeUndefined();
+  });
+
+  it("前後空白は除く", () => {
+    expect(
+      readGoogleOAuthConfig({
+        GOOGLE_CLIENT_ID: " id.apps.googleusercontent.com ",
+        GOOGLE_CLIENT_SECRET: " gsec ",
+      }),
+    ).toEqual({
+      clientId: "id.apps.googleusercontent.com",
+      clientSecret: "gsec",
+    });
   });
 });
 

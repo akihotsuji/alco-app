@@ -125,6 +125,7 @@ Google Cloud コンソールの「承認済みのリダイレクト URI」に、
 ## 8. テスト
 
 - `/sign-in/social` の `requestSignUp` は同意なし・旧版で 400。ユーザーを作らない
+- Google 未設定の `/sign-in/social` は 400 の JSON。Better Auth の 404 `Provider not found` は返さない（SPA の HTML フォールバックと無反応を避ける）
 - 設定ありなら認可 URL は `accounts.google.com` で、`state` / `code_challenge` / 完全一致の `redirect_uri` がある
 - モック callback で新規 Google ユーザーがセッションと `legal_consents` を持ち、`/api/me` に `image` が無い。年齢未確認の機能 API は 403
 - 同じメールのパスワードユーザーへはリンクしない。パスワードログインは残る

@@ -18,3 +18,24 @@ export function oauthErrorCallbackPath(
 ): string {
   return hrefWithRedirect(path, redirectQuery);
 }
+
+/** Better Auth クライアントが error を付けない失敗（未設定プロバイダ等）も失敗と見る。 */
+export function oauthClientFailed(result: unknown): {
+  failed: boolean;
+  status?: number;
+} {
+  if (!result || typeof result !== "object") {
+    return { failed: true };
+  }
+  const record = result as {
+    error?: { status?: number } | null;
+    data?: { url?: string } | null;
+  };
+  if (record.error) {
+    return { failed: true, status: record.error.status };
+  }
+  if (typeof record.data?.url === "string" && record.data.url.length > 0) {
+    return { failed: false };
+  }
+  return { failed: true };
+}
