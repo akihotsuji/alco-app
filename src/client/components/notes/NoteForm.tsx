@@ -552,7 +552,8 @@ function NoteFormFields({
 
   useEffect(() => {
     const jpeg =
-      latestNoteRecognizeJpeg(photos.items) ?? recognizeJpegForForm(undefined, pendingRecognize, session);
+      latestNoteRecognizeJpeg(photos.items) ??
+      recognizeJpegForForm(undefined, pendingRecognize, session);
     if (!jpeg || recognizedJpegRef.current === jpeg) {
       return;
     }

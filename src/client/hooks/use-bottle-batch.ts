@@ -48,13 +48,8 @@ export function useBottleBatch(autoCapture: boolean) {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const session = usePhotoFormSession("cellar", "batch");
-  const {
-    startCapture,
-    editFromBlob,
-    retryCollectedUpload,
-    pendingRecognize,
-    ingestCollected,
-  } = usePhotoEdit();
+  const { startCapture, editFromBlob, retryCollectedUpload, pendingRecognize, ingestCollected } =
+    usePhotoEdit();
   const [rows, setRows] = useState<BottleBatchRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [libraryProgress, setLibraryProgress] = useState<{ current: number; total: number } | null>(
