@@ -2,7 +2,8 @@
 
 実装: Phase 8-04。画面は [screen-designs/01-auth.md](../screen-designs/01-auth.md) の `auth-login` / `auth-signup`。手順は [roadmap/phase-08-public-launch/04-oauth-login.md](../../roadmap/phase-08-public-launch/04-oauth-login.md)。認証の正本は [auth.md](auth.md)。
 
-- 状態: **実装**（2026-09-10）。Google Cloud のクライアント作成と secret 投入はオーナー
+- 状態: **実装済み・画面導線は一時非表示**（2026-09-10）。Google Cloud のクライアント作成と secret 投入はオーナー
+- 画面の「Google で続行」は `src/shared/oauth.ts` の `GOOGLE_SIGN_IN_VISIBLE`（現在 `false`）で出し分ける。Google の同意画面が未確認アプリの警告を出す間はログイン・サインアップの両方で隠す。サーバー側の Better Auth 設定・`/api/auth/*` は変えない（再表示はフラグを `true` に戻すだけ）
 - プロバイダは **Google のみ**。Apple や他社は足さない
 
 ---

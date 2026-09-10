@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { GOOGLE_SIGN_IN_VISIBLE } from "@/shared/oauth.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -13,14 +14,17 @@ describe("認証画面 8-03 / 8-04 / 8-05", () => {
     expect(login).toContain("loginNoticeFromSearch");
   });
 
-  it("ログインとサインアップに Google で続行がある", () => {
+  it("ログインとサインアップの Google で続行は GOOGLE_SIGN_IN_VISIBLE で出し分け、いまは隠す", () => {
     const login = readFileSync(join(here, "LoginPage.tsx"), "utf8");
     const signup = readFileSync(join(here, "SignupPage.tsx"), "utf8");
     expect(login).toContain("GoogleSignInButton");
     expect(login).toContain('mode="login"');
+    expect(login).toContain("GOOGLE_SIGN_IN_VISIBLE ? (");
     expect(signup).toContain("GoogleSignInButton");
     expect(signup).toContain('mode="signup"');
     expect(signup).toContain("acceptedLegal={acceptedLegal}");
+    expect(signup).toContain("GOOGLE_SIGN_IN_VISIBLE ? (");
+    expect(GOOGLE_SIGN_IN_VISIBLE).toBe(false);
   });
 
   it("サインアップに招待コード欄が無い", () => {

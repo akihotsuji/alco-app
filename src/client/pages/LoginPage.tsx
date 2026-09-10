@@ -18,7 +18,7 @@ import { Label } from "@/client/components/ui/label.tsx";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { cn } from "@/client/lib/utils.ts";
 import { loginFormSchema, resolveSafeRedirect } from "@/shared/auth.ts";
-import { OAUTH_ERROR_MESSAGE } from "@/shared/oauth.ts";
+import { GOOGLE_SIGN_IN_VISIBLE, OAUTH_ERROR_MESSAGE } from "@/shared/oauth.ts";
 import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 
 export function LoginPage() {
@@ -105,15 +105,17 @@ export function LoginPage() {
           >
             アカウントを作成
           </Link>
-          <GoogleSignInButton
-            mode="login"
-            redirectQuery={redirectQuery}
-            acceptedLegal
-            disabled={submitting || !turnstile.canAct}
-            turnstileToken={turnstile.token}
-            onError={setError}
-            onBusyChange={setSubmitting}
-          />
+          {GOOGLE_SIGN_IN_VISIBLE ? (
+            <GoogleSignInButton
+              mode="login"
+              redirectQuery={redirectQuery}
+              acceptedLegal
+              disabled={submitting || !turnstile.canAct}
+              turnstileToken={turnstile.token}
+              onError={setError}
+              onBusyChange={setSubmitting}
+            />
+          ) : null}
         </>
       }
     >
