@@ -6,9 +6,13 @@ import { LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
  * クライアントからモデルや接続先は指定できない。
  */
 
-export const AI_RECOGNITION_PROFILE_KEYS = ["gemini-3.7-flash", "workers-ai-llama"] as const;
+export const AI_RECOGNITION_PROFILE_KEYS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.7-flash",
+  "workers-ai-llama",
+] as const;
 export type AiRecognitionProfileKey = (typeof AI_RECOGNITION_PROFILE_KEYS)[number];
-export const DEFAULT_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey = "gemini-3.7-flash";
+export const DEFAULT_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey = "gemini-3.5-flash-lite";
 export const DEFAULT_LABEL_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey =
   DEFAULT_AI_RECOGNITION_PROFILE;
 export const DEFAULT_NOTE_AI_RECOGNITION_PROFILE: AiRecognitionProfileKey =

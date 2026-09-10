@@ -50,9 +50,9 @@
         "binding": "AI"
       },
       "vars": {
-        "AI_RECOGNITION_PROFILE": "gemini-3.7-flash",
-        "AI_LABEL_RECOGNITION_PROFILE": "gemini-3.7-flash",
-        "AI_NOTE_RECOGNITION_PROFILE": "gemini-3.7-flash",
+        "AI_RECOGNITION_PROFILE": "gemini-3.5-flash-lite",
+        "AI_LABEL_RECOGNITION_PROFILE": "gemini-3.5-flash-lite",
+        "AI_NOTE_RECOGNITION_PROFILE": "gemini-3.5-flash-lite",
         "AI_GATEWAY_ID": "default",
         "AI_GATEWAY_COLLECT_LOG": "0",
         "EMAIL_FROM": "酒のしおり <noreply@sake-shiori.com>",
@@ -94,9 +94,9 @@
       "workers_dev": true,
       "vars": {
         "CANONICAL_ORIGIN": "https://sake-shiori.com",
-        "AI_RECOGNITION_PROFILE": "gemini-3.7-flash",
-        "AI_LABEL_RECOGNITION_PROFILE": "gemini-3.7-flash",
-        "AI_NOTE_RECOGNITION_PROFILE": "gemini-3.7-flash",
+        "AI_RECOGNITION_PROFILE": "gemini-3.5-flash-lite",
+        "AI_LABEL_RECOGNITION_PROFILE": "gemini-3.5-flash-lite",
+        "AI_NOTE_RECOGNITION_PROFILE": "gemini-3.5-flash-lite",
         "AI_GATEWAY_ID": "default",
         "AI_GATEWAY_COLLECT_LOG": "0",
         "EMAIL_FROM": "酒のしおり <noreply@sake-shiori.com>",
