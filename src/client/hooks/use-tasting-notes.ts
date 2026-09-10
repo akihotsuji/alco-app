@@ -1,4 +1,10 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  infiniteQueryOptions,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type { DrinkType } from "@/shared/constants.ts";
@@ -58,8 +64,9 @@ export function deleteTastingNote(id: string, client: ApiClient = api) {
   return unwrap(client.api["tasting-notes"][":id"].$delete({ param: { id } }));
 }
 
-export function useInfiniteTastingNotes(query: TastingNotesListQuery = {}, enabled = true) {
-  return useInfiniteQuery({
+/** ノート一覧。タブ先読みと同じキー・同じ queryFn を使う */
+export function tastingNotesInfiniteQueryOptions(query: TastingNotesListQuery = {}) {
+  return infiniteQueryOptions({
     queryKey: queryKeys.tastingNotesList({
       bottleId: query.bottleId,
       q: query.q,
@@ -70,8 +77,11 @@ export function useInfiniteTastingNotes(query: TastingNotesListQuery = {}, enabl
     queryFn: ({ pageParam }) => getTastingNotes({ ...query, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    enabled,
   });
+}
+
+export function useInfiniteTastingNotes(query: TastingNotesListQuery = {}, enabled = true) {
+  return useInfiniteQuery({ ...tastingNotesInfiniteQueryOptions(query), enabled });
 }
 
 export function getTastingNotesByBottle(bottleId: string, client: ApiClient = api) {

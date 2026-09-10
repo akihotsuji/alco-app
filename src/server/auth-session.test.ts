@@ -4,12 +4,34 @@ import { meQueryOptions } from "@/client/hooks/use-me.ts";
 import { ApiClientError, createApiClient } from "@/client/lib/api.ts";
 import { createQueryClient } from "@/client/lib/query-client.ts";
 import { session } from "@/db/schema.ts";
-import { SESSION_EXPIRES_IN_SECONDS, SESSION_UPDATE_AGE_SECONDS } from "@/shared/auth.ts";
+import {
+  SESSION_COOKIE_CACHE_MAX_AGE_SECONDS,
+  SESSION_EXPIRES_IN_SECONDS,
+  SESSION_UPDATE_AGE_SECONDS,
+} from "@/shared/auth.ts";
 import { cookieHeaderFrom, createTestApp, signUp } from "./test-helpers.ts";
 
 const EXPIRES_IN_MS = SESSION_EXPIRES_IN_SECONDS * 1000;
 const UPDATE_AGE_MS = SESSION_UPDATE_AGE_SECONDS * 1000;
+const COOKIE_CACHE_MS = SESSION_COOKIE_CACHE_MAX_AGE_SECONDS * 1000;
 const TIME_TOLERANCE_MS = 5_000;
+
+/** Cookie キャッシュ（`session_data`）を外し、DB を必ず見る経路にする。キャッシュ失効後のブラウザと同じ */
+function withoutSessionDataCookie(cookie: string): string {
+  return cookie
+    .split("; ")
+    .filter((part) => !/session_data/i.test(part))
+    .join("; ");
+}
+
+function sessionDataCookieMaxAgeSeconds(setCookies: string[]): number | undefined {
+  const cookie = setCookies.find((value) => /session_data=/i.test(value));
+  if (!cookie) {
+    return undefined;
+  }
+  const match = cookie.match(/Max-Age=(\d+)/i);
+  return match?.[1] === undefined ? undefined : Number(match[1]);
+}
 
 type TestDb = Awaited<ReturnType<typeof createTestApp>>["db"];
 type TestApp = Awaited<ReturnType<typeof createTestApp>>["app"];
@@ -149,7 +171,8 @@ describe("セッション期限", () => {
 
   it("既存セッションは設定変更だけでは延びず、延長条件を満たす確認でその時点から 30 日になる", async () => {
     const { app, db } = await createTestApp();
-    const { cookie } = await signUpSession(app, "legacy@example.com");
+    const signedUp = await signUpSession(app, "legacy@example.com");
+    const cookie = withoutSessionDataCookie(signedUp.cookie);
     const created = await loadSoleSession(db);
     const now = Date.now();
     const legacyExpiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000);
@@ -170,7 +193,8 @@ describe("セッション期限", () => {
 
   it("更新されないまま期限切れになると保護 API は 401 で、延長して復活しない", async () => {
     const { app, db } = await createTestApp();
-    const { cookie } = await signUpSession(app, "expired@example.com");
+    const signedUp = await signUpSession(app, "expired@example.com");
+    const cookie = withoutSessionDataCookie(signedUp.cookie);
     const created = await loadSoleSession(db);
     await setSessionExpiresAt(db, created.id, new Date(Date.now() - 1_000));
 
@@ -198,7 +222,8 @@ describe("セッション期限", () => {
 
   it("期限切れセッションの GET /api/me は 401 でクライアントの onUnauthorized を呼ぶ", async () => {
     const { app, db } = await createTestApp();
-    const { cookie } = await signUpSession(app, "client-expired@example.com");
+    const signedUp = await signUpSession(app, "client-expired@example.com");
+    const cookie = withoutSessionDataCookie(signedUp.cookie);
     const created = await loadSoleSession(db);
     await setSessionExpiresAt(db, created.id, new Date(Date.now() - 1_000));
 
@@ -231,9 +256,72 @@ describe("セッション期限", () => {
       },
     });
     expect(signOutRes.status).toBe(200);
+    // ブラウザからは session_token と session_data の両方が消える
+    const cleared = signOutRes.headers.getSetCookie();
+    expect(cleared.some((value) => /session_token=/i.test(value) && /Max-Age=0/i.test(value))).toBe(
+      true,
+    );
+    expect(cleared.some((value) => /session_data=/i.test(value) && /Max-Age=0/i.test(value))).toBe(
+      true,
+    );
 
-    const meRes = await app.request("/api/me", { headers: { Cookie: cookie } });
+    const meRes = await app.request("/api/me", {
+      headers: { Cookie: withoutSessionDataCookie(cookie) },
+    });
     expect(meRes.status).toBe(401);
     expect(await meRes.json()).toEqual({ error: "unauthorized" });
+  });
+});
+
+describe("セッションの Cookie キャッシュ", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("ログイン応答が httpOnly の session_data を maxAge 付きで返す", async () => {
+    const { app } = await createTestApp();
+    const { signUpRes } = await signUpSession(app, "cache@example.com");
+    const setCookies = signUpRes.headers.getSetCookie();
+    expect(sessionDataCookieMaxAgeSeconds(setCookies)).toBe(SESSION_COOKIE_CACHE_MAX_AGE_SECONDS);
+    const dataCookie = setCookies.find((value) => /session_data=/i.test(value)) ?? "";
+    expect(dataCookie).toMatch(/HttpOnly/i);
+    expect(dataCookie).toMatch(/SameSite=Lax/i);
+  });
+
+  it("maxAge 内は DB のセッション行を見ずに通し、maxAge を過ぎると DB を見る", async () => {
+    const loginAt = Date.parse("2026-09-07T00:00:00.000Z");
+    vi.useFakeTimers({ now: loginAt, toFake: ["Date"] });
+    const { app, db } = await createTestApp();
+    const { cookie } = await signUpSession(app, "cache-hit@example.com");
+    const created = await loadSoleSession(db);
+
+    // 行を消しても、キャッシュが生きている間は通る（別端末の失効が届くまでの遅れの上限）
+    await db.delete(session).where(eq(session.id, created.id));
+    vi.setSystemTime(loginAt + COOKIE_CACHE_MS - 1_000);
+    const cachedRes = await app.request("/api/me", { headers: { Cookie: cookie } });
+    expect(cachedRes.status).toBe(200);
+
+    vi.setSystemTime(loginAt + COOKIE_CACHE_MS + 1_000);
+    const expiredRes = await app.request("/api/me", { headers: { Cookie: cookie } });
+    expect(expiredRes.status).toBe(401);
+    expect(await expiredRes.json()).toEqual({ error: "unauthorized" });
+  });
+
+  it("session_token と一致しない session_data は使われない", async () => {
+    const { app } = await createTestApp();
+    const a = await signUpSession(app, "cache-a@example.com");
+    const b = await signUpSession(app, "cache-b@example.com");
+    const tokenOfA = a.cookie
+      .split("; ")
+      .filter((part) => /session_token=/i.test(part))
+      .join("; ");
+    const dataOfB = b.cookie
+      .split("; ")
+      .filter((part) => /session_data/i.test(part))
+      .join("; ");
+    const mixed = await app.request("/api/me", { headers: { Cookie: `${tokenOfA}; ${dataOfB}` } });
+    expect(mixed.status).toBe(200);
+    const body = (await mixed.json()) as { email: string };
+    expect(body.email).toBe("cache-a@example.com");
   });
 });

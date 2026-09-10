@@ -2,11 +2,28 @@ import { describe, expect, it } from "vitest";
 import { createApiClient } from "@/client/lib/api.ts";
 import { EARLY_FETCH_TIMEOUT_MS } from "@/client/lib/boot.ts";
 import {
+  SHELF_COLUMNS_NARROW,
+  SHELF_COLUMNS_WIDE,
+  SHELF_TYPE_PAGE_LIMIT,
+  SHELF_WIDE_MIN_PX,
+  shelfPageLimit,
+} from "@/client/lib/cellar-shelf.ts";
+import {
   initialRouteChunkIds as appInitialRouteChunkIds,
   chunkIdForPath,
 } from "@/client/lib/route-chunks.ts";
+import { CELLAR_PREF_KEYS, DEFAULT_CELLAR_LIST_VIEW } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
-import { homeDataPaths, initialRouteChunkIds, SESSION_PATH } from "./boot-prefetch.ts";
+import {
+  cellarDataPaths,
+  GUEST_ONLY_PATHS,
+  homeDataPaths,
+  initialDataPaths,
+  initialRouteChunkIds,
+  ME_PATH,
+  notesDataPaths,
+  SESSION_PATH,
+} from "./boot-prefetch.ts";
 
 describe("boot-prefetch の経路", () => {
   it("route-chunks と同じ画面 chunk を先読みする", () => {
@@ -48,6 +65,75 @@ describe("boot-prefetch の経路", () => {
     const drinks = client.api["my-drinks"].$path({ query: { limit: "30" } });
     expect(homeDataPaths(today)).toEqual([day, week, drinks]);
     expect(SESSION_PATH).toBe("/api/auth/get-session");
+    expect(ME_PATH).toBe(client.api.me.$path());
+  });
+
+  it("セラー一覧の GET は useBottles / useInfiniteBottles と同じ URL になる", () => {
+    const client = createApiClient();
+    const typeMeta = client.api.bottles.$path({ query: { view: "cellar", limit: "1" } });
+    const narrow = client.api.bottles.$path({
+      query: { view: "cellar", limit: String(shelfPageLimit(SHELF_COLUMNS_NARROW)) },
+    });
+    const wide = client.api.bottles.$path({
+      query: { view: "cellar", limit: String(shelfPageLimit(SHELF_COLUMNS_WIDE)) },
+    });
+    expect(DEFAULT_CELLAR_LIST_VIEW).toBe("one");
+    expect(CELLAR_PREF_KEYS.listView).toBe("cellar.listView");
+    expect(SHELF_WIDE_MIN_PX).toBe(480);
+    expect(SHELF_COLUMNS_NARROW).toBe(3);
+    expect(SHELF_COLUMNS_WIDE).toBe(4);
+    // 種類ごと（保存値・URL。URL が保存値より優先）
+    expect(cellarDataPaths({ search: "", storedView: "type", viewportWidth: 390 })).toEqual([
+      typeMeta,
+    ]);
+    expect(
+      cellarDataPaths({ search: "?view=type", storedView: "one", viewportWidth: 390 }),
+    ).toEqual([typeMeta]);
+    // 1 本ずつ（既定。列数は幅で変わる）
+    expect(cellarDataPaths({ search: "", storedView: null, viewportWidth: 390 })).toEqual([narrow]);
+    expect(cellarDataPaths({ search: "", storedView: "bogus", viewportWidth: 390 })).toEqual([
+      narrow,
+    ]);
+    expect(cellarDataPaths({ search: "?view=one", storedView: null, viewportWidth: 480 })).toEqual([
+      wide,
+    ]);
+    // 絞り込み中は先読みしない
+    expect(cellarDataPaths({ search: "?q=abc", storedView: null, viewportWidth: 390 })).toEqual([]);
+    expect(
+      cellarDataPaths({ search: "?view=one&drinkType=wine", storedView: null, viewportWidth: 390 }),
+    ).toEqual([]);
+    // 種類ごとの棚は meta の後に走る（先読み対象外）
+    expect(SHELF_TYPE_PAGE_LIMIT).toBe(12);
+  });
+
+  it("ノート一覧の GET は useInfiniteTastingNotes の既定と同じ URL になる", () => {
+    const client = createApiClient();
+    const list = client.api["tasting-notes"].$path({ query: { limit: "50" } });
+    expect(notesDataPaths("")).toEqual([list]);
+    expect(notesDataPaths("?q=x")).toEqual([]);
+    expect(notesDataPaths("?drinkType=wine")).toEqual([]);
+    expect(notesDataPaths("?ratingX10Min=40")).toEqual([]);
+    expect(notesDataPaths("?bottleId=abc")).toEqual([]);
+  });
+
+  it("パスごとの先読み対象。ゲスト画面では /api/me を投げない", () => {
+    const today = tokyoToday();
+    const cellar = { storedView: null, viewportWidth: 390 };
+    expect(initialDataPaths("/", "", today, cellar)).toEqual([...homeDataPaths(today)]);
+    expect(initialDataPaths("/cellar", "", today, cellar)).toEqual([
+      ...cellarDataPaths({ search: "", ...cellar }),
+    ]);
+    expect(initialDataPaths("/notes", "", today, cellar)).toEqual([...notesDataPaths("")]);
+    expect(initialDataPaths("/cellar/archive", "", today, cellar)).toEqual([]);
+    expect(initialDataPaths("/settings", "", today, cellar)).toEqual([]);
+    expect(GUEST_ONLY_PATHS).toEqual([
+      "/login",
+      "/signup",
+      "/forgot-password",
+      "/reset-password",
+      "/terms",
+      "/privacy",
+    ]);
   });
 
   it("先読みタイムアウトは本バンドルと同じ 10 秒（静的 import はしない）", async () => {

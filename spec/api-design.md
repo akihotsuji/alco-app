@@ -802,8 +802,11 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 | ヘッダ | 値 |
 |---|---|
 | Content-Type | 保存した `contentType` |
-| Cache-Control | `private, max-age=300` |
+| Cache-Control | `private, max-age=31536000, immutable` |
+| ETag | `"{photoId}"`（写真は差し替え不可。ID が内容を表す） |
 | Content-Disposition | `inline` |
+
+`If-None-Match` が ETag と一致（弱比較 `W/` と `*` も可）すれば、**認可の後に** 304 を返し R2 を読まない。
 
 同一オリジンの `<img src>` に Cookie が付く。公開 CDN には載せない。ログにオブジェクト全量を出さない。
 

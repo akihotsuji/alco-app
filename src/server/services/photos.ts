@@ -363,14 +363,39 @@ export async function deletePhoto(input: {
     .where(and(eq(photos.id, input.photoId), eq(photos.userId, input.userId)));
 }
 
-export async function readPhotoContent(input: {
-  db: AppSqliteDb;
-  bucket: PhotoBucket;
-  userId: string;
-  photoId: string;
-}): Promise<{ body: ArrayBuffer; contentType: string; kind: PhotoKind }> {
-  const row = await getOwnPhoto(input.db, input.userId, input.photoId);
-  const object = await input.bucket.get(row.r2Key);
+/**
+ * 写真本文は不変（`r2Key` / `contentType` は作成後に変わらず、差し替えは別 id の新規作成）。
+ * `private` で共有キャッシュには載せず、ブラウザだけが長く持つ。再訪の棚・ノート一覧で
+ * 認可付き GET（session + D1 + R2 の往復）を毎回やり直さないためのもの。
+ */
+export const PHOTO_CONTENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+export const PHOTO_CONTENT_CACHE_CONTROL = `private, max-age=${PHOTO_CONTENT_MAX_AGE_SECONDS}, immutable`;
+
+/** ETag は写真 id だけから作る（R2 の etag を読みに行かない）。userId や r2Key は含めない */
+export function photoContentEtag(photoId: string): string {
+  return `"${photoId}"`;
+}
+
+/** `If-None-Match` の一覧（`W/` 弱比較・`*` 含む）に ETag が含まれるか */
+export function matchesIfNoneMatch(header: string | undefined, etag: string): boolean {
+  if (!header) {
+    return false;
+  }
+  return header.split(",").some((raw) => {
+    const value = raw.trim();
+    if (value === "*") {
+      return true;
+    }
+    return (value.startsWith("W/") ? value.slice(2) : value) === etag;
+  });
+}
+
+/** `getOwnPhoto` で所有確認した行の本文を R2 から読む。行を渡す側が userId 一致を保証する */
+export async function readOwnedPhotoBody(
+  bucket: PhotoBucket,
+  row: Pick<typeof photos.$inferSelect, "r2Key" | "contentType" | "kind">,
+): Promise<{ body: ArrayBuffer; contentType: string; kind: PhotoKind }> {
+  const object = await bucket.get(row.r2Key);
   if (!object) {
     throw new ApiError("not_found");
   }

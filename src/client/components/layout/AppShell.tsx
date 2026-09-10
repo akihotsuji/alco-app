@@ -18,6 +18,7 @@ import { LeaveGuardProvider } from "@/client/components/layout/leave-guard-conte
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { PhotoEditHost } from "@/client/components/photo/PhotoEditHost.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { useTabDataPrefetch } from "@/client/hooks/use-tab-data-prefetch.ts";
 import {
   addFabForRoute,
   hidesTabBar,
@@ -50,6 +51,7 @@ function AppShellFrame() {
   const reduceMotion = useReducedMotion();
   const { override } = useHeaderOverride();
   const contentRef = useRef<HTMLDivElement>(null);
+  useTabDataPrefetch();
   const route = resolveAppRoute(location.pathname, new Date(), location.search);
   const hideTabs =
     hidesTabBar(location.pathname, photoEdit.open) || isGuidePracticeStep(guide.step);

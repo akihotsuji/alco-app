@@ -1078,6 +1078,19 @@ input:focus-visible {
 }
 
 /*
+  M-29 の写真版。ContentPhoto は届くまで不透明 0 で背後のプレースホルダを見せ、到着で 0 → 1。
+  ブラウザキャッシュに乗った 2 回目以降は最初から loaded なので動かない。
+*/
+img[data-state="loading"] {
+  opacity: 0;
+}
+
+img[data-state="loaded"] {
+  opacity: 1;
+  transition: opacity var(--dur-state) var(--ease-out);
+}
+
+/*
   ダイアログは下 24px に浮く（00-common 2.2）。ソフトキーボード表示中は `--keyboard-inset`
   （src/client/lib/keyboard-inset.ts）ぶん持ち上げ、残りの高さに収まるよう中身をスクロールさせる。
 */
@@ -3903,6 +3916,12 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
   object-fit: cover;
 }
 
+/* 写真が届くまでは inset の枠（スケルトンと同じ静止表現）。到着で写真がフェードイン */
+.note-card-photo {
+  background: var(--surface);
+  box-shadow: var(--shadow-inset);
+}
+
 .note-card-empty {
   display: flex;
   align-items: center;
@@ -4319,6 +4338,21 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 .bottle-tile-img.is-photo {
   object-fit: cover;
   border-radius: 8px;
+}
+
+/* 写真到着まで種類のボトル型を背後に置く。到着で写真とクロスフェード（00-common 2.5 / M-29） */
+.bottle-tile-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  transition: opacity var(--dur-state) var(--ease-in);
+}
+
+.bottle-tile-placeholder[data-state="loaded"] {
+  opacity: 0;
 }
 
 .bottle-tile-frame.is-archived .bottle-tile-img,

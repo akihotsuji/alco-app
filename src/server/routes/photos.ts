@@ -9,8 +9,11 @@ import {
   createPhoto,
   deletePhoto,
   getOwnPhoto,
+  matchesIfNoneMatch,
+  PHOTO_CONTENT_CACHE_CONTROL,
   type PhotoBucket,
-  readPhotoContent,
+  photoContentEtag,
+  readOwnedPhotoBody,
   toPhotoMeta,
   updatePhoto,
 } from "../services/photos.ts";
@@ -70,16 +73,21 @@ export function createPhotosRoute(deps: PhotoRouteDeps) {
     .get("/:id/content", validate("param", photoIdParamSchema), async (c) => {
       const user = c.get("user");
       const { id } = c.req.valid("param");
-      const content = await readPhotoContent({
-        db: deps.getDb(c),
-        bucket: deps.getBucket(c),
-        userId: user.id,
-        photoId: id,
-      });
+      // 所有確認は 304 でも省かない（他人・不明は同じ 404）。一致すれば R2 を読まずに返す
+      const row = await getOwnPhoto(deps.getDb(c), user.id, id);
+      const etag = photoContentEtag(row.id);
+      if (matchesIfNoneMatch(c.req.header("If-None-Match"), etag)) {
+        return c.body(null, 304, {
+          ETag: etag,
+          "Cache-Control": PHOTO_CONTENT_CACHE_CONTROL,
+        });
+      }
+      const content = await readOwnedPhotoBody(deps.getBucket(c), row);
       return c.body(content.body, 200, {
         "Content-Type": content.contentType,
-        "Cache-Control": "private, max-age=300",
+        "Cache-Control": PHOTO_CONTENT_CACHE_CONTROL,
         "Content-Disposition": "inline",
+        ETag: etag,
       });
     })
     .get("/:id", validate("param", photoIdParamSchema), async (c) => {

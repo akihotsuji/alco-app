@@ -4,6 +4,7 @@ import { z } from "zod";
 import { legalConsents, user } from "@/db/schema.ts";
 import { LEGAL_VERSION } from "@/shared/legal.ts";
 import {
+  applySetCookies,
   cookieHeaderFrom,
   createTestApp,
   createTestUser,
@@ -189,8 +190,11 @@ describe("認証 API", () => {
 
     const updateRes = await updateUserName(app, userA.cookie, "新しい名前");
     expect(updateRes.status).toBe(200);
+    // 表示名の更新は session_data（Cookie キャッシュ）も新しい name で書き直す
+    expect(updateRes.headers.getSetCookie().some((c) => /session_data=./i.test(c))).toBe(true);
 
-    const meA = await app.request("/api/me", { headers: { Cookie: userA.cookie } });
+    const cookieA = applySetCookies(userA.cookie, updateRes);
+    const meA = await app.request("/api/me", { headers: { Cookie: cookieA } });
     const meB = await app.request("/api/me", { headers: { Cookie: userB.cookie } });
     expect(meSchema.parse(await meA.json())).toMatchObject({
       id: userA.id,
@@ -213,7 +217,9 @@ describe("認証 API", () => {
     const updateRes = await updateUserName(app, cookie, "");
     expect(updateRes.status).toBe(200);
 
-    const meRes = await app.request("/api/me", { headers: { Cookie: cookie } });
+    const meRes = await app.request("/api/me", {
+      headers: { Cookie: applySetCookies(cookie, updateRes) },
+    });
     expect(meSchema.parse(await meRes.json())).toMatchObject({
       email: "empty-name@example.com",
       name: "",
@@ -279,9 +285,11 @@ describe("認証 API", () => {
       },
     });
     expect(signOutRes.status).toBe(200);
+    // サインアウトはトークンと Cookie キャッシュの両方を失効させる（ブラウザは両方消す）
+    expect(applySetCookies(cookie, signOutRes)).toBe("");
 
     const meRes = await app.request("/api/me", {
-      headers: { Cookie: cookie },
+      headers: { Cookie: applySetCookies(cookie, signOutRes) },
     });
     expect(meRes.status).toBe(401);
   });

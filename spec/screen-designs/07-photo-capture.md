@@ -128,7 +128,7 @@ File → createImageBitmap（EXIF orientation 補正）
 | キー | `{photoId}.jpg` 等サーバー生成。ファイル名・`user_id` を含めない |
 | 紐付け | `bottleId` / `tastingNoteId` / `drinkLogId` は **1 つまで**、自分のリソースのみ（他人は 404） |
 | 未紐付け GC | 作成 24 時間で未紐付けのものを Cron Trigger（日次）で削除（R2 + D1） |
-| 配信 | `GET /api/photos/:id/content`。`Cache-Control: private, max-age=300` |
+| 配信 | `GET /api/photos/:id/content`。`Cache-Control: private, max-age=31536000, immutable` + `ETag`（304 対応）。2 回目以降はブラウザキャッシュから出る |
 
 ---
 

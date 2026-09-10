@@ -11,6 +11,7 @@ import {
   AUTH_PASSWORD_MIN_LENGTH,
   clipDisplayName,
   RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS,
+  SESSION_COOKIE_CACHE_MAX_AGE_SECONDS,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
   SIGNUPS_CLOSED_MESSAGE,
@@ -110,6 +111,13 @@ export function createAuth(options: CreateAuthOptions) {
       expiresIn: SESSION_EXPIRES_IN_SECONDS,
       updateAge: SESSION_UPDATE_AGE_SECONDS,
       disableSessionRefresh: false,
+      // 保護 API は毎回 getSession する。D1 が遠いと session + user の 2 往復だけで数百 ms かかるため、
+      // 短時間だけ署名付き Cookie（httpOnly）から復元する。DB セッションは維持し JWT には移行しない
+      cookieCache: {
+        enabled: true,
+        maxAge: SESSION_COOKIE_CACHE_MAX_AGE_SECONDS,
+        strategy: "compact",
+      },
     },
     // 2-01 の Auth スキーマに rate_limit が無いため、ストレージはメモリ（標準）
     rateLimit: authRateLimitConfig(options.useSecureCookies),

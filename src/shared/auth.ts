@@ -20,6 +20,12 @@ export function isSignupsClosedFlag(value: string | undefined): boolean {
 export const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30;
 /** Better Auth `session.updateAge`（秒）。前回更新からこの秒数以上経過した確認でのみ延長する。 */
 export const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24;
+/**
+ * Better Auth `session.cookieCache.maxAge`（秒）。署名付き Cookie にセッションを写し、この秒数の間は
+ * 保護 API ごとの D1 往復（session + user）を省く。失効（別端末のログアウト・パスワード再設定）が
+ * この端末に届くまでの最大遅れでもあるため、画面を開いた直後の連続リクエストを束ねる長さに留める。
+ */
+export const SESSION_COOKIE_CACHE_MAX_AGE_SECONDS = 60;
 
 const emailSchema = z.pipe(z.string().trim(), z.email());
 

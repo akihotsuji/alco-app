@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "./api.ts";
 import {
   createQueryClient,
+  QUERY_GC_TIME_MS,
   QUERY_RETRY_LIMIT,
   QUERY_STALE_TIME_MS,
   shouldRetryQuery,
@@ -22,10 +23,12 @@ describe("shouldRetryQuery", () => {
 });
 
 describe("createQueryClient", () => {
-  it("staleTime と retry の既定値を持つ", () => {
+  it("staleTime / gcTime と retry の既定値を持つ", () => {
     const queryClient = createQueryClient();
     const defaults = queryClient.getDefaultOptions();
     expect(defaults.queries?.staleTime).toBe(QUERY_STALE_TIME_MS);
+    expect(defaults.queries?.gcTime).toBe(QUERY_GC_TIME_MS);
+    expect(QUERY_GC_TIME_MS).toBeGreaterThan(QUERY_STALE_TIME_MS);
     expect(defaults.queries?.retry).toBe(shouldRetryQuery);
     expect(defaults.mutations?.retry).toBe(false);
   });

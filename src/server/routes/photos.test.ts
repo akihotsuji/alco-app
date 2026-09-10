@@ -215,9 +215,42 @@ describe("GET /api/photos/:id と content", () => {
     });
     expect(content.status).toBe(200);
     expect(content.headers.get("content-type")).toBe("image/jpeg");
-    expect(content.headers.get("cache-control")).toBe("private, max-age=300");
+    expect(content.headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
     expect(content.headers.get("content-disposition")).toBe("inline");
+    expect(content.headers.get("etag")).toBe(`"${meta.id}"`);
     expect((await content.arrayBuffer()).byteLength).toBeGreaterThan(0);
+  });
+
+  it("If-None-Match が一致すれば 304。他人の id は ETag を知っていても 404", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    const created = await postPhoto(ctx.app, a.cookie, makeJpeg(80, 80));
+    const meta = photoMetaSchema.parse(await created.json());
+    const etag = `"${meta.id}"`;
+
+    const notModified = await ctx.app.request(`/api/photos/${meta.id}/content`, {
+      headers: { Cookie: a.cookie, "If-None-Match": etag },
+    });
+    expect(notModified.status).toBe(304);
+    expect(notModified.headers.get("etag")).toBe(etag);
+    expect(notModified.headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
+    expect((await notModified.arrayBuffer()).byteLength).toBe(0);
+
+    const weak = await ctx.app.request(`/api/photos/${meta.id}/content`, {
+      headers: { Cookie: a.cookie, "If-None-Match": `W/${etag}, "other"` },
+    });
+    expect(weak.status).toBe(304);
+
+    const stale = await ctx.app.request(`/api/photos/${meta.id}/content`, {
+      headers: { Cookie: a.cookie, "If-None-Match": '"other"' },
+    });
+    expect(stale.status).toBe(200);
+
+    const other = await ctx.app.request(`/api/photos/${meta.id}/content`, {
+      headers: { Cookie: b.cookie, "If-None-Match": etag },
+    });
+    expect(other.status).toBe(404);
   });
 
   it("未認証の content は 401", async () => {

@@ -202,6 +202,31 @@ export function cookieHeaderFrom(response: Response): string {
     .join("; ");
 }
 
+/**
+ * ブラウザと同じように応答の Set-Cookie を Cookie ヘッダーへ反映する（同名は置き換え、
+ * `Max-Age=0` は削除）。セッションの Cookie キャッシュ（`session_data`）は update-user や
+ * sign-out の応答で更新・失効されるので、その後の要求は反映後の Cookie で送る。
+ */
+export function applySetCookies(cookie: string, response: Response): string {
+  const jar = new Map<string, string>();
+  for (const part of cookie.split("; ").filter(Boolean)) {
+    const eq = part.indexOf("=");
+    jar.set(part.slice(0, eq), part.slice(eq + 1));
+  }
+  for (const setCookie of response.headers.getSetCookie()) {
+    const [pair = "", ...attrs] = setCookie.split(";").map((s) => s.trim());
+    const eq = pair.indexOf("=");
+    const name = pair.slice(0, eq);
+    const expired = attrs.some((attr) => /^max-age=0$/i.test(attr));
+    if (expired) {
+      jar.delete(name);
+    } else {
+      jar.set(name, pair.slice(eq + 1));
+    }
+  }
+  return [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
+}
+
 export async function signUpWithBody(
   app: TestApp,
   body: unknown,
