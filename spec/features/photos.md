@@ -27,6 +27,8 @@
 
 `localStorage`: `photo.mascot` / `photo.cutout` / `cellar.recognize`（設定画面と同じ）。旧 `photo.filter` は読まない。
 
+認識用 JPEG の pending はフォームセッション（kind / sessionId / 世代）付き。破棄・保存完了・写真削除・画面離脱では削除 API 完了を待たず失効する。別フォームや別レコードの編集へ残存結果を適用しない。
+
 ## サーバー
 
 | 検証 | 結果 |
