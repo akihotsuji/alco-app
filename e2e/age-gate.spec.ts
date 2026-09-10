@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createE2EUser, dismissFirstRunGuide } from "./helpers/auth.ts";
+import { createE2EUser, dismissFirstRunGuide, fillBirthOn } from "./helpers/auth.ts";
 
 test.describe("年齢確認", () => {
   test("サインアップ後は /age。未満は拒否、確認後は redirect 先へ。未確認はタブ配下へ行けない", async ({
@@ -24,17 +24,17 @@ test.describe("年齢確認", () => {
     expect(new URL(page.url()).pathname).toBe("/age");
     expect(new URL(page.url()).searchParams.get("redirect")).toBe("/cellar");
 
-    await page.getByLabel("生年月日").fill("2016-01-01");
+    await fillBirthOn(page, "2016-01-01");
     await page.getByRole("button", { name: "確認する" }).click();
     await expect(page.getByRole("heading", { name: "ご利用いただけません" })).toBeVisible();
     await expect(page.getByText("20歳未満の方は本サービスをご利用いただけません。")).toBeVisible();
     await expect(page.getByRole("button", { name: "生年月日を修正" })).toBeVisible();
     await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
-    await expect(page.getByLabel("生年月日")).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "生年月日" })).toHaveCount(0);
 
     await page.getByRole("button", { name: "生年月日を修正" }).click();
     await expect(page.getByRole("heading", { name: "年齢確認" })).toBeVisible();
-    await page.getByLabel("生年月日").fill("1990-01-15");
+    await fillBirthOn(page, "1990-01-15");
     await page.getByRole("button", { name: "確認する" }).click();
     await dismissFirstRunGuide(page);
     await expect(page.getByRole("heading", { name: "セラー" })).toBeVisible();

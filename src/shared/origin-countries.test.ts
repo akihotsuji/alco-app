@@ -1,11 +1,55 @@
 import { describe, expect, it } from "vitest";
 import {
+  FREQUENT_ORIGIN_COUNTRIES_JA,
   isAllowedOriginJa,
   japaneseOriginNames,
   normalizeOriginToJa,
   ORIGIN_COUNTRIES,
+  ORIGIN_SEARCH_LIMIT,
   resolveWritableOrigin,
+  searchOriginCountries,
 } from "./origin-countries.ts";
+
+describe("searchOriginCountries", () => {
+  it("空なら候補を出さない（呼び出し側がよく使う国を出す）", () => {
+    expect(searchOriginCountries("")).toEqual([]);
+    expect(searchOriginCountries("   ")).toEqual([]);
+  });
+
+  it("日本語名の前方一致を先頭に、部分一致を後ろに置く", () => {
+    const names = searchOriginCountries("ア").map((country) => country.ja);
+    expect(names.length).toBeLessThanOrEqual(ORIGIN_SEARCH_LIMIT);
+    expect(names[0]).toBe("アイスランド");
+    expect(names.every((name) => name.startsWith("ア"))).toBe(true);
+    expect(searchOriginCountries("フラン")[0]?.ja).toBe("フランス");
+    expect(searchOriginCountries("フランス")[0]?.ja).toBe("フランス");
+    expect(searchOriginCountries("メリカ").map((country) => country.ja)).toContain(
+      "アメリカ合衆国",
+    );
+  });
+
+  it("ひらがな入力と英語別名でも当たる", () => {
+    expect(searchOriginCountries("ふらんす")[0]?.ja).toBe("フランス");
+    expect(searchOriginCountries("いた")[0]?.ja).toBe("イタリア");
+    expect(searchOriginCountries("fra")[0]?.ja).toBe("フランス");
+    expect(searchOriginCountries("USA")[0]?.ja).toBe("アメリカ合衆国");
+    expect(searchOriginCountries("米国")[0]?.ja).toBe("アメリカ合衆国");
+    expect(searchOriginCountries("zealand")[0]?.ja).toBe("ニュージーランド");
+  });
+
+  it("上限で切る", () => {
+    expect(searchOriginCountries("a", 3)).toHaveLength(3);
+  });
+});
+
+describe("FREQUENT_ORIGIN_COUNTRIES_JA", () => {
+  it("すべて実在国の日本語名で重複がない", () => {
+    expect(new Set(FREQUENT_ORIGIN_COUNTRIES_JA).size).toBe(FREQUENT_ORIGIN_COUNTRIES_JA.length);
+    for (const name of FREQUENT_ORIGIN_COUNTRIES_JA) {
+      expect(isAllowedOriginJa(name)).toBe(true);
+    }
+  });
+});
 
 describe("ORIGIN_COUNTRIES", () => {
   it("国連加盟193とバチカン・パレスチナ・台湾を含み地域は除く", () => {

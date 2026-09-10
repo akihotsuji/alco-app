@@ -1,7 +1,8 @@
-import type { InputHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 import { cn } from "@/client/lib/utils.ts";
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement>;
+/** React 19 では `ref` を通常の props として受け取れる（年齢確認の欄送りで使う） */
+export type InputProps = ComponentProps<"input">;
 
 export function Input({ className, type = "text", ...props }: InputProps) {
   return (

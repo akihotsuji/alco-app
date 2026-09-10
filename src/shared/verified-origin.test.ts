@@ -17,6 +17,27 @@ describe("countryFromVerifiedAppellation", () => {
     expect(countryFromVerifiedAppellation("")).toBeNull();
   });
 
+  it("DOCG・AOC などの修飾語を除いて照合する", () => {
+    expect(countryFromVerifiedAppellation("Dogliani DOCG")).toBe("イタリア");
+    expect(countryFromVerifiedAppellation("Langhe Nebbiolo")).toBe("イタリア");
+    expect(countryFromVerifiedAppellation("Barolo DOCG")).toBe("イタリア");
+    expect(countryFromVerifiedAppellation("Appellation Margaux Contrôlée")).toBe("フランス");
+    expect(countryFromVerifiedAppellation("Rioja Reserva")).toBe("スペイン");
+    expect(countryFromVerifiedAppellation("Islay Single Malt Scotch Whisky")).toBe("イギリス");
+  });
+
+  it("都道府県名は日本を返す", () => {
+    expect(countryFromVerifiedAppellation("山梨県")).toBe("日本");
+    expect(countryFromVerifiedAppellation("北海道")).toBe("日本");
+    expect(countryFromVerifiedAppellation("新潟")).toBe("日本");
+    expect(countryFromVerifiedAppellation("Yamanashi")).toBe("日本");
+  });
+
+  it("複数の国が混ざる表記は返さない", () => {
+    expect(countryFromVerifiedAppellation("Bordeaux Napa Blend")).toBeNull();
+    expect(countryFromVerifiedAppellation("Nebbiolo")).toBeNull();
+  });
+
   it("アクセント付き表記を正規化する", () => {
     expect(normalizeAppellationKey("Châteauneuf-du-Pape")).toBe("chateauneuf_du_pape");
     expect(countryFromVerifiedAppellation("Châteauneuf-du-Pape")).toBe("フランス");

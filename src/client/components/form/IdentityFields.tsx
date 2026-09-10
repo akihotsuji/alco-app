@@ -18,6 +18,8 @@ type IdentityFieldsProps = {
   values: IdentityFieldValues;
   errors?: Partial<Record<IdentityFieldKey, string>>;
   aiMarks?: ReadonlySet<string>;
+  /** 読み取り中に AI が入れる可能性のある欄（「読み取り中」ピル） */
+  aiPending?: ReadonlySet<string>;
   idPrefix?: string;
   onChange: (field: IdentityFieldKey, value: string) => void;
 };
@@ -26,6 +28,7 @@ export function IdentityFields({
   values,
   errors,
   aiMarks,
+  aiPending,
   idPrefix = "identity",
   onChange,
 }: IdentityFieldsProps) {
@@ -40,6 +43,7 @@ export function IdentityFields({
           placeholder="NV"
           error={errors?.vintage}
           aiMarked={aiMarks?.has("vintage") ?? false}
+          aiPending={aiPending?.has("vintage") ?? false}
           onChange={(value) => onChange("vintage", value)}
         />
         <IdentityInput
@@ -49,6 +53,7 @@ export function IdentityFields({
           maxLength={IDENTITY_TEXT_MAX_LENGTH}
           error={errors?.variety}
           aiMarked={aiMarks?.has("variety") ?? false}
+          aiPending={aiPending?.has("variety") ?? false}
           onChange={(value) => onChange("variety", value)}
         />
       </div>
@@ -59,6 +64,7 @@ export function IdentityFields({
         maxLength={IDENTITY_TEXT_MAX_LENGTH}
         error={errors?.producer}
         aiMarked={aiMarks?.has("producer") ?? false}
+        aiPending={aiPending?.has("producer") ?? false}
         onChange={(value) => onChange("producer", value)}
       />
       <OriginCountryField
@@ -66,6 +72,7 @@ export function IdentityFields({
         value={values.origin}
         error={errors?.origin}
         aiMarked={aiMarks?.has("origin") ?? false}
+        aiPending={aiPending?.has("origin") ?? false}
         onChange={(value) => onChange("origin", value)}
       />
     </div>
@@ -82,6 +89,7 @@ function IdentityInput({
   inputMode,
   placeholder,
   aiMarked,
+  aiPending,
 }: {
   id: string;
   label: string;
@@ -92,11 +100,12 @@ function IdentityInput({
   inputMode?: "numeric";
   placeholder?: string;
   aiMarked: boolean;
+  aiPending: boolean;
 }) {
   return (
     <section className="log-form-section">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <FieldWithAiMark marked={aiMarked}>
+      <FieldWithAiMark marked={aiMarked} pending={aiPending}>
         <Input
           id={id}
           value={value}

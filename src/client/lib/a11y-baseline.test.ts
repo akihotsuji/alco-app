@@ -45,7 +45,7 @@ describe("a11y baseline（6-04）", () => {
     expect(read("src/client/pages/LoginPage.tsx")).toContain("aria-invalid");
     expect(read("src/client/pages/LegalPage.tsx")).not.toContain("dangerouslySetInnerHTML");
     expect(read("src/client/pages/SignupPage.tsx")).toContain('htmlFor="signup-legal"');
-    expect(read("src/client/pages/AgePage.tsx")).toContain('htmlFor="age-birth-on"');
+    expect(read("src/client/pages/AgePage.tsx")).toContain('className="birth-on-unit" htmlFor=');
     const day = read("src/client/pages/logs/LogDayPage.tsx");
     expect(day).toContain("useHighlightRow");
     expect(day.slice(day.indexOf("function LogDayRow"))).not.toContain("aria-live");

@@ -126,6 +126,8 @@ isAtLeast20 = today >= majorityOn
 
 正本は [01-auth.md](../screen-designs/01-auth.md) `auth-age`。
 
+- 生年月日の入力は 年 / 月 / 日 の 3 欄（数字キーボード）。`type=date` は使わない（2026-09-10。カレンダーで数十年戻す操作が入れづらいため）。クライアントは 3 欄を `YYYY-MM-DD` に組んで送るだけで、20 歳判定はしない（`src/client/lib/birth-on-input.ts`）
+
 1. サインアップ成功 → `/age`（`redirect` があれば引き継ぐ）
 2. ログイン成功 → 元の `redirect` または `/`。未確認ならクライアントが `/age?redirect=` へ
 3. 確認済みが `/age` に来たら `redirect` または `/`
