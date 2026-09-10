@@ -34,8 +34,8 @@ export const PHOTO_SUBJECTS = ["label", "glass", "can", "bottle", "mixed", "unkn
 export type PhotoSubject = (typeof PHOTO_SUBJECTS)[number];
 
 export const DRINK_EXTRACT_PROMPT_VERSION = "drink-extract-v2";
-export const DRINK_LOOKUP_PROMPT_VERSION = "drink-lookup-v1";
-export const DRINK_OUTPUT_SCHEMA_VERSION = "drink-fields-v4";
+export const DRINK_LOOKUP_PROMPT_VERSION = "drink-lookup-v2";
+export const DRINK_OUTPUT_SCHEMA_VERSION = "drink-fields-v5";
 export const LABEL_EXTRACT_PROMPT_VERSION = "label-extract-v2";
 export const LABEL_OUTPUT_SCHEMA_VERSION = "label-fields-v2";
 export const NOTE_EXTRACT_PROMPT_VERSION = "note-extract-v2";

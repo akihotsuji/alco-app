@@ -1,6 +1,10 @@
 import type { RecognizeSource, TokenUsage } from "@/shared/ai-recognition.ts";
 import type { LabelRecognizeProvider } from "@/shared/constants.ts";
-import type { DrinkRecognizeFields } from "@/shared/drink-recognize.ts";
+import type {
+  DrinkLookupFields,
+  DrinkRecognizeFields,
+  OriginCandidate,
+} from "@/shared/drink-recognize.ts";
 
 export type DrinkCacheValue = {
   fields: DrinkRecognizeFields;
@@ -10,6 +14,17 @@ export type DrinkCacheValue = {
   profile: string;
   modelId: string;
   provider: LabelRecognizeProvider;
+  lookupSuggested: boolean;
+  originCandidate: OriginCandidate | undefined;
+  appellation: string | null;
+};
+
+export type DrinkLookupCacheValue = {
+  fields: DrinkLookupFields;
+  matched: boolean;
+  sources: RecognizeSource[];
+  usage: TokenUsage;
+  searchUsed: boolean;
 };
 
 const TTL_MS = 10 * 60 * 1000;
