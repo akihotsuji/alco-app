@@ -73,6 +73,27 @@ export function ratingX10FromStarTap(current: number | null, star: number): numb
   return integer;
 }
 
+/** スライダー（1.0〜5.0、step 0.5）の文字列値を ratingX10 に。範囲外・不正は null */
+export function ratingX10FromSlider(raw: string): number | null {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const ratingX10 = Math.round(parsed * 10);
+  return isValidRatingX10(ratingX10) ? ratingX10 : null;
+}
+
+/**
+ * スライダーの塗りの割合（0〜1）。つまみの可動域（1.0〜5.0）に対する位置で、CSS がつまみの中心まで塗る。
+ * 未選択は 0（バーは空でつまみだけ左端）
+ */
+export function ratingSliderFillRatio(ratingX10: number | null): number {
+  if (ratingX10 === null) {
+    return 0;
+  }
+  return (ratingX10 - RATING_X10_MIN) / (RATING_X10_MAX - RATING_X10_MIN);
+}
+
 export function ratingStarFill(ratingX10: number): { full: number; half: boolean } {
   return {
     full: Math.floor(ratingX10 / 10),

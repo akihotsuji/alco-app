@@ -1923,44 +1923,122 @@ input:focus-visible {
   gap: var(--space-3);
 }
 
-.note-rating-cluster {
+.note-rating {
+  --rating-track: 12px;
+  --rating-thumb: 28px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.note-rating-head {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
 }
 
-.note-rating-number {
-  display: inline-flex;
-  align-items: center;
-}
-
-.note-rating-input {
-  width: 8.5ch;
-  min-width: 5.5rem;
-  height: 44px;
-  padding: 0 var(--space-3);
-  border: none;
-  border-radius: var(--radius);
-  background: var(--background);
-  box-shadow: var(--shadow-inset-sm);
+.note-rating-value {
+  min-width: 3ch;
   color: var(--score);
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
-  text-align: center;
-  -moz-appearance: textfield;
+  line-height: 1;
+  text-align: right;
+  transition: color var(--dur-state) var(--ease-out);
 }
 
-.note-rating-input::-webkit-outer-spin-button,
-.note-rating-input::-webkit-inner-spin-button {
+.note-rating.is-unset .note-rating-value {
+  color: var(--muted);
+}
+
+/* スライダー。塗りはつまみの中心まで（可動域 = 幅 - つまみ）。--rating-fill は 0〜1 */
+.note-rating-slider {
+  --rating-fill-end: calc(
+    var(--rating-thumb) /
+    2 +
+    (100% - var(--rating-thumb)) *
+    var(--rating-fill, 0)
+  );
   appearance: none;
+  width: 100%;
+  height: var(--tap-min);
   margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
 }
 
-.note-rating-input:focus-visible {
+.note-rating-slider::-webkit-slider-runnable-track {
+  height: var(--rating-track);
+  border-radius: var(--radius-pill);
+  background-color: var(--background);
+  background-image: linear-gradient(
+    to right,
+    var(--primary) 0,
+    var(--primary) var(--rating-fill-end),
+    transparent var(--rating-fill-end)
+  );
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.note-rating-slider::-moz-range-track {
+  height: var(--rating-track);
+  border-radius: var(--radius-pill);
+  background: var(--background);
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.note-rating-slider::-moz-range-progress {
+  height: var(--rating-track);
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+}
+
+.note-rating-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: var(--rating-thumb);
+  height: var(--rating-thumb);
+  margin-top: calc((var(--rating-track) - var(--rating-thumb)) / 2);
+  border: 2px solid var(--background);
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: var(--shadow-outset-sm);
+  transition: background-color var(--dur-state) var(--ease-out);
+}
+
+.note-rating-slider::-moz-range-thumb {
+  width: var(--rating-thumb);
+  height: var(--rating-thumb);
+  border: 2px solid var(--background);
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: var(--shadow-outset-sm);
+  transition: background-color var(--dur-state) var(--ease-out);
+}
+
+/* 未選択: バーは空、つまみは地色で「まだ選んでいない」と分かるようにする */
+.note-rating.is-unset .note-rating-slider::-webkit-slider-thumb {
+  border-color: var(--muted);
+  background: var(--background);
+}
+
+.note-rating.is-unset .note-rating-slider::-moz-range-thumb {
+  border-color: var(--muted);
+  background: var(--background);
+}
+
+.note-rating.is-unset .note-rating-slider::-moz-range-progress {
+  background: transparent;
+}
+
+.note-rating-slider:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+  border-radius: var(--radius-pill);
 }
 
 .form-row-chevron {
@@ -3941,10 +4019,6 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
 .note-star-button:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
-}
-
-.note-rating-row {
-  flex-wrap: wrap;
 }
 
 .note-detail {
