@@ -19,7 +19,7 @@
 
 - データマップと草案（酒類・20 歳、免責、Cloudflare への国外移転、写真の権利、飲酒記録の扱い）
 - 公開ページ `/terms` `/privacy`（認証なし。SPA ルート。新しい `/api/*` は増やさない）
-- サインアップの同意 UI とサーバー検証
+- サインアップの同意 UI とサーバー検証（メール登録と Google 新規。8-04）
 - 設定からの閲覧導線
 - 同意の保存（アプリテーブル `legal_consents`）
 
@@ -76,9 +76,10 @@
 
 サーバー:
 
-- Better Auth `hooks.before`（`/sign-up/email` のみ）
+- Better Auth `hooks.before`（`/sign-up/email`、および Google 新規の `/sign-in/social` + `requestSignUp`）
 - ボディを `signupLegalAcceptanceSchema` で検証。失敗は 400。汎用文。内部パスは出さない
 - 成功後 `databaseHooks.user.create.after` で `legal_consents` を 1 行入れる。版は **サーバー定数**（クライアント申告は一致確認だけ）
+- Google 新規の同意は `additionalData`（8-04。[oauth-login.md](oauth-login.md)）
 
 テストの `signUp()` ヘルパは現行版への同意を付ける。同意なしのケースは別テスト。
 

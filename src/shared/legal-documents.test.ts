@@ -23,6 +23,8 @@ describe("法務文書", () => {
     expect(privacy).toContain("生活記録");
     expect(privacy).toContain("生年月日");
     expect(privacy).toContain("Resend");
+    expect(privacy).toContain("Google");
+    expect(terms).toContain("Googleアカウント");
     expect(terms).toContain("再設定");
     expect(terms).toContain("年齢確認画面");
     expect(terms).not.toContain("もう一杯");

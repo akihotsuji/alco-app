@@ -8,6 +8,7 @@ import * as schema from "@/db/schema.ts";
 import { WORKERS_AI_VISION_MODEL } from "@/shared/constants.ts";
 import { LEGAL_VERSION } from "@/shared/legal.ts";
 import { createAuth } from "./auth.ts";
+import type { GoogleOAuthConfig } from "./env.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
@@ -87,6 +88,7 @@ export async function createTestApp(
     noteRecognizer?: LabelRecognizer;
     recognizeTimeoutMs?: number;
     sendResetPassword?: SendResetPasswordEmail;
+    google?: GoogleOAuthConfig;
   } = {},
 ) {
   const client = createClient({ url: ":memory:" });
@@ -105,6 +107,7 @@ export async function createTestApp(
       (async (mail) => {
         mailbox.push(mail);
       }),
+    google: options.google,
   });
 
   const photos = createMemoryR2();
@@ -162,6 +165,18 @@ export async function signUp(app: TestApp, input: TestUserInput) {
     ...input,
     acceptedLegal: true,
     legalVersion: LEGAL_VERSION,
+  });
+}
+
+export async function signInSocial(app: TestApp, body: Record<string, unknown>, cookie?: string) {
+  const headers: Record<string, string> = { ...authHeaders(app) };
+  if (cookie) {
+    headers.Cookie = cookie;
+  }
+  return app.request("/api/auth/sign-in/social", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
   });
 }
 

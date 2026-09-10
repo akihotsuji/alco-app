@@ -7,6 +7,9 @@ BETTER_AUTH_SECRET=
 # ALERT_WEBHOOK_URL=
 # パスワードリセット（8-03）。未設定ならメールは送らない。値はチャットに貼らない
 RESEND_API_KEY=
+# Google OAuth（8-04）。未設定なら Google ログインは失敗する。値はチャットに貼らない
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 # EMAIL_FROM=酒のしおり <noreply@sake-shiori.com>
 # 認識モデル。未設定なら wrangler.jsonc の vars（酒記録は gemini-3.7-flash）
 # AI_RECOGNITION_PROFILE=gemini-3.7-flash

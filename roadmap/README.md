@@ -112,7 +112,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | Phase 5.5 実機検証・機能安定化 | [phase-05-5-device-hardening](phase-05-5-device-hardening/00-phase.md) | Phase 3〜5の実機探索、Issue化、1件ずつ修正 | 未着手（Phase 5完了直後） |
 | Phase 6 PWA・品質 | [phase-06-pwa-quality](phase-06-pwa-quality/00-phase.md) | PWA・E2E・性能・a11y | 未着手 |
 | Phase 7 本番リリース | [phase-07-production-release](phase-07-production-release/00-phase.md) | 環境分離・バックアップ・監視 | 進行中（7-01〜7-05・7-07〜7-09。2026-09-09。7-06 の 308 と初回 Deploy prod はオーナー） |
-| Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 未着手 |
+| Phase 8 一般公開準備 | [phase-08-public-launch](phase-08-public-launch/00-phase.md) | 法対応・OAuth・レート制限（将来） | 8-01〜8-04 実装済み。8-05 / 8-06 未着手 |
 
 ## ロードマップ ↔ ファイル対応表
 
@@ -234,7 +234,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 | 8-01 | 利用規約・プライバシーポリシー | [01-terms-privacy.md](phase-08-public-launch/01-terms-privacy.md) | 実装済み（2026-09-09。文面は草案） |
 | 8-02 | 年齢確認（20歳以上） | [02-age-verification.md](phase-08-public-launch/02-age-verification.md) | 完了（2026-09-10） |
 | 8-03 | 公開登録確認・パスワードリセット | [03-open-signup-password-reset.md](phase-08-public-launch/03-open-signup-password-reset.md) | 完了（2026-09-10。Resend 投入はオーナー） |
-| 8-04 | OAuthログイン | [04-oauth-login.md](phase-08-public-launch/04-oauth-login.md) | 未着手 |
+| 8-04 | OAuthログイン | [04-oauth-login.md](phase-08-public-launch/04-oauth-login.md) | 完了（2026-09-10。Google 投入はオーナー） |
 | 8-05 | レート制限・不正利用対策 | [05-rate-limit-abuse.md](phase-08-public-launch/05-rate-limit-abuse.md) | 未着手 |
 | 8-06 | 無料枠の使用量監視 | [06-usage-monitoring.md](phase-08-public-launch/06-usage-monitoring.md) | 未着手 |
 
