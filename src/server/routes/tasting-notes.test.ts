@@ -73,7 +73,7 @@ describe("POST /api/tasting-notes", () => {
     expect(await ctx.db.select().from(tastingNotes)).toHaveLength(1);
   });
 
-  it("ボトルありはスナップショットをコピーし、送った銘柄は無視する。他人・不明は 404", async () => {
+  it("ボトルありでも明示した品名・種類はスナップショットする。他人・不明は 404", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
     const b = await session(ctx.app, "b@example.com");
@@ -82,16 +82,28 @@ describe("POST /api/tasting-notes", () => {
 
     const own = await postNote(ctx.app, a.cookie, {
       bottleId: OWN_BOTTLE,
-      drinkName: "無視される",
+      drinkName: "手入力赤",
       drinkType: "wine",
       tastedOn: TODAY,
       ratingX10: 40,
     });
     expect(own.status).toBe(201);
     const body = tastingNoteSchema.parse(await own.json());
-    expect(body.drinkName).toBe("棚の赤");
-    expect(body.drinkType).toBe("beer");
+    expect(body.drinkName).toBe("手入力赤");
+    expect(body.drinkType).toBe("wine");
     expect(body.bottle).toEqual({ id: OWN_BOTTLE, name: "棚の赤", status: "sealed" });
+
+    const fallback = tastingNoteSchema.parse(
+      await (
+        await postNote(ctx.app, a.cookie, {
+          bottleId: OWN_BOTTLE,
+          tastedOn: TODAY,
+          ratingX10: 40,
+        })
+      ).json(),
+    );
+    expect(fallback.drinkName).toBe("棚の赤");
+    expect(fallback.drinkType).toBe("beer");
 
     expect((await postNote(ctx.app, a.cookie, { ...HAND, bottleId: OTHER_BOTTLE })).status).toBe(
       404,
@@ -168,6 +180,38 @@ describe("POST /api/tasting-notes", () => {
     expect(overridden.producer).toBe("上書き");
     expect(overridden.origin).toBe("フランス");
     expect(overridden.vintage).toBe(2021);
+  });
+
+  it("生産国の不正値は 400。既存不正値は無関係な PATCH で残す", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const invalid = await postNote(ctx.app, a.cookie, { ...HAND, origin: "DOCG" });
+    expect(invalid.status).toBe(400);
+    expect((await fields(invalid)).origin).toBeDefined();
+
+    const created = tastingNoteSchema.parse(
+      await (await postNote(ctx.app, a.cookie, { ...HAND, origin: "France" })).json(),
+    );
+    expect(created.origin).toBe("フランス");
+
+    const now = new Date();
+    const staleId = crypto.randomUUID();
+    await ctx.db.insert(tastingNotes).values({
+      id: staleId,
+      userId: a.userId,
+      drinkName: "旧ノート",
+      drinkType: "wine",
+      origin: "DOCG",
+      tastedOn: TODAY,
+      ratingX10: 40,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const kept = tastingNoteSchema.parse(
+      await (await patchNote(ctx.app, a.cookie, staleId, { taste: "メモだけ" })).json(),
+    );
+    expect(kept.origin).toBe("DOCG");
+    expect(kept.taste).toBe("メモだけ");
   });
 
   it("評価 3.3 / 未来日 / 7 枚は 400。ノートは作らない", async () => {

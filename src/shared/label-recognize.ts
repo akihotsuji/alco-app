@@ -8,6 +8,7 @@ import {
 } from "./bottles.ts";
 import { DEFAULT_LABEL_RECOGNIZE_PROVIDER, LABEL_RECOGNIZE_PROVIDERS } from "./constants.ts";
 import { recognizedDrinkTypeValueSchema } from "./drink-logs.ts";
+import { normalizeOriginToJa } from "./origin-countries.ts";
 
 /**
  * `POST /api/bottles/recognize` の契約。
@@ -112,7 +113,10 @@ export function pickRecognizeFields(raw: unknown): RecognizeFields {
   }
   const origin = textCandidateSchema(BOTTLE_TEXT_MAX_LENGTH).safeParse(source.origin);
   if (origin.success) {
-    fields.origin = origin.data;
+    const ja = normalizeOriginToJa(origin.data.value);
+    if (ja) {
+      fields.origin = { ...origin.data, value: ja };
+    }
   }
   const variety = textCandidateSchema(BOTTLE_TEXT_MAX_LENGTH).safeParse(source.variety);
   if (variety.success) {

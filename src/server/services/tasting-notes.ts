@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
 import { bottles, photos, tastingNotes } from "@/db/schema.ts";
@@ -17,8 +17,10 @@ import {
   type TastingNotesResponse,
   type UpdateTastingNoteInput,
 } from "@/shared/tasting-notes.ts";
+import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { ApiError } from "../errors.ts";
 import { requireOwnBottle } from "./bottles.ts";
+import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
 type NoteRow = typeof tastingNotes.$inferSelect;
@@ -261,8 +263,12 @@ export async function createTastingNote(input: {
   const bottleId = body.bottleId ?? null;
   if (bottleId) {
     bottle = await requireOwnBottle(db, userId, bottleId);
-    drinkName = bottle.name;
-    drinkType = bottle.drinkType;
+    if (!body.drinkName) {
+      drinkName = bottle.name;
+    }
+    if (!body.drinkType) {
+      drinkType = bottle.drinkType;
+    }
   }
   if (!drinkType || drinkName.length === 0) {
     throw new ApiError("validation_error", {
@@ -274,6 +280,10 @@ export async function createTastingNote(input: {
   }
 
   const identity = resolveIdentityFields(body, bottle);
+  const originWrite = writtenOrigin(body.origin, bottle?.origin);
+  if (originWrite !== undefined) {
+    identity.origin = originWrite;
+  }
   const photoRows = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
   const id = crypto.randomUUID();
   const row: NoteRow = {
@@ -364,11 +374,6 @@ export async function listTastingNotes(input: {
   if (query.bottleId) {
     scope.push(eq(tastingNotes.bottleId, query.bottleId));
   }
-  const totalRows = await db
-    .select({ id: tastingNotes.id })
-    .from(tastingNotes)
-    .where(and(...scope));
-
   const filters = [...scope];
   const q = query.q?.trim();
   if (q) {
@@ -385,25 +390,35 @@ export async function listTastingNotes(input: {
     filters.push(lte(tastingNotes.ratingX10, query.ratingX10Max));
   }
 
-  const rows = await db
-    .select()
-    .from(tastingNotes)
-    .where(and(...filters))
-    .orderBy(desc(tastingNotes.tastedOn), desc(tastingNotes.id));
-
-  let start = 0;
+  const pageFilters = [...filters];
   if (query.cursor) {
     const cursor = decodeCursor(query.cursor);
-    const cursorIndex = rows.findIndex(
-      (row) => row.id === cursor.id && row.tastedOn === cursor.tastedOn,
-    );
-    if (cursorIndex < 0) {
+    const [anchor] = await db
+      .select({ id: tastingNotes.id, tastedOn: tastingNotes.tastedOn })
+      .from(tastingNotes)
+      .where(and(eq(tastingNotes.id, cursor.id), eq(tastingNotes.userId, userId)));
+    if (!anchor || anchor.tastedOn !== cursor.tastedOn) {
       throw cursorError();
     }
-    start = cursorIndex + 1;
+    pageFilters.push(
+      sql`(${tastingNotes.tastedOn} < ${cursor.tastedOn} or (${tastingNotes.tastedOn} = ${cursor.tastedOn} and ${tastingNotes.id} < ${cursor.id}))`,
+    );
   }
 
-  const page = rows.slice(start, start + query.limit);
+  const [totalRow, fetched] = await Promise.all([
+    db
+      .select({ n: count() })
+      .from(tastingNotes)
+      .where(and(...scope))
+      .then((rows) => rows[0]),
+    db
+      .select()
+      .from(tastingNotes)
+      .where(and(...pageFilters))
+      .orderBy(desc(tastingNotes.tastedOn), desc(tastingNotes.id))
+      .limit(query.limit + 1),
+  ]);
+  const { page, hasMore } = takeLimitPlusOne(fetched, query.limit);
   const pageIds = page.map((row) => row.id);
   const photoRows =
     pageIds.length === 0
@@ -430,8 +445,8 @@ export async function listTastingNotes(input: {
     items: page.map((row) =>
       toTastingNoteListItem(row, thumbByNoteId.get(row.id) ?? null, countByNoteId.get(row.id) ?? 0),
     ),
-    nextCursor: start + page.length < rows.length && last ? encodeCursor(last) : null,
-    totalCount: totalRows.length,
+    nextCursor: hasMore && last ? encodeCursor(last) : null,
+    totalCount: Number(totalRow?.n ?? 0),
   };
 }
 
@@ -458,8 +473,16 @@ export async function updateTastingNote(input: {
   let bottleSnap: Awaited<ReturnType<typeof requireOwnBottle>> | null = null;
   if (body.bottleId) {
     bottleSnap = await requireOwnBottle(db, userId, body.bottleId);
-    drinkName = bottleSnap.name;
-    drinkType = bottleSnap.drinkType;
+    if (body.drinkName === undefined) {
+      drinkName = bottleSnap.name;
+    } else {
+      drinkName = body.drinkName;
+    }
+    if (body.drinkType === undefined) {
+      drinkType = bottleSnap.drinkType;
+    } else {
+      drinkType = body.drinkType;
+    }
     bottleId = bottleSnap.id;
   } else if (body.bottleId === null) {
     bottleId = null;
@@ -500,6 +523,10 @@ export async function updateTastingNote(input: {
       vintage: current.vintage,
     },
   );
+  const originWrite = writtenOrigin(body.origin, current.origin);
+  if (originWrite !== undefined) {
+    identity.origin = originWrite;
+  }
 
   const patch = {
     ...(body.tastedOn === undefined ? {} : { tastedOn: body.tastedOn }),

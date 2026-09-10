@@ -4,7 +4,7 @@ import {
   isAiRecognitionProfileKey,
 } from "@/shared/ai-recognition.ts";
 import {
-  AI_RECOGNIZE_LOOKUP_TIMEOUT_MS,
+  AI_RECOGNIZE_LOOKUP_BUDGET_MS,
   AI_RECOGNIZE_TIMEOUT_MS,
   GEMINI_37_FLASH_MODEL_ID,
   GEMINI_37_FLASH_NATIVE_ID,
@@ -61,7 +61,7 @@ export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
     thinkingLevel: "low",
     emitThinkingConfig: true,
     timeoutMs: 25_000,
-    lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_TIMEOUT_MS,
+    lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_BUDGET_MS,
     maxOutputTokens: 4096,
     lookupMaxOutputTokens: 2048,
     temperature: 0,
@@ -80,7 +80,7 @@ export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
     supportsThinking: false,
     emitThinkingConfig: false,
     timeoutMs: AI_RECOGNIZE_TIMEOUT_MS,
-    lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_TIMEOUT_MS,
+    lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_BUDGET_MS,
     maxOutputTokens: 500,
     lookupMaxOutputTokens: 400,
     temperature: 0,

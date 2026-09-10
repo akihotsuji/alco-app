@@ -32,6 +32,25 @@ describe("selectDrinkAutofillFields", () => {
     expect(fields.variety).toBeUndefined();
   });
 
+  it("Made in China は中国にし、DOCG は空欄にする", () => {
+    const china = selectDrinkAutofillFields(
+      parseDrinkExtract({
+        subject: "label",
+        printedOrigin: { value: "MADE IN CHINA" },
+      }),
+      null,
+    );
+    expect(china.fields.origin?.value).toBe("中国");
+    const docg = selectDrinkAutofillFields(
+      parseDrinkExtract({
+        subject: "label",
+        printedOrigin: { value: "DOCG" },
+      }),
+      null,
+    );
+    expect(docg.fields.origin).toBeUndefined();
+  });
+
   it("根拠のない推測は空欄にする", () => {
     const extract = parseDrinkExtract({
       subject: "label",
@@ -138,7 +157,7 @@ describe("parseDrinkExtract", () => {
 });
 
 describe("needsProductLookup", () => {
-  it("品名と生産者が揃い国か品種が無いときだけ真", () => {
+  it("品名と生産者が揃い国が無いとき真", () => {
     expect(
       needsProductLookup({
         drinkName: { value: "A", confidence: 0.9 },
@@ -154,5 +173,24 @@ describe("needsProductLookup", () => {
       }),
     ).toBe(false);
     expect(needsProductLookup({ drinkName: { value: "A", confidence: 0.9 } })).toBe(false);
+  });
+
+  it("品種欠はワイン系だけ検索する", () => {
+    expect(
+      needsProductLookup({
+        drinkName: { value: "A", confidence: 0.9 },
+        producer: { value: "B", confidence: 0.9 },
+        origin: { value: "日本", confidence: 0.9 },
+        drinkType: { value: "sake", confidence: 0.9 },
+      }),
+    ).toBe(false);
+    expect(
+      needsProductLookup({
+        drinkName: { value: "A", confidence: 0.9 },
+        producer: { value: "B", confidence: 0.9 },
+        origin: { value: "フランス", confidence: 0.9 },
+        drinkType: { value: "wine_red", confidence: 0.9 },
+      }),
+    ).toBe(true);
   });
 });

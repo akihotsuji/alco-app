@@ -11,6 +11,7 @@ import type {
   UpdateMyDrinkInput,
 } from "@/shared/my-drinks.ts";
 import { MY_DRINK_MAX_COUNT, MY_DRINK_MESSAGES } from "@/shared/my-drinks.ts";
+import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { ApiError } from "../errors.ts";
 import { createDrinkLog } from "./drink-logs.ts";
 
@@ -76,26 +77,28 @@ export async function listMyDrinks(
   userId: string,
   query: MyDrinksQuery,
 ): Promise<MyDrinksResponse> {
-  const rows = await db
-    .select()
-    .from(myDrinks)
-    .where(eq(myDrinks.userId, userId))
-    .orderBy(asc(myDrinks.sortOrder), asc(myDrinks.id));
-
-  let start = 0;
+  const conditions = [eq(myDrinks.userId, userId)];
   if (query.cursor) {
     const cursor = decodeCursor(query.cursor);
-    const cursorIndex = rows.findIndex(
-      (row) => row.id === cursor.id && row.sortOrder === cursor.sortOrder,
-    );
-    if (cursorIndex < 0) {
+    const [anchor] = await db
+      .select({ id: myDrinks.id, sortOrder: myDrinks.sortOrder })
+      .from(myDrinks)
+      .where(and(eq(myDrinks.id, cursor.id), eq(myDrinks.userId, userId)));
+    if (!anchor || anchor.sortOrder !== cursor.sortOrder) {
       throw cursorError();
     }
-    start = cursorIndex + 1;
+    conditions.push(
+      sql`(${myDrinks.sortOrder} > ${cursor.sortOrder} or (${myDrinks.sortOrder} = ${cursor.sortOrder} and ${myDrinks.id} > ${cursor.id}))`,
+    );
   }
 
-  const page = rows.slice(start, start + query.limit);
-  const hasMore = start + page.length < rows.length;
+  const fetched = await db
+    .select()
+    .from(myDrinks)
+    .where(and(...conditions))
+    .orderBy(asc(myDrinks.sortOrder), asc(myDrinks.id))
+    .limit(query.limit + 1);
+  const { page, hasMore } = takeLimitPlusOne(fetched, query.limit);
   const last = page.at(-1);
   return {
     items: page.map(toMyDrink),

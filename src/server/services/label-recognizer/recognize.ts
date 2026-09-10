@@ -1,4 +1,8 @@
 import type { AppSqliteDb } from "@/db/index.ts";
+import {
+  LABEL_EXTRACT_PROMPT_VERSION,
+  LABEL_OUTPUT_SCHEMA_VERSION,
+} from "@/shared/ai-recognition.ts";
 import { AI_RECOGNIZE_DAILY_LIMIT, AI_RECOGNIZE_TIMEOUT_MS } from "@/shared/constants.ts";
 import {
   extractModelPayload,
@@ -6,8 +10,10 @@ import {
   type RecognizeResponse,
 } from "@/shared/label-recognize.ts";
 import { ApiError } from "../../errors.ts";
+import { sha256Hex } from "../ai-recognition/bytes.ts";
+import { recognitionCacheKey, withRecognitionCache } from "../ai-recognition/cache.ts";
+import { inspectRecognizeJpeg } from "../ai-recognition/inspect-jpeg.ts";
 import { refundAiUsage, tryConsumeAiUsage } from "../ai-usage.ts";
-import { ImageInspectFailure, inspectImageBytes } from "../image-inspect.ts";
 import type { LabelRecognizer } from "./index.ts";
 
 export class RecognizeTimeoutError extends Error {
@@ -42,14 +48,27 @@ export async function recognizeBottleLabel(input: {
   let providerMs = 0;
   let parseMs = 0;
   try {
-    const output = await withTimeout(
-      input.recognizer.recognize(input.bytes),
-      input.timeoutMs ?? AI_RECOGNIZE_TIMEOUT_MS,
-    );
-    providerMs = Date.now() - started;
-    const parseStarted = Date.now();
-    const fields = pickRecognizeFields(extractModelPayload(output));
-    parseMs = Date.now() - parseStarted;
+    const imageHash = await sha256Hex(input.bytes);
+    const key = recognitionCacheKey({
+      userId: input.userId,
+      imageHash,
+      profile: input.recognizer.profile,
+      modelId: input.recognizer.modelId,
+      promptVersion: LABEL_EXTRACT_PROMPT_VERSION,
+      schemaVersion: LABEL_OUTPUT_SCHEMA_VERSION,
+      searchEnabled: false,
+    });
+    const fields = await withRecognitionCache(key, async () => {
+      const output = await withTimeout(
+        input.recognizer.recognize(input.bytes),
+        input.timeoutMs ?? AI_RECOGNIZE_TIMEOUT_MS,
+      );
+      providerMs = Date.now() - started;
+      const parseStarted = Date.now();
+      const parsed = pickRecognizeFields(extractModelPayload(output));
+      parseMs = Date.now() - parseStarted;
+      return parsed;
+    });
     fieldCount = Object.keys(fields).length;
     ok = true;
     return {
@@ -64,39 +83,13 @@ export async function recognizeBottleLabel(input: {
     }
     throw new ApiError("upstream_error");
   } finally {
-    // 画像・ラベル内容・ユーザー ID は出さない。工程別の時間だけ
     console.info(
       `[recognize] ok=${ok} durationMs=${Date.now() - started} providerMs=${providerMs} parseMs=${parseMs} fieldCount=${fieldCount}`,
     );
   }
 }
 
-function inspectRecognizeJpeg(bytes: Uint8Array) {
-  try {
-    const inspected = inspectImageBytes(bytes);
-    if (inspected.contentType !== "image/jpeg") {
-      throw new ApiError("unsupported_media_type");
-    }
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    if (error instanceof ImageInspectFailure) {
-      if (error.code === "payload_too_large") {
-        throw new ApiError("payload_too_large");
-      }
-      if (error.code === "unsupported_media_type") {
-        throw new ApiError("unsupported_media_type");
-      }
-      throw new ApiError("validation_error", {
-        fields: { file: ["画像のサイズが大きすぎます"] },
-      });
-    }
-    throw error;
-  }
-}
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {

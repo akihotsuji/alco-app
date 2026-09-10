@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IDENTITY_TEXT_MAX_LENGTH, VINTAGE_MAX, VINTAGE_MIN } from "./identity.ts";
 import { stripControlChars } from "./label-recognize.ts";
+import { normalizeOriginToJa } from "./origin-countries.ts";
 
 const confidenceSchema = z.number().min(0).max(1);
 
@@ -64,7 +65,10 @@ export function pickIdentityRecognizeFields(raw: unknown): IdentityRecognizeFiel
   }
   const origin = pickText(source, ["origin"]);
   if (origin) {
-    fields.origin = origin;
+    const ja = normalizeOriginToJa(origin.value);
+    if (ja) {
+      fields.origin = { ...origin, value: ja };
+    }
   }
   const variety = pickText(source, ["variety"]);
   if (variety) {

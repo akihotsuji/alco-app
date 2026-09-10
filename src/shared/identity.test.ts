@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   emptyIdentity,
   normalizeOptionalText,
+  originInputError,
   resolveIdentityFields,
   vintageSchema,
 } from "./identity.ts";
+import { ORIGIN_MESSAGES } from "./origin-countries.ts";
 
 describe("normalizeOptionalText", () => {
   it("前後空白を除いて空なら null", () => {
@@ -30,6 +32,15 @@ describe("resolveIdentityFields", () => {
       vintage: null,
     });
     expect(resolveIdentityFields({}, null)).toEqual(emptyIdentity());
+  });
+});
+
+describe("originInputError", () => {
+  it("不正な新規値は拒み、既存不正値の維持は通す", () => {
+    expect(originInputError("DOCG")).toBe(ORIGIN_MESSAGES.invalid);
+    expect(originInputError("フランス")).toBeUndefined();
+    expect(originInputError("DOCG", "DOCG")).toBeUndefined();
+    expect(originInputError("")).toBeUndefined();
   });
 });
 
