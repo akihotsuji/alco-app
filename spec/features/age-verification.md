@@ -47,7 +47,7 @@
 | 既存ユーザー | **一度だけ確認**。スキップフラグは持たない | 個人利用のオーナーも同じ画面を一度通る |
 | HTTP | 未確認の機能 API は **403** `age_required`。未満の提出は **403** `age_restricted`。451 は使わない | ユーザー列挙をしない。IDOR の 404 方針とは別（リソースの存否ではない） |
 | 公開 API | **増やさない**。確認 API はセッション必須 | [api-design.md](../api-design.md) 2.3 |
-| レスポンス | `GET /api/me` は `ageVerified` だけ。`birthOn` は返さない | 露出を最小にする |
+| レスポンス | `GET /api/me` は `ageVerified` に加え認証手段フラグ（`hasPassword` / `hasGoogle`）。`birthOn` は返さない | 露出を最小にする。削除 UI は手段だけ見る |
 | ログ | 生年月日・計算途中の日付をログに出さない | 要配慮になりうる |
 | PP | 生年月日と確認日時をデータマップへ追加。版を `2026-09-10` に上げる | 8-01 受け入れ「PP と項目が一致」。再同意ゲートは 8-01 どおり作らない |
 
@@ -101,8 +101,9 @@ isAtLeast20 = today >= majorityOn
 
 | 方法 | パス | 年齢確認 | 概要 |
 |---|---|---|---|
-| GET | `/api/me` | 不要 | `{ id, email, name, ageVerified }`。`birthOn` なし |
+| GET | `/api/me` | 不要 | `{ id, email, name, ageVerified, hasPassword, hasGoogle }`。`birthOn` なし |
 | POST | `/api/me/age-verification` | 不要 | `{ birthOn }`。成功 `{ ageVerified: true }` |
+| POST | `/api/me/account-deletion` | 不要 | 本人退会。年齢確認の成否に依存しない。[account-deletion.md](account-deletion.md) |
 | * | 記録・セラー・ノート・写真・マイドリンク | **必須** | 未確認は 403 `age_required` |
 | * | `/api/auth/*` | 不要 | ログアウト・表示名更新は可 |
 | GET | `/api/health` | 不要 | 公開のまま |
@@ -134,7 +135,8 @@ isAtLeast20 = today >= majorityOn
 2. ログイン成功 → 元の `redirect` または `/`。未確認ならクライアントが `/age?redirect=` へ
 3. 確認済みが `/age` に来たら `redirect` または `/`
 4. 未満 → 同じ `/age` の拒否状態。生年月日の修正とログアウト
-5. ログアウトは `endSession`。タブバーは出さない
+5. 確認中・拒否の両方から「アカウントを削除」へ辿れる。削除に年齢確認は要求しない
+6. ログアウトは `endSession`。タブバーは出さない
 
 ---
 

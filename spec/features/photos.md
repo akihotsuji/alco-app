@@ -43,8 +43,9 @@
 
 - `r2_key` は `{photoId}.jpg` 等。ファイル名・`user_id` を含めない
 - レスポンスに `r2Key` / `userId` を出さない
-- 配信: `Cache-Control: private, max-age=31536000, immutable` + `ETag: "{photoId}"`。写真は差し替え不可（内容が変わるときは ID が変わる）なので 1 年 immutable にできる。`private` で共有キャッシュには乗せない。`If-None-Match` が一致すれば **認可の後に** 304（本文なし。R2 を読まない）。他人・不明は一致しても 404
-- Cron（`0 18 * * *`）: 未紐付け 24h 超を最大 500 件、R2 → D1。件数だけログ。HTTP の GC は無い
+- 配信: 今後の `GET /api/photos/:id/content` は `Cache-Control: private, no-store` + `ETag: "{photoId}"`。アカウント削除後に端末キャッシュから本文を再利用しないため、1 年 immutable は見直す。既存レスポンスへの遡及はしない。`If-None-Match` が一致すれば **認可の後に** 304（本文なし。R2 を読まない）。他人・不明は一致しても 404
+- R2 put の前に `photo_object_reservations`（`r2_key` + `user_id`、lease。user CASCADE は付けない）へ予約する。put 直前にユーザー存在と lease を確認する。ユーザー削除後の遅延 put は予約が取れなければ書かない
+- Cron（`0 18 * * *`）: 未紐付け 24h 超を最大 500 件、R2 → D1。R2 のタイムアウト・5xx・権限障害では D1 行を消さない（オブジェクト無しは成功）。件数だけログ。HTTP の GC は無い。同じ cron がアカウント削除の写真タスクと台帳転記も再実行する（[account-deletion.md](account-deletion.md)）
 - 日次上限は `photos.created_at` をユーザー単位で数える。R2 書き込み前に判定する。詳細は [rate-limit-abuse.md](rate-limit-abuse.md)
 
 ## 対象外（後続）

@@ -30,7 +30,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 1 タップ記録 | **`POST /api/my-drinks/:id/log` を必須**。サーバーがプリセットをコピー | 3-03。クライアントが量・度数を混ぜない |
 | 写真配信 | **認可付き `GET /api/photos/:id/content`（Worker が R2 をストリーム）** | 同一オリジンで Cookie が付く。R2 binding のみ。追加の S3 シークレット不要 |
 | 署名 URL | MVP では **作らない** | 上に同じ。必要になったら追記 |
-| `/api/me` | `{ id, email, name, ageVerified }`。`birthOn` は返さない。表示名更新は Better Auth クライアント | 設定画面。独自 PATCH は作らない。年齢確認は 8-02 |
+| `/api/me` | `{ id, email, name, ageVerified, hasPassword, hasGoogle }`。`birthOn` は返さない。表示名更新は Better Auth クライアント | 設定画面。独自 PATCH は作らない。年齢確認は 8-02。削除 UI は認証手段だけ見る |
 | 週の始まり | **月曜（ISO 8601）** | 3-06 が覆す場合は本ファイルを先に直す |
 | 未来日の休肝 | サマリーの未来日は `isFuture: true`、**休肝日に数えない** | 3-06 の提案を採用 |
 | JSON の瞬間時刻 | **ISO 8601 UTC**（`...Z`）。DB の Unix ms とはサーバーが変換 | 可読性と TZ 明示 |
@@ -158,6 +158,7 @@ WHERE id = :id AND user_id = :sessionUserId
 | 401 | `unauthorized` | セッションなし / 期限切れ |
 | 403 | `age_required` | ログイン済みだが年齢未確認。機能 API のみ（8-02） |
 | 403 | `age_restricted` | 生年月日提出時点で満 20 歳未満。保存しない（8-02） |
+| 403 | `reauthentication_required` | アカウント削除の本人確認不足（誤パスワード・古いセッション） |
 | 404 | `not_found` | 未定義ルート、存在しない ID、他人の ID、他人の参照 ID |
 | 413 | `payload_too_large` | 写真サイズ超過（1MB） |
 | 415 | `unsupported_media_type` | 許可外 MIME（SVG / GIF / HEIC 等） |
@@ -249,8 +250,9 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | GET | `/api/health` | なし | 死活確認 |
 | GET | `/api/config` | なし | 公開設定（Turnstile サイトキーだけ） |
 | * | `/api/auth/*` | Better Auth | 認証（公式ハンドラ） |
-| GET | `/api/me` | 必須 | 自分の id / email / name / ageVerified |
+| GET | `/api/me` | 必須 | 自分の id / email / name / ageVerified / hasPassword / hasGoogle |
 | POST | `/api/me/age-verification` | 必須 | 生年月日で満 20 歳を確認。年齢ゲート対象外 |
+| POST | `/api/me/account-deletion` | 必須 | アカウント削除の受付。年齢ゲート対象外。202 |
 | GET | `/api/drink-logs` | 必須 | 期間内の記録一覧＋合計 |
 | GET | `/api/drink-logs/summary` | 必須 | 日 / 週 / 月の集計 |
 | POST | `/api/drink-logs` | 必須 | 記録作成 |
@@ -309,9 +311,10 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | | |
 |---|---|
 | 認証 | 必須（年齢確認は不要） |
-| 成功 | `{ "id": "<user.id>", "email": "<email>", "name": "<name>", "ageVerified": true \| false }` |
+| 成功 | `{ "id": "<user.id>", "email": "<email>", "name": "<name>", "ageVerified": true \| false, "hasPassword": true \| false, "hasGoogle": true \| false }` |
 
-- Better Auth の `user` から取る。`account.password` は見ない
+- Better Auth の `user` から取る。`account.password` は SELECT しない
+- `hasPassword` / `hasGoogle` は `account.provider_id` が `credential` / `google` かだけ見る
 - `image` は返さない（MVP で使わない）
 - `ageVerified` は `age_verifications` に行があるか。`birthOn` は返さない
 - 表示名の更新は Better Auth クライアント。本 API に PATCH は置かない
@@ -327,8 +330,27 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 - 満 20 歳の計算はサーバー（[age-verification.md](features/age-verification.md)）。クライアント判定は信じない
 - 未満は 403 `age_restricted`。行を作らない
 - 既に確認済みなら 200 で本文を無視する
-- 未来日・1900 年より前・形式不正は 400 `validation_error`（`fields.birthOn`）
-- 生年月日をログに出さない
+
+### 4.2.2 POST /api/me/account-deletion
+
+正本は [features/account-deletion.md](features/account-deletion.md)。
+
+| | |
+|---|---|
+| 認証 | 必須（年齢確認は不要） |
+| ボディ | `{ "confirmed": true, "password"?: string }`（未知キー不可。`userId` / メール / r2Key 不可） |
+| 成功 | 202 `{ "status": "accepted" }`。`Cache-Control: no-store`。セッション Cookie を失効 |
+| 入力不備 | 400 `validation_error` |
+| セッション無効 | 401 `unauthorized` |
+| 本人確認不足 | 403 `reauthentication_required` |
+| 制限 | 429 `rate_limited` |
+| 受付前の障害 | 5xx |
+
+- 対象はセッションの `user.id` のみ。GET では削除しない
+- `Origin` がリクエスト origin と一致しない POST は 400
+- パスワード設定済みは Better Auth `verifyPassword`。Google のみはセッション `createdAt` が 5 分以内
+- 受付確定は写真キーの永続化と通常 DB 削除の同一 batch コミット後
+- Better Auth `deleteUser` は有効化しない
 
 記録・セラー・ノート・写真・マイドリンクなど、上記以外の機能 API は未確認なら 403 `age_required`。`GET /api/health`、`GET /api/config`、`/api/auth/*` は対象外。
 
@@ -841,7 +863,7 @@ src/server/
   errors.ts             # ApiError と code ↔ status 対応表
   validation.ts         # validate(target, schema): zod-validator 共通ラッパー（失敗は 400 validation_error）
   middleware/auth.ts    # PUBLIC_API_ROUTES（公開パスの唯一のリスト）と createAuthGuard
-  middleware/age.ts     # 年齢確認（exempt: GET /api/me, POST /api/me/age-verification, 公開ルート）
+  middleware/age.ts     # 年齢確認（exempt: GET /api/me, POST /api/me/age-verification, POST /api/me/account-deletion, 公開ルート）
   middleware/error.ts   # errorHandler / notFoundHandler
   routes/health.ts
   routes/me.ts
@@ -856,7 +878,7 @@ src/server/
 ```text
 1. secure-headers
 2. 認証 MW（/api/* 全体。PUBLIC_API_ROUTES = GET /api/health, GET /api/config, /api/auth/* は内部で除外）
-3. 年齢確認 MW（未確認の機能 API は 403 `age_required`。GET /api/me と POST /api/me/age-verification と公開ルートは除外）
+3. 年齢確認 MW（未確認の機能 API は 403 `age_required`。GET /api/me と POST /api/me/age-verification と POST /api/me/account-deletion と公開ルートは除外）
 4. /api/auth/*（Better Auth handler）
 5. 業務ルート（/api/health, /api/me, …。固定パスを :id より前）
 6. 未定義 /api/* → 404 { "error": "not_found" }（未認証なら 2 で 401。年齢未確認なら 3 で 403）
@@ -878,7 +900,7 @@ src/server/
 4. 更新・削除は `and(eq(id), eq(userId))`
 5. 入力は `src/shared` の Zod + `@hono/zod-validator`
 6. エラーは共通ハンドラ。クライアントは `error` コードのみ。スタックはログだけ
-7. 他人と未存在は 404 同一本文。IDOR に 403 は使わない。年齢ゲートだけ 403（`age_required` / `age_restricted`）
+7. 他人と未存在は 404 同一本文。IDOR に 403 は使わない。年齢ゲート（`age_required` / `age_restricted`）とアカウント削除の本人確認（`reauthentication_required`）だけ 403
 8. `alcoholG` はサーバー再計算。リクエストで受け取らない
 9. レスポンス型を明示し `AppType` を export する
 10. 写真キーはサーバー生成。`r2Key` を JSON に出さない
@@ -897,7 +919,7 @@ src/server/
 | Gemini / OpenAI 等の外部 Vision API | 記録・セラー・ノートの既定は Gemini 3.7 Flash（Cloudflare Unified Billing）。Llama は設定キーで戻せる。[features/ai-recognition.md](features/ai-recognition.md) |
 | 記録・ノート写真の AI 推定 | 記録は `POST /api/drink-logs/recognize`。ノートは `POST /api/tasting-notes/recognize`（本変更） |
 | CSV エクスポート | 将来構想 |
-| アカウント削除 API | 将来（FK CASCADE は data-model 済み） |
+| アカウント削除 API | 実装済み（[features/account-deletion.md](features/account-deletion.md)） |
 | パスワードリセットメール | Phase 8-03（実装済み） |
 | OAuth | Phase 8-04（Google。実装済み） |
 | アプリ全体のレート制限 | Phase 8-05 |
@@ -925,7 +947,7 @@ src/server/
 | bottle-detail | `GET /api/bottles/:id`、`POST /api/bottles/:id/consume`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
 | note-list / note-detail / note-new / note-edit | `/api/tasting-notes`（`photoIds`）、`POST /api/tasting-notes/recognize`、`/api/photos`、`GET /api/bottles?view=all&q=` |
 | photo-edit | `POST /api/photos`（未紐付け）、`DELETE /api/photos/:id`（破棄） |
-| settings | `GET /api/me`、Better Auth ログアウト / 表示名 |
+| settings | `GET /api/me`、Better Auth ログアウト / 表示名、`POST /api/me/account-deletion` |
 
 クライアントのルートガードは UX。認可の正は本 API。
 

@@ -109,6 +109,8 @@ erDiagram
     user ||--o{ ai_usage : "daily count"
     user ||--o| legal_consents : "signup consent"
     user ||--o| age_verifications : "age gate"
+    account_deletion_requests ||--o{ account_deletion_photo_tasks : "r2 keys"
+    account_deletion_requests ||--o| account_deletion_records : "outbox"
     my_drinks ||--o{ drink_logs : "optional ref"
     bottles ||--o{ drink_logs : "optional (consume / manual)"
     bottles ||--o{ tasting_notes : "optional"
@@ -538,9 +540,63 @@ CHECK (
 | verifiedAt | verified_at | integer | NO | | 確認成功の瞬間（UTC ms）。サーバーが付与 |
 | createdAt / updatedAt | created_at / updated_at | integer | NO | | |
 
-- `GET /api/me` は `ageVerified` だけ返す。`birthOn` はレスポンスに出さない
+- `GET /api/me` は `ageVerified` に加え `hasPassword` / `hasGoogle` を返す。`birthOn` はレスポンスに出さない
 - 確認済みの再 POST は無視（上書きしない）
 - 計算の正は [age-verification.md](features/age-verification.md)
+
+### 6.9 account_deletion_requests（アカウント削除）
+
+削除受付の内部 ID。表示名・メール・飲酒内容は持たない。
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | UUID v4。削除要求 ID |
+| createdAt | created_at | integer | NO | | 受付日時（UTC ms） |
+
+`user_id` FK は付けない（user 削除に巻き込まない）。
+
+### 6.10 account_deletion_records（復元用 outbox）
+
+復元対象 D1 と独立した台帳へ転記するための最小記録。
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| userId | user_id | text | NO | PK | 削除した `user.id`。FK は付けない |
+| requestId | request_id | text | NO | | `account_deletion_requests.id` |
+| deletedAt | deleted_at | integer | NO | | 受付確定日時（UTC ms） |
+| replicatedAt | replicated_at | integer | YES | | 写真 R2 台帳へ転記した日時。NULL は未転記 |
+
+保持は最大復元可能期間＋余裕。転記先キーは `account-deletion-ledger/{userId}`。
+
+### 6.11 account_deletion_photo_tasks（R2 削除タスク）
+
+受付 batch で `photos.r2_key` と未リース予約キーを `INSERT SELECT` する。JS へ全件は読み出さない。
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| r2Key | r2_key | text | NO | PK | 削除対象キー。UNIQUE |
+| requestId | request_id | text | NO | | 削除要求 ID |
+| status | status | text | NO | CHECK `pending` / `leased` / `succeeded` | |
+| attemptCount | attempt_count | integer | NO | default 0 | |
+| nextAttemptAt | next_attempt_at | integer | NO | | 次回試行（UTC ms） |
+| leaseUntil | lease_until | integer | YES | | 処理中 lease |
+| lastErrorCode | last_error_code | text | YES | | 機密を含まない分類（`timeout` / `r2_5xx` 等） |
+| createdAt | created_at | integer | NO | | |
+
+user CASCADE は付けない。成功したキーは行ごと消す。試行上限でも捨てない。
+
+### 6.12 photo_object_reservations（アップロード予約）
+
+R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| r2Key | r2_key | text | NO | PK | 予約キー |
+| userId | user_id | text | NO | | 所有者。**FK なし**（user 削除に巻き込まない） |
+| leaseUntil | lease_until | integer | NO | | 処理中 lease。切れ後に回収可 |
+| createdAt | created_at | integer | NO | | |
+
+削除 batch は lease 中の予約をタスクへコピーしない。lease 切れ後、user 不在なら scheduled がタスク化する。
 
 ---
 
@@ -566,6 +622,8 @@ CHECK (
 | `photos_log_idx` | photos | `drink_log_id` | 記録サムネ |
 | `photos_r2_key_uidx` | photos | `r2_key` UNIQUE | キー衝突防止 |
 | `legal_consents_user_uidx` | legal_consents | `user_id` UNIQUE | ユーザーあたり 1 同意 |
+| `account_deletion_photo_tasks_due_idx` | account_deletion_photo_tasks | `status`, `next_attempt_at` | 未完了タスクの再実行 |
+| `photo_object_reservations_user_lease_idx` | photo_object_reservations | `user_id`, `lease_until` | 期限切れ予約の回収 |
 
 名前検索（銘柄・生産者）は個人規模では `user_id` 絞り込み + `LIKE` で足りる。全文検索インデックスは作らない。
 
@@ -579,7 +637,8 @@ CHECK (
 
 | 親 | 子 | ON DELETE | 理由 |
 |---|---|---|---|
-| `user.id` | アプリ 8 テーブル（`ai_usage` / `legal_consents` / `age_verifications` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない（削除 UI は将来） |
+| `user.id` | アプリ 8 テーブル（`ai_usage` / `legal_consents` / `age_verifications` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない。削除 UI は [account-deletion.md](features/account-deletion.md) |
+| （なし） | `account_deletion_requests` / `account_deletion_records` / `account_deletion_photo_tasks` / `photo_object_reservations` | FK なし | user 削除に巻き込まれる CASCADE を付けない。写真キーを先に永続化するため |
 | `my_drinks.id` | `drink_logs.my_drink_id` | SET NULL | 過去ログを残す |
 | `bottles.id` | `drink_logs.bottle_id` | SET NULL | 記録と `drink_name` スナップショットを残す |
 | `bottles.id` | `tasting_notes.bottle_id` | SET NULL | ノートとスナップショットを残す |
@@ -587,7 +646,7 @@ CHECK (
 | `tasting_notes.id` | `photos.tasting_note_id` | CASCADE | ノート写真も同様 |
 | `drink_logs.id` | `photos.drink_log_id` | CASCADE | 記録写真も同様 |
 
-写真行の削除時、アプリが R2 オブジェクトも消す（DB カスケードだけでは R2 は消えない）。親削除の前に子 photo の `r2_key` を集めて R2 を消し、失敗分は未紐付け GC と同じ日次ジョブで再試行する。
+写真行の削除時、アプリが R2 オブジェクトも消す（DB カスケードだけでは R2 は消えない）。アカウント削除では user を消す前に `r2_key` をタスクへ `INSERT SELECT` し、R2 は非同期に消す。R2 障害時は D1 のキーを捨てない。
 
 ボトル削除後のノートは、スナップショットだけで独立ノートとして残る。ボトル詳細からは辿れなくなる。
 
@@ -621,7 +680,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 
 ## 10. Drizzle スキーマ草案
 
-Phase 2-01 の実装メモ。**実装済み（1-07 改訂を含む）**: 正は [`src/db/schema.ts`](../src/db/schema.ts)（アプリ 8 テーブル。`ai_usage` / `legal_consents` / `age_verifications` を含む）と [`src/db/auth-schema.ts`](../src/db/auth-schema.ts)（Better Auth CLI 生成物）。enum 配列は [`src/shared/constants.ts`](../src/shared/constants.ts) から import し、CHECK 制約も drizzle-kit 経由（`check()`）で生成する。以下の草案は設計時の参考として残す。差分が出たら実装側を正とし、本表を更新する。
+Phase 2-01 の実装メモ。**実装済み（1-07 改訂を含む）**: 正は [`src/db/schema.ts`](../src/db/schema.ts)（アプリ 8 テーブル＋削除処理 4 テーブル。`ai_usage` / `legal_consents` / `age_verifications` / `account_deletion_*` / `photo_object_reservations` を含む）と [`src/db/auth-schema.ts`](../src/db/auth-schema.ts)（Better Auth CLI 生成物）。enum 配列は [`src/shared/constants.ts`](../src/shared/constants.ts) から import し、CHECK 制約も drizzle-kit 経由（`check()`）で生成する。以下の草案は設計時の参考として残す。差分が出たら実装側を正とし、本表を更新する。
 
 ```ts
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";

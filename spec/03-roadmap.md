@@ -275,6 +275,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] OAuthログイン（Google等）→ [features/oauth-login.md](features/oauth-login.md)（8-04。2026-09-10。Google クライアント投入はオーナー）
 - [x] レート制限・不正利用対策（Cloudflare WAF / Turnstile）→ [features/rate-limit-abuse.md](features/rate-limit-abuse.md)（8-05。2026-09-10。Turnstile キーと WAF ルール投入はオーナー）
 - [x] 無料枠の使用量監視と、超過時の課金プラン検討 → [features/usage-monitoring.md](features/usage-monitoring.md)（8-06。2026-09-10。Budget alert / Gateway spend limit はオーナー）
+- [x] アカウント削除（本人退会・D1 原子削除・R2 非同期回収）→ [features/account-deletion.md](features/account-deletion.md)（8-07。2026-09-11）
 
 ---
 

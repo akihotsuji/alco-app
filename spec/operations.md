@@ -160,6 +160,18 @@ pnpm exec wrangler d1 export alco-app-prod --remote --env production --output=ba
 
 オブジェクトバージョンは有効にしていない。誤削除・GC 済みの実体は **戻せない**。メタだけ残って 404 なら、ユーザーに撮り直し。バケットごと消した場合はバックアップが無い。
 
+### 5.4 アカウント削除台帳の再適用
+
+退会済みユーザーがバックアップや Time Travel で復活しないようにする。正本は [account-deletion.md](features/account-deletion.md)。アプリ Worker にバックアップ SQL は読ませない。
+
+1. 一時 D1 で中身を確認する。本番をいきなり上書きしない
+2. 現行 D1 の `account_deletion_records` で `replicated_at IS NULL` が無いか確認する。未転記があれば、サービス再開前に写真 R2 の `account-deletion-ledger/{userId}` へ回収できるか見る
+3. 現行 D1 喪失など、台帳の完全性を確認できないときは復元データを公開しない
+4. 復元後、サービス再開前に台帳の `user_id` を再削除する（`user` 削除で CASCADE。旧セッションは使えない）
+5. 未転記が残る状態では再開しない
+
+再適用は `reapplyAccountDeletionLedger`（写真 R2 の台帳プレフィックスを列挙し、キーから `userId` を取り `user` を消す）。キーと本文の `userId` が一致しないオブジェクトは使わない。
+
 ---
 
 ## 6. シークレットのローテーション
