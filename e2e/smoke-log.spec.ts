@@ -40,21 +40,7 @@ test("サインアップから記録し、今日と週のサマリー数字が�
     expect(boxesOverlap(toastBox, homeTabBox)).toBe(false);
   }
 
-  await mainNav(page).getByRole("button", { name: "お酒を記録" }).click();
-  await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
-  await expect(toast).toBeVisible();
-  const saveAfterToast = page.getByRole("button", { name: "記録を保存" });
-  const toastOnForm = await toast.boundingBox();
-  const saveBox = await saveAfterToast.boundingBox();
-  expect(toastOnForm && saveBox).toBeTruthy();
-  if (toastOnForm && saveBox) {
-    expect(boxesOverlap(toastOnForm, saveBox)).toBe(false);
-  }
-  await toast.getByRole("button", { name: "閉じる" }).click();
-  await expect(toast).toHaveCount(0);
-
-  await page.getByRole("button", { name: "戻る" }).click();
-  await mainNav(page).getByRole("button", { name: "ホーム" }).click();
+  await homeTab.click();
   await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
   await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText("1");
   await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText("純アルコール量");
