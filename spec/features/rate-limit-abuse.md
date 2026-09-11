@@ -72,7 +72,7 @@ WAF の初期目安（ダッシュボード。コードに書かない。ログ�
 
 1. ログイン / サインアップ / 再設定メールで `GET /api/config` → サイトキー
 2. `https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit` を読み、ボックスを描画（日本語、テーマは `data-theme`）
-3. トークンが無いと送信と「Google で続行」は無効
+3. トークンが無いと送信と Google ボタンは無効
 4. 送信時ヘッダー `x-captcha-response`
 5. サーバーはシークレットで siteverify。失敗は登録・ログインしない
 6. トークンは使い捨て。失敗後はウィジェットをリセット

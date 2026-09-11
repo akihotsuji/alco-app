@@ -2,8 +2,8 @@
 
 実装: Phase 8-04。画面は [screen-designs/01-auth.md](../screen-designs/01-auth.md) の `auth-login` / `auth-signup`。手順は [roadmap/phase-08-public-launch/04-oauth-login.md](../../roadmap/phase-08-public-launch/04-oauth-login.md)。認証の正本は [auth.md](auth.md)。
 
-- 状態: **実装済み・画面導線は一時非表示**（2026-09-10）。Google Cloud のクライアント作成と secret 投入はオーナー
-- 画面の「Google で続行」は `src/shared/oauth.ts` の `GOOGLE_SIGN_IN_VISIBLE`（現在 `false`）で出し分ける。Google の同意画面が未確認アプリの警告を出す間はログイン・サインアップの両方で隠す。サーバー側の Better Auth 設定・`/api/auth/*` は変えない（再表示はフラグを `true` に戻すだけ）
+- 状態: **実装**（2026-09-11。導線復活）。Google Cloud のクライアント作成と secret 投入はオーナー
+- 画面の Google 導線は `src/shared/oauth.ts` の `GOOGLE_SIGN_IN_VISIBLE`（現在 `true`）で出し分ける。ログインは「Googleアカウントでログインする」、サインアップは「Googleアカウントで登録する」。警告が出たらフラグを `false` にして隠せる。サーバー側の Better Auth 設定・`/api/auth/*` は変えない
 - プロバイダは **Google のみ**。Apple や他社は足さない
 
 ---
@@ -19,7 +19,7 @@
 **対象**
 
 - Google（第一候補。「等」の追加はしない）
-- ログイン／サインアップ上の「Google で続行」
+- ログイン／サインアップ上の Google ボタン（「Googleアカウントでログインする」／「Googleアカウントで登録する」）
 - 既存メール＋パスワードアカウントとの衝突方針
 - 新規 Google ユーザーの規約同意（8-01）と年齢確認（8-02）
 - テストは Google をモック。実クライアントは git に置かない
@@ -60,7 +60,7 @@
 
 ### 4.1 ログイン（既存 Google）
 
-1. `/login` の「Google で続行」（キーがあるときは Turnstile 完了後）
+1. `/login` の「Googleアカウントでログインする」（キーがあるときは Turnstile 完了後）
 2. `POST /api/auth/sign-in/social`（`provider: google`。`requestSignUp` なし。ヘッダー `x-captcha-response`）
 3. Google の同意画面（`prompt: select_account`、PKCE）
 4. `{origin}/api/auth/callback/google`
@@ -69,7 +69,7 @@
 
 ### 4.2 サインアップ（新規 Google）
 
-1. `/signup` で規約チェックを入れて「Google で続行」（キーがあるときは Turnstile 完了後）
+1. `/signup` で規約チェックを入れて「Googleアカウントで登録する」（キーがあるときは Turnstile 完了後）
 2. 同じ公式エンドポイント。`requestSignUp: true` と `additionalData: { acceptedLegal, legalVersion }`。同じ Turnstile トークン
 3. 同意なし・旧版は 400。Google へは進まない
 4. 新規なら `legal_consents` を書き、`/age` へ
@@ -87,7 +87,7 @@
 
 | 画面 | 要素 |
 |---|---|
-| `/login` | 主ボタンの下、「または」、副ボタン「Google で続行」 |
+| `/login` | 主ボタンの下、「または」、副ボタン「Googleアカウントでログインする」 |
 | `/signup` | 同じ。規約未チェックでは Google ボタン無効 |
 | 失敗 | カード上部の汎用文。クエリの `error` は残さない |
 

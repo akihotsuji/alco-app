@@ -104,7 +104,7 @@ Better Auth 配下のうち、本アプリが使う操作（パスは `basePath`
 | パスワードリセット要求 | `POST /request-password-reset` | 使う（8-03）。未登録でも同じ 200。`redirectTo` は `/reset-password` |
 | リセット callback | `GET /reset-password/:token` | Better Auth が `/reset-password?token=` へ 302 |
 | パスワード再設定 | `POST /reset-password` | 使う（8-03）。トークンは Better Auth。自前発行しない |
-| Google で続行 | `POST /sign-in/social` | 使う（8-04）。`provider: google`。新規は `requestSignUp: true` と規約同意（`additionalData`）。ログインは既存 Google のみ。`SIGNUPS_CLOSED` 時の新規（`requestSignUp`）は 400（8-06） |
+| Google ログイン／登録 | `POST /sign-in/social` | 使う（8-04）。`provider: google`。新規は `requestSignUp: true` と規約同意（`additionalData`）。ログインは既存 Google のみ。`SIGNUPS_CLOSED` 時の新規（`requestSignUp`）は 400（8-06） |
 | Google callback | `GET /callback/google` | Better Auth が処理。リダイレクト URI は `{baseURL}/api/auth/callback/google` |
 
 `/api/auth/*` のレスポンス形式は Better Auth の契約に従う。本ドキュメントの `{ "error": "..." }` には包まない。

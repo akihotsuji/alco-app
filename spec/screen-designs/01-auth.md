@@ -27,8 +27,8 @@
 │ │ [        ログイン         ]   │ │  Button 主
 │ │      パスワードを忘れた       │ │  primary 文字リンク → /forgot-password
 │ │      アカウントを作成         │ │  primary 文字リンク → /signup
-│ │            または             │ │  L8/L9 は GOOGLE_SIGN_IN_VISIBLE=true のときだけ
-│ │ [     Google で続行      ]   │ │  Button 副（現在は非表示）
+│ │            または             │ │
+│ │ [ Googleアカウントでログインする ] │ │  Button 副。L8/L9 は GOOGLE_SIGN_IN_VISIBLE
 │ └──────────────────────────────┘ │
 │                                  │
 └──────────────────────────────────┘
@@ -45,8 +45,8 @@
 | L5 | ログイン | Button 主 | 押下で無効化 + 「ログイン中」 | `signIn.email` |
 | L6 | アカウントを作成 | リンク | `/signup`（`redirect` クエリは引き継ぐ） | — |
 | L7 | パスワードを忘れた | リンク | `/forgot-password`。`redirect` は付けない | — |
-| L8 | 区切り | テキスト | 「または」。L9 と一緒に出し分ける | — |
-| L9 | Google で続行 | Button 副 | **現在は非表示**（`GOOGLE_SIGN_IN_VISIBLE = false`。Google の同意画面が未確認アプリの警告を出す間。2026-09-10）。表示時: 既存 Google アカウントのみ。新規は作らない。押下で無効化。確認未完了では無効 | `signIn.social`（`provider: google`）。同じ Turnstile トークン |
+| L8 | 区切り | テキスト | 「または」。L9 と一緒に出し分ける（`GOOGLE_SIGN_IN_VISIBLE`） | — |
+| L9 | Googleアカウントでログインする | Button 副 | **表示中**（`GOOGLE_SIGN_IN_VISIBLE = true`。2026-09-11 復活。文言は「続行」ではなくログインであることが分かる文。2026-09-11）。既存 Google アカウントのみ。新規は作らない。押下で無効化。確認未完了では無効 | `signIn.social`（`provider: google`）。同じ Turnstile トークン |
 | L10 | ボット対策 | Turnstile ウィジェット | サイトキーがあるときだけ、パスワードの下・主ボタンの上。常時表示。スキップは置かない。読込失敗は再表示 | `GET /api/config` → `x-captcha-response` |
 
 ### 状態
@@ -90,8 +90,8 @@
 | S5 | 登録する | Button 主 → 成功後は自動ログインして `/age`（`redirect` があれば `/age?redirect=`） |
 | S6 | ログインへ | リンク → `/login` |
 | S7 | 法務同意 | 必須チェック。文言「利用規約とプライバシーポリシーに同意する」。リンクはチェックのラベル外（`/terms?from=signup` / `/privacy?from=signup`）。未チェックでは送信不可。サーバーも拒否 | `acceptedLegal` + `legalVersion`（[../features/legal.md](../features/legal.md)） |
-| S8 | 区切り | 「または」。S9 と一緒に出し分ける |
-| S9 | Google で続行 | Button 副。**現在は非表示**（L9 と同じフラグ）。表示時: 未チェックまたは確認未完了では無効。新規は `/age`。同じメールのパスワードユーザーはリンクしない。`signIn.social`（`requestSignUp: true`）。同じ Turnstile トークン |
+| S8 | 区切り | 「または」。S9 と一緒に出し分ける（`GOOGLE_SIGN_IN_VISIBLE`） |
+| S9 | Googleアカウントで登録する | Button 副。**表示中**（L9 と同じフラグ。2026-09-11 復活）。未チェックまたは確認未完了では無効。新規は `/age`。同じメールのパスワードユーザーはリンクしない。`signIn.social`（`requestSignUp: true`）。同じ Turnstile トークン |
 | S10 | ボット対策 | Turnstile ウィジェット。規約チェックの下、主ボタンの上。キーがあるときだけ。スキップは置かない | `GET /api/config` → `x-captcha-response` |
 
 - 招待コード欄は置かない（確定）
@@ -322,12 +322,12 @@
 - [ ] `/forgot-password` の完了文が登録の有無で変わらない（8-03）
 - [ ] `/reset-password` でトークン無しは無効文。成功後は `/login?reset=1`（8-03）
 - [ ] `/forgot-password` `/reset-password` はログイン中でも表示する（8-03）
-- [ ] ログインとサインアップの「Google で続行」は `GOOGLE_SIGN_IN_VISIBLE` で出し分け、いまは両方で隠れている（8-04。2026-09-10）。独立ルートは無い
-- [ ] （表示時）サインアップの Google は規約未チェックでは押せない（8-04）
+- [ ] ログインに「Googleアカウントでログインする」、サインアップに「Googleアカウントで登録する」がある。`GOOGLE_SIGN_IN_VISIBLE` で出し分け、いまは両方で出ている（8-04。2026-09-11）。独立ルートは無い
+- [ ] サインアップの Google は規約未チェックでは押せない（8-04）
 - [ ] OAuth 失敗は汎用文。クエリの `error` を本文に出さない（8-04）
 - [ ] 自前の OAuth 実装が無い（Better Auth のみ。8-04）
 - [ ] キーがあるとき `/login` `/signup` `/forgot-password` に確認ウィジェットがある。`/reset-password` には無い（8-05）
-- [ ] 確認未完了では送信と（表示時の）「Google で続行」が無効。スキップボタンは無い（8-05）
+- [ ] 確認未完了では送信と Google ボタンが無効。スキップボタンは無い（8-05）
 - [ ] 読込失敗は再表示できる。確認を飛ばす裏道は無い（8-05）
 - [ ] ログイン失敗文は従来の汎用文。確認の成否を列挙しない（8-05）
 - [ ] 登録停止中はメール登録も Google 新規も拒否し、「現在、新規登録を停止しています」を出す（8-06）
