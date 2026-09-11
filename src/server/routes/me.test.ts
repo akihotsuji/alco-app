@@ -30,6 +30,8 @@ describe("GET /api/me と年齢確認", () => {
       email: "unverified@example.com",
       name: "未確認",
       ageVerified: false,
+      hasPassword: true,
+      hasGoogle: false,
     });
     expect(JSON.stringify(body)).not.toContain("birthOn");
     expect(JSON.stringify(body)).not.toContain("birth_on");

@@ -1,10 +1,18 @@
-import { Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Suspense, useEffect } from "react";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router";
 import { GuestOnly } from "./auth/GuestOnly.tsx";
 import { RequireAgeVerified } from "./auth/RequireAgeVerified.tsx";
 import { RequireAuth } from "./auth/RequireAuth.tsx";
+import { authClient } from "./lib/auth-client.ts";
+import {
+  discardAccountScopedClientData,
+  subscribeAccountDeletionAccepted,
+} from "./lib/account-deletion-client.ts";
 import { QueryProvider } from "./lib/query-provider.tsx";
 import {
+  AccountDeletedPage,
+  AccountDeletePage,
   AgePage,
   ArchivePage,
   AuthenticatedLayout,
@@ -35,10 +43,26 @@ import {
   SummaryWeekPage,
 } from "./pages/lazy-pages.tsx";
 
+function AccountDeletionEffects() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    return subscribeAccountDeletionAccepted(() => {
+      void queryClient.cancelQueries();
+      queryClient.clear();
+      discardAccountScopedClientData();
+      navigate("/account-deleted", { replace: true });
+      authClient.$store.notify("$sessionSignal");
+    });
+  }, [navigate, queryClient]);
+  return null;
+}
+
 export function App() {
   return (
     <QueryProvider>
       <BrowserRouter>
+        <AccountDeletionEffects />
         <Routes>
           <Route
             path="/terms"
@@ -53,6 +77,14 @@ export function App() {
             element={
               <Suspense fallback={<main className="legal-page" />}>
                 <LegalPrivacyPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/account-deleted"
+            element={
+              <Suspense fallback={<main className="account-deleted-page" />}>
+                <AccountDeletedPage />
               </Suspense>
             }
           />
@@ -78,8 +110,9 @@ export function App() {
           </Route>
           <Route element={<RequireAuth />}>
             <Route path="/age" element={<AgePage />} />
-            <Route element={<RequireAgeVerified />}>
-              <Route element={<AuthenticatedLayout />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/settings/account/delete" element={<AccountDeletePage />} />
+              <Route element={<RequireAgeVerified />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/summary/week" element={<SummaryWeekPage />} />
                 <Route path="/summary/month" element={<SummaryMonthPage />} />

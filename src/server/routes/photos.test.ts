@@ -215,7 +215,7 @@ describe("GET /api/photos/:id と content", () => {
     });
     expect(content.status).toBe(200);
     expect(content.headers.get("content-type")).toBe("image/jpeg");
-    expect(content.headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
+    expect(content.headers.get("cache-control")).toBe("private, no-store");
     expect(content.headers.get("content-disposition")).toBe("inline");
     expect(content.headers.get("etag")).toBe(`"${meta.id}"`);
     expect((await content.arrayBuffer()).byteLength).toBeGreaterThan(0);
@@ -234,7 +234,7 @@ describe("GET /api/photos/:id と content", () => {
     });
     expect(notModified.status).toBe(304);
     expect(notModified.headers.get("etag")).toBe(etag);
-    expect(notModified.headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
+    expect(notModified.headers.get("cache-control")).toBe("private, no-store");
     expect((await notModified.arrayBuffer()).byteLength).toBe(0);
 
     const weak = await ctx.app.request(`/api/photos/${meta.id}/content`, {
@@ -421,5 +421,41 @@ describe("未紐付け GC", () => {
     });
     expect(result.photosDeleted).toBe(0);
     expect(ctx.photos.keys()).toEqual([`${attachedId}.jpg`]);
+  });
+
+  it("R2 障害では未紐付けの D1 行を消さない", async () => {
+    const { runDailyGc } = await import("../services/photo-gc.ts");
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "gc-fail@example.com");
+    const now = Date.now();
+    const staleId = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    await ctx.db.insert(photos).values({
+      id: staleId,
+      userId: a.userId,
+      r2Key: `${staleId}.jpg`,
+      contentType: "image/jpeg",
+      byteSize: 12,
+      width: 10,
+      height: 10,
+      kind: "photo",
+      sortOrder: 0,
+      createdAt: new Date(now - 25 * 60 * 60 * 1000),
+      updatedAt: new Date(now - 25 * 60 * 60 * 1000),
+    });
+    await ctx.photos.put(`${staleId}.jpg`, new Uint8Array([1, 2, 3]));
+    ctx.photos.failDelete(`${staleId}.jpg`);
+
+    const result = await runDailyGc({
+      db: ctx.db,
+      bucket: ctx.photos,
+      nowMs: now,
+    });
+    expect(result.photosDeleted).toBe(0);
+    const leftover = await ctx.db
+      .select({ id: photos.id })
+      .from(photos)
+      .where(eq(photos.id, staleId));
+    expect(leftover).toHaveLength(1);
+    expect(ctx.photos.keys()).toEqual([`${staleId}.jpg`]);
   });
 });

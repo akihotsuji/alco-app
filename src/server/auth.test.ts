@@ -20,6 +20,8 @@ const meSchema = z.object({
   email: z.string(),
   name: z.string(),
   ageVerified: z.boolean(),
+  hasPassword: z.boolean(),
+  hasGoogle: z.boolean(),
 });
 
 describe("認証 API", () => {
@@ -54,6 +56,8 @@ describe("認証 API", () => {
       email: "a@example.com",
       name: "ユーザーA",
       ageVerified: false,
+      hasPassword: true,
+      hasGoogle: false,
     });
   });
 
@@ -98,6 +102,8 @@ describe("認証 API", () => {
       email: userA.email,
       name: userA.name,
       ageVerified: true,
+      hasPassword: true,
+      hasGoogle: false,
     });
     expect(userA.id).not.toBe(userB.id);
   });
@@ -190,9 +196,6 @@ describe("認証 API", () => {
 
     const updateRes = await updateUserName(app, userA.cookie, "新しい名前");
     expect(updateRes.status).toBe(200);
-    // 表示名の更新は session_data（Cookie キャッシュ）も新しい name で書き直す
-    expect(updateRes.headers.getSetCookie().some((c) => /session_data=./i.test(c))).toBe(true);
-
     const cookieA = applySetCookies(userA.cookie, updateRes);
     const meA = await app.request("/api/me", { headers: { Cookie: cookieA } });
     const meB = await app.request("/api/me", { headers: { Cookie: userB.cookie } });

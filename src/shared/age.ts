@@ -49,6 +49,8 @@ export const meSchema = z.object({
   email: z.string(),
   name: z.string(),
   ageVerified: z.boolean(),
+  hasPassword: z.boolean(),
+  hasGoogle: z.boolean(),
 });
 
 export type Me = z.infer<typeof meSchema>;

@@ -114,7 +114,7 @@ export function createAuth(options: CreateAuthOptions) {
       // 保護 API は毎回 getSession する。D1 が遠いと session + user の 2 往復だけで数百 ms かかるため、
       // 短時間だけ署名付き Cookie（httpOnly）から復元する。DB セッションは維持し JWT には移行しない
       cookieCache: {
-        enabled: true,
+        enabled: false,
         maxAge: SESSION_COOKIE_CACHE_MAX_AGE_SECONDS,
         strategy: "compact",
       },

@@ -24,6 +24,7 @@ import {
 } from "./services/drink-recognizer/lookup-runner.ts";
 import { reportUnexpectedError } from "./services/error-alert.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
+import { runAccountDeletionJobs } from "./services/account-deletion-jobs.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
 import { envAssets, isHashedAssetPath, serveHashedAsset } from "./static-assets.ts";
@@ -132,7 +133,7 @@ export function createApp(options: CreateAppOptions = {}) {
   return app
     .route("/api/health", healthRoute)
     .route("/api/config", configRoute)
-    .route("/api/me", createMeRoute({ getDb }))
+    .route("/api/me", createMeRoute({ getDb, getBucket }))
     .route("/api/drink-logs", drinkLogsRoute)
     .route("/api/my-drinks", myDrinksRoute)
     .route("/api/photos", photosRoute)
@@ -146,11 +147,20 @@ export const app = createApp();
 
 export async function handleScheduled(env: Env, nowMs = Date.now()) {
   try {
-    return await runDailyGc({
-      db: createD1Db(env.DB),
-      bucket: wrapR2Bucket(env.PHOTOS),
-      nowMs,
-    });
+    const db = createD1Db(env.DB);
+    const bucket = wrapR2Bucket(env.PHOTOS);
+    let gcError: unknown;
+    let gc = { photosDeleted: 0, aiUsageDeleted: 0 };
+    try {
+      gc = await runDailyGc({ db, bucket, nowMs });
+    } catch (err) {
+      gcError = err;
+    }
+    const deletion = await runAccountDeletionJobs({ db, bucket, nowMs });
+    if (gcError) {
+      throw gcError;
+    }
+    return { ...gc, ...deletion };
   } catch (err) {
     console.error("[gc] unhandled error", err);
     await reportUnexpectedError({

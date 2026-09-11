@@ -57,12 +57,16 @@ describe("unwrap", () => {
       email: string;
       name: string;
       ageVerified: boolean;
+      hasPassword: boolean;
+      hasGoogle: boolean;
     }>();
     expect(me).toEqual({
       id: expect.any(String),
       email: "a@example.com",
       name: "ユーザーA",
       ageVerified: false,
+      hasPassword: true,
+      hasGoogle: false,
     });
   });
 

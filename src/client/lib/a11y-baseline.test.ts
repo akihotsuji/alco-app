@@ -24,6 +24,7 @@ const FORMS = [
   "src/client/components/cellar/BottleForm.tsx",
   "src/client/components/notes/NoteForm.tsx",
   "src/client/pages/logs/MyDrinkPages.tsx",
+  "src/client/pages/AccountDeletionPages.tsx",
 ];
 
 describe("a11y baseline（6-04）", () => {

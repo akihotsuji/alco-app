@@ -15,6 +15,7 @@ export const routeChunks = {
   cellar: () => import("@/client/pages/cellar/CellarPages.tsx"),
   notes: () => import("@/client/pages/notes/NotePages.tsx"),
   settings: () => import("@/client/pages/SettingsPage.tsx"),
+  accountDeletion: () => import("@/client/pages/AccountDeletionPages.tsx"),
   notFound: () => import("@/client/pages/NotFoundPage.tsx"),
   photoEdit: () => import("@/client/components/photo/PhotoEdit.tsx"),
 } as const;
@@ -37,6 +38,9 @@ export function initialRouteChunkIds(pathname: string): readonly RouteChunkId[] 
   }
   if (pathname === "/terms" || pathname === "/privacy") {
     return ["legal"];
+  }
+  if (pathname === "/account-deleted") {
+    return ["accountDeletion"];
   }
   const page = chunkIdForPath(pathname) ?? "home";
   if (page === "home") {
@@ -83,6 +87,9 @@ export function chunkIdForPath(pathname: string): RouteChunkId | null {
   }
   if (pathname === "/terms" || pathname === "/privacy") {
     return "legal";
+  }
+  if (pathname === "/account-deleted" || pathname === "/settings/account/delete") {
+    return "accountDeletion";
   }
   if (pathname.startsWith("/summary/")) {
     return "summary";

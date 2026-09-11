@@ -40,6 +40,8 @@ describe("boot-prefetch の経路", () => {
       "/cellar/archive",
       "/notes/new",
       "/settings",
+      "/settings/account/delete",
+      "/account-deleted",
       "/logs",
       "/logs/new",
       "/logs/entries/abc/edit",
@@ -133,6 +135,7 @@ describe("boot-prefetch の経路", () => {
       "/reset-password",
       "/terms",
       "/privacy",
+      "/account-deleted",
     ]);
   });
 

@@ -145,13 +145,23 @@ describe("マイグレーション（src/db/migrations）", () => {
     db.close();
   });
 
-  it("Auth 4 テーブル + アプリ 8 テーブルが作成される", () => {
+  it("Auth 4 テーブル + アプリ 8 テーブル + 削除処理 4 テーブルが作成される", () => {
     const db = openMigratedDb();
     const rows = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all() as { name: string }[];
     expect(rows.map((r) => r.name)).toEqual(
-      ["account", "session", "user", "verification", ...APP_TABLES].sort(),
+      [
+        "account",
+        "session",
+        "user",
+        "verification",
+        ...APP_TABLES,
+        "account_deletion_photo_tasks",
+        "account_deletion_records",
+        "account_deletion_requests",
+        "photo_object_reservations",
+      ].sort(),
     );
     db.close();
   });
@@ -165,7 +175,7 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
 
   it("schema.ts の全テーブルについて列名・NOT NULL・インデックスが DB と一致する（generate 忘れ検知）", () => {
     const db = openMigratedDb();
-    expect(tables.length).toBe(12);
+    expect(tables.length).toBe(16);
     for (const table of tables) {
       const config = getTableConfig(table);
       const info = db.prepare(`PRAGMA table_info("${config.name}")`).all() as {
@@ -224,6 +234,22 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
       }[];
       const userFk = fks.find((fk) => fk.from === "user_id");
       expect(userFk, table).toMatchObject({ table: "user", to: "id", on_delete: "CASCADE" });
+    }
+    db.close();
+  });
+
+  it("削除処理テーブルは user CASCADE を持たない", () => {
+    const db = openMigratedDb();
+    for (const table of [
+      "photo_object_reservations",
+      "account_deletion_requests",
+      "account_deletion_records",
+      "account_deletion_photo_tasks",
+    ]) {
+      const fks = db.prepare(`PRAGMA foreign_key_list("${table}")`).all() as {
+        table: string;
+      }[];
+      expect(fks.filter((fk) => fk.table === "user"), table).toEqual([]);
     }
     db.close();
   });

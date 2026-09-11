@@ -4,16 +4,11 @@ import { meQueryOptions } from "@/client/hooks/use-me.ts";
 import { ApiClientError, createApiClient } from "@/client/lib/api.ts";
 import { createQueryClient } from "@/client/lib/query-client.ts";
 import { session } from "@/db/schema.ts";
-import {
-  SESSION_COOKIE_CACHE_MAX_AGE_SECONDS,
-  SESSION_EXPIRES_IN_SECONDS,
-  SESSION_UPDATE_AGE_SECONDS,
-} from "@/shared/auth.ts";
+import { SESSION_EXPIRES_IN_SECONDS, SESSION_UPDATE_AGE_SECONDS } from "@/shared/auth.ts";
 import { cookieHeaderFrom, createTestApp, signUp } from "./test-helpers.ts";
 
 const EXPIRES_IN_MS = SESSION_EXPIRES_IN_SECONDS * 1000;
 const UPDATE_AGE_MS = SESSION_UPDATE_AGE_SECONDS * 1000;
-const COOKIE_CACHE_MS = SESSION_COOKIE_CACHE_MAX_AGE_SECONDS * 1000;
 const TIME_TOLERANCE_MS = 5_000;
 
 /** Cookie キャッシュ（`session_data`）を外し、DB を必ず見る経路にする。キャッシュ失効後のブラウザと同じ */
@@ -22,15 +17,6 @@ function withoutSessionDataCookie(cookie: string): string {
     .split("; ")
     .filter((part) => !/session_data/i.test(part))
     .join("; ");
-}
-
-function sessionDataCookieMaxAgeSeconds(setCookies: string[]): number | undefined {
-  const cookie = setCookies.find((value) => /session_data=/i.test(value));
-  if (!cookie) {
-    return undefined;
-  }
-  const match = cookie.match(/Max-Age=(\d+)/i);
-  return match?.[1] === undefined ? undefined : Number(match[1]);
 }
 
 type TestDb = Awaited<ReturnType<typeof createTestApp>>["db"];
@@ -261,9 +247,6 @@ describe("セッション期限", () => {
     expect(cleared.some((value) => /session_token=/i.test(value) && /Max-Age=0/i.test(value))).toBe(
       true,
     );
-    expect(cleared.some((value) => /session_data=/i.test(value) && /Max-Age=0/i.test(value))).toBe(
-      true,
-    );
 
     const meRes = await app.request("/api/me", {
       headers: { Cookie: withoutSessionDataCookie(cookie) },
@@ -274,54 +257,21 @@ describe("セッション期限", () => {
 });
 
 describe("セッションの Cookie キャッシュ", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("ログイン応答が httpOnly の session_data を maxAge 付きで返す", async () => {
+  it("ログイン応答は session_data を付けない", async () => {
     const { app } = await createTestApp();
     const { signUpRes } = await signUpSession(app, "cache@example.com");
-    const setCookies = signUpRes.headers.getSetCookie();
-    expect(sessionDataCookieMaxAgeSeconds(setCookies)).toBe(SESSION_COOKIE_CACHE_MAX_AGE_SECONDS);
-    const dataCookie = setCookies.find((value) => /session_data=/i.test(value)) ?? "";
-    expect(dataCookie).toMatch(/HttpOnly/i);
-    expect(dataCookie).toMatch(/SameSite=Lax/i);
+    expect(signUpRes.headers.getSetCookie().some((value) => /session_data=/i.test(value))).toBe(
+      false,
+    );
   });
 
-  it("maxAge 内は DB のセッション行を見ずに通し、maxAge を過ぎると DB を見る", async () => {
-    const loginAt = Date.parse("2026-09-07T00:00:00.000Z");
-    vi.useFakeTimers({ now: loginAt, toFake: ["Date"] });
+  it("session 行を消したらすぐ 401（署名付き Cookie だけでは通らない）", async () => {
     const { app, db } = await createTestApp();
     const { cookie } = await signUpSession(app, "cache-hit@example.com");
     const created = await loadSoleSession(db);
-
-    // 行を消しても、キャッシュが生きている間は通る（別端末の失効が届くまでの遅れの上限）
     await db.delete(session).where(eq(session.id, created.id));
-    vi.setSystemTime(loginAt + COOKIE_CACHE_MS - 1_000);
-    const cachedRes = await app.request("/api/me", { headers: { Cookie: cookie } });
-    expect(cachedRes.status).toBe(200);
-
-    vi.setSystemTime(loginAt + COOKIE_CACHE_MS + 1_000);
-    const expiredRes = await app.request("/api/me", { headers: { Cookie: cookie } });
-    expect(expiredRes.status).toBe(401);
-    expect(await expiredRes.json()).toEqual({ error: "unauthorized" });
-  });
-
-  it("session_token と一致しない session_data は使われない", async () => {
-    const { app } = await createTestApp();
-    const a = await signUpSession(app, "cache-a@example.com");
-    const b = await signUpSession(app, "cache-b@example.com");
-    const tokenOfA = a.cookie
-      .split("; ")
-      .filter((part) => /session_token=/i.test(part))
-      .join("; ");
-    const dataOfB = b.cookie
-      .split("; ")
-      .filter((part) => /session_data/i.test(part))
-      .join("; ");
-    const mixed = await app.request("/api/me", { headers: { Cookie: `${tokenOfA}; ${dataOfB}` } });
-    expect(mixed.status).toBe(200);
-    const body = (await mixed.json()) as { email: string };
-    expect(body.email).toBe("cache-a@example.com");
+    const res = await app.request("/api/me", { headers: { Cookie: cookie } });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
   });
 });

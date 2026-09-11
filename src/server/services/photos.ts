@@ -1,6 +1,7 @@
 import { and, count, eq, gte } from "drizzle-orm";
-import type { AppSqliteDb } from "@/db/index.ts";
-import { bottles, drinkLogs, photos, tastingNotes } from "@/db/schema.ts";
+import type { AppBatchDb, AppSqliteDb } from "@/db/index.ts";
+import { bottles, drinkLogs, photoObjectReservations, photos, tastingNotes, user } from "@/db/schema.ts";
+import { PHOTO_RESERVATION_LEASE_MS } from "@/shared/account-deletion.ts";
 import {
   PHOTO_CONTENT_TYPES,
   PHOTO_OWNER_LIMITS,
@@ -31,6 +32,7 @@ export type PhotoBucket = {
   ): Promise<unknown>;
   get(key: string): Promise<PhotoObject | null>;
   delete(key: string): Promise<void>;
+  list(prefix: string): Promise<{ objects: { key: string }[] }>;
 };
 
 export function wrapR2Bucket(bucket: R2Bucket): PhotoBucket {
@@ -47,6 +49,18 @@ export function wrapR2Bucket(bucket: R2Bucket): PhotoBucket {
     },
     async delete(key) {
       await bucket.delete(key);
+    },
+    async list(prefix) {
+      const objects: { key: string }[] = [];
+      let cursor: string | undefined;
+      do {
+        const listed = await bucket.list({ prefix, cursor });
+        for (const item of listed.objects) {
+          objects.push({ key: item.key });
+        }
+        cursor = listed.truncated ? listed.cursor : undefined;
+      } while (cursor);
+      return { objects };
     },
   };
 }
@@ -237,7 +251,7 @@ export async function assertPhotoDailyLimit(input: {
 }
 
 export async function createPhoto(input: {
-  db: AppSqliteDb;
+  db: AppBatchDb;
   bucket: PhotoBucket;
   userId: string;
   bytes: Uint8Array;
@@ -260,7 +274,8 @@ export async function createPhoto(input: {
 
   const id = crypto.randomUUID();
   const r2Key = `${id}.${inspected.extension}`;
-  const now = new Date();
+  const now = input.now ?? new Date();
+  const leaseUntil = new Date(now.getTime() + PHOTO_RESERVATION_LEASE_MS);
   const row = {
     id,
     userId: input.userId,
@@ -278,14 +293,53 @@ export async function createPhoto(input: {
     updatedAt: now,
   };
 
-  await input.bucket.put(r2Key, input.bytes, {
-    httpMetadata: { contentType: inspected.contentType },
+  await input.db.insert(photoObjectReservations).values({
+    r2Key,
+    userId: input.userId,
+    leaseUntil,
+    createdAt: now,
   });
 
+  const [alive] = await input.db.select({ id: user.id }).from(user).where(eq(user.id, input.userId));
+  const [held] = await input.db
+    .select({ r2Key: photoObjectReservations.r2Key })
+    .from(photoObjectReservations)
+    .where(
+      and(
+        eq(photoObjectReservations.r2Key, r2Key),
+        eq(photoObjectReservations.userId, input.userId),
+        gte(photoObjectReservations.leaseUntil, now),
+      ),
+    );
+  if (!alive || !held) {
+    await input.db
+      .delete(photoObjectReservations)
+      .where(eq(photoObjectReservations.r2Key, r2Key));
+    throw new ApiError("unauthorized");
+  }
+
   try {
-    await input.db.insert(photos).values(row);
+    await input.bucket.put(r2Key, input.bytes, {
+      httpMetadata: { contentType: inspected.contentType },
+    });
   } catch (error) {
-    await input.bucket.delete(r2Key);
+    await input.db
+      .delete(photoObjectReservations)
+      .where(eq(photoObjectReservations.r2Key, r2Key));
+    throw error;
+  }
+
+  try {
+    await input.db.batch([
+      input.db.insert(photos).values(row),
+      input.db.delete(photoObjectReservations).where(eq(photoObjectReservations.r2Key, r2Key)),
+    ]);
+  } catch (error) {
+    try {
+      await input.bucket.delete(r2Key);
+    } catch {
+      // 予約が残れば scheduled が回収する
+    }
     throw error;
   }
 
@@ -364,12 +418,10 @@ export async function deletePhoto(input: {
 }
 
 /**
- * 写真本文は不変（`r2Key` / `contentType` は作成後に変わらず、差し替えは別 id の新規作成）。
- * `private` で共有キャッシュには載せず、ブラウザだけが長く持つ。再訪の棚・ノート一覧で
- * 認可付き GET（session + D1 + R2 の往復）を毎回やり直さないためのもの。
+ * アカウント削除後に端末キャッシュから本文を再利用しない。
+ * 既存レスポンスへの遡及はしない。
  */
-export const PHOTO_CONTENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
-export const PHOTO_CONTENT_CACHE_CONTROL = `private, max-age=${PHOTO_CONTENT_MAX_AGE_SECONDS}, immutable`;
+export const PHOTO_CONTENT_CACHE_CONTROL = "private, no-store";
 
 /** ETag は写真 id だけから作る（R2 の etag を読みに行かない）。userId や r2Key は含めない */
 export function photoContentEtag(photoId: string): string {
