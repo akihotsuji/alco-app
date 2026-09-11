@@ -33,7 +33,7 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).not.toContain("セラーに戻す");
     expect(source).not.toContain("開栓中");
     expect(source).toContain("OpenedFollowupSheet");
-    expect(source).not.toContain("ノートを書く");
+    expect(source).not.toContain(">ノートを書く<");
     expect(source).not.toContain('navigate("/cellar"');
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });

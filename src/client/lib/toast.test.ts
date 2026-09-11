@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  remainingToastMs,
   TOAST_ACTION_DURATION_MS,
   TOAST_DURATION_MS,
   TOAST_MESSAGES,
   type ToastTimerEvent,
   type ToastTimerState,
-  remainingToastMs,
   toastShowsCheer,
   toastStayMs,
   transitionToastTimer,

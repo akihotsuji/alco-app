@@ -11,10 +11,10 @@ import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import {
+  remainingToastMs,
   type ToastAction,
   type ToastInput,
   type ToastTimerState,
-  remainingToastMs,
   toastShowsCheer,
   toastStayMs,
   transitionToastTimer,

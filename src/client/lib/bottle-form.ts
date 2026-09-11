@@ -4,6 +4,7 @@ import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import {
   BOTTLE_COUNT_MAX,
   BOTTLE_COUNT_MIN,
+  BOTTLE_FIELD_LABELS,
   BOTTLE_MEMO_MAX_LENGTH,
   BOTTLE_MESSAGES,
   BOTTLE_NAME_MAX_LENGTH,

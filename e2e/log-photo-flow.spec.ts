@@ -60,7 +60,9 @@ test("設定に色補正は無く、キャラ合成の説明がある", async ({
   await mainNav(page).getByRole("button", { name: "設定" }).click();
   await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
   await expect(page.getByText("新しい写真にキャラクターを入れる")).toBeVisible();
-  await expect(page.getByText("これから追加する写真に適用されます。記録とノートの写真が対象です。")).toBeVisible();
+  await expect(
+    page.getByText("これから追加する写真に適用されます。記録とノートの写真が対象です。"),
+  ).toBeVisible();
   await expect(page.getByText("色補正")).toHaveCount(0);
   await expect(page.getByText("写真から銘柄などを自動入力します")).toBeVisible();
   await expect(
