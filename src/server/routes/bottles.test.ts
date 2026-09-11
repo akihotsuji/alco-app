@@ -332,7 +332,8 @@ describe("GET /api/bottles", () => {
     );
 
     const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
-    expect(cellar.items.map((item) => item.name)).toEqual(["自分のビール", "自分の赤"]);
+    // createdAt が同一ミリ秒だと id 降順になり、登録順だけでは安定しない
+    expect(cellar.items.map((item) => item.name).toSorted()).toEqual(["自分のビール", "自分の赤"]);
     expect(cellar.totalCount).toBe(2);
     expect(cellar.countsByType.wine).toBe(1);
     expect(cellar.countsByType.beer).toBe(1);
