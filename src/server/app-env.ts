@@ -11,5 +11,6 @@ export type AppEnv = {
   Variables: {
     auth: Auth;
     user: SessionUser;
+    sessionCreatedAt: Date;
   };
 };

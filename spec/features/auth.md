@@ -19,7 +19,7 @@
 | GET | `/api/health` | なし | 別契約 |
 | GET | `/api/config` | なし | サイトキーだけ（8-05） |
 
-これ以外の `/api/*` はセッション必須。`GET /api/me` は `{ id, email, name, ageVerified }` を返す（`birthOn` は出さない）。年齢確認は [age-verification.md](age-verification.md)。
+これ以外の `/api/*` はセッション必須。`GET /api/me` は `{ id, email, name, ageVerified, hasPassword, hasGoogle }` を返す（`birthOn` は出さない。`account.password` は見ない）。年齢確認は [age-verification.md](age-verification.md)。アカウント削除は [account-deletion.md](account-deletion.md)。
 
 ## セッション
 
@@ -28,7 +28,7 @@
 - 期限更新の間隔: **1 日**（`session.updateAge = 60 * 60 * 24`）。自動延長は有効（`disableSessionRefresh: false`）
 - 延長の意味: 毎日定時に足す／期限に 1 日を加算する、ではない。**前回の更新から 1 日以上経過し、まだ期限内のセッションを確認したとき**、その時点から 30 日後へ `expiresAt` と Cookie の `Max-Age` を書き換える。1 日未満の確認では延長しない
 - 確認経路: ブラウザは `authClient.useSession()` → `GET /api/auth/get-session`（Better Auth handler が Set-Cookie を返す）。保護 API は認証 MW が `auth.api.getSession({ returnHeaders: true })` し、返った Set-Cookie を Hono 応答へ append する（内部呼び出しのヘッダーは自動では乗らない）
-- **Cookie キャッシュ**（`session.cookieCache`、**60 秒**、`strategy: "compact"`）: セッション確認のたびに D1 へ行かず、署名付きの `session_data` Cookie（httpOnly / sameSite=Lax / secure。トークンと同じ属性）に session + user を 60 秒だけ持つ。D1 1 往復 ≈ 230 ms が毎 API から消える（[performance.md](performance.md) 6.4）。トレードオフ: 別端末でのサインアウト・パスワード再設定による全セッション失効（`revokeSessionsOnPasswordReset`）・管理者による失効は、その端末で **最長 60 秒**遅れて効く（この間の API は 200）。同じ端末のサインアウトは両 Cookie を即失効させるので遅れない。`session_data` が `session_token` と一致しない・署名が壊れているときは無視して D1 を見る。60 秒を超えたら D1 で再確認し、期限切れなら 401
+- **Cookie キャッシュは使わない**（`session.cookieCache.enabled = false`。保護 API の `getSession` も `disableCookieCache: true`）。アカウント削除直後に、削除前の署名付き Cookie で保護 API・写真配信を使えないようにするため。保護 API は毎回 D1 で session + user を確認する（往復の目安は [performance.md](performance.md) 6.4 の約 230 ms）。失効要件を落とす最適化は後続。`user.deleteUser.enabled` は false のまま（[account-deletion.md](account-deletion.md)）
 - 期限切れは延長して復活させない。保護 API は 401 `{ "error": "unauthorized" }`。Cookie の失効ヘッダーがあれば転送する
 - 既存セッションは設定変更だけでは 30 日に置き換わらない（一括 UPDATE はしない）。次回のセッション確認で延長条件を満たせば、その時点から 30 日になる
 - `baseURL` は `BETTER_AUTH_URL`、未設定なら `CANONICAL_ORIGIN`、それも無ければリクエスト origin。本番 URL を dev に書かない。本番の正は `https://sake-shiori.com`（[custom-domain.md](custom-domain.md)）
@@ -47,10 +47,12 @@
 | `/signup` | 表示名（任意 1〜40）・メール・パスワード（8 文字以上）。規約・PP への必須同意（8-01）。成功後は `/age`（`redirect` があれば引き継ぐ）。既存メールも汎用文。招待コードは置かない。`SIGNUPS_CLOSED` 時は「現在、新規登録を停止しています」（8-06）。S9「Googleアカウントで登録する」（規約チェック必須）。S10 Turnstile（8-05） |
 | `/forgot-password` | 再設定メール。登録の有無で完了文を変えない。ログイン中でも表示（8-03）。F9 Turnstile（8-05） |
 | `/reset-password` | 新パスワード。トークンは query からメモリへ移して消す。ログイン中でも表示（8-03） |
-| `/age` | 生年月日で満 20 歳を確認（8-02）。タブバーなし。未確認のタブ配下はここへ |
+| `/age` | 生年月日で満 20 歳を確認（8-02）。タブバーなし。未確認のタブ配下はここへ。アカウント削除へ辿れる |
+| `/settings/account/delete` | アカウント削除（認証必須・年齢確認不要） |
+| `/account-deleted` | 削除受付後。認証不要 |
 | `/terms` `/privacy` | 認証なしの公開ページ。ログイン済みでも表示（8-01） |
 | `/` | ログイン後の空ホーム（2-05 の認証後シェル。キャラ `rest`）。年齢未確認は `/age` |
-| `/settings` | ログアウト（確認ダイアログ → `endSession`）。`useMe` でメール表示。表示名はインライン編集（`updateUser`）。操作節は触感フィードバック（既定 OFF）と動きを減らす（3-07）。「このアプリ」から規約・PP |
+| `/settings` | ログアウト（確認ダイアログ → `endSession`）。アカウント削除は `/settings/account/delete`。`useMe` でメール表示。表示名はインライン編集（`updateUser`）。操作節は触感フィードバック（既定 OFF）と動きを減らす（3-07）。「このアプリ」から規約・PP |
 
 ログイン済みで `/login` `/signup` に来たら `/`。`/forgot-password` `/reset-password` はログイン中でも表示する（メールのリンクを踏める）。未ログインで認証後 URL に来たら `/login?redirect=`（`/` のときは `redirect` を付けず `/login`。ログアウト直後の URL を素に保つ）。ログイン／登録の送信中にセッション再取得が走っても、フォームを起動画面に置き換えない（ボタンの「ログイン中」「登録中」のまま）。
 

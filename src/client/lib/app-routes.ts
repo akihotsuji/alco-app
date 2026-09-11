@@ -299,8 +299,14 @@ export function resolveAppRoute(
     return notFoundRoute();
   }
 
-  if (segments[0] === "settings" && segments.length === 1) {
-    return found("settings", "settings", { title: "設定", left: SPACER, right: SPACER });
+  if (segments[0] === "settings") {
+    if (segments.length === 1) {
+      return found("settings", "settings", { title: "設定", left: SPACER, right: SPACER });
+    }
+    if (segments[1] === "account" && segments[2] === "delete" && segments.length === 3) {
+      return formRoute("settings-account-delete", "settings", "アカウントを削除", "/settings");
+    }
+    return notFoundRoute();
   }
 
   return notFoundRoute();

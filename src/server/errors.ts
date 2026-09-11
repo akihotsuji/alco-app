@@ -10,6 +10,7 @@ export const API_ERROR_STATUS = {
   unauthorized: 401,
   age_required: 403,
   age_restricted: 403,
+  reauthentication_required: 403,
   not_found: 404,
   payload_too_large: 413,
   unsupported_media_type: 415,
@@ -37,9 +38,10 @@ export class ApiError extends HTTPException {
 
 /** 同一ステータスを共有する年齢ゲート（403）は ApiError 経由だけ。汎用 HTTP 403 は 500 に寄せる。 */
 const CODE_BY_STATUS = new Map<number, ApiErrorCode>(
-  API_ERROR_CODES.filter((code) => code !== "age_required" && code !== "age_restricted").map(
-    (code) => [API_ERROR_STATUS[code], code],
-  ),
+  API_ERROR_CODES.filter(
+    (code) =>
+      code !== "age_required" && code !== "age_restricted" && code !== "reauthentication_required",
+  ).map((code) => [API_ERROR_STATUS[code], code]),
 );
 
 /** Hono 内部や他ミドルウェアが投げた HTTPException のステータスをエラーコードへ寄せる。 */

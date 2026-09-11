@@ -1,9 +1,9 @@
 import { type FormEvent, useRef, useState } from "react";
-import { Navigate, useSearchParams } from "react-router";
+import { Link, Navigate, useSearchParams } from "react-router";
 import { AuthBoot } from "@/client/auth/AuthBoot.tsx";
 import { endSession } from "@/client/auth/end-session.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
-import { Button } from "@/client/components/ui/button.tsx";
+import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useVerifyAge } from "@/client/hooks/use-age-verification.ts";
 import { useMe } from "@/client/hooks/use-me.ts";
@@ -17,6 +17,7 @@ import {
   sanitizeBirthOnPart,
   shouldAdvanceBirthOnPart,
 } from "@/client/lib/birth-on-input.ts";
+import { cn } from "@/client/lib/utils.ts";
 import { AGE_BIRTH_ON_MESSAGE } from "@/shared/age.ts";
 import { resolveSafeRedirect } from "@/shared/auth.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
@@ -131,6 +132,12 @@ export function AgePage() {
             >
               ログアウト
             </Button>
+            <Link
+              className={cn(buttonVariants({ variant: "link" }), "mt-2 self-center")}
+              to="/settings/account/delete"
+            >
+              アカウントを削除
+            </Link>
           </>
         }
       >
@@ -151,14 +158,22 @@ export function AgePage() {
       submitLabel="確認する"
       submittingLabel="確認中"
       footer={
-        <Button
-          className="mt-4 self-center"
-          type="button"
-          variant="ghost"
-          onClick={() => void endSession()}
-        >
-          ログアウト
-        </Button>
+        <>
+          <Button
+            className="mt-4 self-center"
+            type="button"
+            variant="ghost"
+            onClick={() => void endSession()}
+          >
+            ログアウト
+          </Button>
+          <Link
+            className={cn(buttonVariants({ variant: "link" }), "mt-2 self-center")}
+            to="/settings/account/delete"
+          >
+            アカウントを削除
+          </Link>
+        </>
       }
     >
       <p className="mb-4 text-base leading-normal">

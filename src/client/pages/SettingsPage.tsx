@@ -70,6 +70,9 @@ export function SettingsPage() {
             </div>
           </div>
         ) : null}
+        <Link className="settings-row settings-logout" to="/settings/account/delete">
+          アカウントを削除
+        </Link>
       </section>
 
       <section className="settings-section">

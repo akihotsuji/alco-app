@@ -60,6 +60,8 @@ const testUserSchema = z.object({
   email: z.string(),
   name: z.string(),
   ageVerified: z.boolean(),
+  hasPassword: z.boolean(),
+  hasGoogle: z.boolean(),
 });
 
 export type TestUser = z.infer<typeof testUserSchema> & {
@@ -365,4 +367,22 @@ export async function createTestUserPair(
   inputs: readonly [TestUserInput, TestUserInput],
 ): Promise<[TestUser, TestUser]> {
   return [await createTestUser(app, inputs[0]), await createTestUser(app, inputs[1])];
+}
+
+export async function requestAccountDeletion(
+  app: TestApp,
+  cookie: string,
+  body: unknown,
+  extraHeaders: Record<string, string> = {},
+) {
+  return app.request("/api/me/account-deletion", {
+    method: "POST",
+    headers: {
+      Cookie: cookie,
+      "Content-Type": "application/json",
+      Origin: TEST_ORIGIN,
+      ...extraHeaders,
+    },
+    body: JSON.stringify(body),
+  });
 }

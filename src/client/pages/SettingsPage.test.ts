@@ -45,6 +45,16 @@ describe("SettingsPage S11 / S12", () => {
     expect(source).not.toContain("Gemini 3.7");
   });
 
+  it("アカウント節にアカウントを削除があり、ログアウトとは離れている", () => {
+    expect(source).toContain('to="/settings/account/delete"');
+    expect(source).toContain("アカウントを削除");
+    const deleteAt = source.indexOf("アカウントを削除");
+    const logoutAt = source.indexOf("ログアウト");
+    expect(deleteAt).toBeGreaterThan(-1);
+    expect(logoutAt).toBeGreaterThan(deleteAt);
+    expect(source).toContain("settings-logout");
+  });
+
   it("記録節に現在地を記録するがある", () => {
     expect(source).toContain("記録");
     expect(source).toContain("RecordLocationPrefRow");

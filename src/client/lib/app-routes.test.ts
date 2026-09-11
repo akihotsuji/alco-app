@@ -113,6 +113,7 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/cellar/b1/edit", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/notes/new", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/notes/n1/edit", NOW).hideTabBar).toBe(true);
+    expect(resolveAppRoute("/settings/account/delete", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/logs", NOW).hideTabBar).toBe(false);
     expect(resolveAppRoute("/cellar/b1", NOW).hideTabBar).toBe(false);
   });
@@ -145,6 +146,9 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/logs/new", NOW).screenId).toBe("log-new");
     expect(resolveAppRoute("/logs/my-drinks", NOW).screenId).toBe("mydrink-list");
     expect(resolveAppRoute("/logs/not-a-date", NOW).notFound).toBe(true);
+    expect(resolveAppRoute("/settings/account/delete", NOW).screenId).toBe(
+      "settings-account-delete",
+    );
     expect(resolveAppRoute("/unknown", NOW).screenId).toBe("not-found");
   });
 

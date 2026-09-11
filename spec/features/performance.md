@@ -166,9 +166,9 @@ Vite が 500 kB 超を警告。ボトルネックは **初期 JS 1 本に全画�
 
 | 対策 | 内容 | 効果の見立て |
 |---|---|---|
-| セッションの Cookie キャッシュ | Better Auth `session.cookieCache`（60 秒、compact）。[auth.md](auth.md) | 60 秒以内の連続 API で認証の D1 往復が消える |
+| セッションの Cookie キャッシュ | **撤回**（アカウント削除。2026-09-11）。保護 API は毎回 D1 で session + user を確認する。[auth.md](auth.md) / [account-deletion.md](account-deletion.md) | 退会直後の署名付き Cookie で保護 API・写真配信を使えないようにする。往復の目安は約 230 ms |
 | 年齢確認の肯定キャッシュ | isolate 内で「確認済み userId」を最大 1000 件覚える。[age-verification.md](age-verification.md) | 同じ isolate に当たる 2 回目以降で 1 往復が消える |
-| 写真の長期キャッシュ | `private, max-age=31536000, immutable` + `ETag` / 304。[photos.md](photos.md) | 2 回目以降はネットワークに出ない。並ぶ写真が一斉に出る |
+| 写真の長期キャッシュ | **見直し**（アカウント削除。2026-09-11）。今後の配信は `private, no-store`。[photos.md](photos.md) | 削除後の端末キャッシュ再利用を避ける。表示性能への影響は後続で測る |
 | 起動・待機時の先読み | 3 章「先読み」 | タブを開いた瞬間にキャッシュが当たる |
 | query の保持 24 時間 | `gcTime` を 24 時間に延長（`staleTime` 30 秒はそのまま） | 5 分以上ぶりのタブ切替でもスケルトンに戻らず、古い一覧を即描いて裏で取り直す |
 | 写真のプレースホルダ | 4 章「到着の見せ方」 | 初回でも「空白」ではなく「読み込み中」に見える |

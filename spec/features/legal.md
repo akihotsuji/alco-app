@@ -28,7 +28,7 @@
 - 弁護士の確定意見の代替
 - Cookie バナー（EU 完全対応）。解析・広告 Cookie は使っていない
 - 年齢確認フローの UI・API（8-02。[age-verification.md](age-verification.md)。本タスクは禁止条項と同意だけ）
-- アカウント削除 UI（将来。削除請求の受け方は PP に書く）
+- アカウント削除の実装詳細（[account-deletion.md](account-deletion.md)。本タスクは PP の案内文）
 - 更新時の再同意ゲート（重大変更時は将来。8-01 は初回サインアップのみ）
 - 英語版
 

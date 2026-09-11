@@ -1,5 +1,6 @@
 import { type QueryClient, type QueryKey, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { useLocation } from "react-router";
 import { bottlesInfiniteQueryOptions, bottlesQueryOptions } from "@/client/hooks/use-bottles.ts";
 import { drinkLogSummaryQueryOptions } from "@/client/hooks/use-drink-log-summary.ts";
 import { myDrinksQueryOptions } from "@/client/hooks/use-my-drinks.ts";
@@ -104,7 +105,11 @@ export function scheduleIdle(run: () => void, delayMs: number): CancelIdle {
 
 export function useTabDataPrefetch(): void {
   const queryClient = useQueryClient();
+  const location = useLocation();
   useEffect(() => {
+    if (location.pathname === "/settings/account/delete") {
+      return;
+    }
     return scheduleIdle(() => {
       prefetchTabData(
         queryClient,
@@ -115,5 +120,5 @@ export function useTabDataPrefetch(): void {
         }),
       );
     }, TAB_PREFETCH_DELAY_MS);
-  }, [queryClient]);
+  }, [location.pathname, queryClient]);
 }

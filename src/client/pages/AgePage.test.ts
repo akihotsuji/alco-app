@@ -16,6 +16,8 @@ describe("AgePage", () => {
     expect(source).toContain("endSession");
     expect(source).not.toContain("もう一杯");
     expect(source).not.toContain('pose="surprised"');
+    expect(source).toContain('to="/settings/account/delete"');
+    expect(source).toContain("アカウントを削除");
   });
 
   it("A5: 生年月日は 年 / 月 / 日 の 3 欄。数字キーボードで、カレンダー（type=date）は使わない", () => {

@@ -8,6 +8,7 @@ import {
 } from "@/shared/constants.ts";
 import { addCalendarDays, tokyoToday } from "@/shared/tokyo-date.ts";
 import type { PhotoBucket } from "./photos.ts";
+import { deleteR2Object } from "./r2-delete.ts";
 
 export type DailyGcResult = {
   photosDeleted: number;
@@ -35,9 +36,9 @@ export async function sweepUnattachedPhotos(input: {
   let deleted = 0;
   for (const row of stale.slice(0, PHOTO_GC_BATCH_SIZE)) {
     try {
-      await input.bucket.delete(row.r2Key);
+      await deleteR2Object(input.bucket, row.r2Key);
     } catch {
-      // R2 が 404 相当でも D1 は消す
+      continue;
     }
     await input.db.delete(photos).where(eq(photos.id, row.id));
     deleted += 1;

@@ -6,6 +6,7 @@ export const API_ERROR_CODES = [
   "unauthorized",
   "age_required",
   "age_restricted",
+  "reauthentication_required",
   "not_found",
   "payload_too_large",
   "unsupported_media_type",

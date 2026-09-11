@@ -41,6 +41,7 @@ describe("isAgeExemptApiRoute", () => {
     expect(isAgeExemptApiRoute("GET", "/api/me")).toBe(true);
     expect(isAgeExemptApiRoute("HEAD", "/api/me")).toBe(true);
     expect(isAgeExemptApiRoute("POST", "/api/me/age-verification")).toBe(true);
+    expect(isAgeExemptApiRoute("POST", "/api/me/account-deletion")).toBe(true);
   });
 
   it("機能 API は年齢確認が必要", () => {

@@ -9,6 +9,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { PHOTO_TASK_STATUSES } from "../shared/account-deletion.ts";
 import {
   BOTTLE_STATUSES,
   DEFAULT_BOTTLE_STATUS,
@@ -231,3 +232,48 @@ export const ageVerifications = sqliteTable("age_verifications", {
   verifiedAt: integer("verified_at", { mode: "timestamp_ms" }).notNull(),
   ...timestampColumns(),
 });
+
+/** R2 put 前の予約。user CASCADE は付けない（削除と遅延 put の競合） */
+export const photoObjectReservations = sqliteTable(
+  "photo_object_reservations",
+  {
+    r2Key: text("r2_key").primaryKey(),
+    userId: text("user_id").notNull(),
+    leaseUntil: integer("lease_until", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("photo_object_reservations_user_lease_idx").on(table.userId, table.leaseUntil)],
+);
+
+export const accountDeletionRequests = sqliteTable("account_deletion_requests", {
+  id: text("id").primaryKey(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const accountDeletionRecords = sqliteTable("account_deletion_records", {
+  userId: text("user_id").primaryKey(),
+  requestId: text("request_id").notNull(),
+  deletedAt: integer("deleted_at", { mode: "timestamp_ms" }).notNull(),
+  replicatedAt: integer("replicated_at", { mode: "timestamp_ms" }),
+});
+
+export const accountDeletionPhotoTasks = sqliteTable(
+  "account_deletion_photo_tasks",
+  {
+    r2Key: text("r2_key").primaryKey(),
+    requestId: text("request_id").notNull(),
+    status: text("status", { enum: PHOTO_TASK_STATUSES }).notNull(),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    nextAttemptAt: integer("next_attempt_at", { mode: "timestamp_ms" }).notNull(),
+    leaseUntil: integer("lease_until", { mode: "timestamp_ms" }),
+    lastErrorCode: text("last_error_code"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("account_deletion_photo_tasks_due_idx").on(table.status, table.nextAttemptAt),
+    check(
+      "account_deletion_photo_tasks_status_check",
+      sql`status IN (${inList(PHOTO_TASK_STATUSES)})`,
+    ),
+  ],
+);

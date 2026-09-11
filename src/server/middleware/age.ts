@@ -11,6 +11,7 @@ export type AgeDbResolver = (c: Context<AppEnv>) => AppBatchDb;
 const AGE_EXEMPT_EXACT = [
   { method: "GET", path: "/api/me" },
   { method: "POST", path: "/api/me/age-verification" },
+  { method: "POST", path: "/api/me/account-deletion" },
 ] as const;
 
 export function isAgeExemptApiRoute(method: string, path: string): boolean {
@@ -55,7 +56,7 @@ export function createVerifiedUserCache(limit = AGE_VERIFIED_CACHE_LIMIT) {
 
 /**
  * 認証後に掛ける年齢確認。未確認の機能 API は 403 `age_required`。
- * `GET /api/me` と `POST /api/me/age-verification` と公開ルートは通す。
+ * `GET /api/me` と `POST /api/me/age-verification` と `POST /api/me/account-deletion` と公開ルートは通す。
  * 確認済みユーザーは isolate 内で覚え、毎リクエストの D1 往復を省く。
  */
 export function createAgeGuard(

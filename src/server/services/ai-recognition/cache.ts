@@ -111,6 +111,21 @@ export async function withRecognitionCache<T>(key: string, compute: () => Promis
   return value;
 }
 
+/** 退会後の再利用禁止。キー先頭は userId。 */
+export function evictRecognitionCacheForUser(userId: string): void {
+  const prefix = `${userId}|`;
+  for (const key of memory.keys()) {
+    if (key.startsWith(prefix)) {
+      memory.delete(key);
+    }
+  }
+  for (const key of inflight.keys()) {
+    if (key.startsWith(prefix)) {
+      inflight.delete(key);
+    }
+  }
+}
+
 /** テスト用 */
 export function clearRecognitionCache(): void {
   memory.clear();

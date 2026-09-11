@@ -146,6 +146,8 @@ pnpm exec wrangler d1 delete alco-app-d1-restore-rehearsal --skip-confirmation
 
 Actions の `mode=rehearse` は 7.2 を自動化する。復元先名が `alco-app-d1-restore-rehearsal` 以外なら失敗する。
 
+復元後のサービス再開前に、アカウント削除台帳を再適用する。手順の正本は [operations.md](../operations.md) 5.4 と [account-deletion.md](account-deletion.md)。未転記の outbox がある、または台帳の完全性を確認できないときは復元データを公開しない。アプリ Worker にバックアップ SQL は読ませない。
+
 ---
 
 ## 8. リハーサル記録

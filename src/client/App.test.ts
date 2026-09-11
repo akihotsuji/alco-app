@@ -27,6 +27,9 @@ describe("ルート分割", () => {
     expect(lazyPages).toContain('import("@/client/pages/HomePage.tsx")');
     expect(app).toContain("RequireAgeVerified");
     expect(app).toContain('path="/age"');
+    expect(app).toContain('path="/settings/account/delete"');
+    expect(app).toContain('path="/account-deleted"');
+    expect(lazyPages).toContain('import("@/client/pages/AccountDeletionPages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/cellar/CellarPages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/notes/NotePages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/summary/SummaryPages.tsx")');

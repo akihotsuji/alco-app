@@ -56,9 +56,14 @@ export function createAuthGuard(resolveAuth: AuthResolver) {
 
     const auth = resolveAuth(c);
     c.set("auth", auth);
+    const disableRefresh = c.req.path === "/api/me/account-deletion" && c.req.method === "POST";
     const result = await auth.api.getSession({
       headers: c.req.raw.headers,
       returnHeaders: true,
+      query: {
+        disableCookieCache: true,
+        ...(disableRefresh ? { disableRefresh: true } : {}),
+      },
     });
     appendSetCookieHeaders(c, result.headers);
     if (!result.response) {
@@ -69,6 +74,8 @@ export function createAuthGuard(resolveAuth: AuthResolver) {
       email: result.response.user.email,
       name: result.response.user.name,
     });
+    const createdAt = result.response.session?.createdAt;
+    c.set("sessionCreatedAt", createdAt ? new Date(createdAt) : new Date(0));
     await next();
   });
 }
