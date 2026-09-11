@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { bottles, cellarMembers, photos } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
-import { bottleSchema, createBottlesResponseSchema } from "@/shared/bottles.ts";
+import {
+  bottleSchema,
+  bottlesResponseSchema,
+  createBottlesResponseSchema,
+} from "@/shared/bottles.ts";
 import {
   cellarDetailSchema,
   cellarRevisionSchema,
@@ -47,6 +51,13 @@ describe("GET/POST /api/cellars", () => {
   it("未認証は 401", async () => {
     const { app } = await createTestApp();
     expect((await app.request("/api/cellars")).status).toBe(401);
+    expect((await app.request("/api/cellars", { method: "POST" })).status).toBe(401);
+    expect((await app.request("/api/cellar-invitations/preview", { method: "POST" })).status).toBe(
+      401,
+    );
+    expect((await app.request("/api/cellar-invitations/accept", { method: "POST" })).status).toBe(
+      401,
+    );
   });
 
   it("個人セラーを作り、共有セラーを追加できる", async () => {
@@ -171,6 +182,12 @@ describe("招待と参加", () => {
       headers: { Cookie: c.cookie },
     });
     expect(otherRevision.status).toBe(404);
+
+    const listed = await ctx.app.request(`/api/cellars/${shared.id}/invitations`, {
+      headers: { Cookie: a.cookie },
+    });
+    expect(listed.status).toBe(200);
+    expect(JSON.stringify(await listed.json())).not.toContain(token);
   });
 
   it("メンバーは招待を発行できない", async () => {
@@ -296,6 +313,68 @@ describe("共有ボトルの認可と version", () => {
     });
     const personalBody = await personalList.json();
     expect(JSON.stringify(personalBody)).not.toContain(bottle?.id);
+
+    const accessible = bottlesResponseSchema.parse(
+      await (
+        await ctx.app.request("/api/bottles?view=cellar&scope=accessible", {
+          headers: { Cookie: a.cookie },
+        })
+      ).json(),
+    );
+    expect(accessible.items.some((item) => item.id === bottle?.id)).toBe(true);
+  });
+
+  it("共有写真はメンバーだけが読める", async () => {
+    const { ctx, a, b, c, shared } = await sharedPair();
+    const form = new FormData();
+    form.set(
+      "file",
+      new File([Uint8Array.from(makeJpeg(80, 80))], "shot.jpg", { type: "image/jpeg" }),
+    );
+    const uploaded = await ctx.app.request("/api/photos", {
+      method: "POST",
+      headers: { Cookie: a.cookie },
+      body: form,
+    });
+    const photoId = ((await uploaded.json()) as { id: string }).id;
+    const created = createBottlesResponseSchema.parse(
+      await (
+        await ctx.app.request("/api/bottles", {
+          method: "POST",
+          headers: headers(a.cookie),
+          body: JSON.stringify({
+            name: "写真付き",
+            drinkType: "wine",
+            cellarId: shared.id,
+            photoIds: [photoId],
+            operationKey: OP(),
+          }),
+        })
+      ).json(),
+    );
+    const attachedId = created.items[0]?.photos[0]?.id ?? photoId;
+    expect(
+      (await ctx.app.request(`/api/photos/${attachedId}`, { headers: { Cookie: b.cookie } }))
+        .status,
+    ).toBe(200);
+    expect(
+      (
+        await ctx.app.request(`/api/photos/${attachedId}/content`, {
+          headers: { Cookie: b.cookie },
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (await ctx.app.request(`/api/photos/${attachedId}`, { headers: { Cookie: c.cookie } }))
+        .status,
+    ).toBe(404);
+    expect(
+      (
+        await ctx.app.request(`/api/photos/${attachedId}/content`, {
+          headers: { Cookie: c.cookie },
+        })
+      ).status,
+    ).toBe(404);
   });
 
   it("個人ボトルを共有へ原子移動する。ID は変わらない", async () => {

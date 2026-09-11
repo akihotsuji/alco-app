@@ -900,34 +900,36 @@ export async function acceptInvitation(input: {
   if (cached) {
     return cached;
   }
-  const preview = await previewInvitation({
-    db: input.db,
-    userId: input.userId,
-    token: input.body.token,
-    now,
-  });
-  if (preview.status === "already_member") {
+  const [membership] = await input.db
+    .select({ userId: cellarMembers.userId })
+    .from(cellarMembers)
+    .where(
+      and(eq(cellarMembers.cellarId, invitation.cellarId), eq(cellarMembers.userId, input.userId)),
+    );
+  if (membership) {
     return { cellarId: invitation.cellarId };
   }
-  if (preview.status !== "joinable") {
-    if (preview.status === "already_in_other") {
-      throw new ApiError("conflict", {
-        fields: { "": ["すでに別の共有セラーに参加しています"] },
-        conflict: { reason: "already_shared" },
-      });
-    }
+  const [slot] = await input.db
+    .select()
+    .from(userCellarSlots)
+    .where(eq(userCellarSlots.userId, input.userId));
+  if (slot?.sharedCellarId) {
+    throw new ApiError("conflict", {
+      fields: { "": ["すでに別の共有セラーに参加しています"] },
+      conflict: { reason: "already_shared" },
+    });
+  }
+  if (invitation.memberCount >= CELLAR_MEMBER_LIMIT) {
     throw new ApiError("not_found");
   }
 
   const result = { cellarId: invitation.cellarId };
+  const claimedInvite = sql`EXISTS (
+    SELECT 1 FROM cellar_invitations
+    WHERE id = ${invitation.id} AND used_by = ${input.userId}
+  )`;
   try {
     await input.db.batch([
-      input.db
-        .update(userCellarSlots)
-        .set({ sharedCellarId: invitation.cellarId })
-        .where(
-          and(eq(userCellarSlots.userId, input.userId), isNull(userCellarSlots.sharedCellarId)),
-        ),
       input.db
         .update(cellarInvitations)
         .set({ usedBy: input.userId, usedAt: now })
@@ -937,16 +939,23 @@ export async function acceptInvitation(input: {
             isNull(cellarInvitations.usedAt),
             isNull(cellarInvitations.revokedAt),
             sql`${cellarInvitations.expiresAt} > ${now}`,
-            sql`EXISTS (SELECT 1 FROM user_cellar_slots WHERE user_id = ${input.userId} AND shared_cellar_id = ${invitation.cellarId})`,
+            sql`EXISTS (SELECT 1 FROM user_cellar_slots WHERE user_id = ${input.userId} AND shared_cellar_id IS NULL)`,
             sql`(SELECT COUNT(*) FROM cellar_members WHERE cellar_id = ${invitation.cellarId}) < ${CELLAR_MEMBER_LIMIT}`,
+          ),
+        ),
+      input.db
+        .update(userCellarSlots)
+        .set({ sharedCellarId: invitation.cellarId })
+        .where(
+          and(
+            eq(userCellarSlots.userId, input.userId),
+            isNull(userCellarSlots.sharedCellarId),
+            claimedInvite,
           ),
         ),
       input.db.insert(cellarMembers).select(sql`
         SELECT ${crypto.randomUUID()}, ${invitation.cellarId}, ${input.userId}, ${now.getTime()}
-        WHERE EXISTS (
-          SELECT 1 FROM user_cellar_slots
-          WHERE user_id = ${input.userId} AND shared_cellar_id = ${invitation.cellarId}
-        )
+        WHERE ${claimedInvite}
         AND NOT EXISTS (
           SELECT 1 FROM cellar_members
           WHERE cellar_id = ${invitation.cellarId} AND user_id = ${input.userId}
