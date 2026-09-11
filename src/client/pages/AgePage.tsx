@@ -5,7 +5,6 @@ import { endSession } from "@/client/auth/end-session.ts";
 import { AuthPageLayout } from "@/client/components/auth/AuthPageLayout.tsx";
 import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
-import { cn } from "@/client/lib/utils.ts";
 import { useVerifyAge } from "@/client/hooks/use-age-verification.ts";
 import { useMe } from "@/client/hooks/use-me.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
@@ -18,6 +17,7 @@ import {
   sanitizeBirthOnPart,
   shouldAdvanceBirthOnPart,
 } from "@/client/lib/birth-on-input.ts";
+import { cn } from "@/client/lib/utils.ts";
 import { AGE_BIRTH_ON_MESSAGE } from "@/shared/age.ts";
 import { resolveSafeRedirect } from "@/shared/auth.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";

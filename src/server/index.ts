@@ -17,6 +17,7 @@ import { createMeRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
+import { runAccountDeletionJobs } from "./services/account-deletion-jobs.ts";
 import { createTaskRecognizer } from "./services/ai-recognition/create-recognizer.ts";
 import {
   createDrinkLookupRunner,
@@ -24,7 +25,6 @@ import {
 } from "./services/drink-recognizer/lookup-runner.ts";
 import { reportUnexpectedError } from "./services/error-alert.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
-import { runAccountDeletionJobs } from "./services/account-deletion-jobs.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
 import { envAssets, isHashedAssetPath, serveHashedAsset } from "./static-assets.ts";

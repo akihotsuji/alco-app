@@ -271,6 +271,9 @@ export const accountDeletionPhotoTasks = sqliteTable(
   },
   (table) => [
     index("account_deletion_photo_tasks_due_idx").on(table.status, table.nextAttemptAt),
-    check("account_deletion_photo_tasks_status_check", sql`status IN (${inList(PHOTO_TASK_STATUSES)})`),
+    check(
+      "account_deletion_photo_tasks_status_check",
+      sql`status IN (${inList(PHOTO_TASK_STATUSES)})`,
+    ),
   ],
 );

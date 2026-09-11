@@ -41,9 +41,7 @@ const CODE_BY_STATUS = new Map<number, ApiErrorCode>(
   API_ERROR_CODES.filter(
     (code) =>
       code !== "age_required" && code !== "age_restricted" && code !== "reauthentication_required",
-  ).map(
-    (code) => [API_ERROR_STATUS[code], code],
-  ),
+  ).map((code) => [API_ERROR_STATUS[code], code]),
 );
 
 /** Hono 内部や他ミドルウェアが投げた HTTPException のステータスをエラーコードへ寄せる。 */

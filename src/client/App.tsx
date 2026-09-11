@@ -4,11 +4,11 @@ import { BrowserRouter, Route, Routes, useNavigate } from "react-router";
 import { GuestOnly } from "./auth/GuestOnly.tsx";
 import { RequireAgeVerified } from "./auth/RequireAgeVerified.tsx";
 import { RequireAuth } from "./auth/RequireAuth.tsx";
-import { authClient } from "./lib/auth-client.ts";
 import {
   discardAccountScopedClientData,
   subscribeAccountDeletionAccepted,
 } from "./lib/account-deletion-client.ts";
+import { authClient } from "./lib/auth-client.ts";
 import { QueryProvider } from "./lib/query-provider.tsx";
 import {
   AccountDeletedPage,

@@ -27,10 +27,7 @@ afterEach(() => {
   accountDeletionRateLimiter.reset();
 });
 
-async function postJpeg(
-  app: Awaited<ReturnType<typeof createTestApp>>["app"],
-  cookie: string,
-) {
+async function postJpeg(app: Awaited<ReturnType<typeof createTestApp>>["app"], cookie: string) {
   const form = new FormData();
   const bytes = Uint8Array.from(makeJpeg(80, 80));
   form.set("file", new File([bytes], "shot.jpg", { type: "image/jpeg" }));
@@ -41,11 +38,10 @@ async function postJpeg(
   });
 }
 
-async function makeGoogleOnly(
-  db: Awaited<ReturnType<typeof createTestApp>>["db"],
-  userId: string,
-) {
-  await db.delete(account).where(and(eq(account.userId, userId), eq(account.providerId, "credential")));
+async function makeGoogleOnly(db: Awaited<ReturnType<typeof createTestApp>>["db"], userId: string) {
+  await db
+    .delete(account)
+    .where(and(eq(account.userId, userId), eq(account.providerId, "credential")));
   await db.insert(account).values({
     id: crypto.randomUUID(),
     issuer: "https://accounts.google.com",
@@ -171,7 +167,9 @@ describe("POST /api/me/account-deletion", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await res.json()).toEqual({ status: "accepted" });
     expect(
-      res.headers.getSetCookie().some((value) => /session_token=/i.test(value) && /Max-Age=0/i.test(value)),
+      res.headers
+        .getSetCookie()
+        .some((value) => /session_token=/i.test(value) && /Max-Age=0/i.test(value)),
     ).toBe(true);
 
     const me = await app.request("/api/me", { headers: { Cookie: a.cookie } });

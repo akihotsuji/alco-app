@@ -20,7 +20,10 @@ import { api, isApiClientError, unwrap } from "@/client/lib/api.ts";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { historyIdx } from "@/client/lib/history-state.ts";
 import { cn } from "@/client/lib/utils.ts";
-import { ACCOUNT_DELETION_COPY, ACCOUNT_DELETION_PENDING_USER_KEY } from "@/shared/account-deletion.ts";
+import {
+  ACCOUNT_DELETION_COPY,
+  ACCOUNT_DELETION_PENDING_USER_KEY,
+} from "@/shared/account-deletion.ts";
 import { legalHref } from "@/shared/legal.ts";
 import { GOOGLE_OAUTH_PROVIDER, OAUTH_ERROR_MESSAGE } from "@/shared/oauth.ts";
 import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
@@ -49,7 +52,10 @@ function clearPendingUserId(): void {
   }
 }
 
-function finishAcceptedDeletion(navigate: ReturnType<typeof useNavigate>, qc: ReturnType<typeof useQueryClient>) {
+function finishAcceptedDeletion(
+  navigate: ReturnType<typeof useNavigate>,
+  qc: ReturnType<typeof useQueryClient>,
+) {
   navigate("/account-deleted", { replace: true });
   void qc.cancelQueries();
   qc.clear();
@@ -96,12 +102,7 @@ export function AccountDeletePage() {
   const googleOnly = me.data?.hasPassword === false && me.data.hasGoogle;
   const identityReady = hasPassword ? password.length > 0 : googleReauthed;
   const canSubmit =
-    Boolean(me.data) &&
-    confirmed &&
-    identityReady &&
-    !wrongAccount &&
-    !submitting &&
-    !googleBusy;
+    Boolean(me.data) && confirmed && identityReady && !wrongAccount && !submitting && !googleBusy;
 
   function refreshTurnstile() {
     turnstile.setToken(null);
@@ -240,7 +241,9 @@ export function AccountDeletePage() {
         </div>
       ) : null}
 
-      {wrongAccount ? <p className="account-delete-error">{ACCOUNT_DELETION_COPY.wrongAccount}</p> : null}
+      {wrongAccount ? (
+        <p className="account-delete-error">{ACCOUNT_DELETION_COPY.wrongAccount}</p>
+      ) : null}
       {shownError ? (
         <p id="account-delete-error" className="account-delete-error" role="alert">
           {shownError}

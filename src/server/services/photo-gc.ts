@@ -7,8 +7,8 @@ import {
   PHOTO_GC_TTL_MS,
 } from "@/shared/constants.ts";
 import { addCalendarDays, tokyoToday } from "@/shared/tokyo-date.ts";
-import { deleteR2Object } from "./r2-delete.ts";
 import type { PhotoBucket } from "./photos.ts";
+import { deleteR2Object } from "./r2-delete.ts";
 
 export type DailyGcResult = {
   photosDeleted: number;

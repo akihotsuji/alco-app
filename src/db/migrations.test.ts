@@ -249,7 +249,10 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
       const fks = db.prepare(`PRAGMA foreign_key_list("${table}")`).all() as {
         table: string;
       }[];
-      expect(fks.filter((fk) => fk.table === "user"), table).toEqual([]);
+      expect(
+        fks.filter((fk) => fk.table === "user"),
+        table,
+      ).toEqual([]);
     }
     db.close();
   });

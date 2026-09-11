@@ -13,8 +13,8 @@ import {
 } from "@/shared/account-deletion.ts";
 import type { Auth } from "../auth.ts";
 import { ApiError } from "../errors.ts";
-import { evictRecognitionCacheForUser } from "./ai-recognition/cache.ts";
 import { listAuthProviders } from "./account-providers.ts";
+import { evictRecognitionCacheForUser } from "./ai-recognition/cache.ts";
 
 export type AcceptAccountDeletionInput = {
   db: AppBatchDb;
@@ -80,9 +80,7 @@ export async function acceptAccountDeletion(input: AcceptAccountDeletionInput): 
       }),
       input.db
         .delete(verification)
-        .where(
-          or(eq(verification.value, input.userId), eq(verification.identifier, input.email)),
-        ),
+        .where(or(eq(verification.value, input.userId), eq(verification.identifier, input.email))),
       input.db.delete(users).where(eq(users.id, input.userId)),
     ]);
   } catch (error) {
@@ -105,7 +103,11 @@ export async function acceptAccountDeletion(input: AcceptAccountDeletionInput): 
   return { requestId };
 }
 
-async function verifyCurrentPassword(auth: Auth, headers: Headers, password: string): Promise<void> {
+async function verifyCurrentPassword(
+  auth: Auth,
+  headers: Headers,
+  password: string,
+): Promise<void> {
   try {
     const result = await auth.api.verifyPassword({
       body: { password },

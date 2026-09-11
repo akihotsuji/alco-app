@@ -56,8 +56,7 @@ export function createAuthGuard(resolveAuth: AuthResolver) {
 
     const auth = resolveAuth(c);
     c.set("auth", auth);
-    const disableRefresh =
-      c.req.path === "/api/me/account-deletion" && c.req.method === "POST";
+    const disableRefresh = c.req.path === "/api/me/account-deletion" && c.req.method === "POST";
     const result = await auth.api.getSession({
       headers: c.req.raw.headers,
       returnHeaders: true,

@@ -1,6 +1,13 @@
 import { and, count, eq, gte } from "drizzle-orm";
 import type { AppBatchDb, AppSqliteDb } from "@/db/index.ts";
-import { bottles, drinkLogs, photoObjectReservations, photos, tastingNotes, user } from "@/db/schema.ts";
+import {
+  bottles,
+  drinkLogs,
+  photoObjectReservations,
+  photos,
+  tastingNotes,
+  user,
+} from "@/db/schema.ts";
 import { PHOTO_RESERVATION_LEASE_MS } from "@/shared/account-deletion.ts";
 import {
   PHOTO_CONTENT_TYPES,
@@ -300,7 +307,10 @@ export async function createPhoto(input: {
     createdAt: now,
   });
 
-  const [alive] = await input.db.select({ id: user.id }).from(user).where(eq(user.id, input.userId));
+  const [alive] = await input.db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.id, input.userId));
   const [held] = await input.db
     .select({ r2Key: photoObjectReservations.r2Key })
     .from(photoObjectReservations)
@@ -312,9 +322,7 @@ export async function createPhoto(input: {
       ),
     );
   if (!alive || !held) {
-    await input.db
-      .delete(photoObjectReservations)
-      .where(eq(photoObjectReservations.r2Key, r2Key));
+    await input.db.delete(photoObjectReservations).where(eq(photoObjectReservations.r2Key, r2Key));
     throw new ApiError("unauthorized");
   }
 
@@ -323,9 +331,7 @@ export async function createPhoto(input: {
       httpMetadata: { contentType: inspected.contentType },
     });
   } catch (error) {
-    await input.db
-      .delete(photoObjectReservations)
-      .where(eq(photoObjectReservations.r2Key, r2Key));
+    await input.db.delete(photoObjectReservations).where(eq(photoObjectReservations.r2Key, r2Key));
     throw error;
   }
 

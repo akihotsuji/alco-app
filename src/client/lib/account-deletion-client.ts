@@ -1,4 +1,7 @@
-import { ACCOUNT_DELETION_CHANNEL, ACCOUNT_DELETION_PENDING_USER_KEY } from "@/shared/account-deletion.ts";
+import {
+  ACCOUNT_DELETION_CHANNEL,
+  ACCOUNT_DELETION_PENDING_USER_KEY,
+} from "@/shared/account-deletion.ts";
 import { GUIDE_PREF_KEY, PHOTO_CUTOUT_DIAG_KEY } from "@/shared/constants.ts";
 
 const OPENED_FOLLOWUP_PREFIX = "opened.followup.";

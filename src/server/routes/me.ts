@@ -17,12 +17,20 @@ import { assertSameOrigin } from "../services/origin.ts";
 import type { PhotoBucket } from "../services/photos.ts";
 import { validate } from "../validation.ts";
 
-function scheduleBackground(c: { executionCtx: ExecutionContext }, task: Promise<unknown>) {
+function scheduleBackground(
+  c: { executionCtx?: { waitUntil?: (promise: Promise<unknown>) => void } },
+  task: Promise<unknown>,
+) {
   try {
-    c.executionCtx.waitUntil(task);
+    const waitUntil = c.executionCtx?.waitUntil;
+    if (waitUntil) {
+      waitUntil(task);
+      return;
+    }
   } catch {
-    void task;
+    // app.request() など waitUntil が無い／投げるとフォールバック
   }
+  void task;
 }
 
 export function createMeRoute(options: {

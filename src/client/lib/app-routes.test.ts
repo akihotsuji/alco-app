@@ -146,7 +146,9 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/logs/new", NOW).screenId).toBe("log-new");
     expect(resolveAppRoute("/logs/my-drinks", NOW).screenId).toBe("mydrink-list");
     expect(resolveAppRoute("/logs/not-a-date", NOW).notFound).toBe(true);
-    expect(resolveAppRoute("/settings/account/delete", NOW).screenId).toBe("settings-account-delete");
+    expect(resolveAppRoute("/settings/account/delete", NOW).screenId).toBe(
+      "settings-account-delete",
+    );
     expect(resolveAppRoute("/unknown", NOW).screenId).toBe("not-found");
   });
 

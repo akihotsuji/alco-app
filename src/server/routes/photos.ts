@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
-import type { AppSqliteDb } from "@/db/index.ts";
+import type { AppBatchDb } from "@/db/index.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { photoIdParamSchema, photoPatchSchema, photoUploadFieldsSchema } from "@/shared/photos.ts";
 import type { AppEnv } from "../app-env.ts";
@@ -20,7 +20,7 @@ import {
 import { validate } from "../validation.ts";
 
 export type PhotoRouteDeps = {
-  getDb: (c: Context<AppEnv>) => AppSqliteDb;
+  getDb: (c: Context<AppEnv>) => AppBatchDb;
   getBucket: (c: Context<AppEnv>) => PhotoBucket;
   dailyLimit?: number;
 };

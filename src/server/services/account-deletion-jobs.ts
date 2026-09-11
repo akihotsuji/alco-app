@@ -11,8 +11,8 @@ import {
   ACCOUNT_DELETION_TASK_BATCH_SIZE,
   ACCOUNT_DELETION_TASK_LEASE_MS,
 } from "@/shared/account-deletion.ts";
-import { classifyR2DeleteError, deleteR2Object } from "./r2-delete.ts";
 import type { PhotoBucket } from "./photos.ts";
+import { classifyR2DeleteError, deleteR2Object } from "./r2-delete.ts";
 
 export type AccountDeletionJobResult = {
   photosDeleted: number;
@@ -191,10 +191,7 @@ export async function replicateAccountDeletionLedger(input: {
   return replicated;
 }
 
-export async function countOverdueAccountDeletionTasks(
-  db: AppBatchDb,
-  now: Date,
-): Promise<number> {
+export async function countOverdueAccountDeletionTasks(db: AppBatchDb, now: Date): Promise<number> {
   const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const [row] = await db
     .select({ total: sql<number>`count(*)` })
