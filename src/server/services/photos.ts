@@ -1,7 +1,8 @@
-import { and, count, eq, gte } from "drizzle-orm";
+import { and, count, eq, gte, isNull, or, sql } from "drizzle-orm";
 import type { AppBatchDb, AppSqliteDb } from "@/db/index.ts";
 import {
   bottles,
+  cellarMembers,
   drinkLogs,
   photoObjectReservations,
   photos,
@@ -25,6 +26,11 @@ import {
 } from "@/shared/photos.ts";
 import { tokyoDayStartMs, tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
+import {
+  bumpCellarRevision,
+  recordActivity,
+  requireAccessibleBottle,
+} from "./cellar-access.ts";
 import { ImageInspectFailure, inspectImageBytes } from "./image-inspect.ts";
 
 export type PhotoObject = {
@@ -148,10 +154,15 @@ async function assertOwnedRow(
   if (!id) {
     return;
   }
+  if (table === bottles) {
+    await requireAccessibleBottle(db, userId, id);
+    return;
+  }
+  const owned = table === tastingNotes ? tastingNotes : drinkLogs;
   const [row] = await db
-    .select({ id: table.id })
-    .from(table)
-    .where(and(eq(table.id, id), eq(table.userId, userId)));
+    .select({ id: owned.id })
+    .from(owned)
+    .where(and(eq(owned.id, id), eq(owned.userId, userId)));
   if (!row) {
     throw new ApiError("not_found");
   }
@@ -227,10 +238,13 @@ async function assertOwnerCapacity(
     if (!check.ownerId) {
       continue;
     }
-    const current = await db
-      .select({ id: photos.id })
-      .from(photos)
-      .where(and(eq(photos.userId, userId), eq(check.column, check.ownerId)));
+    const current =
+      check.field === "bottleId"
+        ? await db.select({ id: photos.id }).from(photos).where(eq(check.column, check.ownerId))
+        : await db
+            .select({ id: photos.id })
+            .from(photos)
+            .where(and(eq(photos.userId, userId), eq(check.column, check.ownerId)));
     const used = current.filter((item) => item.id !== exceptPhotoId).length;
     if (used >= check.limit) {
       throw new ApiError("validation_error", {
@@ -251,7 +265,7 @@ export async function assertPhotoDailyLimit(input: {
   const [row] = await input.db
     .select({ total: count() })
     .from(photos)
-    .where(and(eq(photos.userId, input.userId), gte(photos.createdAt, start)));
+    .where(and(eq(photos.uploadedBy, input.userId), gte(photos.createdAt, start)));
   if ((row?.total ?? 0) >= limit) {
     throw new ApiError("rate_limited");
   }
@@ -279,13 +293,23 @@ export async function createPhoto(input: {
   await assertOwnResource(input.db, input.userId, owners);
   await assertOwnerCapacity(input.db, input.userId, owners);
 
+  let cellarId: string | null = null;
+  let ownerUserId: string | null = input.userId;
+  if (owners.bottleId) {
+    const bottle = await requireAccessibleBottle(input.db, input.userId, owners.bottleId);
+    cellarId = bottle.cellarId;
+    ownerUserId = null;
+  }
+
   const id = crypto.randomUUID();
   const r2Key = `${id}.${inspected.extension}`;
   const now = input.now ?? new Date();
   const leaseUntil = new Date(now.getTime() + PHOTO_RESERVATION_LEASE_MS);
   const row = {
     id,
-    userId: input.userId,
+    userId: ownerUserId,
+    cellarId,
+    uploadedBy: input.userId,
     r2Key,
     contentType: inspected.contentType,
     byteSize: input.bytes.byteLength,
@@ -349,6 +373,10 @@ export async function createPhoto(input: {
     throw error;
   }
 
+  if (owners.bottleId) {
+    await touchBottlePhoto(input.db, input.userId, owners.bottleId, now);
+  }
+
   return toPhotoMeta(row);
 }
 
@@ -360,7 +388,15 @@ export async function getOwnPhoto(
   const [row] = await db
     .select()
     .from(photos)
-    .where(and(eq(photos.id, photoId), eq(photos.userId, userId)));
+    .where(
+      and(
+        eq(photos.id, photoId),
+        or(
+          and(eq(photos.userId, userId), isNull(photos.cellarId)),
+          sql`${photos.cellarId} IN (SELECT cellar_id FROM ${cellarMembers} WHERE ${cellarMembers.userId} = ${userId})`,
+        ),
+      ),
+    );
   if (!row) {
     throw new ApiError("not_found");
   }
@@ -368,7 +404,7 @@ export async function getOwnPhoto(
 }
 
 export async function updatePhoto(input: {
-  db: AppSqliteDb;
+  db: AppBatchDb;
   userId: string;
   photoId: string;
   patch: PhotoPatchInput;
@@ -387,27 +423,51 @@ export async function updatePhoto(input: {
   await assertOwnerCapacity(input.db, input.userId, owners, input.photoId);
 
   const now = new Date();
+  let cellarId = current.cellarId;
+  let ownerUserId = current.userId;
+  if (owners.bottleId) {
+    const bottle = await requireAccessibleBottle(input.db, input.userId, owners.bottleId);
+    cellarId = bottle.cellarId;
+    ownerUserId = null;
+  } else if (owners.tastingNoteId || owners.drinkLogId) {
+    cellarId = null;
+    ownerUserId = input.userId;
+  } else if (current.bottleId && !owners.bottleId) {
+    cellarId = null;
+    ownerUserId = input.userId;
+  }
+
   await input.db
     .update(photos)
     .set({
       bottleId: owners.bottleId,
       tastingNoteId: owners.tastingNoteId,
       drinkLogId: owners.drinkLogId,
+      cellarId,
+      userId: ownerUserId,
       sortOrder: input.patch.sortOrder ?? current.sortOrder,
       updatedAt: now,
     })
-    .where(and(eq(photos.id, input.photoId), eq(photos.userId, input.userId)));
+    .where(eq(photos.id, input.photoId));
+
+  if (owners.bottleId && owners.bottleId !== current.bottleId) {
+    await touchBottlePhoto(input.db, input.userId, owners.bottleId, now);
+  } else if (current.bottleId && current.bottleId !== owners.bottleId) {
+    await touchBottlePhoto(input.db, input.userId, current.bottleId, now);
+  }
 
   return toPhotoMeta({
     ...current,
     ...owners,
+    cellarId,
+    userId: ownerUserId,
     sortOrder: input.patch.sortOrder ?? current.sortOrder,
     updatedAt: now,
   });
 }
 
 export async function deletePhoto(input: {
-  db: AppSqliteDb;
+  db: AppBatchDb;
   bucket: PhotoBucket;
   userId: string;
   photoId: string;
@@ -418,9 +478,38 @@ export async function deletePhoto(input: {
   } catch {
     throw new ApiError("internal_error");
   }
-  await input.db
-    .delete(photos)
-    .where(and(eq(photos.id, input.photoId), eq(photos.userId, input.userId)));
+  await input.db.delete(photos).where(eq(photos.id, input.photoId));
+  if (row.bottleId) {
+    await touchBottlePhoto(input.db, input.userId, row.bottleId);
+  }
+}
+
+async function touchBottlePhoto(
+  db: AppBatchDb,
+  userId: string,
+  bottleId: string,
+  now: Date = new Date(),
+): Promise<void> {
+  const current = await requireAccessibleBottle(db, userId, bottleId);
+  await db.batch([
+    db
+      .update(bottles)
+      .set({
+        version: current.version + 1,
+        updatedBy: userId,
+        updatedAt: now,
+      })
+      .where(eq(bottles.id, bottleId)),
+    bumpCellarRevision(db, current.cellarId, now),
+    recordActivity(db, {
+      cellarId: current.cellarId,
+      actorUserId: userId,
+      action: "bottle_photo_changed",
+      bottleId,
+      bottleName: current.name,
+      now,
+    }),
+  ]);
 }
 
 /**

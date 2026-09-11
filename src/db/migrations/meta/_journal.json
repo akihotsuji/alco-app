@@ -71,6 +71,13 @@
       "when": 1789113284617,
       "tag": "0009_account_deletion",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789122016502,
+      "tag": "0010_shared_cellar",
+      "breakpoints": true
     }
   ]
 }

@@ -1,10 +1,13 @@
-import { eq, or, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import type { AppBatchDb } from "@/db/index.ts";
 import {
   accountDeletionPhotoTasks,
   accountDeletionRecords,
   accountDeletionRequests,
+  cellarMembers,
+  cellars,
   user as users,
+  userCellarSlots,
   verification,
 } from "@/db/schema.ts";
 import {
@@ -15,6 +18,8 @@ import type { Auth } from "../auth.ts";
 import { ApiError } from "../errors.ts";
 import { listAuthProviders } from "./account-providers.ts";
 import { evictRecognitionCacheForUser } from "./ai-recognition/cache.ts";
+import { anonymizeSharedMembership, enqueueCellarPhotoTasks } from "./cellars.ts";
+import { ensurePersonalCellar } from "./cellar-access.ts";
 
 export type AcceptAccountDeletionInput = {
   db: AppBatchDb;
@@ -47,8 +52,11 @@ export async function acceptAccountDeletion(input: AcceptAccountDeletionInput): 
     throw new ApiError("reauthentication_required");
   }
 
+  await prepareCellarsForAccountDeletion(input.db, input.userId, now);
+
   const requestId = crypto.randomUUID();
   const nowMs = now.getTime();
+  const personalCellarId = await ensurePersonalCellar(input.db, input.userId, now);
 
   try {
     await input.db.batch([
@@ -64,6 +72,7 @@ export async function acceptAccountDeletion(input: AcceptAccountDeletionInput): 
           WHERE user_id = ${input.userId}
         `)
         .onConflictDoNothing(),
+      enqueueCellarPhotoTasks(input.db, personalCellarId, requestId, nowMs),
       input.db
         .insert(accountDeletionPhotoTasks)
         .select(sql`
@@ -78,6 +87,7 @@ export async function acceptAccountDeletion(input: AcceptAccountDeletionInput): 
         requestId,
         deletedAt: now,
       }),
+      input.db.delete(cellars).where(eq(cellars.id, personalCellarId)),
       input.db
         .delete(verification)
         .where(or(eq(verification.value, input.userId), eq(verification.identifier, input.email))),
@@ -101,6 +111,57 @@ export async function acceptAccountDeletion(input: AcceptAccountDeletionInput): 
 
   evictRecognitionCacheForUser(input.userId);
   return { requestId };
+}
+
+async function prepareCellarsForAccountDeletion(
+  db: AppBatchDb,
+  userId: string,
+  now: Date,
+): Promise<void> {
+  const [slot] = await db
+    .select()
+    .from(userCellarSlots)
+    .where(eq(userCellarSlots.userId, userId));
+  if (!slot?.sharedCellarId) {
+    return;
+  }
+  const [shared] = await db
+    .select()
+    .from(cellars)
+    .where(eq(cellars.id, slot.sharedCellarId));
+  if (!shared) {
+    return;
+  }
+  const [countRow] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(cellarMembers)
+    .where(eq(cellarMembers.cellarId, shared.id));
+  const members = Number(countRow?.n ?? 0);
+  if (shared.ownerUserId === userId && members > 1) {
+    throw new ApiError("conflict", {
+      fields: { "": ["所有権を移すか、共有セラーを削除してから退会してください"] },
+      conflict: { reason: "owner_required" },
+    });
+  }
+  if (shared.ownerUserId === userId) {
+    const requestId = crypto.randomUUID();
+    await db.batch([
+      enqueueCellarPhotoTasks(db, shared.id, requestId, now.getTime()),
+      db.update(userCellarSlots).set({ sharedCellarId: null }).where(eq(userCellarSlots.userId, userId)),
+      db.delete(cellars).where(eq(cellars.id, shared.id)),
+    ]);
+    return;
+  }
+  await anonymizeSharedMembership(db, shared.id, userId);
+  await db.batch([
+    db
+      .delete(cellarMembers)
+      .where(and(eq(cellarMembers.cellarId, shared.id), eq(cellarMembers.userId, userId))),
+    db
+      .update(userCellarSlots)
+      .set({ sharedCellarId: null })
+      .where(and(eq(userCellarSlots.userId, userId), eq(userCellarSlots.sharedCellarId, shared.id))),
+  ]);
 }
 
 async function verifyCurrentPassword(

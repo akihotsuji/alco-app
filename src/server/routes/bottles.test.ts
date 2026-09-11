@@ -13,7 +13,7 @@ import { drinkLogSchema } from "@/shared/drink-logs.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { makeJpeg } from "../image-fixtures.ts";
-import { createTestApp, createTestUser, createTestUserPair } from "../test-helpers.ts";
+import { createTestApp, createTestUser, createTestUserPair, seedOwnedBottle } from "../test-helpers.ts";
 
 type Ctx = Awaited<ReturnType<typeof createTestApp>>;
 
@@ -90,8 +90,7 @@ async function seedConsumed(
   consumedAt: Date,
   consumedOn: string,
 ) {
-  const now = new Date();
-  await ctx.db.insert(bottles).values({
+  await seedOwnedBottle(ctx.db, {
     id,
     userId,
     name,
@@ -99,8 +98,6 @@ async function seedConsumed(
     status: "consumed",
     consumedAt,
     consumedOn,
-    createdAt: now,
-    updatedAt: now,
   });
 }
 
@@ -142,7 +139,7 @@ describe("POST /api/bottles", () => {
     expect(ids.size).toBe(3);
     expect(body.items[0]?.createdAt).toBe(body.items[1]?.createdAt);
     expect(body.items[1]?.createdAt).toBe(body.items[2]?.createdAt);
-    const rows = await ctx.db.select().from(bottles).where(eq(bottles.userId, a.userId));
+    const rows = await ctx.db.select().from(bottles);
     expect(rows).toHaveLength(3);
   });
 
@@ -188,7 +185,7 @@ describe("POST /api/bottles", () => {
       photoIds: [own.id],
     });
     expect(reused.status).toBe(404);
-    expect(await ctx.db.select().from(bottles).where(eq(bottles.userId, a.id))).toHaveLength(1);
+    expect(await ctx.db.select().from(bottles)).toHaveLength(1);
   });
 
   it("status / userId は未知キーで 400", async () => {
@@ -233,17 +230,13 @@ describe("POST /api/bottles", () => {
     );
     expect(created.items[0]?.origin).toBe("フランス");
 
-    const now = new Date();
     const staleId = crypto.randomUUID();
-    await ctx.db.insert(bottles).values({
+    await seedOwnedBottle(ctx.db, {
       id: staleId,
       userId: a.userId,
       name: "旧レコード",
       drinkType: "wine",
       origin: "DOCG",
-      status: "sealed",
-      createdAt: now,
-      updatedAt: now,
     });
     const kept = bottleSchema.parse(
       await (await patchBottle(ctx.app, a.cookie, staleId, { name: "改名だけ" })).json(),
@@ -507,7 +500,7 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     expect(bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, id)).json()).name).toBe(
       "サンプル赤",
     );
-    expect(await ctx.db.select().from(bottles).where(eq(bottles.userId, a.id))).toHaveLength(1);
+    expect(await ctx.db.select().from(bottles)).toHaveLength(1);
   });
 
   it("PATCH は部分更新。status は受け取らない", async () => {
@@ -536,15 +529,11 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
     const id = crypto.randomUUID();
-    const now = new Date();
-    await ctx.db.insert(bottles).values({
+    await seedOwnedBottle(ctx.db, {
       id,
       userId: a.userId,
       name: "旧レコード",
       drinkType: "wine",
-      status: "sealed",
-      createdAt: now,
-      updatedAt: now,
     });
     const ok = await patchBottle(ctx.app, a.cookie, id, { name: "改名だけ" });
     expect(ok.status).toBe(200);

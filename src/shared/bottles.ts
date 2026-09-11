@@ -9,6 +9,7 @@ import {
   VINTAGE_MIN,
   vintageSchema,
 } from "./identity.ts";
+import { BOTTLE_LIST_SCOPES, operationKeySchema } from "./cellars.ts";
 import { photoMetaSchema } from "./photos.ts";
 import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
 
@@ -56,6 +57,9 @@ export const BOTTLE_MESSAGES = {
   q: `${BOTTLE_SEARCH_MAX_LENGTH}文字以内で入力してください`,
   limit: "件数は1以上100以下で指定してください",
   cursor: "ページ情報が正しくありません",
+  expectedVersion: "最新の内容を確認してから保存してください",
+  cellarId: "保存先のセラーが正しくありません",
+  scope: "一覧の範囲が正しくありません",
 } as const;
 
 export const BOTTLE_FIELD_LABELS = {
@@ -145,10 +149,17 @@ const bottleFields = {
     .optional(),
 };
 
+export const expectedVersionSchema = z
+  .number({ error: BOTTLE_MESSAGES.expectedVersion })
+  .int({ error: BOTTLE_MESSAGES.expectedVersion })
+  .positive({ error: BOTTLE_MESSAGES.expectedVersion });
+
 export const createBottleSchema = z
   .object({
     ...bottleFields,
     count: bottleCountSchema.optional(),
+    cellarId: z.string().uuid({ error: BOTTLE_MESSAGES.cellarId }).optional(),
+    operationKey: operationKeySchema.optional(),
   })
   .strict();
 
@@ -169,9 +180,15 @@ export const updateBottleSchema = z
     storage: bottleFields.storage,
     memo: bottleFields.memo,
     photoIds: bottleFields.photoIds,
+    expectedVersion: expectedVersionSchema.optional(),
+    operationKey: operationKeySchema.optional(),
   })
   .strict()
-  .refine((body) => Object.keys(body).length > 0, { error: BOTTLE_MESSAGES.patchEmpty });
+  .refine(
+    (body) =>
+      Object.keys(body).some((key) => key !== "expectedVersion" && key !== "operationKey"),
+    { error: BOTTLE_MESSAGES.patchEmpty },
+  );
 
 export type UpdateBottleInput = z.infer<typeof updateBottleSchema>;
 
@@ -194,6 +211,8 @@ export const bottlesQuerySchema = z
       .min(1, { error: BOTTLE_MESSAGES.cursor })
       .max(256, { error: BOTTLE_MESSAGES.cursor })
       .optional(),
+    cellarId: z.string().uuid({ error: BOTTLE_MESSAGES.cellarId }).optional(),
+    scope: z.enum(BOTTLE_LIST_SCOPES, { error: BOTTLE_MESSAGES.scope }).optional(),
   })
   .strict();
 
@@ -205,8 +224,16 @@ export const bottleIdParamSchema = z
   })
   .strict();
 
-/** consume / restore。ボディなし、または空オブジェクト。未知キー（log 等）は 400 */
+/** consume / restore / delete。空オブジェクト可。未知キー（log 等）は 400 */
 export const emptyJsonBodySchema = z.object({}).strict();
+
+export const bottleMutationBodySchema = z
+  .object({
+    expectedVersion: expectedVersionSchema.optional(),
+    operationKey: operationKeySchema.optional(),
+  })
+  .strict();
+export type BottleMutationBody = z.infer<typeof bottleMutationBodySchema>;
 
 export const bottleStatusSchema = z.enum(BOTTLE_STATUSES);
 
@@ -230,6 +257,10 @@ export const bottleItemSchema = z
     consumedOn: z.string().nullable(),
     thumbPhotoId: z.string().nullable(),
     thumbPhotoKind: z.enum(PHOTO_KINDS).nullable(),
+    cellarId: z.string(),
+    version: z.number().int().positive(),
+    createdByName: z.string().nullable(),
+    updatedByName: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })

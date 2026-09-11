@@ -1,10 +1,9 @@
-import { bottles } from "@/db/schema.ts";
 import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { tastingNoteSchema } from "@/shared/tasting-notes.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { makeJpeg } from "./image-fixtures.ts";
-import { createTestUser } from "./test-helpers.ts";
+import { createTestUser, seedOwnedBottle as insertOwnedBottle } from "./test-helpers.ts";
 
 /**
  * ノート API テスト用のボトル / 写真 / セッション一式。
@@ -104,8 +103,7 @@ export async function seedOwnedBottle(
   drinkType: DrinkType = "beer",
   extra: { producer?: string; origin?: string; variety?: string; vintage?: number } = {},
 ) {
-  const now = new Date();
-  await ctx.db.insert(bottles).values({
+  await insertOwnedBottle(ctx.db, {
     id,
     userId,
     name,
@@ -115,7 +113,5 @@ export async function seedOwnedBottle(
     origin: extra.origin ?? null,
     variety: extra.variety ?? null,
     vintage: extra.vintage ?? null,
-    createdAt: now,
-    updatedAt: now,
   });
 }

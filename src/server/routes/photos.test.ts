@@ -1,11 +1,11 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { bottles, photos } from "@/db/schema.ts";
+import { photos } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { makeGif, makeHeic, makeHtml, makeJpeg, makeSvg, makeWebpVp8x } from "../image-fixtures.ts";
-import { createTestApp, createTestUser, createTestUserPair } from "../test-helpers.ts";
+import { createTestApp, createTestUser, createTestUserPair, seedOwnedBottle } from "../test-helpers.ts";
 
 async function session(app: Awaited<ReturnType<typeof createTestApp>>["app"], email: string) {
   const user = await createTestUser(app, {
@@ -148,14 +148,11 @@ describe("POST /api/photos", () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
     const b = await session(ctx.app, "b@example.com");
-    const now = new Date();
-    await ctx.db.insert(bottles).values({
+    await seedOwnedBottle(ctx.db, {
       id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       userId: b.userId,
       name: "他人の瓶",
       drinkType: "wine",
-      createdAt: now,
-      updatedAt: now,
     });
     const res = await postPhoto(ctx.app, a.cookie, makeJpeg(100, 100), {
       bottleId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -167,14 +164,11 @@ describe("POST /api/photos", () => {
   it("自分のボトルへは紐付けできる", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
-    const now = new Date();
-    await ctx.db.insert(bottles).values({
+    await seedOwnedBottle(ctx.db, {
       id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       userId: a.userId,
       name: "自分の瓶",
       drinkType: "wine",
-      createdAt: now,
-      updatedAt: now,
     });
     const res = await postPhoto(ctx.app, a.cookie, makeJpeg(100, 100), {
       bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -389,18 +383,18 @@ describe("未紐付け GC", () => {
     const a = await session(ctx.app, "a@example.com");
     const now = Date.now();
     const bottleId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
-    await ctx.db.insert(bottles).values({
+    const cellarId = await seedOwnedBottle(ctx.db, {
       id: bottleId,
       userId: a.userId,
       name: "古い瓶",
       drinkType: "wine",
-      createdAt: new Date(now - 48 * 60 * 60 * 1000),
-      updatedAt: new Date(now - 48 * 60 * 60 * 1000),
     });
     const attachedId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
     await ctx.db.insert(photos).values({
       id: attachedId,
-      userId: a.userId,
+      userId: null,
+      cellarId,
+      uploadedBy: a.userId,
       r2Key: `${attachedId}.jpg`,
       contentType: "image/jpeg",
       byteSize: 12,
