@@ -17,20 +17,19 @@ import { assertSameOrigin } from "../services/origin.ts";
 import type { PhotoBucket } from "../services/photos.ts";
 import { validate } from "../validation.ts";
 
+/** waitUntil は初回加速のみ。無い／失敗なら日次 scheduled に任せる。Promise を先に作るとテストでレースする。 */
 function scheduleBackground(
   c: { executionCtx?: { waitUntil?: (promise: Promise<unknown>) => void } },
-  task: Promise<unknown>,
+  start: () => Promise<unknown>,
 ) {
   try {
     const waitUntil = c.executionCtx?.waitUntil;
-    if (waitUntil) {
-      waitUntil(task);
-      return;
+    if (typeof waitUntil === "function") {
+      waitUntil(start());
     }
   } catch {
-    // app.request() など waitUntil が無い／投げるとフォールバック
+    // app.request() は ExecutionContext が無く getter が投げる
   }
-  void task;
 }
 
 export function createMeRoute(options: {
@@ -90,7 +89,7 @@ export function createMeRoute(options: {
       } catch {
         // Cookie 失効に失敗しても受付は確定済み
       }
-      scheduleBackground(c, runAccountDeletionJobs({ db, bucket }));
+      scheduleBackground(c, () => runAccountDeletionJobs({ db, bucket }));
       c.header("Cache-Control", "no-store");
       return c.json(accountDeletionAcceptedSchema.parse({ status: "accepted" as const }), 202);
     });

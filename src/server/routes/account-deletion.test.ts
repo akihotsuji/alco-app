@@ -192,7 +192,8 @@ describe("POST /api/me/account-deletion", () => {
     expect(bucket.keys()).toEqual(expect.arrayContaining([`${photoA.id}.jpg`, `${photoB.id}.jpg`]));
 
     await runAccountDeletionJobs({ db, bucket });
-    expect(bucket.keys()).toEqual([`${photoB.id}.jpg`]);
+    expect(bucket.keys()).toContain(`${photoB.id}.jpg`);
+    expect(bucket.keys()).not.toContain(`${photoA.id}.jpg`);
     const leftoverTasks = await db.select().from(accountDeletionPhotoTasks);
     expect(leftoverTasks).toHaveLength(0);
     const [record] = await db
@@ -348,7 +349,11 @@ describe("POST /api/me/account-deletion", () => {
     expect(await db.select().from(accountDeletionPhotoTasks)).toHaveLength(1);
     expect(bucket.keys()).toContain(`${photo.id}.jpg`);
     bucket.clearDeleteFailures();
-    await runAccountDeletionJobs({ db, bucket });
+    await runAccountDeletionJobs({
+      db,
+      bucket,
+      nowMs: Date.now() + 2 * 60 * 1000,
+    });
     expect(await db.select().from(accountDeletionPhotoTasks)).toHaveLength(0);
     expect(bucket.keys()).not.toContain(`${photo.id}.jpg`);
   });

@@ -18,7 +18,7 @@ describe("AccountDeletionPages", () => {
     expect(source).toContain("ACCOUNT_DELETION_COPY.disconnect");
     expect(source).toContain("current-password");
     expect(source).toContain("ACCOUNT_DELETION_COPY.googleReauth");
-    expect(source).toContain('to="/account-deleted"');
+    expect(source).toContain('navigate("/account-deleted"');
     expect(source).not.toContain("全データの削除が完了しました");
     expect(source).not.toContain("localStorage.clear");
     expect(source).not.toContain('pose="');
