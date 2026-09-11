@@ -43,7 +43,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 項目 | 決定 | 根拠 |
 |---|---|---|
 | 開栓 | **`POST /api/bottles/:id/consume`**。ボトルを `consumed`（貯蔵庫）にする。**記録は作らない**。パス名は 1-07 のまま | [screen-designs/04-cellar.md](screen-designs/04-cellar.md) 「開栓する」（2026-09-06） |
-| 復元 | **`POST /api/bottles/:id/restore`** を追加。`consumed → sealed`。undo と「セラーに戻す」 | 同上 |
+| 復元 | **`POST /api/bottles/:id/restore`** を追加。`consumed → sealed`。undo と「開栓の記録を取り消す」 | 同上 |
 | 棚 / 貯蔵庫 | `GET /api/bottles` に **`view=cellar \| archive \| all`**（既定 `cellar`）。`archive` は `consumedAt` 降順 | 棚と貯蔵庫の分離 |
 | 本数展開 | `POST /api/bottles` に **`count`（1〜12）**。N 行を作り `{ items: Bottle[] }` を返す。`quantity` フィールドは廃止 | 1 行 = 1 本 |
 | 記録とボトル | drink-log に **`bottleId`**（任意）。`GET /api/drink-logs?bottleId=` で絞り込み（期間必須は維持しない: `bottleId` 指定時は期間省略可、最大 100 件） | ボトル詳細の記録節 |
@@ -271,7 +271,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | PATCH | `/api/bottles/:id` | 必須 | 部分更新（状態は変えない） |
 | DELETE | `/api/bottles/:id` | 必須 | 削除（写真 CASCADE、ノート・記録は残す） |
 | POST | `/api/bottles/:id/consume` | 必須 | 開栓 → 貯蔵庫。記録は作らない |
-| POST | `/api/bottles/:id/restore` | 必須 | 貯蔵庫 → 棚（undo / セラーに戻す） |
+| POST | `/api/bottles/:id/restore` | 必須 | 貯蔵庫 → 棚（undo / 開栓の記録を取り消す） |
 | POST | `/api/bottles/recognize` | 必須 | ラベル写真から候補フィールド。保存しない |
 | GET | `/api/tasting-notes` | 必須 | ノート一覧 |
 | POST | `/api/tasting-notes` | 必須 | ノート作成 |
@@ -346,7 +346,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | producer | string \| null | 生産者 ≦100 |
 | origin | string \| null | 生産国 ≦100 |
 | variety | string \| null | 品種 ≦100 |
-| vintage | number \| null | 1800〜2100。NV は null |
+| vintage | number \| null | 1800〜2100。未入力は null。UI は NV と表示しない |
 | volumeMl | number | 整数 ml |
 | abvPercent | number | % |
 | alcoholG | number | サーバー計算 |

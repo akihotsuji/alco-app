@@ -5,6 +5,7 @@ import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiClientError } from "./api.ts";
 import {
   bottleFormStateFromBottle,
+  bottlePropLayout,
   bottleStatusPill,
   canSubmitBottleForm,
   createEmptyBottleForm,
@@ -154,14 +155,21 @@ describe("dirty / helpers", () => {
     expect(hasBottleDetails({ ...EMPTY, vintage: "2020" })).toBe(false);
     expect(hasBottleDetails({ ...EMPTY, variety: "カベルネ" })).toBe(false);
     expect(hasBottleDetails({ ...EMPTY, storage: "リビング" })).toBe(true);
-    expect(vintageLabel(null)).toBe("NV");
+    expect(vintageLabel(null)).toBeNull();
     expect(vintageLabel(2020)).toBe("2020");
+    expect(bottlePropLayout("品名")).toBe("stack");
+    expect(bottlePropLayout("生産者")).toBe("stack");
+    expect(bottlePropLayout("購入場所")).toBe("stack");
+    expect(bottlePropLayout("保管場所")).toBe("stack");
+    expect(bottlePropLayout("メモ")).toBe("memo");
+    expect(bottlePropLayout("価格")).toBe("inline");
+    expect(bottlePropLayout("購入日")).toBe("inline");
     expect(bottleStatusPill({ status: "sealed", consumedOn: null })).toEqual({
       label: "未開栓",
       consumed: false,
     });
     expect(bottleStatusPill({ status: "consumed", consumedOn: "2026-09-05" })).toEqual({
-      label: "開栓（9/5）",
+      label: "開栓（2026年9月5日）",
       consumed: true,
     });
     expect(bottleStatusPill({ status: "consumed", consumedOn: null })).toEqual({

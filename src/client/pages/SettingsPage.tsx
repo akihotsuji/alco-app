@@ -62,74 +62,91 @@ export function SettingsPage() {
         {me.isPending ? <ListSkeleton count={2} /> : null}
         {me.isError ? <QueryError onRetry={() => me.refetch()} retrying={me.isFetching} /> : null}
         {me.data ? (
-          <>
+          <div className="settings-group">
             <DisplayNameRow name={me.data.name} />
-            <div className="settings-row">
+            <div className="settings-row settings-row-readonly">
               <span>メール</span>
               <span className="settings-value">{me.data.email}</span>
             </div>
-          </>
+          </div>
         ) : null}
       </section>
 
       <section className="settings-section">
         <h2 className="settings-heading">写真</h2>
-        <div className="settings-row settings-row-stack">
-          <span className="settings-row-main">
-            <span>写真にキャラを入れる（既定）</span>
-            <Switch
-              label="写真にキャラを入れる（既定）"
-              checked={composeMascot}
-              onChange={(value) => {
-                setComposeMascot(value);
-                setComposeMascotPref(value);
-              }}
-            />
-          </span>
-          <span className="settings-caption">新しい写真に合成します。過去の写真は変えません</span>
+        <div className="settings-group">
+          <div className="settings-row settings-row-stack">
+            <span className="settings-row-main">
+              <span>新しい写真にキャラクターを入れる</span>
+              <Switch
+                label="新しい写真にキャラクターを入れる"
+                checked={composeMascot}
+                onChange={(value) => {
+                  setComposeMascot(value);
+                  setComposeMascotPref(value);
+                }}
+              />
+            </span>
+            <span className="settings-caption">
+              これから追加する写真に適用されます。記録とノートの写真が対象です。
+            </span>
+          </div>
         </div>
       </section>
 
       <section className="settings-section">
         <h2 className="settings-heading">セラー</h2>
-        <div className="settings-row settings-row-stack">
-          <span className="settings-row-main">
-            <span>ラベルを自動で読み取る</span>
-            <Switch
-              label="ラベルを自動で読み取る"
-              checked={recognize}
-              onChange={(value) => {
-                setRecognize(value);
-                setCellarRecognizePref(value);
-              }}
-            />
-          </span>
-          <span className="settings-caption">写真を Cloudflare 経由の外部 AI に送ります</span>
+        <div className="settings-group">
+          <div className="settings-row settings-row-stack">
+            <span className="settings-row-main">
+              <span>ラベルを自動で読み取る</span>
+              <Switch
+                label="ラベルを自動で読み取る"
+                checked={recognize}
+                onChange={(value) => {
+                  setRecognize(value);
+                  setCellarRecognizePref(value);
+                }}
+              />
+            </span>
+            <span className="settings-caption">写真から銘柄などを自動入力します</span>
+          </div>
+          <div className="settings-ai-note">
+            <p className="settings-caption">
+              自動入力では、写真を外部のAIサービスに送信して解析します。オフにしても、写真の切り抜きや手入力は使えます。記録・ノートの自動入力はこの設定の対象外です。
+            </p>
+            <Link className="settings-ai-link" to={legalHref("/privacy", "settings")}>
+              送信する情報・送信先について
+            </Link>
+          </div>
         </div>
       </section>
 
       <section className="settings-section">
         <h2 className="settings-heading">記録</h2>
-        <RecordLocationPrefRow />
-        <p className="settings-caption settings-privacy">
-          写真からの自動入力では、画像を Cloudflare 経由の外部 AI に送ります
-        </p>
+        <div className="settings-group">
+          <RecordLocationPrefRow />
+        </div>
       </section>
 
       <section className="settings-section">
         <h2 className="settings-heading">表示</h2>
-        <ThemePrefRow />
+        <div className="settings-group">
+          <ThemePrefRow />
+        </div>
       </section>
 
       <section className="settings-section">
         <h2 className="settings-heading">操作</h2>
-        <HapticPrefRow />
-        <ReduceMotionPrefRow />
-        <div ref={fanAnchorRef} className="guide-fan-anchor">
-          <button type="button" className="settings-row" onClick={guide.openPicker}>
-            使い方を見る
-          </button>
-          <GuideFanMenu onSelect={guide.startTour} />
+        <div className="settings-group">
+          <HapticPrefRow />
+          <ReduceMotionPrefRow />
+          <div ref={fanAnchorRef} className="guide-fan-anchor">
+            <button type="button" className="settings-row" onClick={guide.openPicker}>
+              使い方を見る
+            </button>
+            <GuideFanMenu onSelect={guide.startTour} />
+          </div>
         </div>
         <button
           type="button"
@@ -142,14 +159,16 @@ export function SettingsPage() {
 
       <section className="settings-section">
         <h2 className="settings-heading">このアプリ</h2>
-        <Link className="settings-row" to={legalHref("/terms", "settings")}>
-          <span>利用規約</span>
-          <ChevronRight size={20} className="settings-chevron" aria-hidden />
-        </Link>
-        <Link className="settings-row" to={legalHref("/privacy", "settings")}>
-          <span>プライバシーポリシー</span>
-          <ChevronRight size={20} className="settings-chevron" aria-hidden />
-        </Link>
+        <div className="settings-group">
+          <Link className="settings-row" to={legalHref("/terms", "settings")}>
+            <span>利用規約</span>
+            <ChevronRight size={20} className="settings-chevron" aria-hidden />
+          </Link>
+          <Link className="settings-row" to={legalHref("/privacy", "settings")}>
+            <span>プライバシーポリシー</span>
+            <ChevronRight size={20} className="settings-chevron" aria-hidden />
+          </Link>
+        </div>
       </section>
 
       <p className="settings-note">

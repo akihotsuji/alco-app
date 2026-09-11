@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mainNav, signUpAsNewUser } from "./helpers/auth.ts";
+import { boxesOverlap } from "./helpers/geometry.ts";
 
 /** beer 350ml / 5%（DRINK_TYPE_PRESETS.beer）の表示値 */
 const BEER_ALCOHOL_G = "14.0";
@@ -26,10 +27,25 @@ test("サインアップから記録し、今日と週のサマリー数字が�
   await expect(page.getByText("1 杯 ・", { exact: false })).toBeVisible();
   await expect(page.getByText(`${BEER_ALCOHOL_G} g`)).toBeVisible();
 
-  await mainNav(page).getByRole("button", { name: "ホーム" }).click();
+  const toast = page.getByRole("status").filter({ hasText: "記録しました" });
+  await expect(toast).toBeVisible();
+  const prevDay = page.getByRole("button", { name: "前日" });
+  const homeTab = mainNav(page).getByRole("button", { name: "ホーム" });
+  const toastBox = await toast.boundingBox();
+  const prevDayBox = await prevDay.boundingBox();
+  const homeTabBox = await homeTab.boundingBox();
+  expect(toastBox && prevDayBox && homeTabBox).toBeTruthy();
+  if (toastBox && prevDayBox && homeTabBox) {
+    expect(boxesOverlap(toastBox, prevDayBox)).toBe(false);
+    expect(boxesOverlap(toastBox, homeTabBox)).toBe(false);
+  }
+
+  await homeTab.click();
   await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
-  await expect(page.getByText("今日は 1 杯記録しています")).toBeVisible();
+  await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText("1");
+  await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText("純アルコール量");
   await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText(BEER_ALCOHOL_G);
+  await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText("記録を見る");
 
   await page.getByRole("link", { name: "詳しく見る" }).click();
   await expect(page.getByRole("heading", { name: "今週" })).toBeVisible();

@@ -13,7 +13,7 @@ test("OSダーク×アプリライトでも設定ラベルと作成画面の入�
   const displayName = page.getByRole("button", { name: /表示名/ });
   await expect(displayName).toBeVisible();
   await expect(page.getByText("メール")).toBeVisible();
-  await expect(page.getByText("写真にキャラを入れる（既定）")).toBeVisible();
+  await expect(page.getByText("新しい写真にキャラクターを入れる")).toBeVisible();
   await expect(page.getByText("色補正")).toHaveCount(0);
 
   const colors = await displayName.evaluate((el) => {

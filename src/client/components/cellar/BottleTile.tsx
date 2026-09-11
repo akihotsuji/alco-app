@@ -26,6 +26,7 @@ type BottleTileProps = {
 export function BottleTile({ item, mode, size = "one", enter }: BottleTileProps) {
   const visual = bottleTileVisual(item.thumbPhotoId, item.thumbPhotoKind);
   const showSub = mode === "cellar" && size === "one";
+  const vintage = vintageLabel(item.vintage);
   const [photoState, setPhotoState] = useState<ContentPhotoState>("loading");
 
   return (
@@ -58,7 +59,7 @@ export function BottleTile({ item, mode, size = "one", enter }: BottleTileProps)
         ) : null}
       </span>
       <span className="bottle-tile-name">{item.name}</span>
-      {showSub ? <span className="bottle-tile-sub">{vintageLabel(item.vintage)}</span> : null}
+      {showSub && vintage ? <span className="bottle-tile-sub">{vintage}</span> : null}
     </Link>
   );
 }

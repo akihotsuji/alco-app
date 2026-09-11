@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { DrinkLogSummaryDay } from "@/shared/drink-logs.ts";
 import {
   homeMascotPose,
+  homeTodayActionLabel,
   homeTodayFootnote,
+  homeTodayHref,
   homeTodayStatus,
-  homeTodayStatusLabel,
   homeWeekDayView,
 } from "./home-today.ts";
 
@@ -23,15 +24,17 @@ function day(
 describe("homeTodayStatus", () => {
   it("記録 0 件は未記録であり、杯数 0 だけでは休肝日にしない", () => {
     expect(homeTodayStatus(0)).toBe("unrecorded");
-    expect(homeTodayStatusLabel("unrecorded")).toBe("未記録");
-    expect(homeTodayFootnote("unrecorded", 0)).toBe("今日はまだ記録がありません");
+    expect(homeTodayHref("unrecorded")).toBe("/logs/new");
+    expect(homeTodayActionLabel("unrecorded")).toBe("飲んだお酒を記録");
+    expect(homeTodayFootnote("unrecorded")).toBe("今日はまだ記録がありません");
     expect(homeMascotPose("unrecorded", false)).toBe("rest");
   });
 
-  it("飲酒記録がある日は杯数を主にした記録あり表示にする", () => {
+  it("飲酒記録がある日は杯数を主にした記録確認導線にする", () => {
     expect(homeTodayStatus(2)).toBe("logged");
-    expect(homeTodayStatusLabel("logged")).toBe("記録あり");
-    expect(homeTodayFootnote("logged", 2)).toBe("今日は 2 杯記録しています");
+    expect(homeTodayHref("logged")).toBe("/logs");
+    expect(homeTodayActionLabel("logged")).toBe("記録を見る");
+    expect(homeTodayFootnote("logged")).toBeNull();
     expect(homeMascotPose("logged", false)).toBe("default");
     expect(homeMascotPose("logged", true)).toBe("cheer");
   });

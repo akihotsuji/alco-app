@@ -252,5 +252,6 @@ describe("design tokens", () => {
     expect(tokenValue(block, "--tab-h")).toBe("72px");
     expect(tokenValue(block, "--page-pad-x")).toBe("20px");
     expect(tokenValue(block, "--safe-top")).toBe("env(safe-area-inset-top, 0px)");
+    expect(tokenValue(block, "--text-note")).toBe("14px");
   });
 });

@@ -334,7 +334,7 @@ erDiagram
 | `producer` / `origin` / `variety` / `shop` / `storage` / `place_name` | 0〜100 |
 | `purchased_on` / `stored_on` | `YYYY-MM-DD`（JST）または NULL。未来不可 |
 | `bottles.memo` / ノート 4 欄 | 0〜2000 |
-| `vintage` | 1800〜2100 または NULL（NV / 未入力） |
+| `vintage` | 1800〜2100 または NULL（未入力。既存データは NV と未入力を区別できない。UI は NULL を NV と出さない） |
 | `price_jpy` | 0 以上の整数円、または NULL |
 | 登録時の本数 `count` | 整数 1〜12（API 入力のみ。列は無い。N 行に展開） |
 | マイドリンク件数 | ユーザーあたり 30（アプリ制限。DB CHECK なし） |
@@ -362,7 +362,7 @@ erDiagram
 | producer | producer | text | YES | ≦100 | 生産者 |
 | origin | origin | text | YES | ≦100 | 生産国 |
 | variety | variety | text | YES | ≦100 | 品種 |
-| vintage | vintage | integer | YES | 1800〜2100 | ヴィンテージ。NV / 未入力は NULL |
+| vintage | vintage | integer | YES | 1800〜2100 | ヴィンテージ。未入力は NULL。UI は NV と出さない |
 | volumeMl | volume_ml | integer | NO | 1〜5000 | ml |
 | abvPercent | abv_percent | real | NO | 0〜100 | %。0 は可 |
 | alcoholG | alcohol_g | real | NO | 小数第 2 位 | サーバー再計算 |
@@ -410,7 +410,7 @@ erDiagram
 | producer | producer | text | YES | ≦100 | 生産者 |
 | origin | origin | text | YES | ≦100 | 生産国 |
 | variety | variety | text | YES | ≦100 | 品種（ブドウ・米・ホップ等） |
-| vintage | vintage | integer | YES | 1800〜2100 | 年。NV は NULL |
+| vintage | vintage | integer | YES | 1800〜2100 | 年。未入力は NULL。UI は NV と出さない |
 | purchasedOn | purchased_on | text | YES | `YYYY-MM-DD` | 購入日（JST）。未入力可。当日に自動設定しない |
 | priceJpy | price_jpy | integer | YES | >= 0 | 購入価格（円、小数なし） |
 | shop | shop | text | YES | ≦100 | 購入場所 |
@@ -436,7 +436,7 @@ erDiagram
 | bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携。他ユーザーの id は 404 |
 | drinkName | drink_name | text | NO | 1〜100 | 品名スナップショット |
 | drinkType | drink_type | text | NO | CHECK enum | 種類スナップショット |
-| vintage | vintage | integer | YES | 1800〜2100 | ヴィンテージ。NV / 未入力は NULL |
+| vintage | vintage | integer | YES | 1800〜2100 | ヴィンテージ。未入力は NULL。UI は NV と出さない |
 | producer | producer | text | YES | ≦100 | 生産者 |
 | origin | origin | text | YES | ≦100 | 生産国 |
 | variety | variety | text | YES | ≦100 | 品種 |

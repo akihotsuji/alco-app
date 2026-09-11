@@ -125,7 +125,7 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 | bottle-archive | 貯蔵庫 | `/cellar/archive` | cellar | 表示 | 開栓済み（`consumed`）。月ごと。`/cellar/:bottleId` より静的ルートを優先 |
 | bottle-new | ボトルを追加 | `/cellar/new` | cellar | 隠す | 撮影と選択を同じ大きさで並べる。アプリ内導線は `?camera=1` を付けない。ディープリンクの `?camera=1` だけ撮影から。本数 N で N 行 |
 | bottle-batch | まとめて追加 | `/cellar/batch` | cellar | 隠す | 撮影とライブラリ（複数枚）を同じ行で並べる。アプリ内導線は `?camera=1` を付けない。1 本ずつ撮って行に積み、最後に 1 回で棚に並べる（≦20 行）。Phase 5.5 #56 |
-| bottle-detail | ボトル詳細 | `/cellar/:bottleId` | cellar | 表示 | 主「開栓する」。開栓後は任意の案内シート。詳細に「飲んだ量を記録」「テイスティングを書く」。貯蔵庫は「セラーに戻す」。ノート節は一覧のみ（作成と混同しない） |
+| bottle-detail | ボトル詳細 | `/cellar/:bottleId` | cellar | 表示 | 主「開栓する」。開栓後は任意の案内シート。詳細に「飲んだ量を記録」「テイスティングノートを書く」。貯蔵庫は「開栓の記録を取り消す」。ノート節は一覧のみ（作成と混同しない） |
 | bottle-edit | ボトル編集 | `/cellar/:bottleId/edit` | cellar | 隠す | 削除もここ |
 
 `/cellar` 配下の予約セグメントは `new` / `batch` / `archive`。

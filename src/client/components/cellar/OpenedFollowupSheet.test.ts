@@ -13,7 +13,7 @@ describe("OpenedFollowupSheet T3b", () => {
     expect(source).toContain("開栓しました");
     expect(source).toContain("このボトルについて残しますか？");
     expect(source).toContain("飲んだ量を記録");
-    expect(source).toContain("テイスティングを書く");
+    expect(source).toContain("テイスティングノートを書く");
     expect(source).toContain("今はしない");
     expect(source).not.toContain("あとで");
     expect(source).not.toContain("dangerouslySetInnerHTML");

@@ -2,6 +2,7 @@ import { Suspense, useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { SwUpdateHost } from "@/client/components/feedback/SwUpdateHost.tsx";
+import { ToastHost } from "@/client/components/feedback/ToastProvider.tsx";
 import { FirstRunGuideHost } from "@/client/components/guide/FirstRunGuideHost.tsx";
 import {
   FirstRunGuideProvider,
@@ -101,6 +102,7 @@ function AppShellFrame() {
   return (
     <div className={appShellClassName({ hideTabs, hideHeader: route.hideHeader })}>
       {route.hideHeader ? null : <AppHeader header={header} />}
+      <ToastHost />
       <div ref={contentRef} className={addFab ? "app-content has-add-fab" : "app-content"}>
         <Suspense fallback={<CardSkeleton />}>
           <Outlet />
