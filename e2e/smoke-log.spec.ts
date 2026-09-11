@@ -29,14 +29,14 @@ test("サインアップから記録し、今日と週のサマリー数字が�
 
   const toast = page.getByRole("status").filter({ hasText: "記録しました" });
   await expect(toast).toBeVisible();
-  const back = page.getByRole("button", { name: "戻る" });
+  const prevDay = page.getByRole("button", { name: "前日" });
   const homeTab = mainNav(page).getByRole("button", { name: "ホーム" });
   const toastBox = await toast.boundingBox();
-  const backBox = await back.boundingBox();
+  const prevDayBox = await prevDay.boundingBox();
   const homeTabBox = await homeTab.boundingBox();
-  expect(toastBox && backBox && homeTabBox).toBeTruthy();
-  if (toastBox && backBox && homeTabBox) {
-    expect(boxesOverlap(toastBox, backBox)).toBe(false);
+  expect(toastBox && prevDayBox && homeTabBox).toBeTruthy();
+  if (toastBox && prevDayBox && homeTabBox) {
+    expect(boxesOverlap(toastBox, prevDayBox)).toBe(false);
     expect(boxesOverlap(toastBox, homeTabBox)).toBe(false);
   }
 
