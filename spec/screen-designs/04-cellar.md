@@ -1,6 +1,6 @@
 # 04 セラー（陳列・貯蔵庫・追加・詳細・開栓）
 
-実装: 4-02（追加・詳細・編集）/ 4-03（開栓・貯蔵庫・復元）/ 4-04（陳列）/ 4-06（切り抜き）/ 4-07（ラベル読み取り）/ 5.5（**まとめて追加** #56）。写真の撮影・編集・切り抜きは [07-photo-capture.md](07-photo-capture.md)。
+実装: 4-02（追加・詳細・編集）/ 4-03（開栓・貯蔵庫・復元）/ 4-04（陳列）/ 4-06（切り抜き）/ 4-07（ラベル読み取り）/ 5.5（**まとめて追加** #56）。写真の撮影・編集・切り抜きは [07-photo-capture.md](07-photo-capture.md)。共有セラーの選択行・保存先・競合は [11-shared-cellar.md](11-shared-cellar.md) が正。下部タブは増やさない。
 
 モック: [cellar-shelf.png](../wireframes/mocks/cellar-shelf.png)（1 本ずつ）、[cellar-by-type.png](../wireframes/mocks/cellar-by-type.png)（種類ごと）、[cellar-archive.png](../wireframes/mocks/cellar-archive.png)、[cellar-new.png](../wireframes/mocks/cellar-new.png)（ラベル読み取り後）、[cellar-detail.png](../wireframes/mocks/cellar-detail.png)
 
@@ -89,6 +89,7 @@
 | C2 | タイトル | テキスト | 「セラー」+ muted「12 本」（フィルタ前の在庫数） | `GET /api/bottles?view=cellar` の `totalCount` |
 | C3 | 追加 | Button 副（円 52px、`plus`）。右下 FAB | `/cellar/new`（フォームへ。撮影と選択を並べて選ぶ。`?camera=1` はディープリンク用）。タブバーの上 16px・右 20px。[00-common.md](00-common.md) 1.4 | — |
 | C3b | まとめて追加 | Button 副（円、`images`）。ヘッダー右 | `/cellar/batch`（`bottle-batch`。撮影は自動起動しない）。ヘッダー右は 1 個（40px）のまま | — |
+| C14 | セラー選択 | 行（ヘッダー下） | 現在名 + ▾ と人数。「自分のセラー / 自分だけ」または共有名 + 「N人」。タップで切替シート。未参加なら「セラーを共有する」、参加済みなら「共有設定」 | `GET /api/cellars`。詳細は 11-shared-cellar |
 | C4 | 表示切替 | 2 択セグメント | 「種類ごと」「1 本ずつ」。URL `?view=` と `localStorage` に保存 | クライアント |
 | C5 | 検索 | Chip（`search`）→ Input | タップで入力欄に展開。銘柄・生産者・品種の部分一致。300ms デバウンス | `q` |
 | C6 | 種類フィルタ | Chip「種類 ▼」→ 12 種のダイアログ | 単一選択。選択中は「赤ワイン ×」。**種類ごと表示では非表示** | `drinkType` |

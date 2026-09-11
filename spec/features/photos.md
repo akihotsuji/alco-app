@@ -46,7 +46,8 @@
 - 配信: 今後の `GET /api/photos/:id/content` は `Cache-Control: private, no-store` + `ETag: "{photoId}"`。アカウント削除後に端末キャッシュから本文を再利用しないため、1 年 immutable は見直す。既存レスポンスへの遡及はしない。`If-None-Match` が一致すれば **認可の後に** 304（本文なし。R2 を読まない）。他人・不明は一致しても 404
 - R2 put の前に `photo_object_reservations`（`r2_key` + `user_id`、lease。user CASCADE は付けない）へ予約する。put 直前にユーザー存在と lease を確認する。ユーザー削除後の遅延 put は予約が取れなければ書かない
 - Cron（`0 18 * * *`）: 未紐付け 24h 超を最大 500 件、R2 → D1。R2 のタイムアウト・5xx・権限障害では D1 行を消さない（オブジェクト無しは成功）。件数だけログ。HTTP の GC は無い。同じ cron がアカウント削除の写真タスクと台帳転記も再実行する（[account-deletion.md](account-deletion.md)）
-- 日次上限は `photos.created_at` をユーザー単位で数える。R2 書き込み前に判定する。詳細は [rate-limit-abuse.md](rate-limit-abuse.md)
+- 日次上限は `photos.uploaded_by`（なければ個人 `user_id`）をユーザー単位で数える。R2 書き込み前に判定する。詳細は [rate-limit-abuse.md](rate-limit-abuse.md)
+- ボトル写真はセラー所有（`cellar_id`）。ノート・記録・未紐付けは個人所有。共有ボトル写真の GET はメンバー認可。退会者の共有写真は回収しない（[shared-cellar.md](shared-cellar.md) / [account-deletion.md](account-deletion.md)）
 
 ## 対象外（後続）
 

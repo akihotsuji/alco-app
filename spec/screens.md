@@ -53,6 +53,7 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 | 公開（リセット） | `auth-forgot-password` `/forgot-password`、`auth-reset-password` `/reset-password` | 表示 | **そのまま表示**（メールのリンクをログイン中でも使える。8-03） |
 | 公開（法務） | `legal-terms` `/terms`、`legal-privacy` `/privacy` | 表示 | **そのまま表示**（`/` へ送らない） |
 | 公開（削除受付） | `account-deleted` `/account-deleted` | 表示 | **そのまま表示**（新しい公開 API は無い） |
+| 公開（招待参加） | `cellar-join` `/join` | 表示 | **そのまま表示**（未ログインは一般説明。トークンは `#t=`。GET では参加しない） |
 | 認証後（年齢未確認） | `auth-age` `/age`（タブバーなし）、`settings-account-delete` `/settings/account/delete`（タブバーなし） | `/login?redirect=` | `/age` は確認済みなら `redirect` または `/`。削除画面は年齢確認不要 |
 | 認証後（年齢確認済み） | 下部タブ配下の全画面、サマリー、作成・編集、404（認証後シェル） | `/login?redirect=<元パス>` へ | 未確認なら `/age?redirect=`（削除画面は除く）。確認済みなら表示 |
 
@@ -127,9 +128,17 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 | bottle-new | ボトルを追加 | `/cellar/new` | cellar | 隠す | 撮影と選択を同じ大きさで並べる。アプリ内導線は `?camera=1` を付けない。ディープリンクの `?camera=1` だけ撮影から。本数 N で N 行 |
 | bottle-batch | まとめて追加 | `/cellar/batch` | cellar | 隠す | 撮影とライブラリ（複数枚）を同じ行で並べる。アプリ内導線は `?camera=1` を付けない。1 本ずつ撮って行に積み、最後に 1 回で棚に並べる（≦20 行）。Phase 5.5 #56 |
 | bottle-detail | ボトル詳細 | `/cellar/:bottleId` | cellar | 表示 | 主「開栓する」。開栓後は任意の案内シート。詳細に「飲んだ量を記録」「テイスティングノートを書く」。貯蔵庫は「開栓の記録を取り消す」。ノート節は一覧のみ（作成と混同しない） |
-| bottle-edit | ボトル編集 | `/cellar/:bottleId/edit` | cellar | 隠す | 削除もここ |
+| bottle-edit | ボトル編集 | `/cellar/:bottleId/edit` | cellar | 隠す | 削除もここ。共有時は保存先読み取り専用・競合比較 |
+| cellar-share-new | セラーを共有する | `/cellar/share` | cellar | 隠す | 空の共有セラーを作る。詳細は [11-shared-cellar.md](screen-designs/11-shared-cellar.md) |
+| cellar-share-created | 共有セラー | `/cellar/share/created` | cellar | 隠す | 招待（主）と移動（副） |
+| cellar-share-settings | 共有設定 | `/cellar/share/settings` | cellar | 隠す | 名称・参加者・招待・移動・危険操作 |
+| cellar-share-invite | 招待 | `/cellar/share/invite` | cellar | 隠す | リンク共有 / コピー |
+| cellar-share-move | 自分のボトルを移す | `/cellar/share/move` | cellar | 隠す | 個人→共有。コピーではない |
+| cellar-share-activity | 最近の変更 | `/cellar/share/activity` | cellar | 隠す | 共有履歴 |
 
-`/cellar` 配下の予約セグメントは `new` / `batch` / `archive`。
+`/cellar` 配下の予約セグメントは `new` / `batch` / `archive` / `share`。`share` は `:bottleId` より先。
+
+公開の参加画面 `cellar-join` は `/join`（タブ・ヘッダーなし）。トークンは URL フラグメント。
 
 ### 認証後 — ノート
 
