@@ -676,7 +676,7 @@ export async function createInvitation(input: {
         eq(cellarInvitations.cellarId, access.id),
         isNull(cellarInvitations.usedAt),
         isNull(cellarInvitations.revokedAt),
-        sql`${cellarInvitations.expiresAt} > ${now}`,
+        sql`${cellarInvitations.expiresAt} > ${now.getTime()}`,
       ),
     );
   if (Number(pending?.n ?? 0) >= CELLAR_INVITE_PENDING_MAX) {
@@ -938,7 +938,7 @@ export async function acceptInvitation(input: {
             eq(cellarInvitations.id, invitation.id),
             isNull(cellarInvitations.usedAt),
             isNull(cellarInvitations.revokedAt),
-            sql`${cellarInvitations.expiresAt} > ${now}`,
+            sql`${cellarInvitations.expiresAt} > ${now.getTime()}`,
             sql`EXISTS (SELECT 1 FROM user_cellar_slots WHERE user_id = ${input.userId} AND shared_cellar_id IS NULL)`,
             sql`(SELECT COUNT(*) FROM cellar_members WHERE cellar_id = ${invitation.cellarId}) < ${CELLAR_MEMBER_LIMIT}`,
           ),
