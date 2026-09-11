@@ -21,6 +21,7 @@ describe("ToastProvider / ToastHost", () => {
     expect(source).toContain('role="status"');
     expect(source).toContain('aria-live="polite"');
     expect(source).toContain('aria-label="閉じる"');
+    expect(source).toContain("onPointerEnter");
     expect(source).toContain("onPointerCancel");
     expect(source).toContain("onPointerLeave");
     expect(source).toContain("onBlur");

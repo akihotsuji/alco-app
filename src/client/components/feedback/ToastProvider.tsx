@@ -336,6 +336,7 @@ function ToastCard({
 
   function bindActionHandlers() {
     return {
+      onPointerEnter: () => onActionStart(toast.id),
       onPointerDown: () => onActionStart(toast.id),
       onFocus: () => onActionStart(toast.id),
       onPointerLeave: () => onActionEnd(toast.id),
