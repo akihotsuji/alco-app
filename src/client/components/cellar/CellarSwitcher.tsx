@@ -1,8 +1,6 @@
+import { Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
-import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
-import { cellarDisplayName, cellarPeopleLabel } from "@/client/lib/cellar-share.ts";
 import { Button } from "@/client/components/ui/button.tsx";
 import {
   DialogContent,
@@ -10,7 +8,9 @@ import {
   Dialog as DialogRoot,
   DialogTitle,
 } from "@/client/components/ui/dialog.tsx";
-import { Users } from "lucide-react";
+import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
+import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
+import { cellarDisplayName, cellarPeopleLabel } from "@/client/lib/cellar-share.ts";
 import type { CellarSummary } from "@/shared/cellars.ts";
 
 type CellarSwitcherProps = {
@@ -40,9 +40,7 @@ export function CellarSwitcher({ sync = true }: CellarSwitcherProps) {
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <span className="cellar-switcher-name">
-          {isPending ? "セラー" : name} ▾
-        </span>
+        <span className="cellar-switcher-name">{isPending ? "セラー" : name} ▾</span>
         {people ? (
           <span className="cellar-switcher-people">
             <Users size={16} aria-hidden />

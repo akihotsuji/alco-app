@@ -3,6 +3,7 @@ import type { BatchItem } from "drizzle-orm/batch";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
 import {
+  accountDeletionPhotoTasks,
   bottles,
   cellarActivity,
   cellarInvitations,
@@ -10,10 +11,9 @@ import {
   cellarOwnerTransfers,
   cellars,
   photos,
-  user as users,
   userCellarSlots,
+  user as users,
 } from "@/db/schema.ts";
-import { accountDeletionPhotoTasks } from "@/db/schema.ts";
 import {
   type AcceptInvitationInput,
   type CellarActivityItem,
@@ -60,9 +60,11 @@ import {
 import { idempotencyInsert, readIdempotentResult, recoverIdempotentResult } from "./idempotency.ts";
 
 function requireIso(value: Date | number): string {
-  return value instanceof Date ? value.toISOString() : new Date(value).getTime()
-    ? new Date(value).toISOString()
-    : new Date(value).toISOString();
+  return value instanceof Date
+    ? value.toISOString()
+    : new Date(value).getTime()
+      ? new Date(value).toISOString()
+      : new Date(value).toISOString();
 }
 
 function toIso(value: Date | number | null): string | null {
@@ -169,12 +171,6 @@ export async function createSharedCellar(input: {
     .select()
     .from(userCellarSlots)
     .where(eq(userCellarSlots.userId, input.userId));
-  if (slot?.sharedCellarId) {
-    throw new ApiError("conflict", {
-      fields: { "": ["すでに共有セラーに参加しています"] },
-      conflict: { reason: "already_shared" },
-    });
-  }
 
   const cached = await readIdempotentResult<CellarDetail>(input.db, {
     actorUserId: input.userId,
@@ -184,6 +180,13 @@ export async function createSharedCellar(input: {
   });
   if (cached) {
     return cached;
+  }
+
+  if (slot?.sharedCellarId) {
+    throw new ApiError("conflict", {
+      fields: { "": ["すでに共有セラーに参加しています"] },
+      conflict: { reason: "already_shared" },
+    });
   }
 
   const cellarId = crypto.randomUUID();
@@ -395,7 +398,9 @@ export async function deleteSharedCellar(input: {
       .update(userCellarSlots)
       .set({ sharedCellarId: null })
       .where(eq(userCellarSlots.sharedCellarId, access.id)),
-    input.db.delete(cellars).where(and(eq(cellars.id, access.id), eq(cellars.ownerUserId, input.userId))),
+    input.db
+      .delete(cellars)
+      .where(and(eq(cellars.id, access.id), eq(cellars.ownerUserId, input.userId))),
     idempotencyInsert(input.db, {
       actorUserId: input.userId,
       cellarId: access.id,
@@ -492,7 +497,12 @@ export async function leaveSharedCellar(input: {
     input.db
       .update(userCellarSlots)
       .set({ sharedCellarId: null })
-      .where(and(eq(userCellarSlots.userId, input.userId), eq(userCellarSlots.sharedCellarId, access.id))),
+      .where(
+        and(
+          eq(userCellarSlots.userId, input.userId),
+          eq(userCellarSlots.sharedCellarId, access.id),
+        ),
+      ),
     bumpCellarRevision(input.db, access.id, now),
     input.db.insert(cellarActivity).values({
       id: crypto.randomUUID(),
@@ -553,7 +563,9 @@ export async function removeMember(input: {
   await input.db.batch([
     input.db
       .delete(cellarMembers)
-      .where(and(eq(cellarMembers.cellarId, access.id), eq(cellarMembers.userId, input.targetUserId))),
+      .where(
+        and(eq(cellarMembers.cellarId, access.id), eq(cellarMembers.userId, input.targetUserId)),
+      ),
     input.db
       .update(userCellarSlots)
       .set({ sharedCellarId: null })
@@ -913,7 +925,9 @@ export async function acceptInvitation(input: {
       input.db
         .update(userCellarSlots)
         .set({ sharedCellarId: invitation.cellarId })
-        .where(and(eq(userCellarSlots.userId, input.userId), isNull(userCellarSlots.sharedCellarId))),
+        .where(
+          and(eq(userCellarSlots.userId, input.userId), isNull(userCellarSlots.sharedCellarId)),
+        ),
       input.db
         .update(cellarInvitations)
         .set({ usedBy: input.userId, usedAt: now })
@@ -1033,7 +1047,9 @@ export async function createOwnerTransfer(input: {
   const [target] = await input.db
     .select({ userId: cellarMembers.userId })
     .from(cellarMembers)
-    .where(and(eq(cellarMembers.cellarId, access.id), eq(cellarMembers.userId, input.body.toUserId)));
+    .where(
+      and(eq(cellarMembers.cellarId, access.id), eq(cellarMembers.userId, input.body.toUserId)),
+    );
   if (!target) {
     throw new ApiError("not_found");
   }
@@ -1060,7 +1076,10 @@ export async function createOwnerTransfer(input: {
       .update(cellarOwnerTransfers)
       .set({ status: "cancelled" })
       .where(
-        and(eq(cellarOwnerTransfers.cellarId, access.id), eq(cellarOwnerTransfers.status, "pending")),
+        and(
+          eq(cellarOwnerTransfers.cellarId, access.id),
+          eq(cellarOwnerTransfers.status, "pending"),
+        ),
       ),
     input.db.insert(cellarOwnerTransfers).values({
       id: transfer.id,
@@ -1237,14 +1256,18 @@ function decodeActivityCursor(cursor: string): z.infer<typeof activityCursorSche
     const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
     const parsed = activityCursorSchema.safeParse(JSON.parse(atob(padded)));
     if (!parsed.success) {
-      throw new ApiError("validation_error", { fields: { cursor: ["ページ情報が正しくありません"] } });
+      throw new ApiError("validation_error", {
+        fields: { cursor: ["ページ情報が正しくありません"] },
+      });
     }
     return parsed.data;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError("validation_error", { fields: { cursor: ["ページ情報が正しくありません"] } });
+    throw new ApiError("validation_error", {
+      fields: { cursor: ["ページ情報が正しくありません"] },
+    });
   }
 }
 
@@ -1378,7 +1401,9 @@ export async function purgeExpiredCellarRows(db: AppBatchDb, nowMs = Date.now())
     .where(
       and(eq(cellarOwnerTransfers.status, "pending"), lt(cellarOwnerTransfers.expiresAt, now)),
     );
-  await db.delete(cellarActivity).where(lt(cellarActivity.createdAt, new Date(nowMs - CELLAR_ACTIVITY_TTL_MS)));
+  await db
+    .delete(cellarActivity)
+    .where(lt(cellarActivity.createdAt, new Date(nowMs - CELLAR_ACTIVITY_TTL_MS)));
 }
 
 export function sharedCellarDefaultName(): string {

@@ -4,8 +4,10 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { z } from "zod";
-import { bottles } from "@/db/schema.ts";
+import type { AppBatchDb } from "@/db/index.ts";
 import * as schema from "@/db/schema.ts";
+import { bottles } from "@/db/schema.ts";
+import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
 import {
   AI_RECOGNIZE_LOOKUP_BUDGET_MS,
   GEMINI_35_FLASH_LITE_MODEL_ID,
@@ -16,8 +18,6 @@ import { createAuth } from "./auth.ts";
 import type { GoogleOAuthConfig } from "./env.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
-import type { AppBatchDb } from "@/db/index.ts";
-import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
 import { ensurePersonalCellar } from "./services/cellar-access.ts";
 import type { DrinkLookupRunner } from "./services/drink-recognizer/lookup-runner.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";

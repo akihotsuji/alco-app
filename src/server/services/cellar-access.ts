@@ -5,16 +5,15 @@ import {
   cellarActivity,
   cellarMembers,
   cellars,
-  user as users,
   userCellarSlots,
+  user as users,
 } from "@/db/schema.ts";
-import { cellarRole } from "@/shared/cellars.ts";
+import { CELLAR_COPY, cellarRole } from "@/shared/cellars.ts";
 import {
   CELLAR_PERSONAL_NAME,
   type CellarActivityAction,
   LEFT_MEMBER_DISPLAY_NAME,
 } from "@/shared/constants.ts";
-import { CELLAR_COPY } from "@/shared/cellars.ts";
 import { ApiError } from "../errors.ts";
 
 export type CellarRow = typeof cellars.$inferSelect;

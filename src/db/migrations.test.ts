@@ -119,9 +119,11 @@ function insertPhoto(
   owner: { bottleId?: string; noteId?: string; logId?: string } = {},
 ) {
   const cellarId = owner.bottleId
-    ? (db.prepare("SELECT cellar_id AS id FROM bottles WHERE id = ?").get(owner.bottleId) as
-        | { id: string }
-        | undefined)?.id ?? null
+    ? ((
+        db.prepare("SELECT cellar_id AS id FROM bottles WHERE id = ?").get(owner.bottleId) as
+          | { id: string }
+          | undefined
+      )?.id ?? null)
     : null;
   db.prepare(
     "INSERT INTO photos (id, user_id, cellar_id, uploaded_by, r2_key, content_type, byte_size, bottle_id, tasting_note_id, drink_log_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -476,7 +478,9 @@ describe("制約の挙動", () => {
     insertPhoto(db, "p-shared", "u1", { bottleId: "b-shared" });
 
     const personalId = (
-      db.prepare("SELECT personal_cellar_id AS id FROM user_cellar_slots WHERE user_id = 'u1'").get() as {
+      db
+        .prepare("SELECT personal_cellar_id AS id FROM user_cellar_slots WHERE user_id = 'u1'")
+        .get() as {
         id: string;
       }
     ).id;
@@ -486,12 +490,18 @@ describe("制約の挙動", () => {
 
     expect(count(db, "user")).toBe(1);
     expect(
-      (db.prepare("SELECT id FROM bottles WHERE id = 'b-shared'").get() as { id: string } | undefined)
-        ?.id,
+      (
+        db.prepare("SELECT id FROM bottles WHERE id = 'b-shared'").get() as
+          | { id: string }
+          | undefined
+      )?.id,
     ).toBe("b-shared");
     expect(
-      (db.prepare("SELECT id FROM photos WHERE id = 'p-shared'").get() as { id: string } | undefined)
-        ?.id,
+      (
+        db.prepare("SELECT id FROM photos WHERE id = 'p-shared'").get() as
+          | { id: string }
+          | undefined
+      )?.id,
     ).toBe("p-shared");
     expect(db.prepare("SELECT id FROM bottles WHERE id = 'b-u1'").get()).toBeUndefined();
     expect(db.prepare("SELECT id FROM photos WHERE id = 'p-note'").get()).toBeUndefined();

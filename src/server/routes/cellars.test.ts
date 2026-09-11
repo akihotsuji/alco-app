@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { bottles, cellarMembers, photos } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
+import { bottleSchema, createBottlesResponseSchema } from "@/shared/bottles.ts";
 import {
   cellarDetailSchema,
   cellarRevisionSchema,
   cellarsResponseSchema,
   invitationPreviewSchema,
 } from "@/shared/cellars.ts";
-import { bottleSchema, createBottlesResponseSchema } from "@/shared/bottles.ts";
 import { makeJpeg } from "../image-fixtures.ts";
 import {
   cellarCreateRateLimiter,
@@ -52,7 +52,9 @@ describe("GET/POST /api/cellars", () => {
   it("個人セラーを作り、共有セラーを追加できる", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
-    const list = cellarsResponseSchema.parse(await (await ctx.app.request("/api/cellars", { headers: headers(a.cookie) })).json());
+    const list = cellarsResponseSchema.parse(
+      await (await ctx.app.request("/api/cellars", { headers: headers(a.cookie) })).json(),
+    );
     expect(list.items).toHaveLength(1);
     expect(list.items[0]?.kind).toBe("personal");
     expect(list.items[0]?.name).toBe("自分のセラー");
@@ -350,7 +352,10 @@ describe("退会と共有写真", () => {
       headers: headers(b.cookie),
       body: JSON.stringify({ token, operationKey: OP() }),
     });
-    const res = await requestAccountDeletion(ctx.app, a.cookie, { password: "password1" });
+    const res = await requestAccountDeletion(ctx.app, a.cookie, {
+      confirmed: true,
+      password: "password1",
+    });
     expect(res.status).toBe(409);
     expect(apiErrorBodySchema.parse(await res.json()).conflict?.reason).toBe("owner_required");
   });
@@ -382,7 +387,10 @@ describe("退会と共有写真", () => {
       body: JSON.stringify({ token, operationKey: OP() }),
     });
     const form = new FormData();
-    form.set("file", new File([Uint8Array.from(makeJpeg(80, 80))], "shot.jpg", { type: "image/jpeg" }));
+    form.set(
+      "file",
+      new File([Uint8Array.from(makeJpeg(80, 80))], "shot.jpg", { type: "image/jpeg" }),
+    );
     const photo = await ctx.app.request("/api/photos", {
       method: "POST",
       headers: { Cookie: b.cookie },
@@ -405,8 +413,11 @@ describe("退会と共有写真", () => {
       ).json(),
     );
     const bottleId = created.items[0]?.id;
-    const deleted = await requestAccountDeletion(ctx.app, b.cookie, { password: "password1" });
-    expect(deleted.status).toBe(200);
+    const deleted = await requestAccountDeletion(ctx.app, b.cookie, {
+      confirmed: true,
+      password: "password1",
+    });
+    expect(deleted.status).toBe(202);
     const [stillBottle] = await ctx.db.select().from(bottles);
     expect(stillBottle?.id).toBe(bottleId);
     const [stillPhoto] = await ctx.db.select().from(photos);

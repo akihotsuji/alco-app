@@ -88,7 +88,10 @@ function thumbOf(photoRows: readonly PhotoRow[]): {
   };
 }
 
-function namesFromMap(row: Pick<BottleRow, "createdBy" | "updatedBy">, map: Map<string, string>): ActorNames {
+function namesFromMap(
+  row: Pick<BottleRow, "createdBy" | "updatedBy">,
+  map: Map<string, string>,
+): ActorNames {
   return {
     createdByName: row.createdBy ? actorDisplayName(row.createdBy, map) : null,
     updatedByName: row.updatedBy ? actorDisplayName(row.updatedBy, map) : null,
@@ -240,10 +243,7 @@ async function resolvePatchPhotos(
   if (unique.length === 0) {
     return [];
   }
-  const rows = await db
-    .select()
-    .from(photos)
-    .where(inArray(photos.id, unique));
+  const rows = await db.select().from(photos).where(inArray(photos.id, unique));
   const valid = rows.every(
     (photo) =>
       photo.tastingNoteId === null &&
@@ -459,7 +459,11 @@ export async function createBottles(input: {
               updatedAt: now,
             })
             .where(
-              and(eq(photos.id, sourcePhoto.id), eq(photos.userId, userId), isNull(photos.bottleId)),
+              and(
+                eq(photos.id, sourcePhoto.id),
+                eq(photos.userId, userId),
+                isNull(photos.bottleId),
+              ),
             ),
         );
       }
@@ -730,7 +734,9 @@ export async function listBottles(input: {
   );
   const last = page.at(-1);
   return {
-    items: page.map((row) => toBottleItem(row, photoMap.get(row.id) ?? [], namesFromMap(row, nameMap))),
+    items: page.map((row) =>
+      toBottleItem(row, photoMap.get(row.id) ?? [], namesFromMap(row, nameMap)),
+    ),
     nextCursor: hasMore && last ? encodeCursor(last, query.view) : null,
     totalCount: Number(totalRow?.n ?? 0),
     countsByType,
@@ -778,7 +784,9 @@ export async function updateBottle(input: {
       ? undefined
       : await resolvePatchPhotos(db, userId, bottleId, current.cellarId, body.photoIds);
   const currentPhotoRows =
-    body.photoIds === undefined ? [] : await db.select().from(photos).where(eq(photos.bottleId, bottleId));
+    body.photoIds === undefined
+      ? []
+      : await db.select().from(photos).where(eq(photos.bottleId, bottleId));
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
@@ -799,7 +807,10 @@ export async function updateBottle(input: {
     conditions.push(eq(bottles.version, body.expectedVersion));
   }
 
-  const updateStatement = db.update(bottles).set(patch).where(and(...conditions));
+  const updateStatement = db
+    .update(bottles)
+    .set(patch)
+    .where(and(...conditions));
   const detachStatement =
     removedPhotoRows.length > 0
       ? db
@@ -974,7 +985,10 @@ export async function consumeBottle(input: {
   if (!after || after.status !== "consumed") {
     throw new ApiError("conflict", {
       fields: { "": [CELLAR_COPY.alreadyConsumed] },
-      conflict: { reason: "version", current: after ? await getOwnBottle(db, userId, bottleId) : undefined },
+      conflict: {
+        reason: "version",
+        current: after ? await getOwnBottle(db, userId, bottleId) : undefined,
+      },
     });
   }
   const result = await getOwnBottle(db, userId, bottleId);

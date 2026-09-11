@@ -15,12 +15,17 @@ import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import { useBottleListFilters } from "@/client/hooks/use-bottle-list-filters.ts";
-import { getBottle, restoreBottle, useBottles, useInfiniteBottles } from "@/client/hooks/use-bottles.ts";
-import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
-import { newOperationKey } from "@/client/lib/cellar-share.ts";
+import {
+  getBottle,
+  restoreBottle,
+  useBottles,
+  useInfiniteBottles,
+} from "@/client/hooks/use-bottles.ts";
 import { useCellarListView } from "@/client/hooks/use-cellar-list-view.ts";
+import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
+import { newOperationKey } from "@/client/lib/cellar-share.ts";
 import {
   rankByCreatedAtDesc,
   SHELF_TYPE_PAGE_LIMIT,
@@ -295,31 +300,31 @@ export function CellarList() {
               }),
             )
             .then(
-            () => {
-              void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
-              setEnterId(bottleId);
-              if (view === "type") {
-                setHighlightType(drinkType ?? null);
-              } else {
-                const rank = rankByCreatedAtDesc(oneItems, { bottleId, createdAt });
-                setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
-              }
-              window.setTimeout(() => {
-                setHighlightRow(null);
-                setHighlightType(null);
-                setEnterId(null);
-              }, MOTION_MS.open);
-              showToast({ message: TOAST_MESSAGES.undone, cheer: true });
-            },
-            () => {
-              showToast({
-                message: navigator.onLine
-                  ? FORM_ERROR_MESSAGES.generic
-                  : FORM_ERROR_MESSAGES.offline,
-              });
-              void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
-            },
-          );
+              () => {
+                void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+                setEnterId(bottleId);
+                if (view === "type") {
+                  setHighlightType(drinkType ?? null);
+                } else {
+                  const rank = rankByCreatedAtDesc(oneItems, { bottleId, createdAt });
+                  setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
+                }
+                window.setTimeout(() => {
+                  setHighlightRow(null);
+                  setHighlightType(null);
+                  setEnterId(null);
+                }, MOTION_MS.open);
+                showToast({ message: TOAST_MESSAGES.undone, cheer: true });
+              },
+              () => {
+                showToast({
+                  message: navigator.onLine
+                    ? FORM_ERROR_MESSAGES.generic
+                    : FORM_ERROR_MESSAGES.offline,
+                });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+              },
+            );
         },
       },
     });

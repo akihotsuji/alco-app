@@ -287,7 +287,11 @@ export function defaultSharedCellarName(name: string | undefined): string {
   return trimmed.length > 0 ? trimmed : CELLAR_DEFAULT_SHARED_NAME;
 }
 
-export function cellarRole(kind: CellarKind, ownerUserId: string, userId: string): "owner" | "member" {
+export function cellarRole(
+  kind: CellarKind,
+  ownerUserId: string,
+  userId: string,
+): "owner" | "member" {
   if (kind === "personal" || ownerUserId === userId) {
     return "owner";
   }
@@ -303,10 +307,8 @@ export const CELLAR_COPY = {
     "この招待リンクは利用できません。招待した人に新しいリンクを作ってもらってください。",
   moveWarning:
     "写真・購入情報・メモも共有されます。飲酒記録とノートは共有されません。共有へ移したボトルは、脱退しても共有セラーに残ります。",
-  leaveWarning:
-    "追加したボトルと写真は共有セラーに残ります。自分の飲酒記録とノートは残ります。",
-  deleteShared:
-    "全ボトルと写真が全員のセラーから消えます。各自の飲酒記録とノートは残ります。",
+  leaveWarning: "追加したボトルと写真は共有セラーに残ります。自分の飲酒記録とノートは残ります。",
+  deleteShared: "全ボトルと写真が全員のセラーから消えます。各自の飲酒記録とノートは残ります。",
   sharedMemoLabel: "メモ（参加者に共有）",
   syncHint: "変更は数秒で反映されます",
   syncFailed: "最新の変更を確認できません。再試行",

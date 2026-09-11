@@ -1,4 +1,4 @@
-import { bottleSchema, type Bottle } from "@/shared/bottles.ts";
+import { type Bottle, bottleSchema } from "@/shared/bottles.ts";
 import type { CellarSummary } from "@/shared/cellars.ts";
 import { CELLAR_PERSONAL_NAME } from "@/shared/constants.ts";
 

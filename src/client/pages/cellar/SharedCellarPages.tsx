@@ -3,11 +3,14 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { CellarDestinationField } from "@/client/components/cellar/CellarDestinationField.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useInfiniteBottles } from "@/client/hooks/use-bottles.ts";
+import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
+import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
 import {
   useAcceptOwnerTransfer,
   useCancelOwnerTransfer,
@@ -25,8 +28,6 @@ import {
   useRevokeInvitation,
   useUpdateCellarName,
 } from "@/client/hooks/use-cellars.ts";
-import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
-import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
 import { useMe } from "@/client/hooks/use-me.ts";
 import {
   CELLAR_ACTIVITY_LABELS,
@@ -35,12 +36,7 @@ import {
   writeSelectedCellarId,
 } from "@/client/lib/cellar-share.ts";
 import { PREF_CHANGE_EVENT } from "@/client/lib/preferences.ts";
-import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
-import {
-  CELLAR_COPY,
-  cellarNameSchema,
-  type CellarSummary,
-} from "@/shared/cellars.ts";
+import { CELLAR_COPY, type CellarSummary, cellarNameSchema } from "@/shared/cellars.ts";
 import {
   CELLAR_DEFAULT_SHARED_NAME,
   CELLAR_NAME_CHIPS,
@@ -83,9 +79,10 @@ export function ShareNewPage() {
   return (
     <div className="form-page">
       <p>家族やパートナーと、同じ在庫をそれぞれのアカウントで管理できます。</p>
-      <label className="field">
+      <label className="field" htmlFor="shared-cellar-name">
         <span className="field-label">名前</span>
         <Input
+          id="shared-cellar-name"
           value={name}
           maxLength={CELLAR_NAME_MAX_LENGTH}
           onChange={(event) => setName(event.target.value)}
@@ -130,7 +127,10 @@ export function ShareCreatedPage() {
   return (
     <div className="form-page">
       <p>共有セラーを作りました。招待しなくても使えます。</p>
-      <Link className={buttonVariants()} to={id ? `/cellar/share/invite?id=${id}` : "/cellar/share/invite"}>
+      <Link
+        className={buttonVariants()}
+        to={id ? `/cellar/share/invite?id=${id}` : "/cellar/share/invite"}
+      >
         相手を招待する
       </Link>
       <Link
@@ -179,15 +179,21 @@ export function ShareInvitePage() {
             <Button
               type="button"
               onClick={() => {
-                void navigator.share({ url, title: cellar.data?.name ?? "共有セラー" }).catch(() => {
-                  // キャンセルはエラーにしない
-                });
+                void navigator
+                  .share({ url, title: cellar.data?.name ?? "共有セラー" })
+                  .catch(() => {
+                    // キャンセルはエラーにしない
+                  });
               }}
             >
               リンクを共有
             </Button>
           ) : null}
-          <Button type="button" variant={canShare ? "secondary" : "default"} onClick={() => void copy(url)}>
+          <Button
+            type="button"
+            variant={canShare ? "secondary" : "default"}
+            onClick={() => void copy(url)}
+          >
             コピー
           </Button>
         </>
@@ -301,7 +307,9 @@ export function ShareSettingsPage() {
                 <button
                   type="button"
                   className="settings-danger-text"
-                  onClick={() => setRemoveTarget({ userId: member.userId ?? "", name: member.displayName })}
+                  onClick={() =>
+                    setRemoveTarget({ userId: member.userId ?? "", name: member.displayName })
+                  }
                 >
                   外す
                 </button>
@@ -400,7 +408,11 @@ export function ShareSettingsPage() {
 
       <section className="settings-section">
         {owner ? (
-          <button type="button" className="settings-row settings-logout" onClick={() => setDeleteOpen(true)}>
+          <button
+            type="button"
+            className="settings-row settings-logout"
+            onClick={() => setDeleteOpen(true)}
+          >
             共有セラーを削除
           </button>
         ) : (
@@ -455,9 +467,13 @@ export function ShareSettingsPage() {
           setConfirmName("");
         }}
       >
-        <label className="field">
+        <label className="field" htmlFor="shared-cellar-delete-name">
           <span className="field-label">削除するにはセラー名を入力</span>
-          <Input value={confirmName} onChange={(event) => setConfirmName(event.target.value)} />
+          <Input
+            id="shared-cellar-delete-name"
+            value={confirmName}
+            onChange={(event) => setConfirmName(event.target.value)}
+          />
         </label>
       </Dialog>
     </div>

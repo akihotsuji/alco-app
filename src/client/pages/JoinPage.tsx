@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { AuthBoot } from "@/client/auth/AuthBoot.tsx";
 import { loginPathFor } from "@/client/auth/login-path.ts";
-import { useSessionBoot } from "@/client/hooks/use-session-boot.ts";
-import { useAcceptInvitation, usePreviewInvitation } from "@/client/hooks/use-cellars.ts";
 import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
+import { useAcceptInvitation, usePreviewInvitation } from "@/client/hooks/use-cellars.ts";
+import { useSessionBoot } from "@/client/hooks/use-session-boot.ts";
 import {
   captureJoinTokenFromLocation,
   clearJoinToken,
@@ -12,10 +12,10 @@ import {
   writeSelectedCellarId,
 } from "@/client/lib/cellar-share.ts";
 import { PREF_CHANGE_EVENT } from "@/client/lib/preferences.ts";
+import type { InvitationPreview } from "@/shared/cellars.ts";
 import { CELLAR_COPY } from "@/shared/cellars.ts";
 import { CELLAR_PREF_KEYS } from "@/shared/constants.ts";
 import { PWA_NAME } from "@/shared/pwa.ts";
-import type { InvitationPreview } from "@/shared/cellars.ts";
 
 export function JoinPage() {
   const boot = useSessionBoot();
@@ -45,14 +45,18 @@ export function JoinPage() {
   }, [boot.kind, previewMutate, previewPending, previewSuccess, token]);
 
   if (boot.kind === "loading" || boot.kind === "slow") {
-    return <AuthBoot variant={boot.variant ?? undefined} onRetry={boot.retry} retrying={boot.retrying} />;
+    return (
+      <AuthBoot variant={boot.variant ?? undefined} onRetry={boot.retry} retrying={boot.retrying} />
+    );
   }
 
   if (boot.kind !== "authenticated") {
     return (
       <main className="join-page">
         <h1>{PWA_NAME}</h1>
-        <p>招待リンクからの参加です。お酒の記録アプリにログインすると、共有セラーに参加できます。</p>
+        <p>
+          招待リンクからの参加です。お酒の記録アプリにログインすると、共有セラーに参加できます。
+        </p>
         <p>ボトル・写真・メンバー名は、参加が確定するまで表示しません。</p>
         <Link className={buttonVariants()} to={loginPathFor("/join")}>
           ログインして参加

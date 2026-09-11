@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { CELLAR_PERSONAL_NAME } from "@/shared/constants.ts";
 import type { Bottle } from "@/shared/bottles.ts";
 import type { CellarSummary } from "@/shared/cellars.ts";
+import { CELLAR_PERSONAL_NAME } from "@/shared/constants.ts";
 import {
   cellarDisplayName,
   cellarPeopleLabel,

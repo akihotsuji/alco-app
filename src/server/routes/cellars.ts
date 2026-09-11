@@ -196,7 +196,12 @@ export function createCellarsRoute(deps: CellarRouteDeps) {
           cellarId: id,
           transferId,
           operationKey: body.operationKey,
-          requestHash: await hashRequestBody({ cellarId: id, transferId, action: "cancel", ...body }),
+          requestHash: await hashRequestBody({
+            cellarId: id,
+            transferId,
+            action: "cancel",
+            ...body,
+          }),
         });
         return c.json({ ok: true });
       },
@@ -215,7 +220,12 @@ export function createCellarsRoute(deps: CellarRouteDeps) {
           cellarId: id,
           transferId,
           operationKey: body.operationKey,
-          requestHash: await hashRequestBody({ cellarId: id, transferId, action: "accept", ...body }),
+          requestHash: await hashRequestBody({
+            cellarId: id,
+            transferId,
+            action: "accept",
+            ...body,
+          }),
         });
         return c.json({ ok: true });
       },

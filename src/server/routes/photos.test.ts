@@ -5,7 +5,12 @@ import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { makeGif, makeHeic, makeHtml, makeJpeg, makeSvg, makeWebpVp8x } from "../image-fixtures.ts";
-import { createTestApp, createTestUser, createTestUserPair, seedOwnedBottle } from "../test-helpers.ts";
+import {
+  createTestApp,
+  createTestUser,
+  createTestUserPair,
+  seedOwnedBottle,
+} from "../test-helpers.ts";
 
 async function session(app: Awaited<ReturnType<typeof createTestApp>>["app"], email: string) {
   const user = await createTestUser(app, {

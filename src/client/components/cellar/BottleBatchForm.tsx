@@ -1,6 +1,7 @@
 import { Camera, ChevronDown, Images, Minus, Plus, Sparkles, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { CellarDestinationField } from "@/client/components/cellar/CellarDestinationField.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
@@ -13,7 +14,6 @@ import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
-import { CellarDestinationField } from "@/client/components/cellar/CellarDestinationField.tsx";
 import { useBottleBatch } from "@/client/hooks/use-bottle-batch.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import {

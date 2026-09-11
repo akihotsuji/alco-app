@@ -271,7 +271,12 @@ export function resolveAppRoute(
         return formRoute("cellar-share-invite", "cellar", "招待", "/cellar/share/settings");
       }
       if (segments[2] === "move" && segments.length === 3) {
-        return formRoute("cellar-share-move", "cellar", "自分のボトルを移す", "/cellar/share/settings");
+        return formRoute(
+          "cellar-share-move",
+          "cellar",
+          "自分のボトルを移す",
+          "/cellar/share/settings",
+        );
       }
       if (segments[2] === "activity" && segments.length === 3) {
         return formRoute("cellar-share-activity", "cellar", "最近の変更", "/cellar/share/settings");

@@ -7,8 +7,8 @@ import {
   DialogTitle,
 } from "@/client/components/ui/dialog.tsx";
 import { type ConflictField, conflictFields } from "@/client/lib/cellar-share.ts";
-import { CELLAR_COPY } from "@/shared/cellars.ts";
 import type { Bottle } from "@/shared/bottles.ts";
+import { CELLAR_COPY } from "@/shared/cellars.ts";
 
 type BottleConflictDialogProps = {
   open: boolean;
@@ -27,7 +27,10 @@ export function BottleConflictDialog({
   onApply,
   onClose,
 }: BottleConflictDialogProps) {
-  const fields = useMemo(() => conflictFields({ initial, mine, current }), [current, initial, mine]);
+  const fields = useMemo(
+    () => conflictFields({ initial, mine, current }),
+    [current, initial, mine],
+  );
   const [choices, setChoices] = useState<Record<string, "current" | "mine">>({});
 
   function choiceOf(field: ConflictField): "current" | "mine" {
@@ -71,7 +74,12 @@ export function BottleConflictDialog({
                       type="radio"
                       name={`conflict-${field.key}`}
                       checked={choiceOf(field) === "current"}
-                      onChange={() => setChoices((currentChoices) => ({ ...currentChoices, [field.key]: "current" }))}
+                      onChange={() =>
+                        setChoices((currentChoices) => ({
+                          ...currentChoices,
+                          [field.key]: "current",
+                        }))
+                      }
                     />
                     現在の値：{field.current}
                   </label>
@@ -80,14 +88,18 @@ export function BottleConflictDialog({
                       type="radio"
                       name={`conflict-${field.key}`}
                       checked={choiceOf(field) === "mine"}
-                      onChange={() => setChoices((currentChoices) => ({ ...currentChoices, [field.key]: "mine" }))}
+                      onChange={() =>
+                        setChoices((currentChoices) => ({ ...currentChoices, [field.key]: "mine" }))
+                      }
                     />
                     自分の入力：{field.mine}
                   </label>
                 </div>
               ) : (
                 <p className="cellar-conflict-single">
-                  {choiceOf(field) === "mine" ? `自分の入力：${field.mine}` : `現在の値：${field.current}`}
+                  {choiceOf(field) === "mine"
+                    ? `自分の入力：${field.mine}`
+                    : `現在の値：${field.current}`}
                 </p>
               )}
             </li>

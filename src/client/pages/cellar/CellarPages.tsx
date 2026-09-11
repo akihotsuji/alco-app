@@ -25,7 +25,6 @@ import {
 } from "@/client/hooks/use-bottles.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
-import { newOperationKey, parseConflictBottle } from "@/client/lib/cellar-share.ts";
 import { useDrinkLogsByBottle } from "@/client/hooks/use-drink-logs.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
 import { useTastingNotesByBottle } from "@/client/hooks/use-tasting-notes.ts";
@@ -36,6 +35,7 @@ import {
   describeBottleSaveFailure,
   isUuid,
 } from "@/client/lib/bottle-form.ts";
+import { newOperationKey, parseConflictBottle } from "@/client/lib/cellar-share.ts";
 import { groupBottlesByConsumedMonth } from "@/client/lib/cellar-shelf.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
@@ -283,17 +283,11 @@ function LoadedEditBottle({
         saveState={update.isPending ? "loading" : saveState}
         formError={formError}
         serverErrors={serverErrors}
-        header={
-          <CellarDestinationField items={items} valueId={bottle.cellarId} locked />
-        }
+        header={<CellarDestinationField items={items} valueId={bottle.cellarId} locked />}
         isShared={shared}
-        deleteTitle={
-          shared ? `『${bottle.name}』を共有セラーから削除しますか？` : undefined
-        }
+        deleteTitle={shared ? `『${bottle.name}』を共有セラーから削除しますか？` : undefined}
         deleteBody={
-          shared
-            ? "参加者全員のセラーから消えます。各自の飲酒記録とノートは残ります。"
-            : undefined
+          shared ? "参加者全員のセラーから消えます。各自の飲酒記録とノートは残ります。" : undefined
         }
         deletePrimaryLabel={shared ? "全員のセラーから削除" : undefined}
         memoLabel={shared ? CELLAR_COPY.sharedMemoLabel : undefined}

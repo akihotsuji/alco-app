@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BOTTLE_LIST_SCOPES, operationKeySchema } from "./cellars.ts";
 import { BOTTLE_STATUSES, DRINK_TYPES, type DrinkType, PHOTO_KINDS } from "./constants.ts";
 import { drinkTypeSchema } from "./drink-logs.ts";
 import {
@@ -9,7 +10,6 @@ import {
   VINTAGE_MIN,
   vintageSchema,
 } from "./identity.ts";
-import { BOTTLE_LIST_SCOPES, operationKeySchema } from "./cellars.ts";
 import { photoMetaSchema } from "./photos.ts";
 import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
 
@@ -185,8 +185,7 @@ export const updateBottleSchema = z
   })
   .strict()
   .refine(
-    (body) =>
-      Object.keys(body).some((key) => key !== "expectedVersion" && key !== "operationKey"),
+    (body) => Object.keys(body).some((key) => key !== "expectedVersion" && key !== "operationKey"),
     { error: BOTTLE_MESSAGES.patchEmpty },
   );
 

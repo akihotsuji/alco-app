@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Users } from "lucide-react";
+import { useState } from "react";
 import {
   DialogContent,
   DialogDescription,
@@ -7,8 +7,8 @@ import {
   DialogTitle,
 } from "@/client/components/ui/dialog.tsx";
 import { cellarDisplayName, cellarPeopleLabel } from "@/client/lib/cellar-share.ts";
-import { CELLAR_COPY } from "@/shared/cellars.ts";
 import type { CellarSummary } from "@/shared/cellars.ts";
+import { CELLAR_COPY } from "@/shared/cellars.ts";
 
 type CellarDestinationFieldProps = {
   items: readonly CellarSummary[];
@@ -60,7 +60,9 @@ export function CellarDestinationField({
       <DialogRoot open={open} onOpenChange={setOpen}>
         <DialogContent className="app-sheet-panel">
           <DialogTitle>保存先</DialogTitle>
-          <DialogDescription className="visually-hidden">保存するセラーを選びます</DialogDescription>
+          <DialogDescription className="visually-hidden">
+            保存するセラーを選びます
+          </DialogDescription>
           <ul className="cellar-switcher-list">
             {items.map((cellar) => (
               <li key={cellar.id}>

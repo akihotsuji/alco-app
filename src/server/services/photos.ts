@@ -26,11 +26,7 @@ import {
 } from "@/shared/photos.ts";
 import { tokyoDayStartMs, tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
-import {
-  bumpCellarRevision,
-  recordActivity,
-  requireAccessibleBottle,
-} from "./cellar-access.ts";
+import { bumpCellarRevision, recordActivity, requireAccessibleBottle } from "./cellar-access.ts";
 import { ImageInspectFailure, inspectImageBytes } from "./image-inspect.ts";
 
 export type PhotoObject = {

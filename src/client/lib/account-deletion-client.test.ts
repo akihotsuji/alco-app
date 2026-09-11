@@ -6,8 +6,8 @@ import {
   PHOTO_CUTOUT_DIAG_KEY,
   UI_PREF_KEYS,
 } from "@/shared/constants.ts";
-import { JOIN_TOKEN_STORAGE_KEY } from "./cellar-share.ts";
 import { discardAccountScopedClientData } from "./account-deletion-client.ts";
+import { JOIN_TOKEN_STORAGE_KEY } from "./cellar-share.ts";
 
 const store = new Map<string, string>();
 const sessionStore = new Map<string, string>();

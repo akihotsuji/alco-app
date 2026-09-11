@@ -6,8 +6,8 @@ import {
   accountDeletionRequests,
   cellarMembers,
   cellars,
-  user as users,
   userCellarSlots,
+  user as users,
   verification,
 } from "@/db/schema.ts";
 import {
@@ -18,8 +18,8 @@ import type { Auth } from "../auth.ts";
 import { ApiError } from "../errors.ts";
 import { listAuthProviders } from "./account-providers.ts";
 import { evictRecognitionCacheForUser } from "./ai-recognition/cache.ts";
-import { anonymizeSharedMembership, enqueueCellarPhotoTasks } from "./cellars.ts";
 import { ensurePersonalCellar } from "./cellar-access.ts";
+import { anonymizeSharedMembership, enqueueCellarPhotoTasks } from "./cellars.ts";
 
 export type AcceptAccountDeletionInput = {
   db: AppBatchDb;
@@ -118,17 +118,11 @@ async function prepareCellarsForAccountDeletion(
   userId: string,
   now: Date,
 ): Promise<void> {
-  const [slot] = await db
-    .select()
-    .from(userCellarSlots)
-    .where(eq(userCellarSlots.userId, userId));
+  const [slot] = await db.select().from(userCellarSlots).where(eq(userCellarSlots.userId, userId));
   if (!slot?.sharedCellarId) {
     return;
   }
-  const [shared] = await db
-    .select()
-    .from(cellars)
-    .where(eq(cellars.id, slot.sharedCellarId));
+  const [shared] = await db.select().from(cellars).where(eq(cellars.id, slot.sharedCellarId));
   if (!shared) {
     return;
   }
@@ -147,7 +141,10 @@ async function prepareCellarsForAccountDeletion(
     const requestId = crypto.randomUUID();
     await db.batch([
       enqueueCellarPhotoTasks(db, shared.id, requestId, now.getTime()),
-      db.update(userCellarSlots).set({ sharedCellarId: null }).where(eq(userCellarSlots.userId, userId)),
+      db
+        .update(userCellarSlots)
+        .set({ sharedCellarId: null })
+        .where(eq(userCellarSlots.userId, userId)),
       db.delete(cellars).where(eq(cellars.id, shared.id)),
     ]);
     return;
@@ -160,7 +157,9 @@ async function prepareCellarsForAccountDeletion(
     db
       .update(userCellarSlots)
       .set({ sharedCellarId: null })
-      .where(and(eq(userCellarSlots.userId, userId), eq(userCellarSlots.sharedCellarId, shared.id))),
+      .where(
+        and(eq(userCellarSlots.userId, userId), eq(userCellarSlots.sharedCellarId, shared.id)),
+      ),
   ]);
 }
 

@@ -36,10 +36,7 @@ export function useCellarSelection() {
   const query = useCellars();
   const storedId = useSelectedCellarId();
   const items = query.data?.items ?? [];
-  const selected = useMemo(
-    () => resolveSelectedCellar(items, storedId),
-    [items, storedId],
-  );
+  const selected = useMemo(() => resolveSelectedCellar(items, storedId), [items, storedId]);
   const shared = items.find((item) => item.kind === "shared") ?? null;
   const personal = items.find((item) => item.kind === "personal") ?? null;
 

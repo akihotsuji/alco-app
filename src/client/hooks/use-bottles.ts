@@ -7,8 +7,8 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
-import { queryKeys } from "@/client/lib/query-keys.ts";
 import { markCellarLocalWrite } from "@/client/lib/cellar-share.ts";
+import { queryKeys } from "@/client/lib/query-keys.ts";
 import type {
   BottleMutationBody,
   BottleView,
@@ -153,8 +153,7 @@ export function useUpdateBottle() {
 export function useDeleteBottle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) =>
-      deleteBottle(id, body),
+    mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) => deleteBottle(id, body),
     onSuccess: () => {
       markCellarLocalWrite();
       void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });

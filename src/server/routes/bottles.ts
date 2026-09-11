@@ -3,9 +3,9 @@ import { Hono } from "hono";
 import type { AppBatchDb } from "@/db/index.ts";
 import {
   bottleIdParamSchema,
+  bottleMutationBodySchema,
   bottlesQuerySchema,
   createBottleSchema,
-  bottleMutationBodySchema,
   updateBottleSchema,
 } from "@/shared/bottles.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
@@ -23,7 +23,7 @@ import {
 import type { LabelRecognizer } from "../services/label-recognizer/index.ts";
 import { recognizeBottleLabel } from "../services/label-recognizer/recognize.ts";
 import type { PhotoBucket } from "../services/photos.ts";
-import { validJson, validate, validateJsonAllowingEmpty } from "../validation.ts";
+import { validate, validateJsonAllowingEmpty, validJson } from "../validation.ts";
 
 export type BottleRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppBatchDb;

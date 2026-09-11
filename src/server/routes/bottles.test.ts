@@ -13,7 +13,12 @@ import { drinkLogSchema } from "@/shared/drink-logs.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { makeJpeg } from "../image-fixtures.ts";
-import { createTestApp, createTestUser, createTestUserPair, seedOwnedBottle } from "../test-helpers.ts";
+import {
+  createTestApp,
+  createTestUser,
+  createTestUserPair,
+  seedOwnedBottle,
+} from "../test-helpers.ts";
 
 type Ctx = Awaited<ReturnType<typeof createTestApp>>;
 
@@ -159,7 +164,7 @@ describe("POST /api/bottles", () => {
     expect(photoIds[0]).toBe(photo.id);
     expect(new Set(photoIds).size).toBe(3);
     expect(ctx.photos.keys()).toHaveLength(3);
-    const photoRows = await ctx.db.select().from(photos).where(eq(photos.userId, a.userId));
+    const photoRows = await ctx.db.select().from(photos).where(eq(photos.uploadedBy, a.userId));
     expect(photoRows).toHaveLength(3);
     expect(new Set(photoRows.map((row) => row.bottleId)).size).toBe(3);
   });
@@ -595,7 +600,9 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     expect(deleted.status).toBe(200);
     expect((await getBottle(ctx.app, a.cookie, id)).status).toBe(404);
     expect(ctx.photos.keys()).toHaveLength(0);
-    expect(await ctx.db.select().from(photos).where(eq(photos.userId, a.userId))).toHaveLength(0);
+    expect(await ctx.db.select().from(photos).where(eq(photos.uploadedBy, a.userId))).toHaveLength(
+      0,
+    );
 
     const remaining = drinkLogSchema.parse(
       await (
