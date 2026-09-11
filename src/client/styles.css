@@ -2776,15 +2776,16 @@ img[data-state="loaded"] {
 }
 
 .home-today-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 88px;
-  column-gap: var(--space-3);
-  padding: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
   overflow: visible;
 }
 
 .home-today-copy {
+  flex: 1 1 12rem;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2893,9 +2894,8 @@ img[data-state="loaded"] {
 }
 
 .today-mascot {
-  grid-column: 2;
-  align-self: center;
-  justify-self: center;
+  flex: 0 0 auto;
+  margin-inline-start: auto;
   overflow: visible;
 }
 
