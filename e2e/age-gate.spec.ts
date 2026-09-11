@@ -11,7 +11,7 @@ test.describe("年齢確認", () => {
     await page.getByLabel("メール").fill(user.email);
     await page.getByRole("textbox", { name: /パスワード/ }).fill(user.password);
     await page.getByLabel("利用規約とプライバシーポリシーに同意する").check();
-    await page.getByRole("button", { name: "登録する" }).click();
+    await page.getByRole("button", { name: "登録する", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: "年齢確認" })).toBeVisible({
       timeout: 30_000,
