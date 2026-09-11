@@ -145,8 +145,22 @@ test("長いフォームは .app-content でスクロールし、document lock �
   page,
 }) => {
   await signUpAsNewUser(page);
-  await page.goto("/logs/new");
-  await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
+  // 記録フォームは Pixel 7 の PWA ビルドでビューポートとほぼ同高になり、overflow が 0 になる。
+  // ボトル追加の詳細を開けば .app-content が確実に伸びる。スクロール量は実測 overflow に合わせる。
+  await page.goto("/cellar/new");
+  await expect(page.getByRole("heading", { name: "ボトルを追加" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /品名/ })).toBeVisible();
+  await page.getByRole("button", { name: "詳細" }).click();
+  await page.waitForFunction(() => {
+    const content = document.querySelector(".app-content");
+    const doc = document.scrollingElement;
+    if (!content || !doc) {
+      return false;
+    }
+    return (
+      content.scrollHeight > content.clientHeight + 8 && doc.scrollHeight - doc.clientHeight <= 8
+    );
+  });
 
   const before = await page.evaluate(() => {
     const content = document.querySelector(".app-content");
@@ -158,29 +172,33 @@ test("長いフォームは .app-content でスクロールし、document lock �
       docClient: doc?.clientHeight ?? 0,
     };
   });
-  expect(before.contentScroll).toBeGreaterThan(before.contentClient + 8);
+  const overflow = before.contentScroll - before.contentClient;
+  expect(overflow).toBeGreaterThan(8);
   expect(before.docScroll - before.docClient).toBeLessThanOrEqual(8);
 
-  const moved = await page.evaluate(() => {
+  const firstScroll = Math.min(220, overflow - 1);
+  const secondScroll = Math.min(overflow - 1, firstScroll + Math.min(80, overflow - firstScroll));
+
+  const moved = await page.evaluate((top) => {
     const content = document.querySelector(".app-content");
     if (!content) {
       return false;
     }
-    content.scrollTop = 220;
-    return content.scrollTop >= 220;
-  });
+    content.scrollTop = top;
+    return content.scrollTop >= top;
+  }, firstScroll);
   expect(moved).toBe(true);
 
-  const locked = await page.evaluate(() => {
+  const locked = await page.evaluate((top) => {
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     const content = document.querySelector(".app-content");
     if (!content) {
       return false;
     }
-    content.scrollTop = 320;
-    return content.scrollTop >= 320;
-  });
+    content.scrollTop = top;
+    return content.scrollTop >= top;
+  }, secondScroll);
   expect(locked).toBe(true);
 
   await page.mouse.wheel(0, 400);
