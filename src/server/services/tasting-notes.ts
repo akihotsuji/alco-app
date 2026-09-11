@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
-import { bottles, photos, tastingNotes } from "@/db/schema.ts";
+import { photos, tastingNotes } from "@/db/schema.ts";
 import { escapeLike } from "@/shared/bottles.ts";
 import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
 import { resolveIdentityFields } from "@/shared/identity.ts";
@@ -236,16 +236,17 @@ async function loadBottleForNote(
   if (!bottleId) {
     return null;
   }
-  const [row] = await db
-    .select({
-      id: bottles.id,
-      name: bottles.name,
-      drinkType: bottles.drinkType,
-      status: bottles.status,
-    })
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  return row ?? null;
+  try {
+    const bottle = await requireOwnBottle(db, userId, bottleId);
+    return {
+      id: bottle.id,
+      name: bottle.name,
+      drinkType: bottle.drinkType,
+      status: bottle.status,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function createTastingNote(input: {

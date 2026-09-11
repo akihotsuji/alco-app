@@ -7,7 +7,7 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 - 画面の正本: [screen-designs/05-notes.md](../screen-designs/05-notes.md)。ボトル詳細のノート節は [screen-designs/04-cellar.md](../screen-designs/04-cellar.md) T6。**要素表・状態・遷移・モックは画面設計が正**。本ファイルは項目・規則・API・エッジケースを 1 か所にまとめる
 - API の正本: [api-design.md](../api-design.md) 4.6 / 4.7。列は [data-model.md](../data-model.md) 5.3 / 5.5 / 5.6 / 6.4 / 6.5
 - 写真: [photos.md](photos.md) / [screen-designs/07-photo-capture.md](../screen-designs/07-photo-capture.md)。**新しいアップロード API は作らない**（2-08 の `POST /api/photos` を再利用）
-- セラー連携: [cellar.md](cellar.md) 3.4 T6 / 3.7。ピッカーは `GET /api/bottles?view=all&q=`
+- セラー連携: [cellar.md](cellar.md) 3.4 T6 / 3.7。ピッカーは `GET /api/bottles?view=all&scope=accessible&q=`
 - 共通識別・撮影日・連続導線: [register-identity.md](register-identity.md)
 - ロードマップ: [roadmap/phase-05-tasting-note/](../../roadmap/phase-05-tasting-note/00-phase.md)
 
@@ -52,7 +52,7 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 | 4 欄 | 外観 `appearance` / 香り `aroma` / 味わい `taste` / 余韻 `finish`。すべて任意。各 ≦2000 |
 | 飲んだ日（`tastedOn`） | Asia/Tokyo のカレンダー日（`YYYY-MM-DD`）。時刻は持たない |
 | 先頭写真 | `photos.sort_order` が最小の 1 枚。一覧の `thumbPhotoId` |
-| ボトルピッカー | `GET /api/bottles?view=all&q=`。棚（`sealed`）と貯蔵庫（`consumed`）の両方 |
+| ボトルピッカー | `GET /api/bottles?view=all&scope=accessible&q=`。棚（`sealed`）と貯蔵庫（`consumed`）の両方。複数セラーがあるときは保存先名を出す |
 
 ---
 
@@ -192,7 +192,7 @@ Zod は `src/shared` に置き、クライアント（即時表示）とサー�
 |---|---|---|
 | `ratingX10` | 整数 10〜50、**5 の倍数**。POST 必須 | 欠け・範囲外・刻み不正は「評価を選んでください」 |
 | `tastedOn` | `YYYY-MM-DD` かつ暦上存在する日。POST 必須。JST の今日より後は 400 | 形式不正は「日付の形式が正しくありません」。未来は「未来の日付は指定できません」 |
-| `bottleId` | UUID。省略可。自分のボトル（`sealed` / `consumed` どちらも可）以外は **404**（400 ではない） | 画面では「ボトルが見つかりません」+ 選択解除 |
+| `bottleId` | UUID。省略可。参照可能なボトル（個人または参加中の共有。`sealed` / `consumed` どちらも可）以外は **404**（400 ではない） | 画面では「ボトルが見つかりません」+ 選択解除 |
 | `drinkName` | `bottleId` なしのとき必須。1〜100（trim 後）。`bottleId` ありのときは **送っても無視**し、サーバーがボトル名をコピー | 「1文字以上100文字以内で入力してください」 |
 | `drinkType` | `bottleId` なしのとき必須。12 種。`bottleId` ありのときは **送っても無視** | 「種類を選んでください」 |
 | `vintage` | 任意。整数 1800〜2100、または省略 / null（未入力。UI は NV と書かない）。ボトルありでも **送った値を採用**（省略時は作成でボトルからコピー） | 「1800以上2100以下のヴィンテージを入力してください」 |
@@ -315,7 +315,7 @@ PATCH の `photoIds` は **差し替え**（配列順 = `sortOrder` 0, 1, …）
 
 | 場面 | 規則 |
 |---|---|
-| 作成・編集のピッカー | `GET /api/bottles?view=all&q=`（貯蔵庫含む）。検索必須（全件ロードしない）。行はサムネ + 銘柄。`consumed` は muted「貯蔵庫」 |
+| 作成・編集のピッカー | `GET /api/bottles?view=all&scope=accessible&q=`（貯蔵庫含む）。検索必須（全件ロードしない）。行はサムネ + 銘柄。`consumed` は muted「貯蔵庫」 |
 | `?bottleId=` | 事前選択。自分のボトルでなければ作成画面は `not-found`（フォームを出してからエラーにしない） |
 | サーバー作成 | `bottleId` が自分のボトルでなければ 404 で **ノートを作らない**。`drinkName` / `drinkType` はボトルからコピー |
 | ボトル改名 | 既存ノートのスナップショットは **変わらない**。一覧・詳細はノート側の名前を出す |

@@ -154,7 +154,8 @@ WHERE id = :id AND user_id = :sessionUserId
 
 | HTTP | `error` | 用途 |
 |---|---|---|
-| 400 | `validation_error` | Zod 失敗。範囲・enum・日付形式・排他条件 |
+| 400 | `validation_error` | Zod 失敗。範囲・enum・日付形式・排他条件。共有ボトルで `expectedVersion` なし |
+| 409 | `conflict` | 楽観ロック不一致・冪等ハッシュ不一致・定員・既参加・オーナー制約。任意で `conflict.reason` / `conflict.current` |
 | 401 | `unauthorized` | セッションなし / 期限切れ |
 | 403 | `age_required` | ログイン済みだが年齢未確認。機能 API のみ（8-02） |
 | 403 | `age_restricted` | 生年月日提出時点で満 20 歳未満。保存しない（8-02） |
@@ -616,7 +617,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 ### 4.5 bottles
 
-**共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。日付は `purchasedOn` / `storedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`storedOn` は保管日で `purchasedOn` とは別項目。`priceJpy` は整数円または null。`status` は `sealed` \| `consumed`。`quantity` は無い（1 行 = 1 本）。`openedOn` は持たない。
+**共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。代わりに `cellarId` / `version` / `createdByName` / `updatedByName`。日付は `purchasedOn` / `storedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`storedOn` は保管日で `purchasedOn` とは別項目。`priceJpy` は整数円または null。`status` は `sealed` \| `consumed`。`quantity` は無い（1 行 = 1 本）。`openedOn` は持たない。認可は対象セラーの有効メンバー。
 
 詳細・作成応答に `photos`（4.7 のメタ配列、最大 1）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。
 
@@ -628,28 +629,32 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 | `q` | 品名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
 | `drinkType` | 12 種のいずれか |
 | `limit`, `cursor` | 2.7 |
+| `cellarId` | 指定したらそのセラー。省略かつ `scope` なしは **個人セラーのみ**（旧クライアント互換。共有ボトルは返さない） |
+| `scope` | `personal`（個人のみ）\| `accessible`（個人 + 参加中の共有。ピッカー用） |
 
-ノート・記録のボトルピッカーは `view=all&q=` を使う（貯蔵庫の本も選べる）。
+ノート・記録のボトルピッカーは `view=all&scope=accessible&q=` を使う（貯蔵庫の本も選べる。保存先名を行に出す）。
 
 #### POST /api/bottles
 
 必須: `name`, `drinkType`。`status` は受け取らない（常に `sealed`）。**`count`（1〜12、省略時 1）** の本数だけ同じ属性の行を作る。`photoIds`（最大 1。同じ写真 id を N 行に付けることはできないため、**N ≥ 2 のときサーバーが photo 行を複製**する。R2 オブジェクトは 1 つを共有せず N 個にコピーする — 削除の独立性のため）。`storedOn` 省略時はサーバーの JST 当日、`storage` 省略時は「自宅セラー」。`null` を送った欄は空のまま（デフォルトを再適用しない）。`purchasedOn` は省略時 null（当日にしない）。
 
+任意: `cellarId`（省略時は個人セラー。共有へ暗黙保存しない）、`operationKey`（冪等）。
+
 成功: 201 `{ "items": Bottle[] }`（`createdAt` は同一、`id` は個別）。
 
 #### GET / PATCH / DELETE /api/bottles/:id
 
-PATCH は部分更新。`status` / `consumedAt` / `consumedOn` は受け取らない（開栓は 4.5.1、戻しは 4.5.2）。`photoIds` は差し替え。
+PATCH は部分更新。`status` / `consumedAt` / `consumedOn` は受け取らない（開栓は 4.5.1、戻しは 4.5.2）。`photoIds` は差し替え。共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
 
 DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` と記録の `bottleId` は SET NULL。本体は残る。貯蔵庫の本も削除できる。
 
 #### 4.5.1 POST /api/bottles/:id/consume
 
-画面の「開栓する」。ボディなし（空オブジェクト可）。`log` は受け取らない。
+画面の「開栓する」。空オブジェクト可。任意で `expectedVersion` / `operationKey`。`log` は受け取らない。共有ボトルは `expectedVersion` 必須。すでに開栓済みは 409 `conflict`。
 
 サーバー:
 
-1. 自分のボトルで `status === "sealed"` を確認。他人・不明・すでに `consumed` は 404
+1. メンバーのボトルで `status === "sealed"` を確認。非メンバー・不明は 404
 2. `status = consumed`、`consumedAt`（サーバー現在時刻）、`consumedOn`（JST 日）を更新
 3. drink-log は作らない
 
@@ -657,7 +662,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 #### 4.5.2 POST /api/bottles/:id/restore
 
-ボディなし。自分のボトルで `status === "consumed"` のとき、`sealed` に戻し、`consumedAt` / `consumedOn` を null にする。それ以外は 404。**紐付いている記録は消さない**。
+空オブジェクト可。任意で `expectedVersion` / `operationKey`。メンバーのボトルで `status === "consumed"` のとき、`sealed` に戻し、`consumedAt` / `consumedOn` を null にする。それ以外は 404。**紐付いている記録は消さない**。共有は `expectedVersion` 必須。
 
 成功: 200 `Bottle`。
 
@@ -795,7 +800,7 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 | パート | 必須 | 説明 |
 |---|---|---|
 | `file` | 必須 | 画像本体。ファイル名はキーに使わない |
-| `bottleId` | 任意 | 自分のボトル。他人は 404 |
+| `bottleId` | 任意 | 参照可能なボトル（個人または参加中の共有）。不可は 404 |
 | `tastingNoteId` | 任意 | 自分のノート。他人は 404 |
 | `drinkLogId` | 任意 | 自分の記録。他人は 404 |
 | `sortOrder` | 任意 | 整数。省略時 0 |
@@ -838,7 +843,7 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 
 紐付けと `sortOrder`。未紐付け → ボトル / ノート / 記録。付け替え先も自分のリソース。所有者を 2 つ以上同時にセットしない。紐付け解除（すべて null）は可（24h で GC 対象になる）。
 
-他人の photo id を自分のボトルに付けることはできない（`photos.user_id` 一致が必須）。
+他人の個人写真を自分のボトルに付けることはできない。ボトル写真の配信・差し替えはセラーメンバーなら可。未紐付けの個人写真は本人のみ。
 
 #### DELETE /api/photos/:id
 
@@ -849,6 +854,33 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 - 対象: `bottle_id` / `tasting_note_id` / `drink_log_id` がすべて NULL かつ `created_at < now - 24h`
 - R2 削除 → D1 削除の順。R2 が 404 でも D1 は消す
 - 1 回の実行で最大 500 件。ログは件数のみ（キーや `user_id` を出さない）
+
+### 4.8 cellars（共有セラー）
+
+詳細は [shared-cellar.md](features/shared-cellar.md)。認証必須。公開例外は SPA の `/join` のみ（API はプレビューも認証済み POST）。
+
+| メソッド | パス | 権限 | 説明 |
+|---|---|---|---|
+| GET | `/api/cellars` | 本人 | 個人 + 参加中の共有 |
+| POST | `/api/cellars` | 未参加 | 空の共有セラー。`name` + `operationKey`。5 / 時 |
+| GET | `/api/cellars/:id` | メンバー | 詳細と pending 移譲 |
+| PATCH | `/api/cellars/:id` | オーナー | 名称 |
+| DELETE | `/api/cellars/:id` | オーナー | `confirmName` 一致。ボトル・写真も消える |
+| GET | `/api/cellars/:id/revision` | メンバー | `{ id, revision }`。5 秒ポーリング用 |
+| GET | `/api/cellars/:id/members` | メンバー | 退会者は `userId: null`、「退会したメンバー」 |
+| POST | `/api/cellars/:id/leave` | メンバー（オーナーは他メンバーがいれば不可） | 参加解除 |
+| DELETE | `/api/cellars/:id/members/:userId` | オーナー | 除名 |
+| GET / POST | `/api/cellars/:id/invitations` | GET はオーナー、POST はオーナー | 発行は 10 / 時。本文に `url`（`/join#t=`） |
+| POST | `/api/cellars/:id/invitations/:invitationId/revoke` | オーナー | 無効化 |
+| POST | `/api/cellar-invitations/preview` | 認証済み | トークンは JSON。GET では確認しない |
+| POST | `/api/cellar-invitations/accept` | 認証済み | 参加。20 / 10 分。冪等 |
+| POST | `/api/cellars/:id/transfers` | オーナー | 移譲申請 |
+| POST | `/api/cellars/:id/transfers/:transferId/accept` | 対象者 | 原子的に移譲 |
+| POST | `/api/cellars/:id/transfers/:transferId/cancel` | オーナー | 取消 |
+| GET | `/api/cellars/:id/activity` | メンバー | 最近の変更 |
+| POST | `/api/cellars/:id/moves` | メンバー | 個人→共有。最大 50。全件成功 or 不変更 |
+
+招待トークンは DB にハッシュのみ。ログ・クエリに生値を出さない。未ログインのプレビューはボトル・写真・メンバー名を返さない（SPA が一般説明だけ出す）。
 
 ---
 

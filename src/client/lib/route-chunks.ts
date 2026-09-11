@@ -16,6 +16,7 @@ export const routeChunks = {
   notes: () => import("@/client/pages/notes/NotePages.tsx"),
   settings: () => import("@/client/pages/SettingsPage.tsx"),
   accountDeletion: () => import("@/client/pages/AccountDeletionPages.tsx"),
+  join: () => import("@/client/pages/JoinPage.tsx"),
   notFound: () => import("@/client/pages/NotFoundPage.tsx"),
   photoEdit: () => import("@/client/components/photo/PhotoEdit.tsx"),
 } as const;
@@ -41,6 +42,9 @@ export function initialRouteChunkIds(pathname: string): readonly RouteChunkId[] 
   }
   if (pathname === "/account-deleted") {
     return ["accountDeletion"];
+  }
+  if (pathname === "/join") {
+    return ["join"];
   }
   const page = chunkIdForPath(pathname) ?? "home";
   if (page === "home") {
@@ -90,6 +94,9 @@ export function chunkIdForPath(pathname: string): RouteChunkId | null {
   }
   if (pathname === "/account-deleted" || pathname === "/settings/account/delete") {
     return "accountDeletion";
+  }
+  if (pathname === "/join") {
+    return "join";
   }
   if (pathname.startsWith("/summary/")) {
     return "summary";

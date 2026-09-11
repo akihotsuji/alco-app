@@ -20,6 +20,7 @@ const loaders = {
   notes: () => import("@/client/pages/notes/NotePages.tsx"),
   settings: () => import("@/client/pages/SettingsPage.tsx"),
   accountDeletion: () => import("@/client/pages/AccountDeletionPages.tsx"),
+  join: () => import("@/client/pages/JoinPage.tsx"),
 } as const;
 
 type BootChunkId = keyof typeof loaders;
@@ -37,6 +38,7 @@ export const GUEST_ONLY_PATHS: readonly string[] = [
   "/terms",
   "/privacy",
   "/account-deleted",
+  "/join",
 ];
 
 /* 以下は src/shared/constants.ts・cellar-shelf.ts・各 hooks の値の写し。boot-prefetch.test.ts が一致を検証する */
@@ -140,6 +142,9 @@ export function initialRouteChunkIds(pathname: string): readonly BootChunkId[] {
   }
   if (pathname === "/account-deleted") {
     return ["accountDeletion"];
+  }
+  if (pathname === "/join") {
+    return ["join"];
   }
   if (pathname === "/settings/account/delete") {
     return ["shell", "accountDeletion"];

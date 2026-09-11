@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import type { MiddlewareHandler, ValidationTargets } from "hono";
+import type { Context, MiddlewareHandler, ValidationTargets } from "hono";
 import type { z } from "zod";
 import { ApiError } from "./errors.ts";
 import { fieldsFromZodIssues } from "./middleware/error.ts";
@@ -31,8 +31,9 @@ export function validate<T extends z.ZodType, Target extends keyof ValidationTar
  * consume / restore のように「ボディなし、空オブジェクト可、未知キーは 400」のときに使う。
  * `c.req.json()` は空本文で例外になるため、zValidator の json ターゲットは使わない。
  */
-export function validateJsonAllowingEmpty<T extends z.ZodType>(schema: T): MiddlewareHandler {
-  return async (c, next) => {
+export function validateJsonAllowingEmpty<T extends z.ZodType>(schema: T) {
+  const typed = validate("json", schema);
+  const middleware: MiddlewareHandler = async (c, next) => {
     const text = await c.req.text();
     let raw: unknown = {};
     if (text.trim() !== "") {
@@ -50,6 +51,13 @@ export function validateJsonAllowingEmpty<T extends z.ZodType>(schema: T): Middl
         fields: fieldsFromZodIssues(parsed.error.issues),
       });
     }
+    c.req.addValidatedData("json", parsed.data as object);
     await next();
   };
+  return middleware as typeof typed;
+}
+
+/** `validateJsonAllowingEmpty` のあとに JSON を取る。Hono の Input 型は空ボディ検証を載せない。 */
+export function validJson<T>(c: Context): T {
+  return (c.req as { valid(target: "json"): T }).valid("json");
 }

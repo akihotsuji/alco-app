@@ -7,8 +7,15 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
+import { markCellarLocalWrite } from "@/client/lib/cellar-share.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
-import type { BottleView, CreateBottleInput, UpdateBottleInput } from "@/shared/bottles.ts";
+import type {
+  BottleMutationBody,
+  BottleView,
+  CreateBottleInput,
+  UpdateBottleInput,
+} from "@/shared/bottles.ts";
+import type { BottleListScope } from "@/shared/cellars.ts";
 import type { DrinkType } from "@/shared/constants.ts";
 
 export type BottlesListQuery = {
@@ -17,6 +24,8 @@ export type BottlesListQuery = {
   drinkType?: DrinkType;
   limit?: number;
   cursor?: string;
+  cellarId?: string;
+  scope?: BottleListScope;
 };
 
 function listQuery(query: BottlesListQuery) {
@@ -26,6 +35,8 @@ function listQuery(query: BottlesListQuery) {
     ...(query.q ? { q: query.q } : {}),
     ...(query.drinkType ? { drinkType: query.drinkType } : {}),
     ...(query.cursor ? { cursor: query.cursor } : {}),
+    ...(query.cellarId ? { cellarId: query.cellarId } : {}),
+    ...(query.scope ? { scope: query.scope } : {}),
   };
 }
 
@@ -45,16 +56,16 @@ export function updateBottle(id: string, body: UpdateBottleInput, client: ApiCli
   return unwrap(client.api.bottles[":id"].$patch({ param: { id }, json: body }));
 }
 
-export function deleteBottle(id: string, client: ApiClient = api) {
-  return unwrap(client.api.bottles[":id"].$delete({ param: { id } }));
+export function deleteBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
+  return unwrap(client.api.bottles[":id"].$delete({ param: { id }, json: body }));
 }
 
-export function consumeBottle(id: string, client: ApiClient = api) {
-  return unwrap(client.api.bottles[":id"].consume.$post({ param: { id } }));
+export function consumeBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
+  return unwrap(client.api.bottles[":id"].consume.$post({ param: { id }, json: body }));
 }
 
-export function restoreBottle(id: string, client: ApiClient = api) {
-  return unwrap(client.api.bottles[":id"].restore.$post({ param: { id } }));
+export function restoreBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
+  return unwrap(client.api.bottles[":id"].restore.$post({ param: { id }, json: body }));
 }
 
 export function recognizeLabel(file: Blob, client: ApiClient = api) {
@@ -74,6 +85,8 @@ export function bottlesQueryOptions(query: BottlesListQuery = {}) {
       view: query.view,
       q: query.q,
       drinkType: query.drinkType,
+      cellarId: query.cellarId,
+      scope: query.scope,
       ...(query.limit !== undefined ? { limit: query.limit } : {}),
     }),
     queryFn: () => getBottles(query),
@@ -88,6 +101,8 @@ export function bottlesInfiniteQueryOptions(query: BottlesListQuery = {}) {
       q: query.q,
       drinkType: query.drinkType,
       limit: query.limit,
+      cellarId: query.cellarId,
+      scope: query.scope,
     }),
     queryFn: ({ pageParam }) => getBottles({ ...query, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
@@ -115,7 +130,11 @@ export function useCreateBottles() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateBottleInput) => createBottles(body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.bottles }),
+    onSuccess: () => {
+      markCellarLocalWrite();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
+    },
   });
 }
 
@@ -123,17 +142,23 @@ export function useUpdateBottle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: UpdateBottleInput }) => updateBottle(id, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.bottles }),
+    onSuccess: () => {
+      markCellarLocalWrite();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
+    },
   });
 }
 
 export function useDeleteBottle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteBottle(id),
+    mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) => deleteBottle(id, body),
     onSuccess: () => {
+      markCellarLocalWrite();
       void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
     },
   });
 }
@@ -141,15 +166,25 @@ export function useDeleteBottle() {
 export function useConsumeBottle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => consumeBottle(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.bottles }),
+    mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) =>
+      consumeBottle(id, body),
+    onSuccess: () => {
+      markCellarLocalWrite();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
+    },
   });
 }
 
 export function useRestoreBottle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => restoreBottle(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.bottles }),
+    mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) =>
+      restoreBottle(id, body),
+    onSuccess: () => {
+      markCellarLocalWrite();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
+    },
   });
 }

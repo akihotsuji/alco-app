@@ -1,8 +1,9 @@
+import { JOIN_TOKEN_STORAGE_KEY } from "@/client/lib/cellar-share.ts";
 import {
   ACCOUNT_DELETION_CHANNEL,
   ACCOUNT_DELETION_PENDING_USER_KEY,
 } from "@/shared/account-deletion.ts";
-import { GUIDE_PREF_KEY, PHOTO_CUTOUT_DIAG_KEY } from "@/shared/constants.ts";
+import { CELLAR_PREF_KEYS, GUIDE_PREF_KEY, PHOTO_CUTOUT_DIAG_KEY } from "@/shared/constants.ts";
 
 const OPENED_FOLLOWUP_PREFIX = "opened.followup.";
 const CELLAR_SHELF_EVENT_KEY = "cellar.shelfEvent";
@@ -24,6 +25,7 @@ function removeMatchingKeys(storage: Storage, shouldRemove: (key: string) => boo
 export function discardAccountScopedClientData(): void {
   try {
     localStorage.removeItem(GUIDE_PREF_KEY);
+    localStorage.removeItem(CELLAR_PREF_KEYS.selectedId);
   } catch {
     // プライベートモード等
   }
@@ -31,7 +33,11 @@ export function discardAccountScopedClientData(): void {
     sessionStorage.removeItem(PHOTO_CUTOUT_DIAG_KEY);
     sessionStorage.removeItem(CELLAR_SHELF_EVENT_KEY);
     sessionStorage.removeItem(ACCOUNT_DELETION_PENDING_USER_KEY);
-    removeMatchingKeys(sessionStorage, (key) => key.startsWith(OPENED_FOLLOWUP_PREFIX));
+    sessionStorage.removeItem(JOIN_TOKEN_STORAGE_KEY);
+    removeMatchingKeys(
+      sessionStorage,
+      (key) => key.startsWith(OPENED_FOLLOWUP_PREFIX) || key.startsWith("cellar.revision."),
+    );
   } catch {
     // プライベートモード等
   }

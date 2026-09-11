@@ -8,6 +8,7 @@ import {
   BOTTLE_PHOTO_MAX,
   type Bottle,
   type BottleItem,
+  type BottleMutationBody,
   type BottlesQuery,
   type BottlesResponse,
   type BottleView,
@@ -19,16 +20,37 @@ import {
   normalizeOptionalText,
   type UpdateBottleInput,
 } from "@/shared/bottles.ts";
+import { CELLAR_COPY } from "@/shared/cellars.ts";
 import type { BottleStatus, DrinkType, PhotoContentType, PhotoKind } from "@/shared/constants.ts";
 import { DEFAULT_BOTTLE_STATUS, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
+import {
+  actorDisplayName,
+  assertSharedVersion,
+  bumpCellarRevision,
+  displayNamesById,
+  ensurePersonalCellar,
+  listMemberCellarIds,
+  membershipSql,
+  recordActivity,
+  requireAccessibleBottle,
+  requireCellarMember,
+  resolveBottleCellarId,
+} from "./cellar-access.ts";
+import { hashRequestBody } from "./cellar-crypto.ts";
+import { idempotencyInsert, readIdempotentResult, recoverIdempotentResult } from "./idempotency.ts";
 import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 
 type BottleRow = typeof bottles.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
+
+type ActorNames = {
+  createdByName: string | null;
+  updatedByName: string | null;
+};
 
 function toIso(value: Date | number | null): string | null {
   if (value === null) {
@@ -66,7 +88,21 @@ function thumbOf(photoRows: readonly PhotoRow[]): {
   };
 }
 
-export function toBottle(row: BottleRow, photoRows: readonly PhotoRow[]): Bottle {
+function namesFromMap(
+  row: Pick<BottleRow, "createdBy" | "updatedBy">,
+  map: Map<string, string>,
+): ActorNames {
+  return {
+    createdByName: row.createdBy ? actorDisplayName(row.createdBy, map) : null,
+    updatedByName: row.updatedBy ? actorDisplayName(row.updatedBy, map) : null,
+  };
+}
+
+export function toBottle(
+  row: BottleRow,
+  photoRows: readonly PhotoRow[],
+  names: ActorNames = { createdByName: null, updatedByName: null },
+): Bottle {
   const thumb = thumbOf(photoRows);
   return {
     id: row.id,
@@ -87,14 +123,22 @@ export function toBottle(row: BottleRow, photoRows: readonly PhotoRow[]): Bottle
     consumedOn: row.consumedOn,
     thumbPhotoId: thumb.thumbPhotoId,
     thumbPhotoKind: thumb.thumbPhotoKind,
+    cellarId: row.cellarId,
+    version: row.version,
+    createdByName: names.createdByName,
+    updatedByName: names.updatedByName,
     photos: photoRows.map(toPhotoMeta),
     createdAt: requireIso(row.createdAt),
     updatedAt: requireIso(row.updatedAt),
   };
 }
 
-export function toBottleItem(row: BottleRow, photoRows: readonly PhotoRow[]): BottleItem {
-  const { photos: _photos, ...item } = toBottle(row, photoRows);
+export function toBottleItem(
+  row: BottleRow,
+  photoRows: readonly PhotoRow[],
+  names: ActorNames = { createdByName: null, updatedByName: null },
+): BottleItem {
+  const { photos: _photos, ...item } = toBottle(row, photoRows, names);
   return item;
 }
 
@@ -173,6 +217,7 @@ async function resolveUnattachedPhotos(
       and(
         inArray(photos.id, unique),
         eq(photos.userId, userId),
+        isNull(photos.cellarId),
         isNull(photos.bottleId),
         isNull(photos.tastingNoteId),
         isNull(photos.drinkLogId),
@@ -188,6 +233,7 @@ async function resolvePatchPhotos(
   db: AppBatchDb,
   userId: string,
   bottleId: string,
+  cellarId: string,
   photoIds: readonly string[],
 ): Promise<PhotoRow[]> {
   const unique = [...new Set(photoIds)];
@@ -197,15 +243,13 @@ async function resolvePatchPhotos(
   if (unique.length === 0) {
     return [];
   }
-  const rows = await db
-    .select()
-    .from(photos)
-    .where(and(inArray(photos.id, unique), eq(photos.userId, userId)));
+  const rows = await db.select().from(photos).where(inArray(photos.id, unique));
   const valid = rows.every(
     (photo) =>
       photo.tastingNoteId === null &&
       photo.drinkLogId === null &&
-      (photo.bottleId === null || photo.bottleId === bottleId),
+      ((photo.userId === userId && photo.cellarId === null && photo.bottleId === null) ||
+        (photo.bottleId === bottleId && photo.cellarId === cellarId)),
   );
   if (!valid || rows.length !== unique.length) {
     throw new ApiError("not_found");
@@ -215,7 +259,6 @@ async function resolvePatchPhotos(
 
 async function photosForBottles(
   db: AppBatchDb,
-  userId: string,
   bottleIds: readonly string[],
 ): Promise<Map<string, PhotoRow[]>> {
   const grouped = new Map<string, PhotoRow[]>();
@@ -225,7 +268,7 @@ async function photosForBottles(
   const rows = await db
     .select()
     .from(photos)
-    .where(and(inArray(photos.bottleId, [...bottleIds]), eq(photos.userId, userId)))
+    .where(inArray(photos.bottleId, [...bottleIds]))
     .orderBy(photos.sortOrder, photos.createdAt);
   for (const row of rows) {
     if (!row.bottleId) {
@@ -305,6 +348,32 @@ function attributesFromBody(body: CreateBottleInput | UpdateBottleInput) {
   };
 }
 
+async function resolveListCellarIds(
+  db: AppBatchDb,
+  userId: string,
+  query: BottlesQuery,
+): Promise<string[]> {
+  if (query.cellarId) {
+    await requireCellarMember(db, userId, query.cellarId);
+    return [query.cellarId];
+  }
+  if (query.scope === "accessible") {
+    const ids = await listMemberCellarIds(db, userId);
+    if (ids.length === 0) {
+      return [await ensurePersonalCellar(db, userId)];
+    }
+    return ids;
+  }
+  return [await ensurePersonalCellar(db, userId)];
+}
+
+function versionConflict(current: Bottle): ApiError {
+  return new ApiError("conflict", {
+    fields: { expectedVersion: [CELLAR_COPY.conflictEdit] },
+    conflict: { reason: "version", current },
+  });
+}
+
 export async function createBottles(input: {
   db: AppBatchDb;
   bucket: PhotoBucket;
@@ -314,6 +383,21 @@ export async function createBottles(input: {
 }): Promise<{ items: Bottle[] }> {
   const { db, bucket, userId, body } = input;
   const now = input.now ?? new Date();
+  const cellarId = await resolveBottleCellarId(db, userId, body.cellarId);
+  const access = await requireCellarMember(db, userId, cellarId);
+  const requestHash = await hashRequestBody({ action: "create", ...body });
+  if (body.operationKey) {
+    const cached = await readIdempotentResult<{ items: Bottle[] }>(db, {
+      actorUserId: userId,
+      cellarId,
+      operationKey: body.operationKey,
+      requestHash,
+    });
+    if (cached) {
+      return cached;
+    }
+  }
+
   const count = body.count ?? 1;
   const sourcePhotos = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
   const sourcePhoto = sourcePhotos[0];
@@ -331,7 +415,10 @@ export async function createBottles(input: {
   }
 
   const attrs = {
-    userId,
+    cellarId,
+    createdBy: userId,
+    updatedBy: userId,
+    version: 1,
     name: body.name,
     drinkType: body.drinkType,
     producer: normalizeOptionalText(body.producer),
@@ -365,7 +452,12 @@ export async function createBottles(input: {
         statements.push(
           db
             .update(photos)
-            .set({ bottleId: first.id, updatedAt: now })
+            .set({
+              bottleId: first.id,
+              cellarId,
+              userId: null,
+              updatedAt: now,
+            })
             .where(
               and(
                 eq(photos.id, sourcePhoto.id),
@@ -383,7 +475,9 @@ export async function createBottles(input: {
         statements.push(
           db.insert(photos).values({
             id: copy.id,
-            userId,
+            userId: null,
+            cellarId,
+            uploadedBy: userId,
             r2Key: copy.r2Key,
             contentType: copy.contentType,
             byteSize: copy.byteSize,
@@ -400,19 +494,69 @@ export async function createBottles(input: {
         );
       }
     }
+    statements.push(bumpCellarRevision(db, cellarId, now));
+    for (const row of rows) {
+      statements.push(
+        recordActivity(db, {
+          cellarId,
+          actorUserId: userId,
+          action: "bottle_created",
+          bottleId: row.id,
+          bottleName: row.name,
+          now,
+        }),
+      );
+    }
+    if (body.operationKey) {
+      const nameMap = await displayNamesById(db, [userId]);
+      const names = namesFromMap({ createdBy: userId, updatedBy: userId }, nameMap);
+      const preview = {
+        items: rows.map((row) => toBottle(row, [], names)),
+      };
+      statements.push(
+        idempotencyInsert(db, {
+          actorUserId: userId,
+          cellarId,
+          operationKey: body.operationKey,
+          requestHash,
+          result: preview,
+          now,
+        }),
+      );
+    }
     const [firstStatement, ...rest] = statements;
     if (!firstStatement) {
       throw new ApiError("internal_error");
     }
     await db.batch([firstStatement, ...rest]);
+    void access;
   } catch (error) {
     await Promise.all(copies.map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)));
+    if (body.operationKey) {
+      const recovered = await recoverIdempotentResult<{ items: Bottle[] }>(db, {
+        actorUserId: userId,
+        cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+      });
+      if (recovered) {
+        return recovered;
+      }
+    }
     throw error;
   }
 
   const photoByBottle = new Map<string, PhotoRow[]>();
   if (sourcePhoto && rows[0]) {
-    photoByBottle.set(rows[0].id, [{ ...sourcePhoto, bottleId: rows[0].id, updatedAt: now }]);
+    photoByBottle.set(rows[0].id, [
+      {
+        ...sourcePhoto,
+        bottleId: rows[0].id,
+        cellarId,
+        userId: null,
+        updatedAt: now,
+      },
+    ]);
   }
   for (const [index, copy] of copies.entries()) {
     const bottle = rows[index + 1];
@@ -422,7 +566,9 @@ export async function createBottles(input: {
     photoByBottle.set(bottle.id, [
       {
         id: copy.id,
-        userId,
+        userId: null,
+        cellarId,
+        uploadedBy: userId,
         r2Key: copy.r2Key,
         contentType: copy.contentType,
         byteSize: copy.byteSize,
@@ -439,8 +585,10 @@ export async function createBottles(input: {
     ]);
   }
 
+  const nameMap = await displayNamesById(db, [userId]);
+  const names = namesFromMap({ createdBy: userId, updatedBy: userId }, nameMap);
   return {
-    items: rows.map((row) => toBottle(row, photoByBottle.get(row.id) ?? [])),
+    items: rows.map((row) => toBottle(row, photoByBottle.get(row.id) ?? [], names)),
   };
 }
 
@@ -455,29 +603,23 @@ export type OwnBottleSnap = {
   vintage: number | null;
 };
 
-/** 自分のボトルのみ。貯蔵庫も含む。他人・不在は同じ 404（存在を漏らさない）。 */
+/** 所属セラーのボトルのみ。貯蔵庫も含む。他人・不在は同じ 404（存在を漏らさない）。 */
 export async function requireOwnBottle(
   db: AppBatchDb,
   userId: string,
   bottleId: string,
 ): Promise<OwnBottleSnap> {
-  const [row] = await db
-    .select({
-      id: bottles.id,
-      name: bottles.name,
-      drinkType: bottles.drinkType,
-      status: bottles.status,
-      producer: bottles.producer,
-      origin: bottles.origin,
-      variety: bottles.variety,
-      vintage: bottles.vintage,
-    })
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  if (!row) {
-    throw new ApiError("not_found");
-  }
-  return row;
+  const row = await requireAccessibleBottle(db, userId, bottleId);
+  return {
+    id: row.id,
+    name: row.name,
+    drinkType: row.drinkType,
+    status: row.status,
+    producer: row.producer,
+    origin: row.origin,
+    variety: row.variety,
+    vintage: row.vintage,
+  };
 }
 
 export async function getOwnBottle(
@@ -485,19 +627,14 @@ export async function getOwnBottle(
   userId: string,
   bottleId: string,
 ): Promise<Bottle> {
-  const [row] = await db
-    .select()
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  if (!row) {
-    throw new ApiError("not_found");
-  }
+  const row = await requireAccessibleBottle(db, userId, bottleId);
   const photoRows = await db
     .select()
     .from(photos)
-    .where(and(eq(photos.bottleId, bottleId), eq(photos.userId, userId)))
+    .where(eq(photos.bottleId, bottleId))
     .orderBy(photos.sortOrder, photos.createdAt);
-  return toBottle(row, photoRows);
+  const nameMap = await displayNamesById(db, [row.createdBy, row.updatedBy]);
+  return toBottle(row, photoRows, namesFromMap(row, nameMap));
 }
 
 function searchCondition(q: string) {
@@ -515,8 +652,9 @@ export async function listBottles(input: {
   query: BottlesQuery;
 }): Promise<BottlesResponse> {
   const { db, userId, query } = input;
+  const cellarIds = await resolveListCellarIds(db, userId, query);
   const status = viewStatus(query.view);
-  const viewConditions = [eq(bottles.userId, userId)];
+  const viewConditions = [inArray(bottles.cellarId, cellarIds)];
   if (status) {
     viewConditions.push(eq(bottles.status, status));
   }
@@ -588,16 +726,29 @@ export async function listBottles(input: {
   const { page, hasMore } = takeLimitPlusOne(fetched, query.limit);
   const photoMap = await photosForBottles(
     db,
-    userId,
     page.map((row) => row.id),
+  );
+  const nameMap = await displayNamesById(
+    db,
+    page.flatMap((row) => [row.createdBy, row.updatedBy]),
   );
   const last = page.at(-1);
   return {
-    items: page.map((row) => toBottleItem(row, photoMap.get(row.id) ?? [])),
+    items: page.map((row) =>
+      toBottleItem(row, photoMap.get(row.id) ?? [], namesFromMap(row, nameMap)),
+    ),
     nextCursor: hasMore && last ? encodeCursor(last, query.view) : null,
     totalCount: Number(totalRow?.n ?? 0),
     countsByType,
   };
+}
+
+async function loadCurrentForWrite(
+  db: AppBatchDb,
+  userId: string,
+  bottleId: string,
+): Promise<BottleRow & { cellarKind: "personal" | "shared" }> {
+  return requireAccessibleBottle(db, userId, bottleId);
 }
 
 export async function updateBottle(input: {
@@ -609,50 +760,68 @@ export async function updateBottle(input: {
   now?: Date;
 }): Promise<Bottle> {
   const { db, bucket, userId, bottleId, body } = input;
-  const [current] = await db
-    .select()
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  if (!current) {
-    throw new ApiError("not_found");
+  const current = await loadCurrentForWrite(db, userId, bottleId);
+  assertSharedVersion(current.cellarKind, body.expectedVersion);
+  if (body.expectedVersion !== undefined && body.expectedVersion !== current.version) {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
+  }
+
+  const requestHash = await hashRequestBody({ action: "update", bottleId, ...body });
+  if (body.operationKey) {
+    const cached = await readIdempotentResult<Bottle>(db, {
+      actorUserId: userId,
+      cellarId: current.cellarId,
+      operationKey: body.operationKey,
+      requestHash,
+    });
+    if (cached) {
+      return cached;
+    }
   }
 
   const desiredPhotoRows =
     body.photoIds === undefined
       ? undefined
-      : await resolvePatchPhotos(db, userId, bottleId, body.photoIds);
+      : await resolvePatchPhotos(db, userId, bottleId, current.cellarId, body.photoIds);
   const currentPhotoRows =
     body.photoIds === undefined
       ? []
-      : await db
-          .select()
-          .from(photos)
-          .where(and(eq(photos.bottleId, bottleId), eq(photos.userId, userId)));
+      : await db.select().from(photos).where(eq(photos.bottleId, bottleId));
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
   const patch = {
     ...attributesFromBody({ ...body, origin: undefined }),
     ...(body.origin === undefined ? {} : { origin: writtenOrigin(body.origin, current.origin) }),
+    updatedBy: userId,
+    version: current.version + 1,
     updatedAt,
   };
+
+  const conditions = [
+    eq(bottles.id, bottleId),
+    eq(bottles.cellarId, current.cellarId),
+    membershipSql(userId),
+  ];
+  if (body.expectedVersion !== undefined) {
+    conditions.push(eq(bottles.version, body.expectedVersion));
+  }
 
   const updateStatement = db
     .update(bottles)
     .set(patch)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
+    .where(and(...conditions));
   const detachStatement =
     removedPhotoRows.length > 0
       ? db
           .update(photos)
-          .set({ bottleId: null, updatedAt })
+          .set({ bottleId: null, cellarId: null, userId, updatedAt })
           .where(
             and(
               inArray(
                 photos.id,
                 removedPhotoRows.map((photo) => photo.id),
               ),
-              eq(photos.userId, userId),
               eq(photos.bottleId, bottleId),
             ),
           )
@@ -661,28 +830,62 @@ export async function updateBottle(input: {
     desiredPhotoRows && desiredPhotoRows.length > 0
       ? db
           .update(photos)
-          .set({ bottleId, updatedAt })
+          .set({ bottleId, cellarId: current.cellarId, userId: null, updatedAt })
           .where(
             and(
               inArray(
                 photos.id,
                 desiredPhotoRows.map((photo) => photo.id),
               ),
-              eq(photos.userId, userId),
               isNull(photos.tastingNoteId),
               isNull(photos.drinkLogId),
             ),
           )
       : null;
 
-  if (detachStatement && attachStatement) {
-    await db.batch([updateStatement, detachStatement, attachStatement]);
-  } else if (detachStatement) {
-    await db.batch([updateStatement, detachStatement]);
-  } else if (attachStatement) {
-    await db.batch([updateStatement, attachStatement]);
-  } else {
-    await updateStatement;
+  const extra: BatchItem<"sqlite">[] = [
+    bumpCellarRevision(db, current.cellarId, updatedAt),
+    recordActivity(db, {
+      cellarId: current.cellarId,
+      actorUserId: userId,
+      action: body.photoIds === undefined ? "bottle_updated" : "bottle_photo_changed",
+      bottleId,
+      bottleName: current.name,
+      now: updatedAt,
+    }),
+  ];
+
+  try {
+    if (detachStatement && attachStatement) {
+      await db.batch([updateStatement, detachStatement, attachStatement, ...extra]);
+    } else if (detachStatement) {
+      await db.batch([updateStatement, detachStatement, ...extra]);
+    } else if (attachStatement) {
+      await db.batch([updateStatement, attachStatement, ...extra]);
+    } else {
+      await db.batch([updateStatement, ...extra]);
+    }
+  } catch (error) {
+    if (body.operationKey) {
+      const recovered = await recoverIdempotentResult<Bottle>(db, {
+        actorUserId: userId,
+        cellarId: current.cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+      });
+      if (recovered) {
+        return recovered;
+      }
+    }
+    throw error;
+  }
+
+  const [after] = await db.select().from(bottles).where(eq(bottles.id, bottleId));
+  if (!after) {
+    throw new ApiError("not_found");
+  }
+  if (body.expectedVersion !== undefined && after.version !== body.expectedVersion + 1) {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
   }
 
   if (desiredPhotoRows !== undefined) {
@@ -691,63 +894,202 @@ export async function updateBottle(input: {
     );
   }
 
-  return getOwnBottle(db, userId, bottleId);
+  const result = await getOwnBottle(db, userId, bottleId);
+  if (body.operationKey) {
+    await db.batch([
+      idempotencyInsert(db, {
+        actorUserId: userId,
+        cellarId: current.cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+        result,
+        now: updatedAt,
+      }),
+    ]);
+  }
+  return result;
 }
 
 export async function consumeBottle(input: {
   db: AppBatchDb;
   userId: string;
   bottleId: string;
+  body?: BottleMutationBody;
   now?: Date;
 }): Promise<Bottle> {
   const { db, userId, bottleId } = input;
+  const body = input.body ?? {};
   const now = input.now ?? new Date();
-  const [current] = await db
-    .select({ id: bottles.id, status: bottles.status })
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  if (current?.status !== "sealed") {
+  const current = await loadCurrentForWrite(db, userId, bottleId);
+  assertSharedVersion(current.cellarKind, body.expectedVersion);
+  if (current.status !== "sealed") {
+    if (current.cellarKind === "shared") {
+      throw new ApiError("conflict", {
+        fields: { "": [CELLAR_COPY.alreadyConsumed] },
+        conflict: { reason: "version", current: await getOwnBottle(db, userId, bottleId) },
+      });
+    }
     throw new ApiError("not_found");
   }
-  await db
-    .update(bottles)
-    .set({
-      status: "consumed",
-      consumedAt: now,
-      consumedOn: tokyoToday(now),
-      updatedAt: now,
-    })
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId), eq(bottles.status, "sealed")));
-  return getOwnBottle(db, userId, bottleId);
+  if (body.expectedVersion !== undefined && body.expectedVersion !== current.version) {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
+  }
+
+  const requestHash = await hashRequestBody({ action: "consume", bottleId, ...body });
+  if (body.operationKey) {
+    const cached = await readIdempotentResult<Bottle>(db, {
+      actorUserId: userId,
+      cellarId: current.cellarId,
+      operationKey: body.operationKey,
+      requestHash,
+    });
+    if (cached) {
+      return cached;
+    }
+  }
+
+  const conditions = [
+    eq(bottles.id, bottleId),
+    eq(bottles.cellarId, current.cellarId),
+    eq(bottles.status, "sealed"),
+    membershipSql(userId),
+  ];
+  if (body.expectedVersion !== undefined) {
+    conditions.push(eq(bottles.version, body.expectedVersion));
+  }
+
+  await db.batch([
+    db
+      .update(bottles)
+      .set({
+        status: "consumed",
+        consumedAt: now,
+        consumedOn: tokyoToday(now),
+        updatedBy: userId,
+        version: current.version + 1,
+        updatedAt: now,
+      })
+      .where(and(...conditions)),
+    bumpCellarRevision(db, current.cellarId, now),
+    recordActivity(db, {
+      cellarId: current.cellarId,
+      actorUserId: userId,
+      action: "bottle_consumed",
+      bottleId,
+      bottleName: current.name,
+      now,
+    }),
+  ]);
+
+  const [after] = await db.select().from(bottles).where(eq(bottles.id, bottleId));
+  if (!after || after.status !== "consumed") {
+    throw new ApiError("conflict", {
+      fields: { "": [CELLAR_COPY.alreadyConsumed] },
+      conflict: {
+        reason: "version",
+        current: after ? await getOwnBottle(db, userId, bottleId) : undefined,
+      },
+    });
+  }
+  const result = await getOwnBottle(db, userId, bottleId);
+  if (body.operationKey) {
+    await db.batch([
+      idempotencyInsert(db, {
+        actorUserId: userId,
+        cellarId: current.cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+        result,
+        now,
+      }),
+    ]);
+  }
+  return result;
 }
 
 export async function restoreBottle(input: {
   db: AppBatchDb;
   userId: string;
   bottleId: string;
+  body?: BottleMutationBody;
   now?: Date;
 }): Promise<Bottle> {
   const { db, userId, bottleId } = input;
+  const body = input.body ?? {};
   const now = input.now ?? new Date();
-  const [current] = await db
-    .select({ id: bottles.id, status: bottles.status })
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  if (current?.status !== "consumed") {
+  const current = await loadCurrentForWrite(db, userId, bottleId);
+  assertSharedVersion(current.cellarKind, body.expectedVersion);
+  if (current.status !== "consumed") {
     throw new ApiError("not_found");
   }
-  await db
-    .update(bottles)
-    .set({
-      status: "sealed",
-      consumedAt: null,
-      consumedOn: null,
-      updatedAt: now,
-    })
-    .where(
-      and(eq(bottles.id, bottleId), eq(bottles.userId, userId), eq(bottles.status, "consumed")),
-    );
-  return getOwnBottle(db, userId, bottleId);
+  if (body.expectedVersion !== undefined && body.expectedVersion !== current.version) {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
+  }
+
+  const requestHash = await hashRequestBody({ action: "restore", bottleId, ...body });
+  if (body.operationKey) {
+    const cached = await readIdempotentResult<Bottle>(db, {
+      actorUserId: userId,
+      cellarId: current.cellarId,
+      operationKey: body.operationKey,
+      requestHash,
+    });
+    if (cached) {
+      return cached;
+    }
+  }
+
+  const conditions = [
+    eq(bottles.id, bottleId),
+    eq(bottles.cellarId, current.cellarId),
+    eq(bottles.status, "consumed"),
+    membershipSql(userId),
+  ];
+  if (body.expectedVersion !== undefined) {
+    conditions.push(eq(bottles.version, body.expectedVersion));
+  }
+
+  await db.batch([
+    db
+      .update(bottles)
+      .set({
+        status: "sealed",
+        consumedAt: null,
+        consumedOn: null,
+        updatedBy: userId,
+        version: current.version + 1,
+        updatedAt: now,
+      })
+      .where(and(...conditions)),
+    bumpCellarRevision(db, current.cellarId, now),
+    recordActivity(db, {
+      cellarId: current.cellarId,
+      actorUserId: userId,
+      action: "bottle_restored",
+      bottleId,
+      bottleName: current.name,
+      now,
+    }),
+  ]);
+
+  const [after] = await db.select().from(bottles).where(eq(bottles.id, bottleId));
+  if (!after || after.status !== "sealed") {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
+  }
+  const result = await getOwnBottle(db, userId, bottleId);
+  if (body.operationKey) {
+    await db.batch([
+      idempotencyInsert(db, {
+        actorUserId: userId,
+        cellarId: current.cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+        result,
+        now,
+      }),
+    ]);
+  }
+  return result;
 }
 
 export async function deleteBottle(input: {
@@ -755,29 +1097,108 @@ export async function deleteBottle(input: {
   bucket: PhotoBucket;
   userId: string;
   bottleId: string;
+  body?: BottleMutationBody;
 }): Promise<void> {
   const { db, bucket, userId, bottleId } = input;
-  const [row] = await db
-    .select({ id: bottles.id })
-    .from(bottles)
-    .where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
-  if (!row) {
-    throw new ApiError("not_found");
+  const body = input.body ?? {};
+  const current = await loadCurrentForWrite(db, userId, bottleId);
+  assertSharedVersion(current.cellarKind, body.expectedVersion);
+  if (body.expectedVersion !== undefined && body.expectedVersion !== current.version) {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
   }
-  const photoRows = await db
-    .select()
-    .from(photos)
-    .where(and(eq(photos.bottleId, bottleId), eq(photos.userId, userId)));
+
+  const requestHash = await hashRequestBody({ action: "delete", bottleId, ...body });
+  if (body.operationKey) {
+    const cached = await readIdempotentResult<{ ok: true }>(db, {
+      actorUserId: userId,
+      cellarId: current.cellarId,
+      operationKey: body.operationKey,
+      requestHash,
+    });
+    if (cached) {
+      return;
+    }
+  }
+
+  const photoRows = await db.select().from(photos).where(eq(photos.bottleId, bottleId));
   for (const photo of photoRows) {
-    const scope = and(eq(photos.id, photo.id), eq(photos.userId, userId));
+    const scope = eq(photos.id, photo.id);
     try {
       await bucket.delete(photo.r2Key);
       await db.delete(photos).where(scope);
     } catch {
-      await db.update(photos).set({ bottleId: null, updatedAt: new Date() }).where(scope);
+      await db
+        .update(photos)
+        .set({ bottleId: null, cellarId: null, userId, updatedAt: new Date() })
+        .where(scope);
     }
   }
-  await db.delete(bottles).where(and(eq(bottles.id, bottleId), eq(bottles.userId, userId)));
+
+  const now = new Date();
+  const conditions = [
+    eq(bottles.id, bottleId),
+    eq(bottles.cellarId, current.cellarId),
+    membershipSql(userId),
+  ];
+  if (body.expectedVersion !== undefined) {
+    conditions.push(eq(bottles.version, body.expectedVersion));
+  }
+  await db.batch([
+    db.delete(bottles).where(and(...conditions)),
+    bumpCellarRevision(db, current.cellarId, now),
+    recordActivity(db, {
+      cellarId: current.cellarId,
+      actorUserId: userId,
+      action: "bottle_deleted",
+      bottleId,
+      bottleName: current.name,
+      now,
+    }),
+  ]);
+  const [still] = await db.select({ id: bottles.id }).from(bottles).where(eq(bottles.id, bottleId));
+  if (still) {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
+  }
+  if (body.operationKey) {
+    await db.batch([
+      idempotencyInsert(db, {
+        actorUserId: userId,
+        cellarId: current.cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+        result: { ok: true },
+        now,
+      }),
+    ]);
+  }
+}
+
+export async function touchBottleForPhotoChange(
+  db: AppBatchDb,
+  userId: string,
+  bottleId: string,
+  now: Date = new Date(),
+): Promise<void> {
+  const current = await requireAccessibleBottle(db, userId, bottleId);
+  await db.batch([
+    db
+      .update(bottles)
+      .set({
+        version: current.version + 1,
+        updatedBy: userId,
+        updatedAt: now,
+      })
+      .where(and(eq(bottles.id, bottleId), membershipSql(userId))),
+    bumpCellarRevision(db, current.cellarId, now),
+    recordActivity(db, {
+      cellarId: current.cellarId,
+      actorUserId: userId,
+      action: "bottle_photo_changed",
+      bottleId,
+      bottleName: current.name,
+      now,
+    }),
+  ]);
 }
 
 export type { DrinkType };

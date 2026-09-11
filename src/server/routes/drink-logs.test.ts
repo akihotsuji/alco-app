@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { bottles, drinkLogs, myDrinks, photos } from "@/db/schema.ts";
+import { drinkLogs, myDrinks, photos } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import {
   DRINK_LOG_MESSAGES,
@@ -11,7 +11,7 @@ import {
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { makeJpeg } from "../image-fixtures.ts";
-import { createTestApp, createTestUser } from "../test-helpers.ts";
+import { createTestApp, createTestUser, seedOwnedBottle } from "../test-helpers.ts";
 
 type Ctx = Awaited<ReturnType<typeof createTestApp>>;
 
@@ -73,8 +73,7 @@ async function seedBottle(
   name: string,
   extra: { producer?: string; origin?: string; variety?: string; vintage?: number } = {},
 ) {
-  const now = new Date();
-  await ctx.db.insert(bottles).values({
+  await seedOwnedBottle(ctx.db, {
     id,
     userId,
     name,
@@ -83,8 +82,6 @@ async function seedBottle(
     origin: extra.origin ?? null,
     variety: extra.variety ?? null,
     vintage: extra.vintage ?? null,
-    createdAt: now,
-    updatedAt: now,
   });
 }
 

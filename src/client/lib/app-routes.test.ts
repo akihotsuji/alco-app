@@ -143,6 +143,15 @@ describe("resolveAppRoute", () => {
 
   it("予約セグメントを :date / :id より先に解決する", () => {
     expect(resolveAppRoute("/cellar/archive", NOW).screenId).toBe("bottle-archive");
+    expect(resolveAppRoute("/cellar/share", NOW).screenId).toBe("cellar-share-new");
+    expect(resolveAppRoute("/cellar/share/settings", NOW).screenId).toBe("cellar-share-settings");
+    expect(resolveAppRoute("/cellar/share/invite", NOW).screenId).toBe("cellar-share-invite");
+    expect(resolveAppRoute("/cellar/share/move", NOW).screenId).toBe("cellar-share-move");
+    expect(resolveAppRoute("/cellar/share/activity", NOW).screenId).toBe("cellar-share-activity");
+    expect(resolveAppRoute("/cellar/share/unknown", NOW).notFound).toBe(true);
+    expect(resolveAppRoute("/join", NOW).screenId).toBe("cellar-join");
+    expect(resolveAppRoute("/join", NOW).hideTabBar).toBe(true);
+    expect(resolveAppRoute("/join", NOW).hideHeader).toBe(true);
     expect(resolveAppRoute("/logs/new", NOW).screenId).toBe("log-new");
     expect(resolveAppRoute("/logs/my-drinks", NOW).screenId).toBe("mydrink-list");
     expect(resolveAppRoute("/logs/not-a-date", NOW).notFound).toBe(true);

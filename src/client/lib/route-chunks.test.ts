@@ -25,6 +25,7 @@ describe("chunkIdForPath", () => {
     expect(chunkIdForPath("/settings")).toBe("settings");
     expect(chunkIdForPath("/settings/account/delete")).toBe("accountDeletion");
     expect(chunkIdForPath("/account-deleted")).toBe("accountDeletion");
+    expect(chunkIdForPath("/join")).toBe("join");
     expect(chunkIdForPath("/unknown")).toBeNull();
   });
 });
@@ -38,6 +39,7 @@ describe("initialRouteChunkIds", () => {
     expect(initialRouteChunkIds("/reset-password")).toEqual(["passwordReset"]);
     expect(initialRouteChunkIds("/terms")).toEqual(["legal"]);
     expect(initialRouteChunkIds("/account-deleted")).toEqual(["accountDeletion"]);
+    expect(initialRouteChunkIds("/join")).toEqual(["join"]);
     expect(initialRouteChunkIds("/settings/account/delete")).toEqual(["shell", "accountDeletion"]);
     expect(initialRouteChunkIds("/")).toEqual(["shell", "home"]);
     expect(initialRouteChunkIds("/cellar")).toEqual(["shell", "cellar"]);

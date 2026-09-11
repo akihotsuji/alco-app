@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button } from "@/client/components/ui/button.tsx";
 import {
   DialogContent,
@@ -16,6 +17,7 @@ type DialogProps = {
   onPrimary: () => void;
   onClose: () => void;
   secondaryLabel?: string;
+  children?: ReactNode;
 };
 
 export function Dialog({
@@ -28,6 +30,7 @@ export function Dialog({
   onPrimary,
   onClose,
   secondaryLabel = "キャンセル",
+  children,
 }: DialogProps) {
   return (
     <DialogRoot
@@ -57,6 +60,7 @@ export function Dialog({
         <DialogDescription id="app-dialog-body" className="text-base text-foreground">
           {body}
         </DialogDescription>
+        {children}
         <Button
           type="button"
           variant={destructive ? "destructive" : "default"}

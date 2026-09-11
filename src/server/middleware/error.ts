@@ -46,7 +46,11 @@ export const errorHandler: ErrorHandler<AppEnv> = async (err, c) => {
   if (err instanceof ApiError) {
     return respond(
       c,
-      err.fields ? { error: err.code, fields: err.fields } : { error: err.code },
+      {
+        error: err.code,
+        ...(err.fields ? { fields: err.fields } : {}),
+        ...(err.conflict ? { conflict: err.conflict } : {}),
+      },
       API_ERROR_STATUS[err.code],
     );
   }

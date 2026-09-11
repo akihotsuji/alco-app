@@ -88,6 +88,12 @@ type BottleFormProps = {
   formError: string | null;
   serverErrors: BottleFormErrors;
   onClearServer: () => void;
+  header?: ReactNode;
+  isShared?: boolean;
+  deleteTitle?: string;
+  deleteBody?: string;
+  deletePrimaryLabel?: string;
+  memoLabel?: string;
 };
 
 export function BottleFormFields({
@@ -103,6 +109,12 @@ export function BottleFormFields({
   formError,
   serverErrors,
   onClearServer,
+  header,
+  isShared: _isShared = false,
+  deleteTitle,
+  deleteBody,
+  deletePrimaryLabel,
+  memoLabel,
 }: BottleFormProps) {
   const { setGuard } = useLeaveGuard();
   const session = usePhotoFormSession("cellar", mode === "edit" ? "edit" : null);
@@ -397,6 +409,7 @@ export function BottleFormFields({
           {formError}
         </p>
       ) : null}
+      {header}
       <CompactPhotoField
         ratio="bottle"
         onCapture={() => void startCapture("cellar")}
@@ -554,10 +567,10 @@ export function BottleFormFields({
                 onChange={(shop) => update({ shop })}
               />
             </DetailsSection>
-            <DetailsSection title="メモ" optional>
+            <DetailsSection title={memoLabel ?? "メモ"} optional>
               <div className="bottle-details-field">
                 <label className="field-label" htmlFor="bottle-memo">
-                  メモ
+                  {memoLabel ?? "メモ"}
                 </label>
                 <textarea
                   id="bottle-memo"
@@ -609,9 +622,9 @@ export function BottleFormFields({
       {onDelete ? (
         <Dialog
           open={deleteOpen}
-          title={DELETE_TITLE}
-          body={DELETE_BODY}
-          primaryLabel="削除する"
+          title={deleteTitle ?? DELETE_TITLE}
+          body={deleteBody ?? DELETE_BODY}
+          primaryLabel={deletePrimaryLabel ?? "削除する"}
           destructive
           pending={deleting}
           onPrimary={onDelete}

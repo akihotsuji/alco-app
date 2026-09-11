@@ -25,6 +25,7 @@ import {
 } from "@/client/lib/bottle-batch.ts";
 import type { BottleFormState } from "@/client/lib/bottle-form.ts";
 import { describeBottleSaveFailure } from "@/client/lib/bottle-form.ts";
+import { markCellarLocalWrite, newOperationKey } from "@/client/lib/cellar-share.ts";
 import { applyRecognizeToForm, countRecognizeFields } from "@/client/lib/label-recognize.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
 import { type ImagePickSource, pickImages } from "@/client/lib/photo/pick-image.ts";
@@ -255,41 +256,50 @@ export function useBottleBatch(autoCapture: boolean) {
   }, []);
 
   /** 行を上から順に送る。成功行は消え、失敗行は残る（04-cellar G9） */
-  const submit = useCallback(async (): Promise<BatchSubmitResult> => {
-    setSubmitting(true);
-    const outcome: BatchSubmitOutcome = { succeeded: [], failed: [] };
-    const created: Bottle[] = [];
-    try {
-      for (const row of rowsRef.current) {
-        const body = batchRowBody(row);
-        if (!body) {
-          outcome.failed.push({ key: row.key, message: FORM_ERROR_MESSAGES.generic });
-          continue;
+  const submit = useCallback(
+    async (cellarId?: string): Promise<BatchSubmitResult> => {
+      setSubmitting(true);
+      const outcome: BatchSubmitOutcome = { succeeded: [], failed: [] };
+      const created: Bottle[] = [];
+      try {
+        for (const row of rowsRef.current) {
+          const body = batchRowBody(row);
+          if (!body) {
+            outcome.failed.push({ key: row.key, message: FORM_ERROR_MESSAGES.generic });
+            continue;
+          }
+          try {
+            const result = await createBottles({
+              ...body,
+              ...(cellarId ? { cellarId } : {}),
+              operationKey: newOperationKey(),
+            });
+            created.push(...result.items);
+            outcome.succeeded.push(row.key);
+          } catch (error) {
+            const failure = describeBottleSaveFailure(error, navigator.onLine);
+            outcome.failed.push({
+              key: row.key,
+              message:
+                failure.formMessage ??
+                Object.values(failure.fieldErrors)[0] ??
+                FORM_ERROR_MESSAGES.generic,
+            });
+          }
         }
-        try {
-          const result = await createBottles(body);
-          created.push(...result.items);
-          outcome.succeeded.push(row.key);
-        } catch (error) {
-          const failure = describeBottleSaveFailure(error, navigator.onLine);
-          outcome.failed.push({
-            key: row.key,
-            message:
-              failure.formMessage ??
-              Object.values(failure.fieldErrors)[0] ??
-              FORM_ERROR_MESSAGES.generic,
-          });
-        }
+      } finally {
+        setSubmitting(false);
       }
-    } finally {
-      setSubmitting(false);
-    }
-    if (created.length > 0) {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
-    }
-    setRows((current) => applyBatchOutcome(current, outcome));
-    return { created, failedCount: outcome.failed.length };
-  }, [queryClient]);
+      if (created.length > 0) {
+        markCellarLocalWrite();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
+      }
+      setRows((current) => applyBatchOutcome(current, outcome));
+      return { created, failedCount: outcome.failed.length };
+    },
+    [queryClient],
+  );
 
   return {
     rows,

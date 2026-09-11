@@ -42,6 +42,7 @@ describe("boot-prefetch の経路", () => {
       "/settings",
       "/settings/account/delete",
       "/account-deleted",
+      "/join",
       "/logs",
       "/logs/new",
       "/logs/entries/abc/edit",
@@ -136,6 +137,7 @@ describe("boot-prefetch の経路", () => {
       "/terms",
       "/privacy",
       "/account-deleted",
+      "/join",
     ]);
   });
 

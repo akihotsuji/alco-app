@@ -75,7 +75,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 領域 | テーブル | 管理 |
 |---|---|---|
 | 認証 | `user`, `session`, `account`, `verification` | **Auth ライブラリ管理**。`npx auth@latest generate`（Phase 2-02） |
-| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents`, `age_verifications` | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01。`age_verifications` は 8-02 |
+| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents`, `age_verifications`, `cellars`, `user_cellar_slots`, `cellar_members`, `cellar_invitations`, `cellar_owner_transfers`, `cellar_activity`, `cellar_idempotency` | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01。`age_verifications` は 8-02。セラー共有は 6.13 / [shared-cellar.md](features/shared-cellar.md) |
 
 Auth コアの列はライブラリ版に従う。以下は実装時の参照用であり、**列名・追加列を凍結しない**。プラグイン追加で増える可能性がある。
 
@@ -103,9 +103,14 @@ erDiagram
     user ||--o{ account : "auth"
     user ||--o{ drink_logs : owns
     user ||--o{ my_drinks : owns
-    user ||--o{ bottles : owns
+    user ||--o{ cellars : "owns (RESTRICT)"
+    user ||--o| user_cellar_slots : "personal + optional shared"
+    user ||--o{ cellar_members : joins
     user ||--o{ tasting_notes : owns
-    user ||--o{ photos : owns
+    user ||--o{ photos : "personal photos"
+    cellars ||--o{ bottles : owns
+    cellars ||--o{ cellar_members : has
+    cellars ||--o{ photos : "bottle photos"
     user ||--o{ ai_usage : "daily count"
     user ||--o| legal_consents : "signup consent"
     user ||--o| age_verifications : "age gate"
@@ -176,7 +181,10 @@ erDiagram
 
     bottles {
         text id PK
-        text user_id FK
+        text cellar_id FK
+        text created_by FK
+        text updated_by FK
+        integer version
         text name
         text drink_type
         text producer
@@ -219,6 +227,8 @@ erDiagram
     photos {
         text id PK
         text user_id FK
+        text cellar_id FK
+        text uploaded_by FK
         text r2_key
         text content_type
         integer byte_size
@@ -401,12 +411,15 @@ erDiagram
 
 ### 6.3 bottles
 
-セラーの **1 行 = 1 本**（1-07）。同じ銘柄を N 本登録すると N 行できる（API が展開。`count` 1〜12）。
+セラーの **1 行 = 1 本**（1-07）。同じ銘柄を N 本登録すると N 行できる（API が展開。`count` 1〜12）。所有主体はユーザーではなく `cellars`（[shared-cellar.md](features/shared-cellar.md)）。
 
 | 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
 |---|---|---|---|---|---|
 | id | id | text | NO | PK | UUID v4 |
-| userId | user_id | text | NO | FK → user.id CASCADE | |
+| cellarId | cellar_id | text | NO | FK → cellars.id CASCADE | 所有主体。個人セラーまたは共有セラー |
+| createdBy | created_by | text | YES | FK → user.id SET NULL | 登録者。退会後は NULL |
+| updatedBy | updated_by | text | YES | FK → user.id SET NULL | 最終更新者。退会後は NULL |
+| version | version | integer | NO | default 1 | 楽観ロック。更新・開栓・復元・移動・削除の条件 |
 | name | name | text | NO | 1〜100 | 品名 |
 | drinkType | drink_type | text | NO | CHECK enum | 飲酒記録と同じ 12 種 |
 | producer | producer | text | YES | ≦100 | 生産者 |
@@ -435,7 +448,7 @@ erDiagram
 |---|---|---|---|---|---|
 | id | id | text | NO | PK | UUID v4 |
 | userId | user_id | text | NO | FK → user.id CASCADE | |
-| bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携。他ユーザーの id は 404 |
+| bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携。参照可能なボトル（個人または参加中の共有）以外は 404 |
 | drinkName | drink_name | text | NO | 1〜100 | 品名スナップショット |
 | drinkType | drink_type | text | NO | CHECK enum | 種類スナップショット |
 | vintage | vintage | integer | YES | 1800〜2100 | ヴィンテージ。未入力は NULL。UI は NV と出さない |
@@ -464,7 +477,9 @@ erDiagram
 | 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
 |---|---|---|---|---|---|
 | id | id | text | NO | PK | UUID v4 |
-| userId | user_id | text | NO | FK → user.id CASCADE | 所有者。配信認可に使う |
+| userId | user_id | text | YES | FK → user.id CASCADE | 個人写真（ノート・記録・未紐付け）。ボトル写真は NULL |
+| cellarId | cellar_id | text | YES | FK → cellars.id CASCADE | ボトル写真の所有。個人写真は NULL |
+| uploadedBy | uploaded_by | text | YES | FK → user.id SET NULL | アップロードした人。日次上限と退会後の匿名化 |
 | r2Key | r2_key | text | NO | UNIQUE | サーバー生成。例 `{id}.jpg` |
 | contentType | content_type | text | NO | | `image/jpeg` / `image/png` / `image/webp` |
 | byteSize | byte_size | integer | NO | > 0 | 保存バイト数 |
@@ -495,9 +510,10 @@ CHECK (
 | 2 つ以上 | | | **禁止** |
 
 - ユーザー入力のファイル名はどの列にも保存しない
-- `r2_key` に `user_id` を含めない（列挙耐性）。所有は DB の `user_id` が正
+- `r2_key` に `user_id` を含めない（列挙耐性）
 - MIME / サイズ上限は [screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md)（1MB、長辺 1600、jpeg/png/webp、magic bytes）。SVG / GIF / HEIC は拒否
-- 紐付け時も `photos.user_id === session.userId` を必須にする（他人の photo id を拒否）
+- **所有スコープ:** `user_id` と `cellar_id` は XOR（CHECK）。ボトル写真はセラー所有（`cellar_id` 必須・`user_id` NULL）。ノート・記録・未紐付けは個人所有
+- 個人写真の紐付けは `photos.user_id === session.userId`。ボトル写真はセラーメンバーなら可
 - 保存するのは加工後の 1 枚。キャラクター合成の有無は列に持たない（画像に焼き込み済み）
 
 ### 6.6 ai_usage
@@ -598,6 +614,67 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 
 削除 batch は lease 中の予約をタスクへコピーしない。lease 切れ後、user 不在なら scheduled がタスク化する。
 
+### 6.13 セラー共有
+
+正本の画面・権限は [shared-cellar.md](features/shared-cellar.md)。既存ボトルは個人セラーへ移行する。
+
+#### cellars
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | UUID v4 |
+| kind | kind | text | NO | CHECK `personal` / `shared` | 個人はユーザーあたり 1 |
+| name | name | text | NO | 1〜30 | 個人は「自分のセラー」 |
+| ownerUserId | owner_user_id | text | NO | FK → user.id **RESTRICT** | 共有セラー削除または移譲が先 |
+| revision | revision | integer | NO | default 1 | 同期用世代 |
+| createdAt / updatedAt | | integer | NO | | |
+
+個人セラーは `(owner_user_id) WHERE kind = 'personal'` の部分ユニーク。
+
+#### user_cellar_slots
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| userId | user_id | text | NO | PK、FK → user.id CASCADE | 1 ユーザー 1 行 |
+| personalCellarId | personal_cellar_id | text | NO | FK → cellars.id CASCADE、UNIQUE | 個人セラー |
+| sharedCellarId | shared_cellar_id | text | YES | FK → cellars.id SET NULL | 共有参加は 1 つまで |
+
+#### cellar_members
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | |
+| cellarId | cellar_id | text | NO | FK → cellars.id CASCADE | |
+| userId | user_id | text | NO | FK → user.id CASCADE | `(cellar_id, user_id)` UNIQUE |
+| joinedAt | joined_at | integer | NO | | |
+
+役割は `cellars.owner_user_id` で決める（別列は持たない）。
+
+#### cellar_invitations
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | |
+| cellarId | cellar_id | text | NO | FK → cellars.id CASCADE | |
+| tokenHash | token_hash | text | NO | UNIQUE | SHA-256。生トークンは保存しない |
+| createdBy | created_by | text | YES | FK → user.id SET NULL | |
+| expiresAt | expires_at | integer | NO | | 発行から 24h |
+| usedBy / usedAt / revokedAt | | | YES | | 1 リンク 1 人 |
+
+#### cellar_owner_transfers
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | |
+| cellarId | cellar_id | text | NO | FK → cellars.id CASCADE | pending はセラーあたり 1 |
+| fromUserId / toUserId | | text | YES | FK SET NULL | |
+| status | status | text | NO | pending / accepted / cancelled / expired | |
+| expiresAt | expires_at | integer | NO | | 24h |
+
+#### cellar_activity / cellar_idempotency
+
+履歴は 30 日で GC。退会者名は保存し続けない（表示時に「退会したメンバー」）。冪等は `(actor_user_id, cellar_id, operation_key)` を主キーにし、24h で捨てる。
+
 ---
 
 ## 7. インデックス
@@ -611,9 +688,13 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | `drink_logs_my_drink_id_idx` | drink_logs | `my_drink_id` | プリセット削除時の SET NULL |
 | `drink_logs_user_bottle_idx` | drink_logs | `user_id`, `bottle_id` | ボトル詳細の記録節、SET NULL |
 | `my_drinks_user_sort_idx` | my_drinks | `user_id`, `sort_order` | 1 タップ一覧 |
-| `bottles_user_status_idx` | bottles | `user_id`, `status` | 棚 / 貯蔵庫の切替、状態絞り込み |
-| `bottles_user_type_idx` | bottles | `user_id`, `drink_type` | 種類絞り込み |
-| `bottles_user_consumed_idx` | bottles | `user_id`, `consumed_at` | 貯蔵庫の並び（降順） |
+| `bottles_cellar_status_idx` | bottles | `cellar_id`, `status` | 棚 / 貯蔵庫の切替、状態絞り込み |
+| `bottles_cellar_type_idx` | bottles | `cellar_id`, `drink_type` | 種類絞り込み |
+| `bottles_cellar_consumed_idx` | bottles | `cellar_id`, `consumed_at` | 貯蔵庫の並び（降順） |
+| `cellars_owner_idx` | cellars | `owner_user_id` | 所有確認 |
+| `cellar_members_user_idx` | cellar_members | `user_id` | 参加セラー解決 |
+| `photos_cellar_created_idx` | photos | `cellar_id`, `created_at` | セラー写真 |
+| `photos_uploaded_created_idx` | photos | `uploaded_by`, `created_at` | 日次上限 |
 | `tasting_notes_user_tasted_on_idx` | tasting_notes | `user_id`, `tasted_on` | ノート一覧（日付降順） |
 | `tasting_notes_user_bottle_idx` | tasting_notes | `user_id`, `bottle_id` | ボトル詳細からの参照 |
 | `photos_user_created_idx` | photos | `user_id`, `created_at` | 未紐付け GC、所有確認 |
@@ -637,7 +718,10 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 
 | 親 | 子 | ON DELETE | 理由 |
 |---|---|---|---|
-| `user.id` | アプリ 8 テーブル（`ai_usage` / `legal_consents` / `age_verifications` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない。削除 UI は [account-deletion.md](features/account-deletion.md) |
+| `user.id` | 個人所有テーブル（`ai_usage` / `legal_consents` / `age_verifications` / `cellar_members` / `user_cellar_slots` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない。共有ボトルは CASCADE しない |
+| `user.id` | `cellars.owner_user_id` | **RESTRICT** | 他メンバーがいる共有セラーは移譲または削除が先 |
+| `cellars.id` | `bottles.cellar_id` / ボトル写真の `photos.cellar_id` | CASCADE | 共有セラー削除で在庫とボトル写真が消える |
+| `cellars.id` | `user_cellar_slots.shared_cellar_id` | SET NULL | 参加スロットを空ける |
 | （なし） | `account_deletion_requests` / `account_deletion_records` / `account_deletion_photo_tasks` / `photo_object_reservations` | FK なし | user 削除に巻き込まれる CASCADE を付けない。写真キーを先に永続化するため |
 | `my_drinks.id` | `drink_logs.my_drink_id` | SET NULL | 過去ログを残す |
 | `bottles.id` | `drink_logs.bottle_id` | SET NULL | 記録と `drink_name` スナップショットを残す |

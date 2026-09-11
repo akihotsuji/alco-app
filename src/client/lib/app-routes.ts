@@ -257,6 +257,32 @@ export function resolveAppRoute(
         right: SPACER,
       });
     }
+    if (segments[1] === "share") {
+      if (segments.length === 2) {
+        return formRoute("cellar-share-new", "cellar", "セラーを共有する", "/cellar");
+      }
+      if (segments[2] === "created" && segments.length === 3) {
+        return formRoute("cellar-share-created", "cellar", "共有セラー", "/cellar");
+      }
+      if (segments[2] === "settings" && segments.length === 3) {
+        return formRoute("cellar-share-settings", "cellar", "共有設定", "/cellar");
+      }
+      if (segments[2] === "invite" && segments.length === 3) {
+        return formRoute("cellar-share-invite", "cellar", "招待", "/cellar/share/settings");
+      }
+      if (segments[2] === "move" && segments.length === 3) {
+        return formRoute(
+          "cellar-share-move",
+          "cellar",
+          "自分のボトルを移す",
+          "/cellar/share/settings",
+        );
+      }
+      if (segments[2] === "activity" && segments.length === 3) {
+        return formRoute("cellar-share-activity", "cellar", "最近の変更", "/cellar/share/settings");
+      }
+      return notFoundRoute();
+    }
     if (segments[1] === "new" && segments.length === 2) {
       return formRoute("bottle-new", "cellar", "ボトルを追加", "/cellar");
     }
@@ -297,6 +323,17 @@ export function resolveAppRoute(
       return detailRoute("note-detail", "notes", "ノート", "/notes", `/notes/${segments[1]}/edit`);
     }
     return notFoundRoute();
+  }
+
+  if (segments[0] === "join" && segments.length === 1) {
+    return {
+      screenId: "cellar-join",
+      parentTab: null,
+      hideTabBar: true,
+      hideHeader: true,
+      header: { title: "招待", left: SPACER, right: SPACER },
+      notFound: false,
+    };
   }
 
   if (segments[0] === "settings") {

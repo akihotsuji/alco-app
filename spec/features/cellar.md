@@ -5,7 +5,8 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 - 状態: **承認済み**（#39 マージ。4-02〜4-07 実装済み。4-05 テスト総仕上げは 2026-09-07）
 - 要件: [01-requirements.md](../01-requirements.md) 1.3 / 1.5 / 1.6
 - 画面の正本: [screen-designs/04-cellar.md](../screen-designs/04-cellar.md)。**要素表・状態・遷移・モックは画面設計が正**。本ファイルは項目・規則・API・エッジケースを 1 か所にまとめる
-- API の正本: [api-design.md](../api-design.md) 4.5 / 4.7。列は [data-model.md](../data-model.md) 5.3 / 5.4 / 6.3 / 6.5 / 6.6
+- API の正本: [api-design.md](../api-design.md) 4.5 / 4.7 / 4.8。列は [data-model.md](../data-model.md) 5.3 / 5.4 / 6.3 / 6.5 / 6.6 / 6.13
+- 共有セラー: [shared-cellar.md](shared-cellar.md)。画面差し込みは [11-shared-cellar.md](../screen-designs/11-shared-cellar.md)
 - 写真: [photos.md](photos.md) / [screen-designs/07-photo-capture.md](../screen-designs/07-photo-capture.md)。陳列の描画は画面設計「陳列の写真」
 - 記録との紐付け: [drink-log.md](drink-log.md) 3.8（`log-new` のボトル行は **4-02 で有効化**）
 - ロードマップ: [roadmap/phase-04-cellar/](../../roadmap/phase-04-cellar/00-phase.md)
@@ -36,7 +37,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | ノート CRUD / ノート節の中身 | Phase 5。4-02 ではノート節を **出さない** |
 | 写真パイプライン本体（撮影・編集・`POST /api/photos`・未紐付け GC） | 2-08 済み。本フェーズは呼び出しと `photoIds` 紐付け、切り抜き（4-06）、陳列描画（4-04） |
 | 並び替え DnD | 作らない（`createdAt` 降順固定） |
-| Idempotency-Key | 見送り（ボタン disable + undo。[api-design.md](../api-design.md) 7 章） |
+| 共有セラーの招待・参加・権限 | [shared-cellar.md](shared-cellar.md) |
 
 ---
 

@@ -23,6 +23,7 @@ import {
   CellarPage,
   ForgotPasswordPage,
   HomePage,
+  JoinPage,
   LegalPrivacyPage,
   LegalTermsPage,
   LogDayPage,
@@ -38,6 +39,12 @@ import {
   NotFoundPage,
   ResetPasswordPage,
   SettingsPage,
+  ShareActivityPage,
+  ShareCreatedPage,
+  ShareInvitePage,
+  ShareMovePage,
+  ShareNewPage,
+  ShareSettingsPage,
   SignupPage,
   SummaryMonthPage,
   SummaryWeekPage,
@@ -89,6 +96,14 @@ export function App() {
             }
           />
           <Route
+            path="/join"
+            element={
+              <Suspense fallback={<main className="join-page" />}>
+                <JoinPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/forgot-password"
             element={
               <Suspense fallback={<main className="auth-page" />}>
@@ -125,6 +140,12 @@ export function App() {
                 <Route path="/logs/:date" element={<LogDayPage />} />
                 <Route path="/cellar" element={<CellarPage />} />
                 <Route path="/cellar/archive" element={<ArchivePage />} />
+                <Route path="/cellar/share" element={<ShareNewPage />} />
+                <Route path="/cellar/share/created" element={<ShareCreatedPage />} />
+                <Route path="/cellar/share/settings" element={<ShareSettingsPage />} />
+                <Route path="/cellar/share/invite" element={<ShareInvitePage />} />
+                <Route path="/cellar/share/move" element={<ShareMovePage />} />
+                <Route path="/cellar/share/activity" element={<ShareActivityPage />} />
                 <Route path="/cellar/new" element={<BottleNewPage />} />
                 <Route path="/cellar/batch" element={<BottleBatchPage />} />
                 <Route path="/cellar/:bottleId/edit" element={<BottleEditPage />} />

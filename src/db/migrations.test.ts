@@ -9,16 +9,26 @@ import { BOTTLE_STATUSES, DRINK_TYPES, PHOTO_KINDS } from "@/shared/constants.ts
 
 const migrationsDir = path.join(import.meta.dirname, "migrations");
 
-const APP_TABLES = [
+const USER_SCOPED_TABLES = [
   "drink_logs",
   "my_drinks",
-  "bottles",
   "tasting_notes",
-  "photos",
   "ai_usage",
   "legal_consents",
   "age_verifications",
 ];
+
+const CELLAR_TABLES = [
+  "cellars",
+  "user_cellar_slots",
+  "cellar_members",
+  "cellar_invitations",
+  "cellar_owner_transfers",
+  "cellar_activity",
+  "cellar_idempotency",
+];
+
+const APP_TABLES = [...USER_SCOPED_TABLES, "bottles", "photos"];
 
 type Journal = { entries: { idx: number; tag: string }[] };
 
@@ -59,10 +69,30 @@ function insertMyDrink(db: DatabaseSync, id: string, userId: string) {
   ).run(id, userId, NOW, NOW);
 }
 
-function insertBottle(db: DatabaseSync, id: string, userId: string, drinkType = "wine") {
+function insertPersonalCellar(db: DatabaseSync, userId: string, cellarId = `c-${userId}`) {
+  const existing = db
+    .prepare("SELECT personal_cellar_id AS id FROM user_cellar_slots WHERE user_id = ?")
+    .get(userId) as { id: string } | undefined;
+  if (existing) {
+    return existing.id;
+  }
   db.prepare(
-    "INSERT INTO bottles (id, user_id, name, drink_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-  ).run(id, userId, "b", drinkType, NOW, NOW);
+    "INSERT INTO cellars (id, kind, name, owner_user_id, revision, created_at, updated_at) VALUES (?, 'personal', '自分のセラー', ?, 1, ?, ?)",
+  ).run(cellarId, userId, NOW, NOW);
+  db.prepare(
+    "INSERT INTO cellar_members (id, cellar_id, user_id, joined_at) VALUES (?, ?, ?, ?)",
+  ).run(`m-${cellarId}`, cellarId, userId, NOW);
+  db.prepare(
+    "INSERT INTO user_cellar_slots (user_id, personal_cellar_id, shared_cellar_id) VALUES (?, ?, NULL)",
+  ).run(userId, cellarId);
+  return cellarId;
+}
+
+function insertBottle(db: DatabaseSync, id: string, userId: string, drinkType = "wine") {
+  const cellarId = insertPersonalCellar(db, userId);
+  db.prepare(
+    "INSERT INTO bottles (id, cellar_id, created_by, updated_by, version, name, drink_type, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)",
+  ).run(id, cellarId, userId, userId, "b", drinkType, NOW, NOW);
 }
 
 function insertLog(
@@ -88,10 +118,19 @@ function insertPhoto(
   userId: string,
   owner: { bottleId?: string; noteId?: string; logId?: string } = {},
 ) {
+  const cellarId = owner.bottleId
+    ? ((
+        db.prepare("SELECT cellar_id AS id FROM bottles WHERE id = ?").get(owner.bottleId) as
+          | { id: string }
+          | undefined
+      )?.id ?? null)
+    : null;
   db.prepare(
-    "INSERT INTO photos (id, user_id, r2_key, content_type, byte_size, bottle_id, tasting_note_id, drink_log_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO photos (id, user_id, cellar_id, uploaded_by, r2_key, content_type, byte_size, bottle_id, tasting_note_id, drink_log_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   ).run(
     id,
+    owner.bottleId ? null : userId,
+    cellarId,
     userId,
     `${id}.jpg`,
     "image/jpeg",
@@ -145,7 +184,7 @@ describe("マイグレーション（src/db/migrations）", () => {
     db.close();
   });
 
-  it("Auth 4 テーブル + アプリ 8 テーブル + 削除処理 4 テーブルが作成される", () => {
+  it("Auth 4 テーブル + アプリ / セラー / 削除処理テーブルが作成される", () => {
     const db = openMigratedDb();
     const rows = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
@@ -157,6 +196,7 @@ describe("マイグレーション（src/db/migrations）", () => {
         "user",
         "verification",
         ...APP_TABLES,
+        ...CELLAR_TABLES,
         "account_deletion_photo_tasks",
         "account_deletion_records",
         "account_deletion_requests",
@@ -175,7 +215,7 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
 
   it("schema.ts の全テーブルについて列名・NOT NULL・インデックスが DB と一致する（generate 忘れ検知）", () => {
     const db = openMigratedDb();
-    expect(tables.length).toBe(16);
+    expect(tables.length).toBe(23);
     for (const table of tables) {
       const config = getTableConfig(table);
       const info = db.prepare(`PRAGMA table_info("${config.name}")`).all() as {
@@ -223,9 +263,9 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
     }
   });
 
-  it("全アプリテーブルに user_id があり user.id へ ON DELETE CASCADE の FK を持つ", () => {
+  it("個人スコープのアプリテーブルに user_id があり user.id へ ON DELETE CASCADE の FK を持つ", () => {
     const db = openMigratedDb();
-    for (const table of APP_TABLES) {
+    for (const table of USER_SCOPED_TABLES) {
       const fks = db.prepare(`PRAGMA foreign_key_list("${table}")`).all() as {
         table: string;
         from: string;
@@ -235,6 +275,21 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
       const userFk = fks.find((fk) => fk.from === "user_id");
       expect(userFk, table).toMatchObject({ table: "user", to: "id", on_delete: "CASCADE" });
     }
+    db.close();
+  });
+
+  it("cellars.owner_user_id は RESTRICT、bottles は cellar_id CASCADE で user_id を持たない", () => {
+    const db = openMigratedDb();
+    const cellarFks = db.prepare("PRAGMA foreign_key_list('cellars')").all() as {
+      from: string;
+      on_delete: string;
+    }[];
+    expect(cellarFks.find((fk) => fk.from === "owner_user_id")?.on_delete).toBe("RESTRICT");
+    const bottleCols = (db.prepare("PRAGMA table_info('bottles')").all() as { name: string }[]).map(
+      (c) => c.name,
+    );
+    expect(bottleCols).not.toContain("user_id");
+    expect(bottleCols).toContain("cellar_id");
     db.close();
   });
 
@@ -390,36 +445,65 @@ describe("制約の挙動", () => {
     expect(photoIds(db)).toEqual([]);
   });
 
-  it("存在しない user_id は FK で拒否する", () => {
+  it("存在しない user の個人セラーは FK で拒否する", () => {
     expect(() => insertBottle(db, "b1", "ghost")).toThrow(/FOREIGN KEY/);
   });
 
-  it("user 削除でアプリ全テーブルの行が CASCADE 削除され、他ユーザーの行は残る", () => {
+  it("オーナーが残っている個人セラーがあると user 削除は RESTRICT で失敗する", () => {
+    insertBottle(db, "b1", "u1");
+    expect(() => db.prepare("DELETE FROM user WHERE id = 'u1'").run()).toThrow(/FOREIGN KEY/);
+  });
+
+  it("個人セラーを消してから user を消すと個人データは消え、共有ボトルと写真は残る", () => {
     insertUser(db, "u2");
-    for (const uid of ["u1", "u2"]) {
-      insertMyDrink(db, `m-${uid}`, uid);
-      insertBottle(db, `b-${uid}`, uid);
-      insertLog(db, `l-${uid}`, uid, { myDrinkId: `m-${uid}`, bottleId: `b-${uid}` });
-      insertNote(db, `n-${uid}`, uid, `b-${uid}`);
-      insertPhoto(db, `p-${uid}`, uid, { bottleId: `b-${uid}` });
-      db.prepare("INSERT INTO ai_usage (user_id, used_on, count) VALUES (?, '2026-01-01', 3)").run(
-        uid,
-      );
-      db.prepare(
-        "INSERT INTO legal_consents (id, user_id, document_version, accepted_at, created_at, updated_at) VALUES (?, ?, '2026-09-09', ?, ?, ?)",
-      ).run(`lc-${uid}`, uid, NOW, NOW, NOW);
-      db.prepare(
-        "INSERT INTO age_verifications (user_id, birth_on, verified_at, created_at, updated_at) VALUES (?, '1990-01-15', ?, ?, ?)",
-      ).run(uid, NOW, NOW, NOW);
-    }
+    insertMyDrink(db, "m-u1", "u1");
+    insertBottle(db, "b-u1", "u1");
+    insertLog(db, "l-u1", "u1", { myDrinkId: "m-u1", bottleId: "b-u1" });
+    insertNote(db, "n-u1", "u1", "b-u1");
+    insertPhoto(db, "p-u1", "u1", { bottleId: "b-u1" });
+    insertPhoto(db, "p-note", "u1", { noteId: "n-u1" });
+    const sharedId = "shared-1";
+    db.prepare(
+      "INSERT INTO cellars (id, kind, name, owner_user_id, revision, created_at, updated_at) VALUES (?, 'shared', 'ふたりのセラー', ?, 1, ?, ?)",
+    ).run(sharedId, "u2", NOW, NOW);
+    db.prepare(
+      "INSERT INTO cellar_members (id, cellar_id, user_id, joined_at) VALUES (?, ?, ?, ?)",
+    ).run("sm-u2", sharedId, "u2", NOW);
+    db.prepare(
+      "INSERT INTO cellar_members (id, cellar_id, user_id, joined_at) VALUES (?, ?, ?, ?)",
+    ).run("sm-u1", sharedId, "u1", NOW);
+    db.prepare(
+      "INSERT INTO bottles (id, cellar_id, created_by, updated_by, version, name, drink_type, created_at, updated_at) VALUES ('b-shared', ?, 'u1', 'u1', 1, '共有瓶', 'wine', ?, ?)",
+    ).run(sharedId, NOW, NOW);
+    insertPhoto(db, "p-shared", "u1", { bottleId: "b-shared" });
+
+    const personalId = (
+      db
+        .prepare("SELECT personal_cellar_id AS id FROM user_cellar_slots WHERE user_id = 'u1'")
+        .get() as {
+        id: string;
+      }
+    ).id;
+    db.prepare("DELETE FROM cellar_members WHERE user_id = 'u1' AND cellar_id = ?").run(sharedId);
+    db.prepare("DELETE FROM cellars WHERE id = ?").run(personalId);
     db.prepare("DELETE FROM user WHERE id = 'u1'").run();
-    for (const table of APP_TABLES) {
-      const rows = db.prepare(`SELECT user_id FROM "${table}"`).all() as { user_id: string }[];
-      expect(
-        rows.map((r) => r.user_id),
-        table,
-      ).toEqual(["u2"]);
-    }
+
     expect(count(db, "user")).toBe(1);
+    expect(
+      (
+        db.prepare("SELECT id FROM bottles WHERE id = 'b-shared'").get() as
+          | { id: string }
+          | undefined
+      )?.id,
+    ).toBe("b-shared");
+    expect(
+      (
+        db.prepare("SELECT id FROM photos WHERE id = 'p-shared'").get() as
+          | { id: string }
+          | undefined
+      )?.id,
+    ).toBe("p-shared");
+    expect(db.prepare("SELECT id FROM bottles WHERE id = 'b-u1'").get()).toBeUndefined();
+    expect(db.prepare("SELECT id FROM photos WHERE id = 'p-note'").get()).toBeUndefined();
   });
 });

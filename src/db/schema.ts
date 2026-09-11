@@ -12,6 +12,9 @@ import {
 import { PHOTO_TASK_STATUSES } from "../shared/account-deletion.ts";
 import {
   BOTTLE_STATUSES,
+  CELLAR_ACTIVITY_ACTIONS,
+  CELLAR_KINDS,
+  CELLAR_TRANSFER_STATUSES,
   DEFAULT_BOTTLE_STATUS,
   DEFAULT_PHOTO_KIND,
   DRINK_TYPES,
@@ -48,6 +51,141 @@ const timestampColumns = () => ({
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+export const cellars = sqliteTable(
+  "cellars",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind", { enum: CELLAR_KINDS }).notNull(),
+    name: text("name").notNull(),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    revision: integer("revision").notNull().default(1),
+    ...timestampColumns(),
+  },
+  (table) => [
+    index("cellars_owner_idx").on(table.ownerUserId),
+    uniqueIndex("cellars_personal_owner_uidx")
+      .on(table.ownerUserId)
+      .where(sql`${table.kind} = 'personal'`),
+    check("cellars_kind_check", sql`kind IN (${inList(CELLAR_KINDS)})`),
+  ],
+);
+
+export const userCellarSlots = sqliteTable(
+  "user_cellar_slots",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    personalCellarId: text("personal_cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    sharedCellarId: text("shared_cellar_id").references(() => cellars.id, { onDelete: "set null" }),
+  },
+  (table) => [uniqueIndex("user_cellar_slots_personal_uidx").on(table.personalCellarId)],
+);
+
+export const cellarMembers = sqliteTable(
+  "cellar_members",
+  {
+    id: text("id").primaryKey(),
+    cellarId: text("cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    userId: userIdColumn(),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("cellar_members_cellar_user_uidx").on(table.cellarId, table.userId),
+    index("cellar_members_user_idx").on(table.userId),
+  ],
+);
+
+export const cellarInvitations = sqliteTable(
+  "cellar_invitations",
+  {
+    id: text("id").primaryKey(),
+    cellarId: text("cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    usedBy: text("used_by").references(() => user.id, { onDelete: "set null" }),
+    usedAt: integer("used_at", { mode: "timestamp_ms" }),
+    revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("cellar_invitations_token_hash_uidx").on(table.tokenHash),
+    index("cellar_invitations_cellar_idx").on(table.cellarId, table.expiresAt),
+  ],
+);
+
+export const cellarOwnerTransfers = sqliteTable(
+  "cellar_owner_transfers",
+  {
+    id: text("id").primaryKey(),
+    cellarId: text("cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    fromUserId: text("from_user_id").references(() => user.id, { onDelete: "set null" }),
+    toUserId: text("to_user_id").references(() => user.id, { onDelete: "set null" }),
+    status: text("status", { enum: CELLAR_TRANSFER_STATUSES }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("cellar_transfers_pending_uidx")
+      .on(table.cellarId)
+      .where(sql`${table.status} = 'pending'`),
+    index("cellar_transfers_to_idx").on(table.toUserId, table.status),
+    check("cellar_transfers_status_check", sql`status IN (${inList(CELLAR_TRANSFER_STATUSES)})`),
+  ],
+);
+
+export const cellarActivity = sqliteTable(
+  "cellar_activity",
+  {
+    id: text("id").primaryKey(),
+    cellarId: text("cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    actorUserId: text("actor_user_id").references(() => user.id, { onDelete: "set null" }),
+    action: text("action", { enum: CELLAR_ACTIVITY_ACTIONS }).notNull(),
+    bottleId: text("bottle_id"),
+    bottleName: text("bottle_name"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("cellar_activity_cellar_created_idx").on(table.cellarId, table.createdAt),
+    check("cellar_activity_action_check", sql`action IN (${inList(CELLAR_ACTIVITY_ACTIONS)})`),
+  ],
+);
+
+export const cellarIdempotency = sqliteTable(
+  "cellar_idempotency",
+  {
+    actorUserId: text("actor_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    cellarId: text("cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    operationKey: text("operation_key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    resultJson: text("result_json").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.actorUserId, table.cellarId, table.operationKey] }),
+    index("cellar_idempotency_created_idx").on(table.createdAt),
+  ],
+);
+
 export const myDrinks = sqliteTable(
   "my_drinks",
   {
@@ -71,7 +209,12 @@ export const bottles = sqliteTable(
   "bottles",
   {
     id: text("id").primaryKey(),
-    userId: userIdColumn(),
+    cellarId: text("cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
+    version: integer("version").notNull().default(1),
     name: text("name").notNull(),
     drinkType: text("drink_type", { enum: DRINK_TYPES }).notNull(),
     producer: text("producer"),
@@ -91,9 +234,9 @@ export const bottles = sqliteTable(
     ...timestampColumns(),
   },
   (table) => [
-    index("bottles_user_status_idx").on(table.userId, table.status),
-    index("bottles_user_type_idx").on(table.userId, table.drinkType),
-    index("bottles_user_consumed_idx").on(table.userId, table.consumedAt),
+    index("bottles_cellar_status_idx").on(table.cellarId, table.status),
+    index("bottles_cellar_type_idx").on(table.cellarId, table.drinkType),
+    index("bottles_cellar_consumed_idx").on(table.cellarId, table.consumedAt),
     drinkTypeCheck("bottles"),
     check("bottles_status_check", sql`status IN (${inList(BOTTLE_STATUSES)})`),
   ],
@@ -167,7 +310,9 @@ export const photos = sqliteTable(
   "photos",
   {
     id: text("id").primaryKey(),
-    userId: userIdColumn(),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    cellarId: text("cellar_id").references(() => cellars.id, { onDelete: "cascade" }),
+    uploadedBy: text("uploaded_by").references(() => user.id, { onDelete: "set null" }),
     // サーバー生成キー。ユーザーのファイル名や user_id を含めない
     r2Key: text("r2_key").notNull(),
     contentType: text("content_type").notNull(),
@@ -186,6 +331,8 @@ export const photos = sqliteTable(
   (table) => [
     uniqueIndex("photos_r2_key_uidx").on(table.r2Key),
     index("photos_user_created_idx").on(table.userId, table.createdAt),
+    index("photos_cellar_created_idx").on(table.cellarId, table.createdAt),
+    index("photos_uploaded_created_idx").on(table.uploadedBy, table.createdAt),
     index("photos_bottle_sort_idx").on(table.bottleId, table.sortOrder),
     index("photos_note_sort_idx").on(table.tastingNoteId, table.sortOrder),
     index("photos_log_idx").on(table.drinkLogId),
@@ -193,6 +340,18 @@ export const photos = sqliteTable(
     check(
       "photos_owner_check",
       sql`(bottle_id IS NOT NULL) + (tasting_note_id IS NOT NULL) + (drink_log_id IS NOT NULL) <= 1`,
+    ),
+    check(
+      "photos_scope_check",
+      sql`(CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN cellar_id IS NOT NULL THEN 1 ELSE 0 END) = 1`,
+    ),
+    check(
+      "photos_bottle_scope_check",
+      sql`bottle_id IS NULL OR (cellar_id IS NOT NULL AND user_id IS NULL)`,
+    ),
+    check(
+      "photos_personal_owner_check",
+      sql`(tasting_note_id IS NULL AND drink_log_id IS NULL) OR (user_id IS NOT NULL AND cellar_id IS NULL)`,
     ),
     check("photos_kind_check", sql`kind IN (${inList(PHOTO_KINDS)})`),
   ],

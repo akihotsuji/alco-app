@@ -10,6 +10,7 @@ import { createAgeGuard } from "./middleware/age.ts";
 import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
 import { createBottlesRoute } from "./routes/bottles.ts";
+import { createCellarInvitationsRoute, createCellarsRoute } from "./routes/cellars.ts";
 import { createConfigRoute } from "./routes/config.ts";
 import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
 import { healthRoute } from "./routes/health.ts";
@@ -19,11 +20,13 @@ import { createPhotosRoute } from "./routes/photos.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
 import { runAccountDeletionJobs } from "./services/account-deletion-jobs.ts";
 import { createTaskRecognizer } from "./services/ai-recognition/create-recognizer.ts";
+import { purgeExpiredCellarRows } from "./services/cellars.ts";
 import {
   createDrinkLookupRunner,
   type DrinkLookupRunner,
 } from "./services/drink-recognizer/lookup-runner.ts";
 import { reportUnexpectedError } from "./services/error-alert.ts";
+import { purgeExpiredIdempotency } from "./services/idempotency.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
@@ -138,7 +141,9 @@ export function createApp(options: CreateAppOptions = {}) {
     .route("/api/my-drinks", myDrinksRoute)
     .route("/api/photos", photosRoute)
     .route("/api/bottles", bottlesRoute)
-    .route("/api/tasting-notes", tastingNotesRoute);
+    .route("/api/tasting-notes", tastingNotesRoute)
+    .route("/api/cellars", createCellarsRoute(routeDeps))
+    .route("/api/cellar-invitations", createCellarInvitationsRoute(routeDeps));
 }
 
 export type AppType = ReturnType<typeof createApp>;
@@ -153,6 +158,8 @@ export async function handleScheduled(env: Env, nowMs = Date.now()) {
     let gc = { photosDeleted: 0, aiUsageDeleted: 0 };
     try {
       gc = await runDailyGc({ db, bucket, nowMs });
+      await purgeExpiredCellarRows(db, nowMs);
+      await purgeExpiredIdempotency(db, nowMs);
     } catch (err) {
       gcError = err;
     }

@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { BottleBatchForm } from "@/client/components/cellar/BottleBatchForm.tsx";
+import { BottleConflictDialog } from "@/client/components/cellar/BottleConflictDialog.tsx";
 import { BottleDetail } from "@/client/components/cellar/BottleDetail.tsx";
 import { BottleFormFields, useBottleFormSubmit } from "@/client/components/cellar/BottleForm.tsx";
+import { CellarDestinationField } from "@/client/components/cellar/CellarDestinationField.tsx";
 import { CellarList } from "@/client/components/cellar/CellarList.tsx";
+import { CellarSwitcher } from "@/client/components/cellar/CellarSwitcher.tsx";
 import { CellarToolbar } from "@/client/components/cellar/CellarToolbar.tsx";
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
 import { Shelf, ShelfSkeleton } from "@/client/components/cellar/Shelf.tsx";
@@ -20,6 +23,8 @@ import {
   useInfiniteBottles,
   useUpdateBottle,
 } from "@/client/hooks/use-bottles.ts";
+import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
+import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
 import { useDrinkLogsByBottle } from "@/client/hooks/use-drink-logs.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
 import { useTastingNotesByBottle } from "@/client/hooks/use-tasting-notes.ts";
@@ -30,12 +35,14 @@ import {
   describeBottleSaveFailure,
   isUuid,
 } from "@/client/lib/bottle-form.ts";
+import { newOperationKey, parseConflictBottle } from "@/client/lib/cellar-share.ts";
 import { groupBottlesByConsumedMonth } from "@/client/lib/cellar-shelf.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
-import type { BottleItem } from "@/shared/bottles.ts";
+import type { Bottle, BottleItem } from "@/shared/bottles.ts";
 import { formatBottleCount } from "@/shared/bottles.ts";
+import { CELLAR_COPY } from "@/shared/cellars.ts";
 
 export function CellarPage() {
   return <CellarList />;
@@ -48,12 +55,17 @@ export function BottleBatchPage() {
 export function ArchivePage() {
   const filters = useBottleListFilters();
   const columns = useShelfColumns();
-  const query = useInfiniteBottles({
-    view: "archive",
-    limit: 50,
-    ...(filters.q ? { q: filters.q } : {}),
-    ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
-  });
+  const { selected } = useCellarSelection();
+  const query = useInfiniteBottles(
+    {
+      view: "archive",
+      limit: 50,
+      ...(filters.q ? { q: filters.q } : {}),
+      ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
+      ...(selected?.id ? { cellarId: selected.id } : {}),
+    },
+    Boolean(selected?.id),
+  );
   const items: BottleItem[] = query.data?.pages.flatMap((page) => page.items) ?? [];
   const totalCount = query.data?.pages[0]?.totalCount;
   const filteredOut = Boolean(filters.q || filters.drinkType);
@@ -67,6 +79,7 @@ export function ArchivePage() {
 
   return (
     <div className="cellar-list">
+      <CellarSwitcher />
       {emptyInventory ? null : (
         <CellarToolbar
           {...filters}
@@ -157,9 +170,17 @@ export function BottleFormPage({ mode }: { mode: "new" | "edit" }) {
 function NewBottlePage() {
   const create = useCreateBottles();
   const { afterCreate } = useBottleFormSubmit();
+  const { items, selected } = useCellarSelection();
+  const [destinationId, setDestinationId] = useState<string | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<BottleFormErrors>({});
   const [saveState, setSaveState] = useState<MotionState>("idle");
+  useEffect(() => {
+    if (!destinationId && selected?.id) {
+      setDestinationId(selected.id);
+    }
+  }, [destinationId, selected?.id]);
+  const destination = items.find((item) => item.id === destinationId) ?? selected;
 
   return (
     <BottleFormFields
@@ -168,6 +189,14 @@ function NewBottlePage() {
       saveState={create.isPending ? "loading" : saveState}
       formError={formError}
       serverErrors={serverErrors}
+      header={
+        <CellarDestinationField
+          items={items}
+          valueId={destination?.id}
+          disabled={create.isPending}
+          onChange={(cellar) => setDestinationId(cellar.id)}
+        />
+      }
       onClearServer={() => {
         setFormError(null);
         setServerErrors({});
@@ -176,16 +205,23 @@ function NewBottlePage() {
         if (!body) {
           return;
         }
+        if (!destination) {
+          setFormError("保存先のセラーを確認してください");
+          return;
+        }
         setSaveState("loading");
-        create.mutate(body, {
-          onSuccess: (result) => afterCreate(result.items),
-          onError: (error) => {
-            const failure = describeBottleSaveFailure(error, navigator.onLine);
-            setSaveState("error");
-            setFormError(failure.formMessage);
-            setServerErrors(failure.fieldErrors);
+        create.mutate(
+          { ...body, cellarId: destination.id, operationKey: newOperationKey() },
+          {
+            onSuccess: (result) => afterCreate(result.items),
+            onError: (error) => {
+              const failure = describeBottleSaveFailure(error, navigator.onLine);
+              setSaveState("error");
+              setFormError(failure.formMessage);
+              setServerErrors(failure.fieldErrors);
+            },
           },
-        });
+        );
       }}
     />
   );
@@ -222,55 +258,139 @@ function LoadedEditBottle({
   const query = useBottle(bottleId);
   const update = useUpdateBottle();
   const remove = useDeleteBottle();
+  const { items } = useCellarSelection();
+  useCellarSync(query.data?.cellarId);
   const { afterUpdate, afterDelete } = useBottleFormSubmit();
   const [formError, setFormError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<BottleFormErrors>({});
   const [saveState, setSaveState] = useState<MotionState>("idle");
+  const [conflict, setConflict] = useState<Bottle | null>(null);
+  const [mineSnapshot, setMineSnapshot] = useState<Bottle | null>(null);
   const bottle = query.data;
   if (!bottle) {
     return <DetailSkeleton />;
   }
+  const shared = items.find((item) => item.id === bottle.cellarId)?.kind === "shared";
 
   return (
-    <BottleFormFields
-      mode="edit"
-      initial={bottleFormStateFromBottle(bottle)}
-      existingPhotoId={initialPhotoId}
-      pending={update.isPending}
-      deleting={remove.isPending}
-      saveState={update.isPending ? "loading" : saveState}
-      formError={formError}
-      serverErrors={serverErrors}
-      onClearServer={() => {
-        setFormError(null);
-        setServerErrors({});
-      }}
-      onUpdate={(body) => {
-        if (!body) {
-          return;
+    <>
+      <BottleFormFields
+        mode="edit"
+        initial={bottleFormStateFromBottle(bottle)}
+        existingPhotoId={initialPhotoId}
+        pending={update.isPending}
+        deleting={remove.isPending}
+        saveState={update.isPending ? "loading" : saveState}
+        formError={formError}
+        serverErrors={serverErrors}
+        header={<CellarDestinationField items={items} valueId={bottle.cellarId} locked />}
+        isShared={shared}
+        deleteTitle={shared ? `『${bottle.name}』を共有セラーから削除しますか？` : undefined}
+        deleteBody={
+          shared ? "参加者全員のセラーから消えます。各自の飲酒記録とノートは残ります。" : undefined
         }
-        setSaveState("loading");
-        update.mutate(
-          { id: bottleId, body },
-          {
-            onSuccess: afterUpdate,
-            onError: (error) => {
-              const failure = describeBottleSaveFailure(error, navigator.onLine);
-              setSaveState("error");
-              setFormError(failure.formMessage);
-              setServerErrors(failure.fieldErrors);
+        deletePrimaryLabel={shared ? "全員のセラーから削除" : undefined}
+        memoLabel={shared ? CELLAR_COPY.sharedMemoLabel : undefined}
+        onClearServer={() => {
+          setFormError(null);
+          setServerErrors({});
+        }}
+        onUpdate={(body) => {
+          if (!body) {
+            return;
+          }
+          setSaveState("loading");
+          const nextBody = {
+            ...body,
+            expectedVersion: bottle.version,
+            operationKey: newOperationKey(),
+          };
+          setMineSnapshot({
+            ...bottle,
+            ...body,
+            photos: bottle.photos,
+          });
+          update.mutate(
+            { id: bottleId, body: nextBody },
+            {
+              onSuccess: afterUpdate,
+              onError: (error) => {
+                const current =
+                  isApiClientError(error) && error.code === "conflict"
+                    ? parseConflictBottle(error.conflict?.current)
+                    : null;
+                if (current) {
+                  setConflict(current);
+                  setSaveState("idle");
+                  return;
+                }
+                if (isApiClientError(error) && error.code === "not_found") {
+                  setFormError(CELLAR_COPY.conflictDeleted);
+                  setSaveState("error");
+                  return;
+                }
+                const failure = describeBottleSaveFailure(error, navigator.onLine);
+                setSaveState("error");
+                setFormError(failure.formMessage);
+                setServerErrors(failure.fieldErrors);
+              },
             },
-          },
-        );
-      }}
-      onDelete={() => {
-        remove.mutate(bottleId, {
-          onSuccess: afterDelete,
-          onError: () => {
-            setFormError(TOAST_MESSAGES.saveFailed);
-          },
-        });
-      }}
-    />
+          );
+        }}
+        onDelete={() => {
+          remove.mutate(
+            {
+              id: bottleId,
+              body: { expectedVersion: bottle.version, operationKey: newOperationKey() },
+            },
+            {
+              onSuccess: afterDelete,
+              onError: () => {
+                setFormError(TOAST_MESSAGES.saveFailed);
+              },
+            },
+          );
+        }}
+      />
+      {conflict && mineSnapshot ? (
+        <BottleConflictDialog
+          open
+          initial={bottle}
+          mine={mineSnapshot}
+          current={conflict}
+          onClose={() => setConflict(null)}
+          onApply={(next, photoChoice) => {
+            setConflict(null);
+            update.mutate(
+              {
+                id: bottleId,
+                body: {
+                  name: next.name,
+                  drinkType: next.drinkType,
+                  producer: next.producer,
+                  origin: next.origin,
+                  variety: next.variety,
+                  vintage: next.vintage,
+                  purchasedOn: next.purchasedOn,
+                  priceJpy: next.priceJpy,
+                  shop: next.shop,
+                  storedOn: next.storedOn,
+                  storage: next.storage,
+                  memo: next.memo,
+                  expectedVersion: next.version,
+                  operationKey: newOperationKey(),
+                  ...(photoChoice === "mine"
+                    ? {
+                        photoIds: mineSnapshot.photos[0] ? [mineSnapshot.photos[0].id] : [],
+                      }
+                    : {}),
+                },
+              },
+              { onSuccess: afterUpdate },
+            );
+          }}
+        />
+      ) : null}
+    </>
   );
 }

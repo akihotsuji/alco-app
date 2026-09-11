@@ -1,6 +1,11 @@
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { API_ERROR_CODES, type ApiErrorCode, type ApiErrorFields } from "@/shared/api-error.ts";
+import {
+  API_ERROR_CODES,
+  type ApiErrorCode,
+  type ApiErrorConflict,
+  type ApiErrorFields,
+} from "@/shared/api-error.ts";
 
 /** JSON 不正・FormData 不正など、詳細をエコーしないときの共通文言。 */
 export const MALFORMED_REQUEST_MESSAGE = "リクエストの形式が正しくありません";
@@ -12,6 +17,7 @@ export const API_ERROR_STATUS = {
   age_restricted: 403,
   reauthentication_required: 403,
   not_found: 404,
+  conflict: 409,
   payload_too_large: 413,
   unsupported_media_type: 415,
   rate_limited: 429,
@@ -27,12 +33,17 @@ export const API_ERROR_STATUS = {
 export class ApiError extends HTTPException {
   readonly code: ApiErrorCode;
   readonly fields: ApiErrorFields | undefined;
+  readonly conflict: ApiErrorConflict | undefined;
 
-  constructor(code: ApiErrorCode, options: { fields?: ApiErrorFields } = {}) {
+  constructor(
+    code: ApiErrorCode,
+    options: { fields?: ApiErrorFields; conflict?: ApiErrorConflict } = {},
+  ) {
     super(API_ERROR_STATUS[code], { message: code });
     this.name = "ApiError";
     this.code = code;
     this.fields = options.fields;
+    this.conflict = options.conflict;
   }
 }
 

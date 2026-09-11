@@ -228,7 +228,54 @@ export const DEFAULT_CELLAR_LIST_VIEW: CellarListView = "one";
 
 export const CELLAR_PREF_KEYS = {
   listView: "cellar.listView",
+  selectedId: "cellar.selectedId",
 } as const;
+
+export const CELLAR_KINDS = ["personal", "shared"] as const;
+export type CellarKind = (typeof CELLAR_KINDS)[number];
+
+export const CELLAR_TRANSFER_STATUSES = ["pending", "accepted", "cancelled", "expired"] as const;
+export type CellarTransferStatus = (typeof CELLAR_TRANSFER_STATUSES)[number];
+
+export const CELLAR_ACTIVITY_ACTIONS = [
+  "bottle_created",
+  "bottle_updated",
+  "bottle_photo_changed",
+  "bottle_consumed",
+  "bottle_restored",
+  "bottle_moved_in",
+  "bottle_moved_out",
+  "bottle_deleted",
+  "member_joined",
+  "member_left",
+  "member_removed",
+  "owner_transferred",
+  "cellar_renamed",
+  "invite_created",
+  "invite_revoked",
+] as const;
+export type CellarActivityAction = (typeof CELLAR_ACTIVITY_ACTIONS)[number];
+
+export const CELLAR_MEMBER_LIMIT = 6;
+export const CELLAR_NAME_MAX_LENGTH = 30;
+export const CELLAR_DEFAULT_SHARED_NAME = "共有セラー";
+export const CELLAR_PERSONAL_NAME = "自分のセラー";
+export const CELLAR_NAME_CHIPS = ["ふたりのセラー", "家族のセラー"] as const;
+export const CELLAR_INVITE_TTL_MS = 24 * 60 * 60 * 1000;
+export const CELLAR_INVITE_PENDING_MAX = 10;
+export const CELLAR_TRANSFER_TTL_MS = 24 * 60 * 60 * 1000;
+export const CELLAR_MOVE_MAX = 50;
+export const CELLAR_REVISION_POLL_MS = 5_000;
+export const CELLAR_ACTIVITY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const CELLAR_IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+export const CELLAR_INVITE_CREATE_RATE_MAX = 10;
+export const CELLAR_INVITE_CREATE_RATE_WINDOW_MS = 60 * 60 * 1000;
+export const CELLAR_INVITE_USE_RATE_MAX = 20;
+export const CELLAR_INVITE_USE_RATE_WINDOW_MS = 10 * 60 * 1000;
+export const CELLAR_CREATE_RATE_MAX = 5;
+export const CELLAR_CREATE_RATE_WINDOW_MS = 60 * 60 * 1000;
+export const CELLAR_INVITE_TOKEN_BYTES = 32;
+export const LEFT_MEMBER_DISPLAY_NAME = "退会したメンバー";
 
 /** 操作設定の localStorage キー（spec/screen-designs/06-settings.md S8 / S9 / S10、motion-design 6.5 / 6.7） */
 export const UI_PREF_KEYS = {

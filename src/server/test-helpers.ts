@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { z } from "zod";
+import type { AppBatchDb } from "@/db/index.ts";
 import * as schema from "@/db/schema.ts";
+import { bottles } from "@/db/schema.ts";
+import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
 import {
   AI_RECOGNIZE_LOOKUP_BUDGET_MS,
   GEMINI_35_FLASH_LITE_MODEL_ID,
@@ -15,6 +18,7 @@ import { createAuth } from "./auth.ts";
 import type { GoogleOAuthConfig } from "./env.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
+import { ensurePersonalCellar } from "./services/cellar-access.ts";
 import type { DrinkLookupRunner } from "./services/drink-recognizer/lookup-runner.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import type { ResetPasswordMail, SendResetPasswordEmail } from "./services/reset-password-mail.ts";
@@ -367,6 +371,45 @@ export async function createTestUserPair(
   inputs: readonly [TestUserInput, TestUserInput],
 ): Promise<[TestUser, TestUser]> {
   return [await createTestUser(app, inputs[0]), await createTestUser(app, inputs[1])];
+}
+
+export async function seedOwnedBottle(
+  db: AppBatchDb,
+  input: {
+    id: string;
+    userId: string;
+    name?: string;
+    drinkType?: DrinkType;
+    status?: BottleStatus;
+    consumedAt?: Date | null;
+    consumedOn?: string | null;
+    producer?: string | null;
+    origin?: string | null;
+    variety?: string | null;
+    vintage?: number | null;
+  },
+): Promise<string> {
+  const cellarId = await ensurePersonalCellar(db, input.userId);
+  const now = new Date();
+  await db.insert(bottles).values({
+    id: input.id,
+    cellarId,
+    createdBy: input.userId,
+    updatedBy: input.userId,
+    version: 1,
+    name: input.name ?? "b",
+    drinkType: input.drinkType ?? "wine",
+    status: input.status ?? "sealed",
+    consumedAt: input.consumedAt ?? null,
+    consumedOn: input.consumedOn ?? null,
+    producer: input.producer ?? null,
+    origin: input.origin ?? null,
+    variety: input.variety ?? null,
+    vintage: input.vintage ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return cellarId;
 }
 
 export async function requestAccountDeletion(

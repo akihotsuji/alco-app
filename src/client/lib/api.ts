@@ -1,6 +1,11 @@
 import { type ClientRequestOptions, type ClientResponse, hc } from "hono/client";
 import type { AppType } from "@/server/index.ts";
-import { type ApiErrorCode, type ApiErrorFields, apiErrorBodySchema } from "@/shared/api-error.ts";
+import {
+  type ApiErrorCode,
+  type ApiErrorConflict,
+  type ApiErrorFields,
+  apiErrorBodySchema,
+} from "@/shared/api-error.ts";
 import { EARLY_FETCH_TIMEOUT_MS } from "./boot.ts";
 import { takeEarlyFetch } from "./early-fetch.ts";
 import { settleEarlyFetch } from "./fetch-timeout.ts";
@@ -43,13 +48,20 @@ export class ApiClientError extends Error {
   readonly status: number;
   readonly code: ApiErrorCode;
   readonly fields: ApiErrorFields | undefined;
+  readonly conflict: ApiErrorConflict | undefined;
 
-  constructor(status: number, code: ApiErrorCode, fields?: ApiErrorFields) {
+  constructor(
+    status: number,
+    code: ApiErrorCode,
+    fields?: ApiErrorFields,
+    conflict?: ApiErrorConflict,
+  ) {
     super(`API ${status} ${code}`);
     this.name = "ApiClientError";
     this.status = status;
     this.code = code;
     this.fields = fields;
+    this.conflict = conflict;
   }
 }
 
@@ -78,7 +90,12 @@ export async function toApiClientError(response: {
   }
   const parsed = apiErrorBodySchema.safeParse(body);
   if (parsed.success) {
-    return new ApiClientError(response.status, parsed.data.error, parsed.data.fields);
+    return new ApiClientError(
+      response.status,
+      parsed.data.error,
+      parsed.data.fields,
+      parsed.data.conflict,
+    );
   }
   return new ApiClientError(response.status, fallbackCode(response.status));
 }

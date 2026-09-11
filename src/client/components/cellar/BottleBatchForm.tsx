@@ -1,6 +1,7 @@
 import { Camera, ChevronDown, Images, Minus, Plus, Sparkles, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { CellarDestinationField } from "@/client/components/cellar/CellarDestinationField.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
@@ -14,6 +15,7 @@ import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/Cont
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottleBatch } from "@/client/hooks/use-bottle-batch.ts";
+import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import {
   BOTTLE_BATCH_MESSAGES,
   type BottleBatchRow,
@@ -46,6 +48,8 @@ export function BottleBatchForm() {
   const { showToast } = useToast();
   const { setGuard } = useLeaveGuard();
   const batch = useBottleBatch(true);
+  const { items, selected } = useCellarSelection();
+  const [destinationId, setDestinationId] = useState<string | undefined>(undefined);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [saveState, setSaveState] = useState<MotionState>("idle");
   const [formError, setFormError] = useState<string | null>(null);
@@ -55,6 +59,12 @@ export function BottleBatchForm() {
   const libraryBusy = batch.libraryProgress !== null;
   const formBusy = batch.submitting || libraryBusy;
   const canSubmit = canSubmitBatch(batch.rows) && !formBusy;
+  useEffect(() => {
+    if (!destinationId && selected?.id) {
+      setDestinationId(selected.id);
+    }
+  }, [destinationId, selected?.id]);
+  const destination = items.find((item) => item.id === destinationId) ?? selected;
 
   useSetHeaderOverride({
     titleMuted: batch.rows.length > 0 ? formatBottleCount(total) : undefined,
@@ -87,7 +97,12 @@ export function BottleBatchForm() {
     }
     setFormError(null);
     setSaveState("loading");
-    const result = await batch.submit();
+    if (!destination) {
+      setFormError("保存先のセラーを確認してください");
+      setSaveState("error");
+      return;
+    }
+    const result = await batch.submit(destination.id);
     if (result.failedCount > 0) {
       setSaveState("error");
       setFormError(BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount));
@@ -119,6 +134,12 @@ export function BottleBatchForm() {
 
   return (
     <div className="form-page bottle-form bottle-batch">
+      <CellarDestinationField
+        items={items}
+        valueId={destination?.id}
+        disabled={formBusy}
+        onChange={(cellar) => setDestinationId(cellar.id)}
+      />
       {formError ? (
         <p className="form-error" role="alert">
           {formError}

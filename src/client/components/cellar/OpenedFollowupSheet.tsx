@@ -11,9 +11,16 @@ type OpenedFollowupSheetProps = {
   onLog: () => void;
   onNote: () => void;
   onClose: () => void;
+  shared?: boolean;
 };
 
-export function OpenedFollowupSheet({ open, onLog, onNote, onClose }: OpenedFollowupSheetProps) {
+export function OpenedFollowupSheet({
+  open,
+  onLog,
+  onNote,
+  onClose,
+  shared = false,
+}: OpenedFollowupSheetProps) {
   return (
     <DialogRoot
       open={open}
@@ -31,10 +38,10 @@ export function OpenedFollowupSheet({ open, onLog, onNote, onClose }: OpenedFoll
           このボトルについて残しますか？
         </DialogDescription>
         <Button type="button" onClick={onLog}>
-          飲んだ量を記録
+          {shared ? "自分の飲酒記録をつける" : "飲んだ量を記録"}
         </Button>
         <Button type="button" variant="secondary" onClick={onNote}>
-          テイスティングノートを書く
+          {shared ? "自分のノートを書く" : "テイスティングノートを書く"}
         </Button>
         <Button type="button" variant="ghost" onClick={onClose}>
           今はしない

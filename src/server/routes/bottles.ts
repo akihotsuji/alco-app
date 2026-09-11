@@ -3,9 +3,9 @@ import { Hono } from "hono";
 import type { AppBatchDb } from "@/db/index.ts";
 import {
   bottleIdParamSchema,
+  bottleMutationBodySchema,
   bottlesQuerySchema,
   createBottleSchema,
-  emptyJsonBodySchema,
   updateBottleSchema,
 } from "@/shared/bottles.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
@@ -23,7 +23,7 @@ import {
 import type { LabelRecognizer } from "../services/label-recognizer/index.ts";
 import { recognizeBottleLabel } from "../services/label-recognizer/recognize.ts";
 import type { PhotoBucket } from "../services/photos.ts";
-import { validate, validateJsonAllowingEmpty } from "../validation.ts";
+import { validate, validateJsonAllowingEmpty, validJson } from "../validation.ts";
 
 export type BottleRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppBatchDb;
@@ -102,7 +102,7 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
     .post(
       "/:id/consume",
       validate("param", bottleIdParamSchema),
-      validateJsonAllowingEmpty(emptyJsonBodySchema),
+      validateJsonAllowingEmpty(bottleMutationBodySchema),
       async (c) => {
         const user = c.get("user");
         const { id } = c.req.valid("param");
@@ -110,6 +110,7 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
           db: deps.getDb(c),
           userId: user.id,
           bottleId: id,
+          body: validJson(c),
         });
         return c.json(bottle);
       },
@@ -117,7 +118,7 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
     .post(
       "/:id/restore",
       validate("param", bottleIdParamSchema),
-      validateJsonAllowingEmpty(emptyJsonBodySchema),
+      validateJsonAllowingEmpty(bottleMutationBodySchema),
       async (c) => {
         const user = c.get("user");
         const { id } = c.req.valid("param");
@@ -125,6 +126,7 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
           db: deps.getDb(c),
           userId: user.id,
           bottleId: id,
+          body: validJson(c),
         });
         return c.json(bottle);
       },
@@ -147,15 +149,21 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
         return c.json(bottle);
       },
     )
-    .delete("/:id", validate("param", bottleIdParamSchema), async (c) => {
-      const user = c.get("user");
-      const { id } = c.req.valid("param");
-      await deleteBottle({
-        db: deps.getDb(c),
-        bucket: deps.getBucket(c),
-        userId: user.id,
-        bottleId: id,
-      });
-      return c.json({ ok: true });
-    });
+    .delete(
+      "/:id",
+      validate("param", bottleIdParamSchema),
+      validateJsonAllowingEmpty(bottleMutationBodySchema),
+      async (c) => {
+        const user = c.get("user");
+        const { id } = c.req.valid("param");
+        await deleteBottle({
+          db: deps.getDb(c),
+          bucket: deps.getBucket(c),
+          userId: user.id,
+          bottleId: id,
+          body: validJson(c),
+        });
+        return c.json({ ok: true });
+      },
+    );
 }
