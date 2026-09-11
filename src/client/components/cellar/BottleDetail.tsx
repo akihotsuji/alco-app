@@ -9,6 +9,11 @@ import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/Cont
 import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
+import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
+import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
+import { isApiClientError } from "@/client/lib/api.ts";
+import { newOperationKey } from "@/client/lib/cellar-share.ts";
+import { CELLAR_COPY } from "@/shared/cellars.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { logCreateHref, noteCreateHref } from "@/client/lib/app-routes.ts";
 import {
@@ -48,6 +53,9 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const [followupOpen, setFollowupOpen] = useState(() => shouldShowOpenedFollowup(bottle.id));
   const consume = useConsumeBottle();
   const restore = useRestoreBottle();
+  const { items } = useCellarSelection();
+  useCellarSync(bottle.cellarId);
+  const shared = items.find((item) => item.id === bottle.cellarId)?.kind === "shared";
   const navigate = useNavigate();
   const { showToast } = useToast();
   useSetHeaderOverride({ title: bottle.name });
@@ -85,7 +93,15 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
       ? [{ label: BOTTLE_FIELD_LABELS.storedOn, value: formatBottleDisplayDate(bottle.storedOn) }]
       : []),
     ...(bottle.storage ? [{ label: BOTTLE_FIELD_LABELS.storage, value: bottle.storage }] : []),
-    ...(bottle.memo ? [{ label: "メモ", value: bottle.memo }] : []),
+    ...(bottle.updatedByName
+      ? [
+          {
+            label: "最終更新",
+            value: `${bottle.updatedByName}・${formatTokyoTime(new Date(bottle.updatedAt))}`,
+          },
+        ]
+      : []),
+    ...(bottle.memo ? [{ label: shared ? CELLAR_COPY.sharedMemoLabel : "メモ", value: bottle.memo }] : []),
   ];
 
   function failureMessage(): string {
@@ -103,7 +119,10 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
     }
     setActionError(null);
     setConsumeState("loading");
-    consume.mutate(bottle.id, {
+    consume.mutate({
+      id: bottle.id,
+      body: { expectedVersion: bottle.version, operationKey: newOperationKey() },
+    }, {
       onSuccess: (result) => {
         haptic("success");
         rememberShelfEvent({
@@ -116,9 +135,13 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         setFollowupOpen(true);
         setConsumeState("idle");
       },
-      onError: () => {
+      onError: (error) => {
         setConsumeState("error");
-        setActionError(failureMessage());
+        setActionError(
+          isApiClientError(error) && error.code === "conflict"
+            ? CELLAR_COPY.alreadyConsumed
+            : failureMessage(),
+        );
       },
     });
   }
@@ -128,7 +151,10 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
       return;
     }
     setActionError(null);
-    restore.mutate(bottle.id, {
+    restore.mutate({
+      id: bottle.id,
+      body: { expectedVersion: bottle.version, operationKey: newOperationKey() },
+    }, {
       onSuccess: (result) => {
         haptic("success");
         rememberShelfEvent({
@@ -224,10 +250,15 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           </div>
         ))}
       </dl>
-      <BottleNotesSection bottleId={bottle.id} notes={notes} totalCount={notesTotalCount} />
+      <BottleNotesSection
+        bottleId={bottle.id}
+        notes={notes}
+        totalCount={notesTotalCount}
+        shared={shared}
+      />
       {logs.length > 0 ? (
         <section className="bottle-section">
-          <h2 className="bottle-section-title">記録</h2>
+          <h2 className="bottle-section-title">{shared ? "自分の飲酒記録" : "記録"}</h2>
           <ul className="bottle-log-list">
             {logs.map((log) => (
               <li key={log.id}>
@@ -253,6 +284,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
       <OpenedFollowupSheet
         open={followupOpen}
         onClose={dismissFollowup}
+        shared={shared}
         onLog={() => {
           dismissFollowup();
           navigate(logCreateHref({ bottleId: bottle.id, from: "opened" }));

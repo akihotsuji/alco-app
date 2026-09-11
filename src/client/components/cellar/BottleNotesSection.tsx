@@ -7,13 +7,19 @@ type BottleNotesSectionProps = {
   bottleId: string;
   notes: readonly TastingNoteListItem[];
   totalCount: number;
+  shared?: boolean;
 };
 
-export function BottleNotesSection({ bottleId, notes, totalCount }: BottleNotesSectionProps) {
+export function BottleNotesSection({
+  bottleId,
+  notes,
+  totalCount,
+  shared = false,
+}: BottleNotesSectionProps) {
   return (
     <section className="bottle-section">
       <div className="bottle-section-head">
-        <h2 className="bottle-section-title">ノート</h2>
+        <h2 className="bottle-section-title">{shared ? "自分のノート" : "ノート"}</h2>
       </div>
       {notes.length > 0 ? (
         <ul className="bottle-log-list">

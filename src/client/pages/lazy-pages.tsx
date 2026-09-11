@@ -123,6 +123,41 @@ export function BottleEditPage() {
   return <BottleFormPage mode="edit" />;
 }
 
+export const ShareNewPage = lazy(async () => {
+  const { ShareNewPage: Page } = await import("@/client/pages/cellar/SharedCellarPages.tsx");
+  return { default: Page };
+});
+
+export const ShareCreatedPage = lazy(async () => {
+  const { ShareCreatedPage: Page } = await import("@/client/pages/cellar/SharedCellarPages.tsx");
+  return { default: Page };
+});
+
+export const ShareSettingsPage = lazy(async () => {
+  const { ShareSettingsPage: Page } = await import("@/client/pages/cellar/SharedCellarPages.tsx");
+  return { default: Page };
+});
+
+export const ShareInvitePage = lazy(async () => {
+  const { ShareInvitePage: Page } = await import("@/client/pages/cellar/SharedCellarPages.tsx");
+  return { default: Page };
+});
+
+export const ShareMovePage = lazy(async () => {
+  const { ShareMovePage: Page } = await import("@/client/pages/cellar/SharedCellarPages.tsx");
+  return { default: Page };
+});
+
+export const ShareActivityPage = lazy(async () => {
+  const { ShareActivityPage: Page } = await import("@/client/pages/cellar/SharedCellarPages.tsx");
+  return { default: Page };
+});
+
+export const JoinPage = lazy(async () => {
+  const { JoinPage: Page } = await import("@/client/pages/JoinPage.tsx");
+  return { default: Page };
+});
+
 export const NotesPage = lazy(async () => {
   const { NotesPage: Page } = await import("@/client/pages/notes/NotePages.tsx");
   return { default: Page };

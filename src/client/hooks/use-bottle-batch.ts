@@ -7,6 +7,7 @@ import {
   usePhotoFormSession,
 } from "@/client/components/layout/photo-edit-context.tsx";
 import { createBottles } from "@/client/hooks/use-bottles.ts";
+import { markCellarLocalWrite, newOperationKey } from "@/client/lib/cellar-share.ts";
 import { deletePhoto } from "@/client/hooks/use-photos.ts";
 import {
   applyBatchOutcome,
@@ -255,7 +256,7 @@ export function useBottleBatch(autoCapture: boolean) {
   }, []);
 
   /** 行を上から順に送る。成功行は消え、失敗行は残る（04-cellar G9） */
-  const submit = useCallback(async (): Promise<BatchSubmitResult> => {
+  const submit = useCallback(async (cellarId?: string): Promise<BatchSubmitResult> => {
     setSubmitting(true);
     const outcome: BatchSubmitOutcome = { succeeded: [], failed: [] };
     const created: Bottle[] = [];
@@ -267,7 +268,11 @@ export function useBottleBatch(autoCapture: boolean) {
           continue;
         }
         try {
-          const result = await createBottles(body);
+          const result = await createBottles({
+            ...body,
+            ...(cellarId ? { cellarId } : {}),
+            operationKey: newOperationKey(),
+          });
           created.push(...result.items);
           outcome.succeeded.push(row.key);
         } catch (error) {
@@ -285,7 +290,9 @@ export function useBottleBatch(autoCapture: boolean) {
       setSubmitting(false);
     }
     if (created.length > 0) {
+      markCellarLocalWrite();
       void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
     }
     setRows((current) => applyBatchOutcome(current, outcome));
     return { created, failedCount: outcome.failed.length };

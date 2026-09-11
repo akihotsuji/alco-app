@@ -15,9 +15,22 @@ export const queryKeys = {
     ["drink-log-summaries", { period, date }] as const,
   myDrinks: ["my-drinks"] as const,
   myDrink: (id: string) => ["my-drinks", id] as const,
+  cellars: ["cellars"] as const,
+  cellarsList: ["cellars", "list"] as const,
+  cellar: (id: string) => ["cellars", id] as const,
+  cellarRevision: (id: string) => ["cellars", id, "revision"] as const,
+  cellarMembers: (id: string) => ["cellars", id, "members"] as const,
+  cellarInvitations: (id: string) => ["cellars", id, "invitations"] as const,
+  cellarActivity: (id: string) => ["cellars", id, "activity"] as const,
   bottles: ["bottles"] as const,
-  bottlesList: (query: { view?: string; q?: string; drinkType?: string; limit?: number }) =>
-    ["bottles", query] as const,
+  bottlesList: (query: {
+    view?: string;
+    q?: string;
+    drinkType?: string;
+    limit?: number;
+    cellarId?: string;
+    scope?: string;
+  }) => ["bottles", query] as const,
   bottle: (id: string) => ["bottles", id] as const,
   drinkLogsByBottle: (bottleId: string) => ["drink-logs", { bottleId }] as const,
   tastingNotes: ["tasting-notes"] as const,

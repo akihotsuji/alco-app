@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { CellarSwitcher } from "@/client/components/cellar/CellarSwitcher.tsx";
 import { CellarToolbar } from "@/client/components/cellar/CellarToolbar.tsx";
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
 import { Shelf, ShelfSkeleton } from "@/client/components/cellar/Shelf.tsx";
@@ -14,7 +15,9 @@ import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import { useBottleListFilters } from "@/client/hooks/use-bottle-list-filters.ts";
-import { restoreBottle, useBottles, useInfiniteBottles } from "@/client/hooks/use-bottles.ts";
+import { getBottle, restoreBottle, useBottles, useInfiniteBottles } from "@/client/hooks/use-bottles.ts";
+import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
+import { newOperationKey } from "@/client/lib/cellar-share.ts";
 import { useCellarListView } from "@/client/hooks/use-cellar-list-view.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
@@ -59,18 +62,21 @@ function TypeShelfRow({
   q,
   highlight,
   enterId,
+  cellarId,
 }: {
   drinkType: DrinkType;
   count: number;
   q?: string;
   highlight: boolean;
   enterId: string | null;
+  cellarId?: string;
 }) {
   const query = useInfiniteBottles({
     view: "cellar",
     drinkType,
     limit: SHELF_TYPE_PAGE_LIMIT,
     ...(q ? { q } : {}),
+    ...(cellarId ? { cellarId } : {}),
   });
   const items = flattenPages(query.data?.pages);
   if (query.isPending) {
@@ -133,6 +139,9 @@ export function CellarList() {
   const [highlightType, setHighlightType] = useState<DrinkType | null>(null);
   const [enterId, setEnterId] = useState<string | null>(null);
 
+  const { selected } = useCellarSelection();
+  const cellarId = selected?.id;
+  const bottlesReady = Boolean(cellarId);
   const pageLimit = shelfPageLimit(columns);
   const oneQuery = useInfiniteBottles(
     {
@@ -140,16 +149,18 @@ export function CellarList() {
       limit: pageLimit,
       ...(filters.q ? { q: filters.q } : {}),
       ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
+      ...(cellarId ? { cellarId } : {}),
     },
-    view === "one",
+    view === "one" && bottlesReady,
   );
   const typeMeta = useBottles(
     {
       view: "cellar",
       limit: 1,
       ...(filters.q ? { q: filters.q } : {}),
+      ...(cellarId ? { cellarId } : {}),
     },
-    view === "type",
+    view === "type" && bottlesReady,
   );
 
   const oneItems = flattenPages(oneQuery.data?.pages);
@@ -276,7 +287,14 @@ export function CellarList() {
       action: {
         label: "取り消す",
         onSelect: () => {
-          void restoreBottle(bottleId).then(
+          void getBottle(bottleId)
+            .then((bottle) =>
+              restoreBottle(bottle.id, {
+                expectedVersion: bottle.version,
+                operationKey: newOperationKey(),
+              }),
+            )
+            .then(
             () => {
               void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
               setEnterId(bottleId);
@@ -311,6 +329,7 @@ export function CellarList() {
 
   return (
     <div className="cellar-list">
+      <CellarSwitcher />
       {emptyInventory ? null : (
         <CellarToolbar
           {...filters}
@@ -391,6 +410,7 @@ export function CellarList() {
               q={filters.q || undefined}
               highlight={highlightType === drinkType}
               enterId={enterId}
+              cellarId={cellarId}
             />
           ))}
         </div>

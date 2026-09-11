@@ -10,9 +10,11 @@ import {
 } from "@/client/components/ui/dialog.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle, useBottles } from "@/client/hooks/use-bottles.ts";
+import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { vintageLabel } from "@/client/lib/bottle-form.ts";
 import { pickerBottlesQueryEnabled, pickerRowClassName } from "@/client/lib/bottle-picker.ts";
+import { cellarDisplayName } from "@/client/lib/cellar-share.ts";
 import { type BottleStatus, DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
 
 function useDebounced(value: string, ms: number) {
@@ -55,6 +57,17 @@ export function TargetBottleChip({ name }: { name: string }) {
   return <p className="form-target-chip">対象：{name}</p>;
 }
 
+function cellarForPicker(
+  cellars: readonly { id: string; kind: "personal" | "shared"; name: string }[],
+  cellarId: string,
+): string | null {
+  if (cellars.length < 2) {
+    return null;
+  }
+  const cellar = cellars.find((item) => item.id === cellarId);
+  return cellar ? cellarDisplayName(cellar) : null;
+}
+
 export function BottlePickerRow({
   bottleId,
   bottleName,
@@ -73,8 +86,9 @@ export function BottlePickerRow({
   const [q, setQ] = useState("");
   const qDebounced = useDebounced(q.trim(), 300);
   const searched = qDebounced.length > 0;
+  const { items: cellars } = useCellarSelection();
   const list = useBottles(
-    { view: "all", ...(searched ? { q: qDebounced } : {}) },
+    { view: "all", scope: "accessible", ...(searched ? { q: qDebounced } : {}) },
     pickerBottlesQueryEnabled(open, qDebounced, requireSearch),
   );
 
@@ -203,6 +217,7 @@ export function BottlePickerRow({
                     <strong>{item.name}</strong>
                     <span>
                       {[
+                        cellarForPicker(cellars, item.cellarId),
                         DRINK_TYPE_LABELS[item.drinkType],
                         vintageLabel(item.vintage),
                         item.status === "consumed" ? "貯蔵庫" : null,
