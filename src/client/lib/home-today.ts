@@ -8,15 +8,16 @@ export function homeTodayStatus(totalCount: number): HomeTodayStatus {
   return totalCount > 0 ? "logged" : "unrecorded";
 }
 
-export function homeTodayStatusLabel(status: HomeTodayStatus): string {
-  return status === "logged" ? "記録あり" : "未記録";
+export function homeTodayHref(status: HomeTodayStatus): string {
+  return status === "logged" ? "/logs" : "/logs/new";
 }
 
-export function homeTodayFootnote(status: HomeTodayStatus, totalCount: number): string {
-  if (status === "unrecorded") {
-    return "今日はまだ記録がありません";
-  }
-  return `今日は ${totalCount} 杯記録しています`;
+export function homeTodayActionLabel(status: HomeTodayStatus): string {
+  return status === "logged" ? "記録を見る" : "飲んだお酒を記録";
+}
+
+export function homeTodayFootnote(status: HomeTodayStatus): string | null {
+  return status === "unrecorded" ? "今日はまだ記録がありません" : null;
 }
 
 export function homeMascotPose(

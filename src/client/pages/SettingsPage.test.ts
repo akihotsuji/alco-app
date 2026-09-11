@@ -35,9 +35,12 @@ describe("SettingsPage S11 / S12", () => {
   it("色補正設定は出さず、外部 AI への送信を書く", () => {
     expect(source).not.toContain("色補正");
     expect(source).not.toContain("getColorCorrectionPref");
-    expect(source).toContain("新しい写真に合成します。過去の写真は変えません");
-    expect(source).toContain("写真を Cloudflare 経由の外部 AI に送ります");
-    expect(source).toContain("写真からの自動入力では、画像を Cloudflare 経由の外部 AI に送ります");
+    expect(source).toContain("新しい写真にキャラクターを入れる");
+    expect(source).toContain("これから追加する写真に適用されます。記録とノートの写真が対象です。");
+    expect(source).toContain("写真から銘柄などを自動入力します");
+    expect(source).toContain("自動入力では、写真を外部のAIサービスに送信して解析します");
+    expect(source).toContain("送信する情報・送信先について");
+    expect(source).not.toContain("写真を Cloudflare 経由の外部 AI に送ります");
     expect(source).not.toContain("Workers AI");
     expect(source).not.toContain("Gemini 3.7");
   });

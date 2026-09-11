@@ -34,7 +34,7 @@ export function OpenedFollowupSheet({ open, onLog, onNote, onClose }: OpenedFoll
           飲んだ量を記録
         </Button>
         <Button type="button" variant="secondary" onClick={onNote}>
-          テイスティングを書く
+          テイスティングノートを書く
         </Button>
         <Button type="button" variant="ghost" onClick={onClose}>
           今はしない

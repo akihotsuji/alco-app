@@ -452,7 +452,7 @@ export function BottleFormFields({
           label={BOTTLE_FIELD_LABELS.vintage}
           value={state.vintage}
           inputMode="numeric"
-          placeholder="NV"
+          placeholder="未登録"
           error={errors.vintage}
           aiMarked={aiMarks.has("vintage")}
           onChange={(vintage) => update({ vintage })}

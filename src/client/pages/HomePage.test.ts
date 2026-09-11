@@ -15,10 +15,17 @@ describe("HomePage 順序", () => {
     expect(myDrinks).toBeGreaterThan(week);
   });
 
-  it("記録の入口ボタンを置かない", () => {
+  it("独立した記録入口ボタンは置かず、取得中と失敗を未記録カードにしない", () => {
     expect(source).not.toContain("LogQuickActions");
     expect(source).not.toContain("お酒を記録する");
     expect(source).not.toContain("写真から記録");
     expect(source).not.toContain("useCaptureLog");
+    expect(source.indexOf("summaryPending")).toBeLessThan(source.indexOf("<TodaySummaryCard"));
+    expect(source.indexOf("summaryError")).toBeLessThan(source.indexOf("<TodaySummaryCard"));
+    expect(source).toContain("CardSkeleton");
+    expect(source).toContain("QueryError");
+    expect(source).toContain("daySummary.data ?");
+    expect(source).toContain("マイドリンクを登録");
+    expect(source).toContain("登録したお酒をタップして飲酒記録を追加できます");
   });
 });

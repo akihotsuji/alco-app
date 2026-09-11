@@ -43,7 +43,7 @@ export function IdentityFields({
           label={IDENTITY_FIELD_LABELS.vintage}
           value={values.vintage}
           inputMode="numeric"
-          placeholder="NV"
+          placeholder="未登録"
           error={errors?.vintage}
           aiMarked={aiMarks?.has("vintage") ?? false}
           aiPending={aiPending?.has("vintage") ?? false}

@@ -202,8 +202,13 @@ export function BottlePickerRow({
                   <span className="bottle-picker-copy">
                     <strong>{item.name}</strong>
                     <span>
-                      {DRINK_TYPE_LABELS[item.drinkType]} ・ {vintageLabel(item.vintage)}
-                      {item.status === "consumed" ? " ・ 貯蔵庫" : ""}
+                      {[
+                        DRINK_TYPE_LABELS[item.drinkType],
+                        vintageLabel(item.vintage),
+                        item.status === "consumed" ? "貯蔵庫" : null,
+                      ]
+                        .filter((value): value is string => Boolean(value))
+                        .join(" ・ ")}
                     </span>
                   </span>
                 </button>

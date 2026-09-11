@@ -1,9 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  TOAST_ACTION_DURATION_MS,
+  TOAST_DURATION_MS,
   TOAST_MESSAGES,
   type ToastTimerEvent,
   type ToastTimerState,
+  remainingToastMs,
   toastShowsCheer,
+  toastStayMs,
   transitionToastTimer,
 } from "./toast.ts";
 
@@ -23,8 +27,24 @@ describe("toastShowsCheer", () => {
   });
 });
 
+describe("toastStayMs", () => {
+  it("操作なしは短く、操作付きは操作時間を残す", () => {
+    expect(TOAST_DURATION_MS).toBe(2_500);
+    expect(TOAST_ACTION_DURATION_MS).toBe(6_000);
+    expect(toastStayMs(false)).toBe(TOAST_DURATION_MS);
+    expect(toastStayMs(true)).toBe(TOAST_ACTION_DURATION_MS);
+  });
+});
+
+describe("remainingToastMs", () => {
+  it("経過分を引き、0 未満にはしない", () => {
+    expect(remainingToastMs(1_000, 2_500, 1_800)).toBe(1_700);
+    expect(remainingToastMs(1_000, 2_500, 4_000)).toBe(0);
+  });
+});
+
 describe("transitionToastTimer", () => {
-  it("入場完了後に5秒タイマーを開始する", () => {
+  it("入場完了後に滞在タイマーを開始する", () => {
     expect(transitionToastTimer("entering", "entry-complete")).toEqual({
       state: "running",
       effect: "start-timer",
@@ -40,8 +60,24 @@ describe("transitionToastTimer", () => {
     });
   });
 
+  it("操作せず離れたらタイマーを再開する", () => {
+    const started = transitionToastTimer("running", "interaction-start");
+    expect(started).toEqual({ state: "interacting", effect: "pause-timer" });
+    expect(transitionToastTimer(started.state, "interaction-end")).toEqual({
+      state: "running",
+      effect: "start-timer",
+    });
+  });
+
   it("入場中の action click でも onSelect する", () => {
     expect(transitionToastTimer("entering", "select")).toEqual({
+      state: "selected",
+      effect: "select",
+    });
+  });
+
+  it("退場中の click でも取り消しを実行する", () => {
+    expect(transitionToastTimer("expired", "select")).toEqual({
       state: "selected",
       effect: "select",
     });
@@ -69,7 +105,7 @@ describe("transitionToastTimer", () => {
     const started = transitionToastTimer("running", "interaction-start");
     const timedOut = transitionToastTimer(started.state, "timeout");
 
-    expect(started).toEqual({ state: "interacting", effect: "none" });
+    expect(started).toEqual({ state: "interacting", effect: "pause-timer" });
     expect(timedOut).toEqual({ state: "interacting", effect: "none" });
   });
 

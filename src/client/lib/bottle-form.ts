@@ -23,7 +23,7 @@ import {
 } from "@/shared/bottles.ts";
 import type { DrinkType } from "@/shared/constants.ts";
 import { originInputError } from "@/shared/identity.ts";
-import { formatShortMonthDay, parseCalendarDate, tokyoToday } from "@/shared/tokyo-date.ts";
+import { formatLongJapaneseDate, parseCalendarDate, tokyoToday } from "@/shared/tokyo-date.ts";
 
 export const DEFAULT_BOTTLE_DRINK_TYPE: DrinkType = "wine_red";
 
@@ -435,8 +435,32 @@ export function formatPriceJpy(value: number): string {
   return `¥${value.toLocaleString("ja-JP")}`;
 }
 
-export function vintageLabel(value: number | null): string {
-  return value === null ? "NV" : String(value);
+/** 未入力は null。既存データは NV と未入力を区別できないため推測しない。 */
+export function vintageLabel(value: number | null): string | null {
+  return value === null ? null : String(value);
+}
+
+const STACKED_BOTTLE_PROP_LABELS = new Set([
+  BOTTLE_FIELD_LABELS.name,
+  "生産者",
+  "購入場所",
+  BOTTLE_FIELD_LABELS.storage,
+]);
+
+export type BottlePropLayout = "inline" | "stack" | "memo";
+
+export function bottlePropLayout(label: string): BottlePropLayout {
+  if (label === "メモ") {
+    return "memo";
+  }
+  if (STACKED_BOTTLE_PROP_LABELS.has(label)) {
+    return "stack";
+  }
+  return "inline";
+}
+
+export function formatBottleDisplayDate(value: string): string {
+  return formatLongJapaneseDate(value);
 }
 
 export function bottleStatusPill(input: { status: Bottle["status"]; consumedOn: string | null }): {
@@ -445,7 +469,7 @@ export function bottleStatusPill(input: { status: Bottle["status"]; consumedOn: 
 } {
   if (input.status === "consumed" && input.consumedOn) {
     return {
-      label: `開栓（${formatShortMonthDay(input.consumedOn)}）`,
+      label: `開栓（${formatBottleDisplayDate(input.consumedOn)}）`,
       consumed: true,
     };
   }

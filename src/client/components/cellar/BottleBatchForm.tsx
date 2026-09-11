@@ -354,7 +354,7 @@ function BatchRowCard({
             label={BOTTLE_FIELD_LABELS.vintage}
             value={row.form.vintage}
             inputMode="numeric"
-            placeholder="NV"
+            placeholder="未登録"
             layout="inline"
             disabled={disabled}
             error={errors.vintage}

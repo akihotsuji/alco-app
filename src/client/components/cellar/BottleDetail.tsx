@@ -11,7 +11,13 @@ import { Button } from "@/client/components/ui/button.tsx";
 import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { logCreateHref, noteCreateHref } from "@/client/lib/app-routes.ts";
-import { bottleStatusPill, formatPriceJpy, vintageLabel } from "@/client/lib/bottle-form.ts";
+import {
+  bottlePropLayout,
+  bottleStatusPill,
+  formatBottleDisplayDate,
+  formatPriceJpy,
+  vintageLabel,
+} from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { rememberShelfEvent } from "@/client/lib/history-state.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
@@ -49,27 +55,35 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const archived = bottle.status === "consumed";
   const statusPill = bottleStatusPill(bottle);
   const pending = consume.isPending || restore.isPending;
+  const vintage = vintageLabel(bottle.vintage);
   const summary = [
     DRINK_TYPE_LABELS[bottle.drinkType],
-    vintageLabel(bottle.vintage),
+    vintage,
     bottle.variety,
     bottle.origin,
   ].filter((value): value is string => Boolean(value));
   const rows: { label: string; value: string }[] = [
     { label: BOTTLE_FIELD_LABELS.name, value: bottle.name },
     { label: "種類", value: DRINK_TYPE_LABELS[bottle.drinkType] },
-    { label: BOTTLE_FIELD_LABELS.vintage, value: vintageLabel(bottle.vintage) },
+    ...(vintage ? [{ label: BOTTLE_FIELD_LABELS.vintage, value: vintage }] : []),
     ...(bottle.variety ? [{ label: BOTTLE_FIELD_LABELS.variety, value: bottle.variety }] : []),
     ...(bottle.origin ? [{ label: BOTTLE_FIELD_LABELS.origin, value: bottle.origin }] : []),
     ...(bottle.producer ? [{ label: "生産者", value: bottle.producer }] : []),
     ...(bottle.purchasedOn
-      ? [{ label: BOTTLE_FIELD_LABELS.purchasedOn, value: bottle.purchasedOn }]
+      ? [
+          {
+            label: BOTTLE_FIELD_LABELS.purchasedOn,
+            value: formatBottleDisplayDate(bottle.purchasedOn),
+          },
+        ]
       : []),
     ...(bottle.priceJpy !== null
       ? [{ label: "価格", value: formatPriceJpy(bottle.priceJpy) }]
       : []),
     ...(bottle.shop ? [{ label: "購入場所", value: bottle.shop }] : []),
-    ...(bottle.storedOn ? [{ label: BOTTLE_FIELD_LABELS.storedOn, value: bottle.storedOn }] : []),
+    ...(bottle.storedOn
+      ? [{ label: BOTTLE_FIELD_LABELS.storedOn, value: formatBottleDisplayDate(bottle.storedOn) }]
+      : []),
     ...(bottle.storage ? [{ label: BOTTLE_FIELD_LABELS.storage, value: bottle.storage }] : []),
     ...(bottle.memo ? [{ label: "メモ", value: bottle.memo }] : []),
   ];
@@ -179,7 +193,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             飲んだ量を記録
           </Link>
           <Link className="bottle-followup-row" to={noteCreateHref(bottle.id, "detail")}>
-            テイスティングを書く
+            テイスティングノートを書く
           </Link>
         </div>
       ) : (
@@ -189,12 +203,12 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           disabled={pending}
           onClick={onConsume}
         >
-          {consume.isPending ? "開栓中" : "開栓する"}
+          {consume.isPending ? "更新中…" : "開栓する"}
         </Button>
       )}
       {archived ? (
         <Button type="button" variant="secondary" disabled={pending} onClick={onRestore}>
-          セラーに戻す
+          {restore.isPending ? "更新中…" : "開栓の記録を取り消す"}
         </Button>
       ) : null}
       {actionError ? (
@@ -204,7 +218,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
       ) : null}
       <dl className="bottle-props">
         {rows.map((row) => (
-          <div className="bottle-prop" key={row.label}>
+          <div className={`bottle-prop is-${bottlePropLayout(row.label)}`} key={row.label}>
             <dt>{row.label}</dt>
             <dd>{row.value}</dd>
           </div>

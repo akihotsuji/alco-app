@@ -28,8 +28,10 @@ test("サインアップから記録し、今日と週のサマリー数字が�
 
   await mainNav(page).getByRole("button", { name: "ホーム" }).click();
   await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
-  await expect(page.getByText("今日は 1 杯記録しています")).toBeVisible();
+  await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText("1");
+  await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText("純アルコール量");
   await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText(BEER_ALCOHOL_G);
+  await expect(page.getByRole("link", { name: /今日の記録/ })).toContainText("記録を見る");
 
   await page.getByRole("link", { name: "詳しく見る" }).click();
   await expect(page.getByRole("heading", { name: "今週" })).toBeVisible();

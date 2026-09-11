@@ -512,7 +512,7 @@ export function LogNewForm() {
       <Dialog
         open={notePrompt !== null}
         title="テイスティングノートをつける？"
-        body="記録した品名・識別と写真を引き継ぎます。"
+        body="お酒の情報と写真をノートに引き継ぎます"
         primaryLabel="つける"
         secondaryLabel="あとで"
         onPrimary={() => {

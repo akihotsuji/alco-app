@@ -49,7 +49,7 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("firstPhotoId");
     expect(source).toContain('clearAttachment("log")');
     expect(edit).toContain('clearAttachment("log")');
-    expect(source).toContain("記録した品名・識別と写真を引き継ぎます。");
+    expect(source).toContain("お酒の情報と写真をノートに引き継ぎます");
     expect(source).not.toContain("写真はコピーしません");
     expect(edit).toContain("<IdentityFields");
     expect(edit).toContain("<PlaceField");

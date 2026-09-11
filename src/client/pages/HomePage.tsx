@@ -171,14 +171,14 @@ export function HomePage() {
         {myDrinks.data && myDrinks.data.items.length === 0 ? (
           <>
             <p className="home-mydrinks-empty">
-              よく飲む一杯を登録すると、ここを 1 回タップで記録できます
+              よく飲む一杯を登録すると、登録したお酒をタップして飲酒記録を追加できます
             </p>
             <Link
               className={buttonVariants({ variant: "secondary" })}
               to="/logs/my-drinks/new"
               {...prefetchPointerProps("/logs/my-drinks/new")}
             >
-              登録
+              マイドリンクを登録
             </Link>
           </>
         ) : null}

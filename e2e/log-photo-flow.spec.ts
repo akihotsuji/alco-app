@@ -59,13 +59,15 @@ test("設定に色補正は無く、キャラ合成の説明がある", async ({
   await signUpAsNewUser(page);
   await mainNav(page).getByRole("button", { name: "設定" }).click();
   await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
-  await expect(page.getByText("写真にキャラを入れる（既定）")).toBeVisible();
-  await expect(page.getByText("新しい写真に合成します。過去の写真は変えません")).toBeVisible();
+  await expect(page.getByText("新しい写真にキャラクターを入れる")).toBeVisible();
+  await expect(page.getByText("これから追加する写真に適用されます。記録とノートの写真が対象です。")).toBeVisible();
   await expect(page.getByText("色補正")).toHaveCount(0);
-  await expect(page.getByText("写真を Cloudflare 経由の外部 AI に送ります")).toBeVisible();
+  await expect(page.getByText("写真から銘柄などを自動入力します")).toBeVisible();
   await expect(
-    page.getByText("写真からの自動入力では、画像を Cloudflare 経由の外部 AI に送ります"),
+    page.getByText("自動入力では、写真を外部のAIサービスに送信して解析します"),
   ).toBeVisible();
+  await expect(page.getByText("送信する情報・送信先について")).toBeVisible();
+  await expect(page.getByText("写真を Cloudflare 経由の外部 AI に送ります")).toHaveCount(0);
   await expect(page.getByText("Gemini")).toHaveCount(0);
 
   const walkthroughDir = process.env.WALKTHROUGH_DIR;

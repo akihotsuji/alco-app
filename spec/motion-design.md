@@ -127,8 +127,8 @@
 
 | ID | 対象 | 演出意図 | 動きの内容 | 開始条件 | 継続 | メリット | 難易度 |
 |---|---|---|---|---|---|---|---|
-| M-23 | トースト 出現 | 下から静かに | `translateY(8px)` + 不透明 0 → 定位置 + 1 | `showToast` | `--dur-toast-in`（180ms） | 突然出ない。視線の下端なので邪魔しない | 低 |
-| M-24 | トースト 退場 | 静かに消える | 不透明 1 → 0（移動なし） | 5 秒経過 / 置き換え | `--dur-toast-out`（150ms） | 消える瞬間に驚かない | 低 |
+| M-23 | トースト 出現 | 上から静かに | `translateY(-8px)` + 不透明 0 → 定位置 + 1 | `showToast` | `--dur-toast-in`（180ms） | 突然出ない。ヘッダー直下なので保存バーを邪魔しない | 低 |
+| M-24 | トースト 退場 | 静かに消える | 不透明 1 → 0（移動なし） | 2.5 秒（操作なし）/ 6 秒（操作付き）経過 / 置き換え / 閉じる | `--dur-toast-out`（150ms） | 消える瞬間に驚かない。reduced motion でも滞在タイマーは始める | 低 |
 | M-25 | トースト内 `cheer` | 一杯ぶん増えた | `cheer` 32px の **水面が 45% → 60% に 1 回上がる**（`Mascot` の `pour` プロップ）。目・星は動かさない | 保存成功トーストの出現と同時 | `--dur-fill` | キャラが「反応した」最小表現。文字を読む邪魔をしない | 中 |
 
 置き換え時（新しいトーストが来た）: 旧を `--dur-toast-out` で消し、新を `--dur-toast-in` で出す。同時に 2 枚は出さない（既存）。
@@ -329,7 +329,7 @@ html[data-reduce-motion="1"] .log-row-enter {
 | M-19 | 棒グラフ `<rect>` | 初回描画 | `transform: scaleY(0→1)`（`transform-origin: bottom`）、stagger 無し | `--dur-enter` `--ease-out`、1 回 | 無し |
 | M-20 | タブ `.is-current` | 切替 | `color`、`::after`（inset-sm）`opacity` | `--dur-state` | 即時 |
 | M-22 | タブ再タップ | 同タブ | `scrollTo({ top: 0, behavior })` | — | `auto` |
-| M-23 / M-24 | `.app-toast` | 出現 / 退場 | 出: `translateY(8px→0)` `opacity 0→1`、退: `opacity 1→0` | `--dur-toast-in` `--ease-out` / `--dur-toast-out` `--ease-in` | 不透明度のみ |
+| M-23 / M-24 | `.app-toast` | 出現 / 退場 | 出: `translateY(-8px→0)` `opacity 0→1`、退: `opacity 1→0` | `--dur-toast-in` `--ease-out` / `--dur-toast-out` `--ease-in` | 不透明度のみ |
 | M-25 | `Mascot pose="cheer" pour` | トースト出現と同時 | 水面パスを 45% → 60% の 2 段階で持ち、上のパスを `clip-path` で下から出す | `--dur-fill` `--ease-fill`、1 回 | `pour` 無効 |
 | M-26 / M-27 | 空状態 | 初回描画 | `opacity 0→1` `translateY(8px→0)`、ボタンは `animation-delay: 80ms` | `--dur-enter` `--ease-out`、1 回 | 不透明度のみ |
 | M-29 | スケルトン ⇄ 本体 / `.bottle-tile-placeholder` ⇄ `img[data-state]` | データ到着 / 写真 `load` | 両者を同じセルに重ね `opacity` をクロス | `--dur-state` | 同じ（不透明度） |
@@ -429,7 +429,7 @@ pointerup           → 戻る (160ms) と同時に POST 開始 → data-state="
 |---|---|---|---|
 | 通常（sealed） | Button 主、`--shadow-primary` | — | — |
 | タップ中 | 1px 沈む（M-01）、戻る（M-02） | — | haptic `light`（設定 ON） |
-| 実行中（`POST consume` 送信中） | ラベル「開栓中」、`disabled`、水位線が下から 1 回上がる（M-04） | — | 確認ダイアログは出さない |
+| 実行中（`POST consume` 送信中） | ラベル「更新中…」、`disabled`、水位線が下から 1 回上がる（M-04） | — | 確認ダイアログは出さない |
 | 完了（2xx） | **即** `/cellar` へ（M-05。ボタン側の成功表示は無し） | M-10: ヘッダー「セラー N 本」が N → N−1 にカウント、抜けた段の棚板に明帯が 1 回。隣の本は再描画で詰まる | トースト「開栓しました  取り消す」（`cheer` + M-25）、haptic `success` |
 | 取り消し（`restore` 2xx） | — | M-11: 戻った本のタイルが上 6px から不透明 0 → 1 で置かれる。本数が N に戻る。段の棚板に M-32 | トースト「元に戻しました」（`cheer`） |
 | 失敗 | 水位線フェードアウト + ラベル復帰（M-06）。詳細に汎用文（オフラインなら X4） | — | 振動なし |
@@ -441,7 +441,7 @@ bottle-detail（開栓する を押す）
 │              🍾                   │  ← 動かさない（写真は主役、触らない）
 │ ═══════════════════════════════ │  ← 動かさない
 │ [未開栓]  ワイン ・ 2020 ・ フランス│  ← 動かさない（この画面内でピルは変わらない）
-│ [   開栓する → 開栓中 ▁▃▅▇      ]  │  ← M-01/M-02 押下、M-04 水位線、2xx で即遷移
+│ [   開栓する → 更新中… ▁▃▅▇     ]  │  ← M-01/M-02 押下、M-04 水位線、2xx で即遷移
 
 /cellar（到着）
 │ [貯蔵庫]    セラー  12 → 11 本  [+]│  ← M-10: 本数カウント（--dur-state）
@@ -534,7 +534,7 @@ bottle-detail（開栓する を押す）
 | `LogDayPage` | `?highlight=` の行に `data-enter` を付け、初回描画後の次フレームで外す（CSS transition で M-14）。`useEffect` で `scrollIntoView`、`replaceState` |
 | `.log-row-wrap` | `display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--dur-enter) var(--ease-out)`。`[data-enter] { grid-template-rows: 0fr }`。子は `min-height: 0; overflow: hidden` |
 | `.log-row.is-highlight` | `box-shadow: var(--shadow-inset), 0 0 0 2px var(--primary)`。1,400ms 後に `.is-fading` を付け、`box-shadow` のリング色を `transparent` へ 600ms で遷移 |
-| `ToastProvider` | `.app-toast` に `data-state="enter|leave"`。leave 後 `--dur-toast-out` で unmount |
+| `ToastProvider` / `ToastHost` | `.app-toast` に `data-state="enter|leave"`。leave 後 `--dur-toast-out` で unmount。表示は `AppShell` のヘッダー直下。画面遷移では消さない |
 | `Mascot` | `pour?: boolean` を追加。`cheer` のとき水面パスを 2 段（45% / 60%）持ち、上段を `clip-path: inset(100% 0 0 0) → inset(0)` で `--dur-fill` に出す |
 | `styles.css` | 6 章のトークン、`@media (prefers-reduced-motion: reduce)` ブロック |
 | `haptic.ts` | `haptic("success")` を `useMutation` の `onSuccess` から呼ぶ |
@@ -542,7 +542,7 @@ bottle-detail（開栓する を押す）
 ### 10.5 アクセシビリティ上の注意
 
 - トーストは `role="status" aria-live="polite"`（既存）。動きに関係なく読み上げられる。挿入行には `aria-live` を **付けない**（二重読み上げ）
-- 「取り消す」は 5 秒間ずっと押せる。演出中も `disabled` にしない。タップ領域 44px を保つ
+- 「取り消す」は 6 秒間ずっと押せる。演出中も `disabled` にしない。タップ領域 44px を保つ。操作せず離れたら残り時間を再開する。明示的に「閉じる」できる
 - 文字をアニメーションしない（水位線はラベルの背後、ラベル自体は動かさない）。コントラスト 4.5:1 を演出中も維持する（`--fill-tint` で `--primary-fg` on `--primary` はライト 5.81 / ダーク 6.84。6.4b で計算済み）
 - 点滅しない（1 秒に 3 回以上の明滅を作らない）。リングは 1 回消えるだけ
 - フォーカス: 保存後の到着先ではフォーカスを **ヘッダーの日付**に置く（新しい行に強制移動させない。スクリーンリーダー利用者はトーストの読み上げで完了を知る）

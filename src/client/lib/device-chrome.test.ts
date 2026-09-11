@@ -93,8 +93,11 @@ describe("device chrome CSS / HTML / README", () => {
     expect(ruleBlock(".app-shell-no-header .app-content")).toContain("var(--safe-top)");
     expect(ruleBlock(".add-fab")).toContain("var(--safe-right)");
     expect(ruleBlock(".add-fab")).toContain("var(--safe-bottom)");
-    expect(ruleBlock(".app-toast")).toContain("var(--safe-left)");
-    expect(ruleBlock(".app-toast")).toContain("var(--safe-right)");
+    expect(ruleBlock(".app-toast-slot")).toContain("var(--safe-left)");
+    expect(ruleBlock(".app-toast-slot")).toContain("var(--safe-right)");
+    expect(ruleBlock(".app-toast")).not.toContain("position: fixed");
+    expect(ruleBlock(".app-toast-slot")).not.toContain("position: fixed");
+    expect(css).toContain("translateY(-8px)");
     expect(ruleBlock(".save-bar")).toContain("var(--safe-bottom)");
     expect(ruleBlock(".photo-edit-bar")).toContain("var(--safe-top)");
     expect(ruleBlock(".auth-page")).toContain("var(--safe-top)");

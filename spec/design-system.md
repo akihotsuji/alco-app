@@ -121,8 +121,9 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 
 | トークン | サイズ | 行間 | 用途 |
 |---|---|---|---|
-| `--text-caption` | 12px | 1.3 | タブラベルのみ。本文禁止 |
-| `--text-body` | 16px | 1.5 | 本文・入力・チップ |
+| `--text-caption` | 12px | 1.3 | タブラベルのみ。本文・設定名・重要な説明には使わない |
+| `--text-note` | 14px | 1.5 | 補足・節見出し・設定の説明。重要な説明の標準にしないサイズの下限 |
+| `--text-body` | 16px | 1.5 | 本文・入力・チップ・設定名 |
 | `--text-title` | 20px | 1.3 | 画面タイトル |
 | `--text-score` | 40px | 1.0 | 杯数・g のみ |
 | `--text-score-sm` | 24px | 1.0 | 週/月サマリーの小スコア（3-06） |
@@ -194,7 +195,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | 押下 | 影 outset → inset（`::after` の不透明度で切替）。主ボタン・中央タブだけ `scale(0.985) translateY(1px)`。**拡大は禁止** |
 | 移動距離 | 出現 6〜12px、ピルのラベル抜け 6px、キャラ 4px まで。`transform` と `opacity` だけを動かす |
 | 影 | 深さだけ遷移する。色・方向・ぼかしの新しい値は作らない。発光禁止 |
-| トースト | 出 180ms / 退 150ms、滞在 5 秒（`TOAST_DURATION_MS`）。同時に 1 枚 |
+| トースト | 出 180ms / 退 150ms。操作なし 2.5 秒（`TOAST_DURATION_MS`）、操作付き 6 秒。ヘッダー直下。同時に 1 枚 |
 | キャラ | 成功時のみ。クロスフェード 200ms、上 4px → 0 を 1 回、`cheer` の水面 45% → 60% を 1 回（`pour`）。5 秒以内に 2 回動かない |
 | reduced motion | OS の `prefers-reduced-motion` または設定「動きを減らす = 常に減らす」で `<html data-reduce-motion="1">`。移動・拡縮・キーフレームを全廃し、不透明度のフェード（≦150ms）だけ残す |
 | haptic | `navigator.vibrate` を `src/client/lib/haptic.ts` 経由で。`light` = 10ms、`success` = 10-40-10ms。**既定 OFF**、設定「触感フィードバック」で ON。失敗時は振動しない。iOS は非対応 |
@@ -222,7 +223,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | 週マス | 28px。記録あり = `--primary` べた塗り（影なし）、今日 = 外側リング 2px、空 = inset-sm、未来 = 45% |
 | Dialog | 地色カード。タイトルはテキストのみ |
 | Sheet | 使わない |
-| Toast | 地色 + outset。undo は primary テキスト。保存成功時は左端に `cheer` 32px |
+| Toast | 地色 + outset。ヘッダー直下の通常フロー（fixed にしない）。undo は primary テキスト + 「閉じる」。保存成功時は左端に `cheer` 32px |
 | 行 | 地色 + outset。左 48px サムネ、高さ 64px 以上 |
 | 中央タブ（記録） | 直径 `--tab-center-size` の円。`--primary` 塗り + `--shadow-primary`、タブバー上端から 12px 浮く。アイコンはグラス。他 4 タブは従来どおり |
 | 写真タイル（撮影前） | 地色 + inset、角 `--radius-photo`、中央にカメラアイコン + 「写真を撮る」。右下に `surprised` 48px（セラーでは出さない） |
@@ -310,7 +311,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 --primary --primary-fg --danger --danger-fg
 --rest --score --ring
 --neu-light --neu-dark
---text-caption --text-body --text-title --text-score
+--text-caption --text-note --text-body --text-title --text-score
 --space-1 … --space-8 --tap-min
 --radius --radius-card --radius-pill --radius-photo --header-h --tab-h --tab-center-size --tab-center-lift
 --shadow-outset --shadow-inset --shadow-outset-sm --shadow-inset-sm --shadow-primary --shadow-knob

@@ -16,16 +16,22 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).toContain("{statusPill.label}");
     expect(bottleStatusPill({ status: "sealed", consumedOn: null }).label).toBe("未開栓");
     expect(bottleStatusPill({ status: "consumed", consumedOn: "2026-09-05" })).toEqual({
-      label: "開栓（9/5）",
+      label: "開栓（2026年9月5日）",
       consumed: true,
     });
+    expect(source).toContain("bottlePropLayout");
+    expect(source).toContain("formatBottleDisplayDate");
+    expect(source).not.toContain('"NV"');
   });
 
-  it("棚は開栓する、貯蔵庫は記録とテイスティングの入口とセラーに戻す", () => {
+  it("棚は開栓する、貯蔵庫は記録とテイスティングノートの入口と開栓の取り消し", () => {
     expect(source).toContain("開栓する");
     expect(source).toContain("飲んだ量を記録");
-    expect(source).toContain("テイスティングを書く");
-    expect(source).toContain("セラーに戻す");
+    expect(source).toContain("テイスティングノートを書く");
+    expect(source).toContain("開栓の記録を取り消す");
+    expect(source).toContain("更新中…");
+    expect(source).not.toContain("セラーに戻す");
+    expect(source).not.toContain("開栓中");
     expect(source).toContain("OpenedFollowupSheet");
     expect(source).not.toContain("ノートを書く");
     expect(source).not.toContain('navigate("/cellar"');
