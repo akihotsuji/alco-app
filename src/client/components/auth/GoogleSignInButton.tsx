@@ -6,8 +6,8 @@ import { authClient } from "@/client/lib/auth-client.ts";
 import { resolveSafeRedirect } from "@/shared/auth.ts";
 import { LEGAL_VERSION } from "@/shared/legal.ts";
 import {
-  GOOGLE_CONTINUE_LABEL,
   GOOGLE_OAUTH_PROVIDER,
+  googleSignInLabel,
   OAUTH_ERROR_MESSAGE,
   OAUTH_SIGNUP_ERROR_MESSAGE,
 } from "@/shared/oauth.ts";
@@ -73,7 +73,7 @@ export function GoogleSignInButton({
     <div className="auth-oauth">
       <p className="auth-oauth-divider">または</p>
       <Button type="button" variant="secondary" disabled={!canStart} onClick={onClick}>
-        {GOOGLE_CONTINUE_LABEL}
+        {googleSignInLabel(mode)}
       </Button>
     </div>
   );

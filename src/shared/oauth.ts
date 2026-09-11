@@ -6,14 +6,19 @@ export const GOOGLE_AUTHORIZATION_HOST = "accounts.google.com";
 
 export const OAUTH_ERROR_MESSAGE = "ログインできませんでした。時間をおいて再度お試しください";
 export const OAUTH_SIGNUP_ERROR_MESSAGE = "登録できませんでした。入力内容を確認してください";
-export const GOOGLE_CONTINUE_LABEL = "Google で続行";
+export const GOOGLE_LOGIN_LABEL = "Googleアカウントでログインする";
+export const GOOGLE_SIGNUP_LABEL = "Googleアカウントで登録する";
+
+export function googleSignInLabel(mode: "login" | "signup"): string {
+  return mode === "signup" ? GOOGLE_SIGNUP_LABEL : GOOGLE_LOGIN_LABEL;
+}
 
 /**
- * ログイン／サインアップの「Google で続行」導線を出すか。
- * Google 側の同意画面が未確認アプリの警告を出す間は隠す（サーバー側の設定・API は残す）。
+ * ログイン／サインアップの Google 導線を出すか。
+ * 同意画面の警告が出ている間は `false`。警告が消えたら `true`（2026-09-11 復活）。
  * spec/features/oauth-login.md 2 章。
  */
-export const GOOGLE_SIGN_IN_VISIBLE = false;
+export const GOOGLE_SIGN_IN_VISIBLE = true;
 
 export const googleSignupAdditionalDataSchema = signupLegalAcceptanceSchema;
 
