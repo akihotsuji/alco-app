@@ -303,8 +303,13 @@ export function BottleFormFields({
 
   const backRecognizeJpeg = hasFront ? (backPhoto.attachment?.recognizeJpeg ?? null) : null;
 
-  // 表面の JPEG（新規、または編集でそのセッションに付けた分）と裏面の JPEG の組が変わったら読み取る。
-  // 裏面だけ足しても表面の JPEG が端末に無い（編集で保存済み）ときは走らせない（cellar.md 3.3）。
+  // 裏面 JPEG は手動再判定用にだけ保持する。追加だけではリクエストしない（cellar.md 3.3 B2）。
+  useEffect(() => {
+    recognizeBackJpegRef.current = backRecognizeJpeg;
+  }, [backRecognizeJpeg]);
+
+  // 表面の JPEG が新しく付いたときだけ自動で読む（裏面は渡さない）。
+  // 編集で保存済み表面だけのときは走らせない（cellar.md 3.5）。
   useEffect(() => {
     if (!getCellarRecognizePref()) {
       setRecognizeStatus(null);
@@ -322,13 +327,12 @@ export function BottleFormFields({
       }
       return;
     }
-    if (jpeg === recognizeJpegRef.current && backRecognizeJpeg === recognizeBackJpegRef.current) {
+    if (jpeg === recognizeJpegRef.current) {
       return;
     }
     recognizeJpegRef.current = jpeg;
-    recognizeBackJpegRef.current = backRecognizeJpeg;
-    runRecognition(jpeg, backRecognizeJpeg, false);
-  }, [attachment, backRecognizeJpeg, mode, runRecognition]);
+    runRecognition(jpeg, null, false);
+  }, [attachment, mode, runRecognition]);
 
   // 表面をユーザーが消したときだけ裏面も外す（E41）。
   // hasFront の変化を見て自動削除しないこと。保存成功後の releaseAttachment で
@@ -515,7 +519,13 @@ export function BottleFormFields({
         />
       ) : null}
       {recognizeStatus ? (
-        <RecognizeBanner status={recognizeStatus} onRetry={retryRecognition} />
+        <RecognizeBanner
+          status={recognizeStatus}
+          onRetry={retryRecognition}
+          onRecognizeWithBack={
+            recognizeStatus === "success" && backRecognizeJpeg ? retryRecognition : undefined
+          }
+        />
       ) : null}
       <div className="log-form-section">
         <label className="field-label" htmlFor="bottle-name">

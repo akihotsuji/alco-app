@@ -1308,6 +1308,7 @@ img[data-state="loaded"] {
 
 .recognize-banner {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--space-3);
   margin: 0;

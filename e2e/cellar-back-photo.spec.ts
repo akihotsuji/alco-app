@@ -81,6 +81,9 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await expect(page.getByRole("dialog", { name: "写真を編集" })).toHaveCount(0);
   await expect(page.getByRole("img", { name: "裏面の写真" })).toBeVisible();
   await expect(page.getByText("アップロード中")).toHaveCount(0);
+  await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "裏面も含めて読み取る" })).toHaveCount(0);
   await shot(page, "cellar_new_front_and_back");
 
   await page.getByLabel("品名").fill(BOTTLE_NAME);
@@ -132,6 +135,8 @@ test("まとめて追加の行に裏面と再読み取りを付けられる", as
   await (await backChooser).setFiles(backJpeg);
   await expect(page.getByRole("img", { name: "裏面の写真" })).toBeVisible();
   await expect(page.getByRole("button", { name: "裏面を外す" })).toBeVisible();
+  await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible();
   await shot(page, "cellar_batch_with_back");
 
   await page.getByLabel("品名").fill(BATCH_NAME);

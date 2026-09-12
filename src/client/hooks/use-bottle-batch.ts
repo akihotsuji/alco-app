@@ -68,7 +68,7 @@ export function useBottleBatch(autoCapture: boolean) {
   /** 連続撮影で確保した枠（既存行 + 今の写真 + 次の予約）。addPhoto のたびに既存行数へ戻す */
   const reservedRef = useRef(0);
   const libraryBusyRef = useRef(false);
-  // 行ごとに「どの JPEG の組（表 + 裏）を読み取ったか」。再編集・裏面の増減で読み直す
+  // 行ごとに「どの表面 JPEG を自動読み取りしたか」。裏面追加では走らせない
   const recognizedRef = useRef(new Map<string, { jpeg: Blob; back: Blob | null }>());
   // 行を外したら順番待ちの読み取りを打ち切る（回数を消費しない。E48）
   const controllersRef = useRef(new Map<string, AbortController>());
@@ -213,7 +213,7 @@ export function useBottleBatch(autoCapture: boolean) {
     [],
   );
 
-  // 行ごとのラベル読み取り（04-cellar G7）。表面の JPEG と裏面の JPEG の組が変わった行だけ読み直す。設定 OFF なら呼ばない
+  // 行ごとのラベル読み取り（04-cellar G7）。表面 JPEG が初めて付いた行だけ自動（表面のみ）。設定 OFF なら呼ばない
   useEffect(() => {
     if (!getCellarRecognizePref()) {
       return;
@@ -223,16 +223,15 @@ export function useBottleBatch(autoCapture: boolean) {
       if (!jpeg) {
         continue;
       }
-      const back = row.backPhoto?.recognizeJpeg ?? null;
       const recognized = recognizedRef.current.get(row.key);
-      if (recognized?.jpeg === jpeg && recognized.back === back) {
+      if (recognized?.jpeg === jpeg) {
         continue;
       }
-      runRowRecognition(row.key, jpeg, back, false);
+      runRowRecognition(row.key, jpeg, null, false);
     }
   }, [rows, runRowRecognition]);
 
-  /** 失敗帯の「再読み取り」。その行だけ同じ画像（表 + 裏）で再リクエストする */
+  /** 失敗帯の「再読み取り」と成功帯の「裏面も含めて読み取る」。その行だけ表 + 裏で再リクエストする */
   const recognizeRow = useCallback(
     (key: string) => {
       const row = rowsRef.current.find((item) => item.key === key);

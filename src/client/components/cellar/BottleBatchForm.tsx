@@ -31,9 +31,11 @@ import { rememberShelfEvent } from "@/client/lib/history-state.ts";
 import {
   RECOGNIZE_BANNER,
   RECOGNIZE_RETRY_LABEL,
+  RECOGNIZE_WITH_BACK_LABEL,
   type RecognizeMarkField,
 } from "@/client/lib/label-recognize.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
+import { isCutoutBlobType } from "@/client/lib/photo/photo-file.ts";
 import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import {
   arrangedToastMessage,
@@ -257,7 +259,7 @@ function BatchRowCard({
   const marks = new Set<RecognizeMarkField>(row.aiMarks);
   const nameId = `${id}-name`;
   const detailsId = `${id}-details`;
-  const cutout = row.photo.blob.type === "image/webp";
+  const cutout = isCutoutBlobType(row.photo.blob.type);
 
   return (
     <li className="bottle-batch-row" aria-label={`${index + 1} 本目`}>
@@ -438,6 +440,18 @@ function BatchRowCard({
               {RECOGNIZE_RETRY_LABEL}
             </button>
           ) : null}
+        </p>
+      ) : row.recognize === "success" && row.backPhoto?.recognizeJpeg ? (
+        <p className="bottle-batch-recognize" role="status">
+          <Sparkles size={14} aria-hidden />
+          <button
+            type="button"
+            className="header-text-link recognize-retry"
+            disabled={disabled}
+            onClick={onRecognizeRetry}
+          >
+            {RECOGNIZE_WITH_BACK_LABEL}
+          </button>
         </p>
       ) : null}
       {row.error ? (

@@ -10,8 +10,11 @@ export const RECOGNIZE_BANNER = {
 
 export type RecognizeBannerStatus = "loading" | "success" | "failure";
 
-/** 失敗帯からだけ出す。同じ画像（表 + 裏）で再リクエストする（cellar.md 3.3 B2 / 3.3b 再読み取り） */
+/** 失敗帯から出す。同じ画像（表 + 裏）で再リクエストする（cellar.md 3.3 B2 / 3.3b 再読み取り） */
 export const RECOGNIZE_RETRY_LABEL = "再読み取り";
+
+/** 成功帯かつ裏面があるとき。表 + 裏で穴埋めする（自動では走らない） */
+export const RECOGNIZE_WITH_BACK_LABEL = "裏面も含めて読み取る";
 
 export type RecognizeMarkField = "name" | "producer" | "origin" | "variety" | "vintage";
 
