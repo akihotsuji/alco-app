@@ -7,9 +7,9 @@ import { fontFamily } from "../fonts";
 import { colors } from "../theme";
 
 const COLS = [
-  { file: "shots/log-day.png", label: "飲酒記録", position: "50% 16%" },
-  { file: "shots/cellar.png", label: "セラー", position: "50% 38%" },
-  { file: "shots/notes.png", label: "ノート", position: "50% 30%" },
+  { file: "shots/log-day.png", label: "飲酒記録", position: "50% 14%" },
+  { file: "shots/cellar.png", label: "セラー", position: "50% 36%" },
+  { file: "shots/notes.png", label: "ノート", position: "50% 26%" },
 ] as const;
 
 export const StillOverview: React.FC = () => {
@@ -20,10 +20,10 @@ export const StillOverview: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          top: 36,
-          right: 40,
-          width: 132,
-          height: 176,
+          top: 28,
+          right: 32,
+          width: 148,
+          height: 196,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -101,7 +101,7 @@ export const StillOverview: React.FC = () => {
               left={left}
               top={414}
               width={328}
-              height={820}
+              height={680}
               objectPosition={col.position}
               radius={28}
             />

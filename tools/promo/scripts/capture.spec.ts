@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
@@ -61,7 +61,12 @@ async function setLightTheme(page: Page): Promise<void> {
 async function pickLibraryPhoto(page: Page, fileName: string, expectEdit: boolean): Promise<void> {
   const chooserPromise = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "写真を選ぶ" }).click();
-  await (await chooserPromise).setFiles(path.join(fixturesDir, fileName));
+  await (await chooserPromise).setFiles({
+    name: fileName,
+    mimeType: "image/jpeg",
+    buffer: await readFile(path.join(fixturesDir, fileName)),
+    lastModified: Date.now(),
+  });
   if (!expectEdit) {
     return;
   }

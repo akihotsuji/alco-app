@@ -14,10 +14,10 @@ export const StillCellar: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          top: 36,
-          right: 40,
-          width: 120,
-          height: 160,
+          top: 28,
+          right: 32,
+          width: 140,
+          height: 186,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -63,7 +63,7 @@ export const StillCellar: React.FC = () => {
         top={360}
         width={968}
         height={870}
-        objectPosition="50% 48%"
+        objectPosition="50% 50%"
         radius={36}
       />
       <ServiceUrl bottom={48} />
