@@ -15,7 +15,7 @@ type CompactPhotoFieldProps = {
   onRetry?: () => void;
   onClear?: () => void;
   onPreview?: () => void;
-  /** edit = photo-edit。retake = 酒記録（中間画面なし） */
+  /** edit = photo-edit（セラーは撮り直し・選び直しも並べる）。retake = 酒記録（中間画面なし） */
   actions?: "edit" | "retake";
   error?: string | null;
   /** loading / lookup はスピナー付き。empty / failure は muted の 1 行で、黙らずに手入力できることを示す */
@@ -106,9 +106,19 @@ export function CompactPhotoField({
                 </button>
               </>
             ) : (
-              <button type="button" className="header-text-link" onClick={onEdit ?? onCapture}>
-                編集
-              </button>
+              <>
+                {onEdit ? (
+                  <button type="button" className="header-text-link" onClick={onEdit}>
+                    編集
+                  </button>
+                ) : null}
+                <button type="button" className="header-text-link" onClick={onCapture}>
+                  撮り直す
+                </button>
+                <button type="button" className="header-text-link" onClick={onLibrary}>
+                  {IMAGE_PICK_LABELS.captureLibrary}
+                </button>
+              </>
             )}
             {onClear ? (
               <button type="button" className="header-text-link" onClick={onClear}>

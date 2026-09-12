@@ -12,10 +12,16 @@ import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import { cutoutFailedUserMessage } from "@/client/lib/photo/cutout-result.ts";
 import {
   aspectForKind,
-  clampScale,
   computeCoverCrop,
   outputSizeForAspect,
 } from "@/client/lib/photo/geometry.ts";
+import {
+  beginPhotoEditPointer,
+  clampOffset,
+  createPhotoEditGestureState,
+  endPhotoEditPointer,
+  movePhotoEditPointer,
+} from "@/client/lib/photo/photo-edit-gestures.ts";
 import { IMAGE_PICK_LABELS, pickImage } from "@/client/lib/photo/pick-image.ts";
 import { processPhoto, previewCutout as renderCutoutPreview } from "@/client/lib/photo/process.ts";
 import {
@@ -58,8 +64,7 @@ export function PhotoEdit() {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const pinch = useRef<{ distance: number; scale: number } | null>(null);
+  const gestures = useRef(createPhotoEditGestureState());
   const previewGen = useRef(0);
 
   useEffect(() => {
@@ -166,7 +171,8 @@ export function PhotoEdit() {
       return;
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (kind === "cellar" && cutoutOn && previewCutout) {
+    // 推論中は古い切り抜きを出さず、ドラッグ／ピンチに生プレビューを追従させる（iPhone で位置が動かないように見えない）
+    if (kind === "cellar" && cutoutOn && previewCutout && !cutoutBusy) {
       ctx.drawImage(previewCutout, 0, 0, canvas.width, canvas.height);
       return;
     }
@@ -189,6 +195,7 @@ export function PhotoEdit() {
     ctx.drawImage(raw, 0, 0);
   }, [
     aspect,
+    cutoutBusy,
     cutoutOn,
     kind,
     offsetX,
@@ -254,45 +261,41 @@ export function PhotoEdit() {
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
-    event.currentTarget.setPointerCapture(event.pointerId);
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (pointers.current.size === 2) {
-      const points = [...pointers.current.values()];
-      const first = points[0];
-      const second = points[1];
-      if (first && second) {
-        pinch.current = { distance: distanceBetween(first, second), scale };
-      }
+    event.preventDefault();
+    const next = beginPhotoEditPointer(
+      gestures.current,
+      event.pointerId,
+      { x: event.clientX, y: event.clientY },
+      scale,
+    );
+    if (next.releaseCaptures) {
+      releaseFrameCaptures(event.currentTarget, gestures.current.pointers.keys());
+    } else if (next.capture) {
+      event.currentTarget.setPointerCapture(event.pointerId);
     }
   }
 
   function onPointerMove(event: PointerEvent<HTMLDivElement>) {
-    const prev = pointers.current.get(event.pointerId);
-    if (!prev) {
+    const moved = movePhotoEditPointer(
+      gestures.current,
+      event.pointerId,
+      { x: event.clientX, y: event.clientY },
+      event.currentTarget.getBoundingClientRect(),
+    );
+    if (!moved) {
       return;
     }
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (pointers.current.size >= 2 && pinch.current) {
-      const points = [...pointers.current.values()];
-      const first = points[0];
-      const second = points[1];
-      if (!first || !second) {
-        return;
-      }
-      const nextDistance = distanceBetween(first, second);
-      setScale(clampScale(pinch.current.scale * (nextDistance / pinch.current.distance)));
+    event.preventDefault();
+    if (moved.type === "pinch") {
+      setScale(moved.scale);
       return;
     }
-    const rect = event.currentTarget.getBoundingClientRect();
-    setOffsetX((value) => clampOffset(value - ((event.clientX - prev.x) / rect.width) * 2));
-    setOffsetY((value) => clampOffset(value - ((event.clientY - prev.y) / rect.height) * 2));
+    setOffsetX((value) => clampOffset(value - moved.deltaX));
+    setOffsetY((value) => clampOffset(value - moved.deltaY));
   }
 
   function onPointerUp(event: PointerEvent<HTMLDivElement>) {
-    pointers.current.delete(event.pointerId);
-    if (pointers.current.size < 2) {
-      pinch.current = null;
-    }
+    endPhotoEditPointer(gestures.current, event.pointerId);
   }
 
   return (
@@ -412,10 +415,10 @@ function Chip({
   );
 }
 
-function distanceBetween(a: { x: number; y: number }, b: { x: number; y: number }): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function clampOffset(value: number): number {
-  return Math.min(1, Math.max(-1, value));
+function releaseFrameCaptures(target: HTMLDivElement, pointerIds: Iterable<number>): void {
+  for (const pointer of pointerIds) {
+    if (target.hasPointerCapture(pointer)) {
+      target.releasePointerCapture(pointer);
+    }
+  }
 }

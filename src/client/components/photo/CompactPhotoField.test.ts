@@ -29,4 +29,15 @@ describe("CompactPhotoField 撮影と選択", () => {
     expect(logNew).toContain("PhotoViewer");
     expect(logNew).not.toContain("editAttachment");
   });
+
+  it("セラーの撮影後は編集・撮り直す・写真を選ぶが並び、編集はカメラに落とさない", () => {
+    expect(field).toContain("編集");
+    expect(field).toContain("撮り直す");
+    expect(field).toContain("IMAGE_PICK_LABELS.captureLibrary");
+    expect(field).not.toContain("onEdit ?? onCapture");
+    expect(bottle).toContain("editFrontPhoto");
+    expect(bottle).toContain('editAttachment("cellar", { photoId: keptPhotoId })');
+    expect(bottle).not.toContain('startCapture("cellar") :');
+    expect(bottle).not.toContain("onEdit ?? onCapture");
+  });
 });

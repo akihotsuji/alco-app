@@ -51,37 +51,115 @@ export function applyImagePickSource(
   input.multiple = attrs.multiple;
 }
 
+/** iOS はカメラ／ライブラリ復帰後、`change` より先に focus が来て files が空のことがある */
+export const IMAGE_PICK_FOCUS_GRACE_MS = 2500;
+export const IMAGE_PICK_POLL_INTERVAL_MS = 150;
+
+export function filesFromList(list: FileList | null | undefined): File[] {
+  return Array.from(list ?? []);
+}
+
+/**
+ * focus 復帰直後は空でも待って、遅れて入った File を取る。
+ * 猶予を過ぎて空ならキャンセル。
+ */
+export function resolvePickedFilesAfterFocus(
+  files: readonly File[],
+  elapsedMs: number,
+  graceMs = IMAGE_PICK_FOCUS_GRACE_MS,
+): "selected" | "cancel" | "wait" {
+  if (files.length > 0) {
+    return "selected";
+  }
+  return elapsedMs >= graceMs ? "cancel" : "wait";
+}
+
+function placeOffscreenFileInput(input: HTMLInputElement): void {
+  // iOS は `hidden` だと change が欠ける端末があるので、画面外に置く
+  input.style.position = "fixed";
+  input.style.left = "0";
+  input.style.top = "0";
+  input.style.width = "1px";
+  input.style.height = "1px";
+  input.style.opacity = "0";
+  input.style.pointerEvents = "none";
+}
+
 function openFileInput(source: ImagePickSource, options: ImagePickOptions): Promise<File[]> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     applyImagePickSource(input, source, options);
-    input.hidden = true;
+    placeOffscreenFileInput(input);
     document.body.appendChild(input);
 
     let settled = false;
+    let leftPage = false;
+    let pollTimer = 0;
     const finish = (files: File[]) => {
       if (settled) {
         return;
       }
       settled = true;
-      window.removeEventListener("focus", onWindowFocus);
+      window.clearTimeout(pollTimer);
+      window.removeEventListener("blur", markLeft);
+      window.removeEventListener("focus", onReturn);
+      document.removeEventListener("visibilitychange", onVisibility);
       input.remove();
       resolve(files);
     };
 
-    const onWindowFocus = () => {
-      window.setTimeout(() => {
-        finish(Array.from(input.files ?? []));
-      }, 400);
+    const markLeft = () => {
+      leftPage = true;
+    };
+
+    const watchForDelayedFiles = () => {
+      if (settled) {
+        return;
+      }
+      const started = Date.now();
+      const tick = () => {
+        if (settled) {
+          return;
+        }
+        const files = filesFromList(input.files);
+        const decision = resolvePickedFilesAfterFocus(files, Date.now() - started);
+        if (decision === "selected") {
+          finish(files);
+          return;
+        }
+        if (decision === "cancel") {
+          finish([]);
+          return;
+        }
+        pollTimer = window.setTimeout(tick, IMAGE_PICK_POLL_INTERVAL_MS);
+      };
+      window.clearTimeout(pollTimer);
+      pollTimer = window.setTimeout(tick, IMAGE_PICK_POLL_INTERVAL_MS);
+    };
+
+    const onReturn = () => {
+      // 撮影 UI を開いた直後の focus では走らせない（input を消して写真を捨てる）
+      if (leftPage) {
+        watchForDelayedFiles();
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        markLeft();
+        return;
+      }
+      onReturn();
     };
 
     input.addEventListener("change", () => {
-      finish(Array.from(input.files ?? []));
+      finish(filesFromList(input.files));
     });
     input.addEventListener("cancel", () => {
       finish([]);
     });
-    window.addEventListener("focus", onWindowFocus);
+    window.addEventListener("blur", markLeft);
+    window.addEventListener("focus", onReturn);
+    document.addEventListener("visibilitychange", onVisibility);
 
     input.click();
   });

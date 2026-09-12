@@ -2533,6 +2533,8 @@ img[data-state="loaded"] {
   background: var(--background);
   display: flex;
   flex-direction: column;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .photo-edit-bar {

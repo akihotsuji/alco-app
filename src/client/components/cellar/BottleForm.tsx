@@ -72,6 +72,7 @@ const DETAIL_FIELD_IDS: Record<(typeof BOTTLE_DETAILS_ERROR_FIELDS)[number], str
   memo: "bottle-memo",
 };
 
+const PHOTO_EDIT_LOAD_FAILED = "この写真を読み込めませんでした";
 const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";
 const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真も削除されます";
@@ -443,6 +444,20 @@ export function BottleFormFields({
     );
   }
 
+  async function editFrontPhoto() {
+    try {
+      if (attachment) {
+        await editAttachment("cellar");
+        return;
+      }
+      if (keptPhotoId) {
+        await editAttachment("cellar", { photoId: keptPhotoId });
+      }
+    } catch {
+      showToast({ message: PHOTO_EDIT_LOAD_FAILED });
+    }
+  }
+
   async function removeExistingPhoto() {
     if (!keptPhotoId || photoDeleting) {
       return;
@@ -482,9 +497,7 @@ export function BottleFormFields({
         onLibrary={() => void startCapture("cellar", { source: "library" })}
         attachment={attachment}
         existingPreviewUrl={keptPhotoId ? photoContentUrl(keptPhotoId) : null}
-        onEdit={
-          attachment ? () => void editAttachment("cellar") : () => void startCapture("cellar")
-        }
+        onEdit={() => void editFrontPhoto()}
         onRetry={() => void retryUpload("cellar")}
         onClear={attachment || keptPhotoId ? () => removeFrontPhoto() : undefined}
         error={errors.photoIds}
