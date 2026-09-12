@@ -13,6 +13,7 @@ test("サインアップから記録し、今日と週のサマリー数字が�
   await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
 
   await page.getByRole("textbox", { name: /品名/ }).fill(DRINK_NAME);
+  await page.getByPlaceholder("店名など").fill("アフリカー");
   await page.getByRole("button", { name: "赤ワイン" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "ビール" }).click();
 
@@ -26,6 +27,9 @@ test("サインアップから記録し、今日と週のサマリー数字が�
   await expect(page.getByText(`${DRINK_NAME} 350ml`)).toBeVisible();
   await expect(page.getByText("1 杯 ・", { exact: false })).toBeVisible();
   await expect(page.getByText(`${BEER_ALCOHOL_G} g`)).toBeVisible();
+  await expect(page.getByText("アフリカー")).toBeVisible();
+  await expect(page.getByText("その日いた場所")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "アフリカー", exact: true })).toHaveCount(0);
 
   const toast = page.getByRole("status").filter({ hasText: "記録しました" });
   await expect(toast).toBeVisible();
@@ -39,6 +43,13 @@ test("サインアップから記録し、今日と週のサマリー数字が�
     expect(boxesOverlap(toastBox, prevDayBox)).toBe(false);
     expect(boxesOverlap(toastBox, homeTabBox)).toBe(false);
   }
+
+  await page.getByRole("link", { name: new RegExp(DRINK_NAME) }).click();
+  await expect(page.getByRole("heading", { name: "記録を編集" })).toBeVisible();
+  await expect(page.getByPlaceholder("店名など")).toHaveValue("アフリカー");
+  await expect(page.getByRole("link", { name: /この場所を地図で/ })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByText(`${DRINK_NAME} 350ml`)).toBeVisible();
 
   await homeTab.click();
   await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
