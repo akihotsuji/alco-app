@@ -13,7 +13,7 @@
 | 種類 | コマンド | 出力 |
 |---|---|---|
 | 縦型動画 1080×1920 / 30fps / 約30秒 / 音声なし H.264 | `pnpm render:video` | `out/sake-shiori-intro.mp4` |
-| 紹介画像 1080×1350 × 3 | `pnpm render:stills` | `out/still-overview.png` `out/still-cellar.png` `out/still-notes.png` |
+| 紹介画像 1080×1350 × 4 | `pnpm render:stills` | `out/still-overview.png` `out/still-logs.png` `out/still-cellar.png` `out/still-notes.png` |
 | 主要シーンの確認フレーム | `pnpm render:preview-frames` | `out/frame-*.png` |
 | Remotion Studio | `pnpm preview` | 既定でポート 3000 |
 
@@ -22,7 +22,7 @@
 書き出し確認（この環境）:
 
 - `sake-shiori-intro.mp4` — 1080×1920、30fps、30.07秒、H.264、音声ストリームなし、約 1.4MB
-- 紹介画像 3 枚 — 各 1080×1350 PNG。実画面はヘッダーからタブバーまで枠内に収まっている
+- 紹介画像 4 枚（まとめ＋飲酒記録＋セラー＋ノート）— 各 1080×1350 PNG。実画面はヘッダーからタブバーまで枠内に収まっている
 - スマホ幅（390px）に縮小しても、見出しとノートの銘柄・感想、エンドの URL は読めた
 
 実画面はショット全体（ヘッダーからタブバーまで）を枠内に収める。切り出しや拡大ではみ出さない。

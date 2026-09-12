@@ -13,6 +13,9 @@ const shotsDir = path.join(promoRoot, "public/shots");
 async function waitForVisualReady(page: Page): Promise<void> {
   await page.evaluate(async () => {
     await document.fonts.ready;
+    for (const image of document.images) {
+      image.loading = "eager";
+    }
     await Promise.all(
       [...document.images].map((image) => {
         if (image.complete && image.naturalWidth > 0) {
@@ -28,6 +31,27 @@ async function waitForVisualReady(page: Page): Promise<void> {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
   });
+  await expect
+    .poll(async () => page.locator('img[data-state="loading"]').count(), { timeout: 15_000 })
+    .toBe(0);
+}
+
+async function waitForShelfBottlePhotos(page: Page, count: number): Promise<void> {
+  await page.evaluate(() => {
+    for (const image of document.images) {
+      image.loading = "eager";
+    }
+  });
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const tiles = [...document.querySelectorAll<HTMLImageElement>(".bottle-tile-img")];
+          return tiles.filter((img) => img.dataset.state === "loaded" && img.naturalWidth > 0).length;
+        }),
+      { timeout: 20_000 },
+    )
+    .toBe(count);
 }
 
 async function scrollMainToTop(page: Page): Promise<void> {
@@ -95,6 +119,8 @@ async function addBottle(page: Page, bottle: (typeof DEMO_BOTTLES)[number], capt
   await expect(page.getByText("ラベルから読み取りました")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("#bottle-name")).toHaveValue(bottle.name);
   await expect(page.getByText("アップロード中")).toHaveCount(0, { timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "再試行" })).toHaveCount(0);
+  await expect(page.locator(".photo-thumb-img")).toHaveAttribute("data-state", "loaded");
   if (captureForm) {
     await shot(page, "cellar-new");
   }
@@ -102,6 +128,9 @@ async function addBottle(page: Page, bottle: (typeof DEMO_BOTTLES)[number], capt
   await expect(arrange).toBeEnabled();
   await arrange.click();
   await expect(page.getByRole("heading", { name: bottle.name })).toBeVisible({ timeout: 30_000 });
+  const hero = page.locator(".bottle-hero-img");
+  await expect(hero).toBeVisible();
+  await expect(hero).toHaveAttribute("data-state", "loaded");
 }
 
 async function addLog(page: Page, log: (typeof DEMO_LOGS)[number], captureForm: boolean) {
@@ -175,6 +204,8 @@ test("デモデータを投入して紹介用スクリーンショットを撮�
     await oneView.click();
   }
   await expect(page.getByText("霧谷蒸溜所 12年")).toBeVisible();
+  await expect(page.getByText("白嶺 純米大吟醸")).toBeVisible();
+  await waitForShelfBottlePhotos(page, DEMO_BOTTLES.length);
   await shot(page, "cellar");
 
   for (const [index, log] of DEMO_LOGS.entries()) {
