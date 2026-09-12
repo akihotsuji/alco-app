@@ -17,15 +17,15 @@ export const RegisterScene: React.FC = () => {
           easing: Easing.bezier(0.16, 1, 0.3, 1),
         })}
       >
-        {"気になった一本を、\n写真で残す"}
+        {"写真を撮ると、\n名前や種類を読み取る"}
       </SceneHeadline>
       <ScreenCard
-        file="shots/photo-edit-cellar.png"
-        left={80}
+        file="shots/log-new.png"
+        left={70}
         top={500}
-        width={920}
+        width={940}
         height={1200}
-        objectPosition="50% 100%"
+        objectPosition="50% 8%"
         opacity={interpolate(frame, [0.15 * fps, 0.55 * fps], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",

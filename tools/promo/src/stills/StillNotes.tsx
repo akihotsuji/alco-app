@@ -1,5 +1,6 @@
 import { AbsoluteFill } from "remotion";
 import { BrandBackdrop } from "../components/BrandBackdrop";
+import { MascotMark } from "../components/MascotMark";
 import { ScreenCard } from "../components/ScreenCard";
 import { ServiceMark, ServiceUrl } from "../components/ServiceMark";
 import { fontFamily } from "../fonts";
@@ -13,9 +14,23 @@ export const StillNotes: React.FC = () => {
       <div
         style={{
           position: "absolute",
+          top: 36,
+          right: 40,
+          width: 120,
+          height: 160,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <MascotMark pose="default" height={160} />
+      </div>
+      <div
+        style={{
+          position: "absolute",
           left: 64,
-          right: 64,
-          top: 108,
+          right: 200,
+          top: 118,
           fontFamily,
           fontSize: 52,
           fontWeight: 700,
@@ -25,14 +40,14 @@ export const StillNotes: React.FC = () => {
           whiteSpace: "pre-line",
         }}
       >
-        {"飲んだ感想も、\nあとから振り返る"}
+        {"飲んだ記録も、\n感想も、振り返る"}
       </div>
       <div
         style={{
           position: "absolute",
           left: 64,
           right: 64,
-          top: 260,
+          top: 276,
           fontFamily,
           fontSize: 28,
           fontWeight: 500,
@@ -40,16 +55,53 @@ export const StillNotes: React.FC = () => {
           color: colors.muted,
         }}
       >
-        写真とひとことで、味の記憶を残す。
+        日ごとの一杯と、テイスティングノート。
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          left: 56,
+          top: 336,
+          width: 470,
+          fontFamily,
+          fontSize: 24,
+          fontWeight: 700,
+          color: colors.foreground,
+        }}
+      >
+        飲酒記録
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          left: 554,
+          top: 336,
+          width: 470,
+          fontFamily,
+          fontSize: 24,
+          fontWeight: 700,
+          color: colors.foreground,
+        }}
+      >
+        ノート
       </div>
       <ScreenCard
-        file="shots/notes.png"
+        file="shots/log-day.png"
         left={56}
-        top={336}
-        width={968}
-        height={900}
-        objectPosition="50% 34%"
-        radius={36}
+        top={376}
+        width={470}
+        height={860}
+        objectPosition="50% 14%"
+        radius={32}
+      />
+      <ScreenCard
+        file="shots/notes.png"
+        left={554}
+        top={376}
+        width={470}
+        height={860}
+        objectPosition="50% 30%"
+        radius={32}
       />
       <ServiceUrl bottom={48} />
     </AbsoluteFill>

@@ -11,23 +11,23 @@ export const HookScene: React.FC = () => {
     <AbsoluteFill>
       <BrandBackdrop />
       <SceneHeadline
-        fontSize={72}
+        fontSize={64}
         opacity={interpolate(frame, [0, 0.4 * fps], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
           easing: Easing.bezier(0.16, 1, 0.3, 1),
         })}
       >
-        あのお酒、なんだっけ？
+        {"飲んだ一杯を、\n日ごとに残す"}
       </SceneHeadline>
       <ScreenCard
-        file="shots/note-detail.png"
-        left={80}
-        top={460}
-        width={920}
-        height={1240}
-        objectPosition="50% 28%"
-        scale={interpolate(frame, [0, 3 * fps], [1.04, 1.12], {
+        file="shots/log-day.png"
+        left={70}
+        top={500}
+        width={940}
+        height={1200}
+        objectPosition="50% 18%"
+        scale={interpolate(frame, [0, 3 * fps], [1.02, 1.08], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
           easing: Easing.bezier(0.2, 0, 0, 1),

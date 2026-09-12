@@ -1,5 +1,6 @@
 import { AbsoluteFill } from "remotion";
 import { BrandBackdrop } from "../components/BrandBackdrop";
+import { MascotMark } from "../components/MascotMark";
 import { ScreenCard } from "../components/ScreenCard";
 import { ServiceMark, ServiceUrl } from "../components/ServiceMark";
 import { fontFamily } from "../fonts";
@@ -13,9 +14,23 @@ export const StillCellar: React.FC = () => {
       <div
         style={{
           position: "absolute",
+          top: 36,
+          right: 40,
+          width: 120,
+          height: 160,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <MascotMark pose="default" height={160} />
+      </div>
+      <div
+        style={{
+          position: "absolute",
           left: 64,
-          right: 64,
-          top: 108,
+          right: 200,
+          top: 118,
           fontFamily,
           fontSize: 52,
           fontWeight: 700,
@@ -32,7 +47,7 @@ export const StillCellar: React.FC = () => {
           position: "absolute",
           left: 64,
           right: 64,
-          top: 260,
+          top: 276,
           fontFamily,
           fontSize: 28,
           fontWeight: 500,
@@ -40,14 +55,14 @@ export const StillCellar: React.FC = () => {
           color: colors.muted,
         }}
       >
-        気になったボトルを、写真で並べておく。
+        写真から名前や種類を入れて、棚に並べる。
       </div>
       <ScreenCard
         file="shots/cellar.png"
         left={56}
-        top={336}
+        top={360}
         width={968}
-        height={900}
+        height={870}
         objectPosition="50% 48%"
         radius={36}
       />

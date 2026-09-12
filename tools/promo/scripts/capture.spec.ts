@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
 import { mainNav, signUpAsNewUser } from "../../../e2e/helpers/auth.ts";
 import { DEMO_BOTTLES, DEMO_LOGS, DEMO_NOTES } from "./demo-catalog.ts";
+import { installRecognizeMocks } from "./mock-recognize.ts";
 
 const promoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesDir = path.join(promoRoot, "public/fixtures");
@@ -52,6 +53,7 @@ async function shot(page: Page, name: string): Promise<void> {
 async function setLightTheme(page: Page): Promise<void> {
   await page.evaluate(() => {
     localStorage.setItem("ui.theme", "light");
+    localStorage.setItem("cellar.recognize", "true");
     document.documentElement.setAttribute("data-theme", "light");
   });
 }
@@ -81,30 +83,12 @@ async function pickLibraryPhoto(page: Page, fileName: string, expectEdit: boolea
   await expect(dialog).toHaveCount(0);
 }
 
-async function selectDrinkType(page: Page, label: string): Promise<void> {
-  const current = page.locator("button.form-select-row").first();
-  if ((await current.count()) > 0) {
-    await current.click();
-    await page.getByRole("dialog").getByRole("button", { name: label, exact: true }).click();
-    return;
-  }
-  await page.getByRole("button", { name: label, exact: true }).click();
-}
-
 async function addBottle(page: Page, bottle: (typeof DEMO_BOTTLES)[number], captureForm: boolean) {
   await page.goto("/cellar/new");
   await expect(page.getByRole("heading", { name: "ボトルを追加" })).toBeVisible();
   await pickLibraryPhoto(page, bottle.photo, true);
-  await page.locator("#bottle-name").fill(bottle.name);
-  await page.getByRole("button", { name: bottle.drinkTypeLabel, exact: true }).click();
-  if (bottle.vintage) {
-    await page.locator("#bottle-vintage").fill(bottle.vintage);
-  }
-  if (bottle.variety) {
-    await page.locator("#bottle-variety").fill(bottle.variety);
-  }
-  await page.locator("#bottle-producer").fill(bottle.producer);
-  await page.locator("#bottle-origin").fill(bottle.origin);
+  await expect(page.getByText("ラベルから読み取りました")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#bottle-name")).toHaveValue(bottle.name);
   await expect(page.getByText("アップロード中")).toHaveCount(0, { timeout: 30_000 });
   if (captureForm) {
     await shot(page, "cellar-new");
@@ -119,8 +103,10 @@ async function addLog(page: Page, log: (typeof DEMO_LOGS)[number], captureForm: 
   await mainNav(page).getByRole("button", { name: "お酒を記録" }).click();
   await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
   await pickLibraryPhoto(page, log.photo, false);
-  await page.locator("#log-drink-name").fill(log.name);
-  await selectDrinkType(page, log.drinkTypeLabel);
+  await expect(page.getByText(/写真から .+項目を入れました|写真から入れました/)).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page.locator("#log-drink-name")).toHaveValue(log.name);
   await expect(page.getByText("アップロード中")).toHaveCount(0, { timeout: 30_000 });
   if (captureForm) {
     await shot(page, "log-new");
@@ -137,8 +123,8 @@ async function addNote(page: Page, note: (typeof DEMO_NOTES)[number], captureFor
   await page.goto("/notes/new");
   await expect(page.getByRole("heading", { name: "ノートを作成" })).toBeVisible();
   await pickLibraryPhoto(page, note.photo, false);
-  await page.locator("#note-drink-name").fill(note.name);
-  await selectDrinkType(page, note.drinkTypeLabel);
+  await expect(page.getByText(/写真から入れました|写真から銘柄/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#note-drink-name")).toHaveValue(note.name);
   await page.getByRole("button", { name: "セラーのボトルと関連付ける（任意）" }).click();
   await expect(page.getByRole("heading", { name: "ボトル" })).toBeVisible();
   await page.getByRole("button", { name: new RegExp(note.name) }).click();
@@ -159,6 +145,7 @@ async function addNote(page: Page, note: (typeof DEMO_NOTES)[number], captureFor
 
 test("デモデータを投入して紹介用スクリーンショットを撮る", async ({ page }) => {
   await mkdir(shotsDir, { recursive: true });
+  await installRecognizeMocks(page);
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
   await shot(page, "login");

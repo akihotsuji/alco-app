@@ -24,6 +24,19 @@ export type DemoNote = {
   photo: string;
 };
 
+export const DEMO_TYPE_IDS = {
+  赤ワイン: "wine_red",
+  白ワイン: "wine_white",
+  ウイスキー: "whisky",
+  日本酒: "sake",
+  スパークリング: "wine_sparkling",
+  オレンジ: "wine_orange",
+} as const;
+
+export function demoDrinkTypeId(label: string): string {
+  return DEMO_TYPE_IDS[label as keyof typeof DEMO_TYPE_IDS] ?? "other";
+}
+
 /** 架空のデモ銘柄。実在ブランド名・本番データは使わない */
 export const DEMO_BOTTLES: DemoBottle[] = [
   {
