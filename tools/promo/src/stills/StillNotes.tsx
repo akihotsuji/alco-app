@@ -4,7 +4,19 @@ import { MascotMark } from "../components/MascotMark";
 import { ScreenCard } from "../components/ScreenCard";
 import { ServiceMark, ServiceUrl } from "../components/ServiceMark";
 import { fontFamily } from "../fonts";
-import { colors } from "../theme";
+import { STILL_HEIGHT, STILL_WIDTH, colors, placeShot } from "../theme";
+
+const SIDE = 48;
+const GAP = 24;
+const LABEL_TOP = 336;
+const CARD_TOP = 376;
+const CARD_BOTTOM = STILL_HEIGHT - 96;
+const COL_WIDTH = (STILL_WIDTH - SIDE * 2 - GAP) / 2;
+
+const COLS = [
+  { file: "shots/log-day.png", label: "飲酒記録" },
+  { file: "shots/notes.png", label: "ノート" },
+] as const;
 
 export const StillNotes: React.FC = () => {
   return (
@@ -57,53 +69,35 @@ export const StillNotes: React.FC = () => {
       >
         日ごとの一杯と、テイスティングノート。
       </div>
-      <div
-        style={{
-          position: "absolute",
-          left: 56,
-          top: 336,
-          width: 470,
-          fontFamily,
-          fontSize: 24,
-          fontWeight: 700,
-          color: colors.foreground,
-        }}
-      >
-        飲酒記録
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          left: 554,
-          top: 336,
-          width: 470,
-          fontFamily,
-          fontSize: 24,
-          fontWeight: 700,
-          color: colors.foreground,
-        }}
-      >
-        ノート
-      </div>
-      <ScreenCard
-        file="shots/log-day.png"
-        left={56}
-        top={376}
-        width={470}
-        height={860}
-        objectPosition="50% 14%"
-        radius={32}
-      />
-      <ScreenCard
-        file="shots/notes.png"
-        left={554}
-        top={376}
-        width={470}
-        height={860}
-        objectPosition="50% 30%"
-        radius={32}
-      />
-      <ServiceUrl bottom={48} />
+      {COLS.map((col, index) => {
+        const boxLeft = SIDE + index * (COL_WIDTH + GAP);
+        const frame = placeShot({
+          left: boxLeft,
+          top: CARD_TOP,
+          width: COL_WIDTH,
+          height: CARD_BOTTOM - CARD_TOP,
+        });
+        return (
+          <div key={col.file}>
+            <div
+              style={{
+                position: "absolute",
+                left: frame.left,
+                top: LABEL_TOP,
+                width: frame.width,
+                fontFamily,
+                fontSize: 24,
+                fontWeight: 700,
+                color: colors.foreground,
+              }}
+            >
+              {col.label}
+            </div>
+            <ScreenCard file={col.file} radius={32} {...frame} />
+          </div>
+        );
+      })}
+      <ServiceUrl bottom={40} />
     </AbsoluteFill>
   );
 };

@@ -7,21 +7,9 @@ export const ScreenCard: React.FC<{
   readonly top: number;
   readonly width: number;
   readonly height: number;
-  readonly objectPosition?: string;
-  readonly scale?: number;
   readonly opacity?: number;
   readonly radius?: number;
-}> = ({
-  file,
-  left,
-  top,
-  width,
-  height,
-  objectPosition = "50% 50%",
-  scale,
-  opacity = 1,
-  radius = 40,
-}) => {
+}> = ({ file, left, top, width, height, opacity = 1, radius = 40 }) => {
   return (
     <div
       style={{
@@ -43,9 +31,8 @@ export const ScreenCard: React.FC<{
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
-          objectPosition,
-          scale,
+          objectFit: "contain",
+          objectPosition: "center top",
         }}
       />
     </div>

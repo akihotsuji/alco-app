@@ -4,7 +4,14 @@ import { MascotMark } from "../components/MascotMark";
 import { ScreenCard } from "../components/ScreenCard";
 import { ServiceMark, ServiceUrl } from "../components/ServiceMark";
 import { fontFamily } from "../fonts";
-import { colors } from "../theme";
+import { STILL_HEIGHT, STILL_WIDTH, colors, placeShot } from "../theme";
+
+const frame = placeShot({
+  left: 64,
+  top: 352,
+  width: STILL_WIDTH - 128,
+  height: STILL_HEIGHT - 352 - 96,
+});
 
 export const StillCellar: React.FC = () => {
   return (
@@ -57,16 +64,8 @@ export const StillCellar: React.FC = () => {
       >
         写真から名前や種類を入れて、棚に並べる。
       </div>
-      <ScreenCard
-        file="shots/cellar.png"
-        left={56}
-        top={360}
-        width={968}
-        height={870}
-        objectPosition="50% 50%"
-        radius={36}
-      />
-      <ServiceUrl bottom={48} />
+      <ScreenCard file="shots/cellar.png" radius={36} {...frame} />
+      <ServiceUrl bottom={40} />
     </AbsoluteFill>
   );
 };
