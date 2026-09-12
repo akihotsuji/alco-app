@@ -28,11 +28,16 @@ export async function recognizeBottleLabel(input: {
   db: AppSqliteDb;
   userId: string;
   bytes: Uint8Array;
+  /** 裏面（任意）。表面と同じ検証を通し、同じ 1 回の呼び出しに渡す。回数は 1 回。 */
+  backBytes?: Uint8Array;
   recognizer: LabelRecognizer;
   now?: Date;
   timeoutMs?: number;
 }): Promise<RecognizeResponse> {
   inspectRecognizeJpeg(input.bytes);
+  if (input.backBytes) {
+    inspectRecognizeJpeg(input.backBytes);
+  }
 
   const consumed = await tryConsumeAiUsage({
     db: input.db,
@@ -49,7 +54,10 @@ export async function recognizeBottleLabel(input: {
   let providerMs = 0;
   let parseMs = 0;
   try {
-    const imageHash = await sha256Hex(input.bytes);
+    // 表 1 枚と表 + 裏でキーが衝突しないよう、裏面があるときだけハッシュを連結する。
+    const imageHash = input.backBytes
+      ? `${await sha256Hex(input.bytes)}+${await sha256Hex(input.backBytes)}`
+      : await sha256Hex(input.bytes);
     const key = recognitionCacheKey({
       userId: input.userId,
       imageHash,
@@ -61,7 +69,7 @@ export async function recognizeBottleLabel(input: {
     });
     const fields = await withRecognitionCache(key, async () => {
       const output = await withTimeout(
-        input.recognizer.recognize(input.bytes),
+        input.recognizer.recognize(input.bytes, { backJpegBytes: input.backBytes }),
         timeoutMsForRecognizer(input.recognizer, input.timeoutMs),
       );
       providerMs = Date.now() - started;

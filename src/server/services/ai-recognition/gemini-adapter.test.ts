@@ -33,6 +33,29 @@ describe("buildGeminiBody", () => {
     });
   });
 
+  it("裏面があれば inlineData を 2 つ、表 → 裏の順で並べる", () => {
+    const body = buildGeminiBody({
+      profile,
+      jpegBytes: new Uint8Array([1, 2, 3, 4]),
+      extraJpegBytes: [new Uint8Array([5, 6, 7, 8])],
+      systemPrompt: "sys",
+      userPrompt: "user",
+      schema: { type: "OBJECT", properties: {} },
+      search: false,
+      kind: "extract",
+    });
+    expect(body.contents).toEqual([
+      {
+        role: "user",
+        parts: [
+          { inlineData: { mimeType: "image/jpeg", data: "AQIDBA==" } },
+          { inlineData: { mimeType: "image/jpeg", data: "BQYHCA==" } },
+          { text: "user" },
+        ],
+      },
+    ]);
+  });
+
   it("検索照合は googleSearch を付け、画像は送らない", () => {
     const body = buildGeminiBody({
       profile,

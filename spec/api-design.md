@@ -49,7 +49,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 記録とボトル | drink-log に **`bottleId`**（任意）。`GET /api/drink-logs?bottleId=` で絞り込み（期間必須は維持しない: `bottleId` 指定時は期間省略可、最大 100 件） | ボトル詳細の記録節 |
 | 写真の紐付け | 作成 API（drink-logs / bottles / tasting-notes）が **`photoIds: string[]`** を受け取り、同一トランザクションで紐付ける。PATCH でも可 | 「使う」直後の先アップロード → 保存で紐付け |
 | 記録の写真 | `POST /api/photos` に **`drinkLogId`** を追加。所有者 3 列は最大 1 つ | 写真を撮って記録 |
-| 写真枚数 | 記録 1 / ボトル 1 / ノート 6。超過は 400 `validation_error`（`photoIds`） | data-model 5.6 |
+| 写真枚数 | 記録 1 / ボトル 2（表面 + 任意の裏面。配列順 = `sortOrder`、`[0]` がサムネ） / ノート 6。超過は 400 `validation_error`（`photoIds`） | data-model 5.6 |
 | 写真の実体検証 | **magic bytes**、1MB（413）、長辺 1600px（400）、jpeg/png/webp のみ | [screen-designs/07-photo-capture.md](screen-designs/07-photo-capture.md) |
 | 未紐付け GC | **Cron Trigger（日次）** で作成 24h 超の未紐付け写真を R2 + D1 から削除。公開エンドポイントではない（Worker の `scheduled` ハンドラ） | 放棄分の掃除 |
 | 一覧のサムネ | drink-log 一覧にも `thumbPhotoId` を含める。bottles 一覧は `thumbPhotoKind`（`photo` / `cutout`）も返す | 日別の行サムネ、棚の描き分け |
@@ -619,7 +619,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 **共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。代わりに `cellarId` / `version` / `createdByName` / `updatedByName`。日付は `purchasedOn` / `storedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`storedOn` は保管日で `purchasedOn` とは別項目。`priceJpy` は整数円または null。`status` は `sealed` \| `consumed`。`quantity` は無い（1 行 = 1 本）。`openedOn` は持たない。認可は対象セラーの有効メンバー。
 
-詳細・作成応答に `photos`（4.7 のメタ配列、最大 1）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。
+詳細・作成応答に `photos`（4.7 のメタ配列、最大 2。`sortOrder` 昇順で `[0]` = 表面、`[1]` = 裏面）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。
 
 #### GET /api/bottles
 
@@ -636,7 +636,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 #### POST /api/bottles
 
-必須: `name`, `drinkType`。`status` は受け取らない（常に `sealed`）。**`count`（1〜12、省略時 1）** の本数だけ同じ属性の行を作る。`photoIds`（最大 1。同じ写真 id を N 行に付けることはできないため、**N ≥ 2 のときサーバーが photo 行を複製**する。R2 オブジェクトは 1 つを共有せず N 個にコピーする — 削除の独立性のため）。`storedOn` 省略時はサーバーの JST 当日、`storage` 省略時は「自宅セラー」。`null` を送った欄は空のまま（デフォルトを再適用しない）。`purchasedOn` は省略時 null（当日にしない）。
+必須: `name`, `drinkType`。`status` は受け取らない（常に `sealed`）。**`count`（1〜12、省略時 1）** の本数だけ同じ属性の行を作る。`photoIds`（最大 2。配列順を `sortOrder` に保存し、`[0]` = 表面（サムネ）、`[1]` = 裏面。同じ写真 id を N 行に付けることはできないため、**N ≥ 2 のときサーバーが photo 行を組ごと複製**する。R2 オブジェクトは 1 つを共有せず N 組にコピーする — 削除の独立性のため）。`storedOn` 省略時はサーバーの JST 当日、`storage` 省略時は「自宅セラー」。`null` を送った欄は空のまま（デフォルトを再適用しない）。`purchasedOn` は省略時 null（当日にしない）。
 
 任意: `cellarId`（省略時は個人セラー。共有へ暗黙保存しない）、`operationKey`（冪等）。
 
@@ -644,7 +644,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 #### GET / PATCH / DELETE /api/bottles/:id
 
-PATCH は部分更新。`status` / `consumedAt` / `consumedOn` は受け取らない（開栓は 4.5.1、戻しは 4.5.2）。`photoIds` は差し替え。共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
+PATCH は部分更新。`status` / `consumedAt` / `consumedOn` は受け取らない（開栓は 4.5.1、戻しは 4.5.2）。`photoIds` は差し替え（配列全体 `[表面, 裏面?]`。紐付け済みの自分の写真は残し、外れた写真は削除、添字を `sortOrder` に書き直す）。共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
 
 DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` と記録の `bottleId` は SET NULL。本体は残る。貯蔵庫の本も削除できる。
 
@@ -670,7 +670,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 ラベル写真から登録フォームの候補を返す。**DB には何も書かない**（利用回数以外）。画面: [screen-designs/04-cellar.md](screen-designs/04-cellar.md) B2。
 
-`multipart/form-data`。パート `file`（切り抜く前の 2:3 JPEG。≦1MB、magic bytes 検証は 4.7 と同じ）。
+`multipart/form-data`。パート `file`（表面。切り抜く前の 2:3 JPEG。≦1MB、magic bytes 検証は 4.7 と同じ）と任意の `back`（裏面。同じ形式・同じ検証）。`back` があれば 2 枚を **1 回のモデル呼び出し**に渡し、利用回数は 1 回。
 
 ```json
 {

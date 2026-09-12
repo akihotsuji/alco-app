@@ -84,10 +84,29 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
         throw new ApiError("payload_too_large");
       }
 
+      // 裏面は任意。あれば表面と同じサイズ上限で受け、MIME / 長辺の検証はサービス側で表面と同じく行う。
+      const back = form.get("back");
+      let backBytes: Uint8Array | undefined;
+      if (back !== null) {
+        if (!(back instanceof File)) {
+          throw new ApiError("validation_error", {
+            fields: { back: ["画像ファイルを指定してください"] },
+          });
+        }
+        if (back.size > PHOTO_MAX_BYTES) {
+          throw new ApiError("payload_too_large");
+        }
+        backBytes = new Uint8Array(await back.arrayBuffer());
+        if (backBytes.byteLength > PHOTO_MAX_BYTES) {
+          throw new ApiError("payload_too_large");
+        }
+      }
+
       const result = await recognizeBottleLabel({
         db: deps.getDb(c),
         userId: user.id,
         bytes,
+        backBytes,
         recognizer: deps.getLabelRecognizer(c),
         timeoutMs: deps.recognizeTimeoutMs,
       });

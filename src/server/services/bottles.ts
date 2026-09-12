@@ -204,11 +204,11 @@ async function resolveUnattachedPhotos(
   photoIds: readonly string[],
 ): Promise<PhotoRow[]> {
   const unique = [...new Set(photoIds)];
+  if (unique.length !== photoIds.length || unique.length > BOTTLE_PHOTO_MAX) {
+    throw new ApiError("not_found");
+  }
   if (unique.length === 0) {
     return [];
-  }
-  if (unique.length > BOTTLE_PHOTO_MAX) {
-    throw new ApiError("not_found");
   }
   const rows = await db
     .select()
@@ -226,7 +226,20 @@ async function resolveUnattachedPhotos(
   if (rows.length !== unique.length) {
     throw new ApiError("not_found");
   }
-  return rows;
+  return orderPhotosByIds(rows, photoIds);
+}
+
+/** `photoIds` の順（[0] = 表面、[1] = 裏面）を保つ。添字がそのまま `sort_order` になる。 */
+function orderPhotosByIds(rows: readonly PhotoRow[], photoIds: readonly string[]): PhotoRow[] {
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const ordered: PhotoRow[] = [];
+  for (const id of photoIds) {
+    const row = byId.get(id);
+    if (row) {
+      ordered.push(row);
+    }
+  }
+  return ordered;
 }
 
 async function resolvePatchPhotos(
@@ -254,7 +267,7 @@ async function resolvePatchPhotos(
   if (!valid || rows.length !== unique.length) {
     throw new ApiError("not_found");
   }
-  return rows;
+  return orderPhotosByIds(rows, photoIds);
 }
 
 async function photosForBottles(
@@ -400,16 +413,23 @@ export async function createBottles(input: {
 
   const count = body.count ?? 1;
   const sourcePhotos = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
-  const sourcePhoto = sourcePhotos[0];
 
-  const copies: CopiedPhoto[] = [];
-  if (sourcePhoto && count > 1) {
+  // copies[i] = i+2 本目に付ける写真の組（表 + 裏）。1 本目は元の未紐付け写真をそのまま紐付ける。
+  const copies: CopiedPhoto[][] = [];
+  const flatCopies = (): CopiedPhoto[] => copies.flat();
+  if (sourcePhotos.length > 0 && count > 1) {
     try {
       for (let index = 1; index < count; index += 1) {
-        copies.push(await copyPhotoObject(bucket, sourcePhoto));
+        const set: CopiedPhoto[] = [];
+        for (const [sortOrder, source] of sourcePhotos.entries()) {
+          set.push({ ...(await copyPhotoObject(bucket, source)), sortOrder });
+        }
+        copies.push(set);
       }
     } catch (error) {
-      await Promise.all(copies.map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)));
+      await Promise.all(
+        flatCopies().map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)),
+      );
       throw error;
     }
   }
@@ -446,9 +466,9 @@ export async function createBottles(input: {
 
   try {
     const statements: BatchItem<"sqlite">[] = rows.map((row) => db.insert(bottles).values(row));
-    if (sourcePhoto) {
-      const first = rows[0];
-      if (first) {
+    const first = rows[0];
+    if (first) {
+      for (const [sortOrder, sourcePhoto] of sourcePhotos.entries()) {
         statements.push(
           db
             .update(photos)
@@ -456,6 +476,7 @@ export async function createBottles(input: {
               bottleId: first.id,
               cellarId,
               userId: null,
+              sortOrder,
               updatedAt: now,
             })
             .where(
@@ -467,11 +488,13 @@ export async function createBottles(input: {
             ),
         );
       }
-      for (const [index, copy] of copies.entries()) {
-        const bottle = rows[index + 1];
-        if (!bottle) {
-          continue;
-        }
+    }
+    for (const [index, set] of copies.entries()) {
+      const bottle = rows[index + 1];
+      if (!bottle) {
+        continue;
+      }
+      for (const copy of set) {
         statements.push(
           db.insert(photos).values({
             id: copy.id,
@@ -531,7 +554,7 @@ export async function createBottles(input: {
     await db.batch([firstStatement, ...rest]);
     void access;
   } catch (error) {
-    await Promise.all(copies.map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)));
+    await Promise.all(flatCopies().map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)));
     if (body.operationKey) {
       const recovered = await recoverIdempotentResult<{ items: Bottle[] }>(db, {
         actorUserId: userId,
@@ -547,24 +570,28 @@ export async function createBottles(input: {
   }
 
   const photoByBottle = new Map<string, PhotoRow[]>();
-  if (sourcePhoto && rows[0]) {
-    photoByBottle.set(rows[0].id, [
-      {
+  if (sourcePhotos.length > 0 && rows[0]) {
+    const firstId = rows[0].id;
+    photoByBottle.set(
+      firstId,
+      sourcePhotos.map((sourcePhoto, sortOrder) => ({
         ...sourcePhoto,
-        bottleId: rows[0].id,
+        bottleId: firstId,
         cellarId,
         userId: null,
+        sortOrder,
         updatedAt: now,
-      },
-    ]);
+      })),
+    );
   }
-  for (const [index, copy] of copies.entries()) {
+  for (const [index, set] of copies.entries()) {
     const bottle = rows[index + 1];
     if (!bottle) {
       continue;
     }
-    photoByBottle.set(bottle.id, [
-      {
+    photoByBottle.set(
+      bottle.id,
+      set.map((copy) => ({
         id: copy.id,
         userId: null,
         cellarId,
@@ -581,8 +608,8 @@ export async function createBottles(input: {
         sortOrder: copy.sortOrder,
         createdAt: now,
         updatedAt: now,
-      },
-    ]);
+      })),
+    );
   }
 
   const nameMap = await displayNamesById(db, [userId]);
@@ -826,22 +853,19 @@ export async function updateBottle(input: {
             ),
           )
       : null;
-  const attachStatement =
-    desiredPhotoRows && desiredPhotoRows.length > 0
-      ? db
-          .update(photos)
-          .set({ bottleId, cellarId: current.cellarId, userId: null, updatedAt })
-          .where(
-            and(
-              inArray(
-                photos.id,
-                desiredPhotoRows.map((photo) => photo.id),
-              ),
-              isNull(photos.tastingNoteId),
-              isNull(photos.drinkLogId),
-            ),
-          )
-      : null;
+  // 残す写真も含めて添字を sort_order に書き直す（[0] = 表面、[1] = 裏面）。
+  const attachStatements = (desiredPhotoRows ?? []).map((photo, sortOrder) =>
+    db
+      .update(photos)
+      .set({ bottleId, cellarId: current.cellarId, userId: null, sortOrder, updatedAt })
+      .where(
+        and(
+          eq(photos.id, photo.id),
+          isNull(photos.tastingNoteId),
+          isNull(photos.drinkLogId),
+        ),
+      ),
+  );
 
   const extra: BatchItem<"sqlite">[] = [
     bumpCellarRevision(db, current.cellarId, updatedAt),
@@ -856,15 +880,12 @@ export async function updateBottle(input: {
   ];
 
   try {
-    if (detachStatement && attachStatement) {
-      await db.batch([updateStatement, detachStatement, attachStatement, ...extra]);
-    } else if (detachStatement) {
-      await db.batch([updateStatement, detachStatement, ...extra]);
-    } else if (attachStatement) {
-      await db.batch([updateStatement, attachStatement, ...extra]);
-    } else {
-      await db.batch([updateStatement, ...extra]);
-    }
+    await db.batch([
+      updateStatement,
+      ...(detachStatement ? [detachStatement] : []),
+      ...attachStatements,
+      ...extra,
+    ]);
   } catch (error) {
     if (body.operationKey) {
       const recovered = await recoverIdempotentResult<Bottle>(db, {

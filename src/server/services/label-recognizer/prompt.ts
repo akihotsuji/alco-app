@@ -35,6 +35,10 @@ export const LABEL_RECOGNIZE_SYSTEM_PROMPT = [
 export const LABEL_RECOGNIZE_USER_PROMPT =
   "Read this bottle and return the JSON object described in the system message. Omit fields without printed or verified evidence.";
 
+/** 表 + 裏の 2 枚を渡すときの user プロンプト。画像の順序（1 枚目 = 表、2 枚目 = 裏）を明示する。 */
+export const LABEL_RECOGNIZE_TWO_SIDED_USER_PROMPT =
+  "Two photos of the same bottle: the first is the front label, the second is the back label. Combine printed text from both (the back label often states producer, origin, grape variety, vintage, and ABV) and return one JSON object described in the system message. Omit fields without printed or verified evidence.";
+
 const geminiTextProperty = {
   type: "OBJECT",
   properties: {

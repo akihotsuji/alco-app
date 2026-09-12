@@ -169,6 +169,67 @@ describe("POST /api/bottles", () => {
     expect(new Set(photoRows.map((row) => row.bottleId)).size).toBe(3);
   });
 
+  it("表面 + 裏面の 2 枚は配列順が sortOrder。3 枚と重複は弾く", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const front = await uploadPhoto(ctx.app, a.cookie);
+    const back = await uploadPhoto(ctx.app, a.cookie);
+    const res = await postBottle(ctx.app, a.cookie, { ...BASE, photoIds: [front.id, back.id] });
+    expect(res.status).toBe(201);
+    const body = createBottlesResponseSchema.parse(await res.json());
+    const created = body.items[0];
+    expect(created?.photos.map((photo) => photo.id)).toEqual([front.id, back.id]);
+    expect(created?.thumbPhotoId).toBe(front.id);
+    const rows = await ctx.db.select().from(photos).where(eq(photos.bottleId, created?.id ?? ""));
+    expect(new Map(rows.map((row) => [row.id, row.sortOrder]))).toEqual(
+      new Map([
+        [front.id, 0],
+        [back.id, 1],
+      ]),
+    );
+
+    const detail = bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, created?.id ?? "")).json());
+    expect(detail.photos.map((photo) => photo.id)).toEqual([front.id, back.id]);
+
+    const extra = await uploadPhoto(ctx.app, a.cookie);
+    const three = await postBottle(ctx.app, a.cookie, {
+      ...BASE,
+      photoIds: [extra.id, extra.id, extra.id],
+    });
+    expect((await fields(three)).photoIds).toEqual([BOTTLE_MESSAGES.photoIdsMax]);
+    const duplicated = await postBottle(ctx.app, a.cookie, {
+      ...BASE,
+      photoIds: [extra.id, extra.id],
+    });
+    expect(duplicated.status).toBe(404);
+    expect(await ctx.db.select().from(bottles)).toHaveLength(1);
+  });
+
+  it("表 + 裏の N 本は組ごとに複製し sortOrder を引き継ぐ", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const front = await uploadPhoto(ctx.app, a.cookie);
+    const back = await uploadPhoto(ctx.app, a.cookie);
+    const res = await postBottle(ctx.app, a.cookie, {
+      ...BASE,
+      count: 2,
+      photoIds: [front.id, back.id],
+    });
+    expect(res.status).toBe(201);
+    const body = createBottlesResponseSchema.parse(await res.json());
+    expect(body.items).toHaveLength(2);
+    for (const item of body.items) {
+      expect(item.photos).toHaveLength(2);
+      expect(item.thumbPhotoId).toBe(item.photos[0]?.id);
+    }
+    expect(body.items[0]?.photos.map((photo) => photo.id)).toEqual([front.id, back.id]);
+    expect(ctx.photos.keys()).toHaveLength(4);
+    const rows = await ctx.db.select().from(photos).where(eq(photos.uploadedBy, a.userId));
+    expect(rows).toHaveLength(4);
+    const second = rows.filter((row) => row.bottleId === body.items[1]?.id);
+    expect(second.map((row) => row.sortOrder).sort()).toEqual([0, 1]);
+  });
+
   it("他人・紐付け済み・不明の photoIds は 404。行は作らない", async () => {
     const ctx = await createTestApp();
     const [a, b] = await createTestUserPair(ctx.app, [
@@ -571,6 +632,54 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     expect(
       bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, id)).json()).photos,
     ).toEqual([]);
+  });
+
+  it("PATCH で既存の表面に裏面を足し、外した写真は R2 ごと消える", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const front = await uploadPhoto(ctx.app, a.cookie);
+    const created = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { ...BASE, photoIds: [front.id] })).json(),
+    );
+    const id = created.items[0]?.id ?? "";
+
+    const back = await uploadPhoto(ctx.app, a.cookie);
+    const added = await patchBottle(ctx.app, a.cookie, id, { photoIds: [front.id, back.id] });
+    expect(added.status).toBe(200);
+    const withBack = bottleSchema.parse(await added.json());
+    expect(withBack.photos.map((photo) => photo.id)).toEqual([front.id, back.id]);
+    expect(withBack.thumbPhotoId).toBe(front.id);
+    let rows = await ctx.db.select().from(photos).where(eq(photos.bottleId, id));
+    expect(new Map(rows.map((row) => [row.id, row.sortOrder]))).toEqual(
+      new Map([
+        [front.id, 0],
+        [back.id, 1],
+      ]),
+    );
+
+    // 表面を差し替え、裏面は残す。残した裏面の sort_order も書き直される。
+    const newFront = await uploadPhoto(ctx.app, a.cookie);
+    const swapped = await patchBottle(ctx.app, a.cookie, id, {
+      photoIds: [newFront.id, back.id],
+    });
+    expect(swapped.status).toBe(200);
+    expect(bottleSchema.parse(await swapped.json()).photos.map((photo) => photo.id)).toEqual([
+      newFront.id,
+      back.id,
+    ]);
+    rows = await ctx.db.select().from(photos).where(eq(photos.bottleId, id));
+    expect(rows.map((row) => row.id).sort()).toEqual([newFront.id, back.id].sort());
+    expect(rows.find((row) => row.id === back.id)?.sortOrder).toBe(1);
+    expect(await ctx.db.select().from(photos).where(eq(photos.id, front.id))).toHaveLength(0);
+    expect(ctx.photos.keys()).toHaveLength(2);
+
+    // 裏面だけ外す
+    const removed = await patchBottle(ctx.app, a.cookie, id, { photoIds: [newFront.id] });
+    expect(removed.status).toBe(200);
+    expect(bottleSchema.parse(await removed.json()).photos.map((photo) => photo.id)).toEqual([
+      newFront.id,
+    ]);
+    expect(ctx.photos.keys()).toHaveLength(1);
   });
 
   it("DELETE 後も記録は残り bottleId は null。写真は消える", async () => {

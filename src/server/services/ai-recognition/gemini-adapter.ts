@@ -7,6 +7,7 @@ import { extractGroundingSources, normalizeTokenUsage } from "./usage.ts";
 type GeminiCall = {
   profile: ModelProfile;
   jpegBytes?: Uint8Array;
+  extraJpegBytes?: readonly Uint8Array[];
   systemPrompt: string;
   userPrompt: string;
   schema?: Record<string, unknown>;
@@ -54,15 +55,13 @@ export function createGeminiGatewayAdapter(ai: Ai): RecognitionAdapter {
 }
 
 export function buildGeminiBody(request: GeminiCall): Record<string, unknown> {
-  const parts: Array<Record<string, unknown>> = [{ text: request.userPrompt }];
+  const parts: Array<Record<string, unknown>> = [];
   if (request.jpegBytes) {
-    parts.unshift({
-      inlineData: {
-        mimeType: "image/jpeg",
-        data: bytesToBase64(request.jpegBytes),
-      },
-    });
+    for (const bytes of [request.jpegBytes, ...(request.extraJpegBytes ?? [])]) {
+      parts.push({ inlineData: { mimeType: "image/jpeg", data: bytesToBase64(bytes) } });
+    }
   }
+  parts.push({ text: request.userPrompt });
   const generationConfig: Record<string, unknown> = {
     temperature: request.profile.temperature,
     maxOutputTokens:
