@@ -13,9 +13,9 @@
 
 | 関数 | 役割 |
 |---|---|
-| `pickImage` / `pickImages` | `source: "camera" \| "library"`。撮影は `capture=environment`、ライブラリは `capture` なし。ライブラリは `multiple` 可（まとめて追加）。キャンセルなら overlay を開かない |
+| `pickImage` / `pickImages` | `source: "camera" \| "library"`。撮影は `capture=environment`、ライブラリは `capture` なし。ライブラリは `multiple` 可（まとめて追加）。キャンセルなら overlay を開かない。iOS は復帰後の `change` 遅れを focus ポーリングで待つ |
 | `processCellarFile` | まとめて追加のライブラリ複数選択用。photo-edit を挟まず中央・拡縮 1 でセラー処理する |
-| `decodeImage` | `createImageBitmap` + EXIF orientation。長辺 2560 超は先に縮小 |
+| `decodeImage` | `createImageBitmap` + EXIF orientation。長辺 2560 超は先に縮小。HEIC とデコード失敗は `<img>` 経路 |
 | `computeCoverCrop` / `cropResize` | 4:5 / 2:3、拡縮 1.0〜3.0、長辺 1280 |
 | `processLogFile` / `processLogPhoto` | 酒記録。全体リサイズ、認識用 JPEG、設定どおりキャラ合成。`photo-edit` を挟まない |
 | `composeMascot` | 右下、短辺 22%、余白 4%、**グローなし**。線色 `#2B261F`。`pickMascotPose()` で 4 ポーズから抽選 |

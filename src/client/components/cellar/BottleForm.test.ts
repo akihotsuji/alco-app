@@ -55,6 +55,15 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });
 
+  it("撮影後の編集は photo-edit を開き、保存済み写真もカメラに落とさない", () => {
+    expect(source).toContain("async function editFrontPhoto()");
+    expect(source).toContain('editAttachment("cellar", { photoId: keptPhotoId })');
+    expect(source).toContain("PHOTO_EDIT_LOAD_FAILED");
+    expect(source).not.toContain(
+      'attachment ? () => void editAttachment("cellar") : () => void startCapture("cellar")',
+    );
+  });
+
   it("読み取りは pendingRecognizeJpeg で先に始め、attachment 側は同じ Blob の結果に相乗りする", () => {
     expect(source).toContain("startLabelRecognition(pendingRecognize.jpeg)");
     expect(source).toContain("startLabelRecognition(jpeg, undefined, { back, force })");

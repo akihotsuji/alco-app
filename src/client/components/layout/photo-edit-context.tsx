@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { deletePhoto, photoContentUrl, uploadPhoto } from "@/client/hooks/use-photos.ts";
-import { copyOwnedPhoto } from "@/client/lib/copy-owned-photo.ts";
+import { copyOwnedPhoto, fetchOwnedPhotoBlob } from "@/client/lib/copy-owned-photo.ts";
 import { historyHasFlag, withHistoryFlag } from "@/client/lib/history-state.ts";
 import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
@@ -103,8 +103,14 @@ type PhotoEditValue = {
   clearAttachment: (kind: PhotoEditContextKind) => Promise<void>;
   /** 保存成功後。写真は記録に紐付いたので削除せず、フォーム側の保持だけ外す */
   releaseAttachment: (kind: PhotoEditContextKind) => void;
-  /** 「編集」。元の画像がメモリに残っていれば再編集、無ければ撮り直し */
-  editAttachment: (kind: PhotoEditContextKind) => Promise<void>;
+  /**
+   * 「編集」。同一セッションの元画像、処理済み blob、または保存済み写真から photo-edit を開く。
+   * カメラは起動しない（撮り直し／選び直しは呼び出し側の別操作）。
+   */
+  editAttachment: (
+    kind: PhotoEditContextKind,
+    options?: { blob?: Blob; photoId?: string },
+  ) => Promise<void>;
   /** ノート用。保持している Blob から再編集し、結果を `collect` へ返す */
   editFromBlob: (
     kind: PhotoEditContextKind,
@@ -598,6 +604,13 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
         if (current.previewUrl.startsWith("blob:")) {
           URL.revokeObjectURL(current.previewUrl);
         }
+        setSource((prev) => {
+          if (!prev || kindRef.current !== targetKind) {
+            return prev;
+          }
+          prev.close();
+          return null;
+        });
         setAttachments((value) => {
           const existing = value[targetKind];
           if (!existing || existing.previewUrl !== current.previewUrl) {
@@ -620,6 +633,13 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const releaseAttachment = useCallback(
     (targetKind: PhotoEditContextKind) => {
       discardRecognize(targetKind);
+      setSource((prev) => {
+        if (!prev || kindRef.current !== targetKind) {
+          return prev;
+        }
+        prev.close();
+        return null;
+      });
       setAttachments((value) => {
         const current = value[targetKind];
         if (!current) {
@@ -640,14 +660,30 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   );
 
   const editAttachment = useCallback(
-    async (targetKind: PhotoEditContextKind) => {
-      if (source && kind === targetKind) {
+    async (targetKind: PhotoEditContextKind, options?: { blob?: Blob; photoId?: string }) => {
+      intentRef.current = null;
+      collectRef.current = null;
+      burstRef.current = null;
+      setBurstActive(false);
+      const current = attachmentsRef.current[targetKind];
+      if (source && kind === targetKind && current) {
         openWithSource(targetKind, source, null);
         return;
       }
-      await startCapture(targetKind);
+      let blob = options?.blob ?? usableAttachmentBlob(current);
+      if (!blob && options?.photoId) {
+        blob = await fetchOwnedPhotoBlob(options.photoId);
+      }
+      if (!blob) {
+        return;
+      }
+      const file = new File([blob], blob.type === "image/webp" ? "photo.webp" : "photo.jpg", {
+        type: blob.type || "image/jpeg",
+      });
+      const decoded = await decodePickedFile(file);
+      openWithSource(targetKind, decoded.bitmap, decoded.error);
     },
-    [kind, openWithSource, source, startCapture],
+    [kind, openWithSource, source],
   );
 
   const ingestCollected = useCallback(
@@ -809,6 +845,13 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
 export function usePhotoEdit(): PhotoEditValue {
   return useContext(PhotoEditContext);
+}
+
+function usableAttachmentBlob(attachment: PhotoAttachment | undefined): Blob | null {
+  if (!attachment || attachment.blob.size === 0) {
+    return null;
+  }
+  return attachment.blob;
 }
 
 /** フォーム mount でセッションを登録し、unmount で pending を失効する */

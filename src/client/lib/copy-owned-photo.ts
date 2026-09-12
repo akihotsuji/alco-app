@@ -17,7 +17,7 @@ type CopyOwnedPhotoDeps = {
   createPreview: (blob: Blob) => string;
 };
 
-async function fetchOwnedPhotoBlob(photoId: string): Promise<Blob> {
+export async function fetchOwnedPhotoBlob(photoId: string): Promise<Blob> {
   const response = await fetch(photoContentUrl(photoId), { credentials: "same-origin" });
   if (!response.ok) {
     throw new Error(PHOTO_COPY_FAILED);

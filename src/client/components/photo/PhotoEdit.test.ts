@@ -31,6 +31,22 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(source).not.toContain('processed.blob.type !== "image/webp"');
   });
 
+  it("セラーの編集は元画像または保存済み写真から photo-edit を開き、カメラを起動しない", () => {
+    const fn = context.slice(context.indexOf("const editAttachment = useCallback("));
+    expect(fn).toContain("usableAttachmentBlob");
+    expect(fn).toContain("fetchOwnedPhotoBlob");
+    expect(fn).toContain("openWithSource(targetKind, decoded.bitmap, decoded.error)");
+    expect(fn).not.toContain("startCapture(targetKind)");
+    expect(fn).toContain("collectRef.current = null");
+  });
+
+  it("切り抜き推論中は古い結果を出さず、ピンチは 1 本指だけ capture する", () => {
+    expect(source).toContain("previewCutout && !cutoutBusy");
+    expect(source).toContain("beginPhotoEditPointer");
+    expect(source).toContain("releasePointerCapture");
+    expect(source).toContain("event.preventDefault()");
+  });
+
   it("撮り直すは撮影、ライブラリからは保存済み写真（両立）", () => {
     expect(source).toContain('retake("library")');
     expect(source).toContain('retake("camera")');

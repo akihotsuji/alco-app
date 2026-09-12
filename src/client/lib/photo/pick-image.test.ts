@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { IMAGE_PICK_LABELS, imagePickAttributes } from "@/client/lib/photo/pick-image.ts";
+import {
+  filesFromList,
+  IMAGE_PICK_FOCUS_GRACE_MS,
+  IMAGE_PICK_LABELS,
+  imagePickAttributes,
+  resolvePickedFilesAfterFocus,
+} from "@/client/lib/photo/pick-image.ts";
 
 describe("imagePickAttributes", () => {
   it("撮影は capture=environment、ライブラリは capture なし", () => {
@@ -25,5 +31,15 @@ describe("imagePickAttributes", () => {
     expect(IMAGE_PICK_LABELS.library).toBe("ライブラリから");
     expect(IMAGE_PICK_LABELS.libraryMultiple).toBe("ライブラリから（複数枚）");
     expect(IMAGE_PICK_LABELS.noteLibrary).toBe("選ぶ");
+  });
+});
+
+describe("resolvePickedFilesAfterFocus", () => {
+  it("iOS の focus 先行では空のまま即キャンセルしない", () => {
+    expect(resolvePickedFilesAfterFocus([], 400)).toBe("wait");
+    expect(resolvePickedFilesAfterFocus([], IMAGE_PICK_FOCUS_GRACE_MS)).toBe("cancel");
+    const file = new File(["x"], "a.jpg", { type: "image/jpeg" });
+    expect(resolvePickedFilesAfterFocus([file], 10)).toBe("selected");
+    expect(filesFromList(null)).toEqual([]);
   });
 });
