@@ -4,7 +4,6 @@ import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import {
   BOTTLE_COUNT_MAX,
   BOTTLE_COUNT_MIN,
-  BOTTLE_FIELD_LABELS,
   BOTTLE_MEMO_MAX_LENGTH,
   BOTTLE_MESSAGES,
   BOTTLE_NAME_MAX_LENGTH,
@@ -454,23 +453,10 @@ export function vintageLabel(value: number | null): string | null {
   return value === null ? null : String(value);
 }
 
-const STACKED_BOTTLE_PROP_LABELS = new Set([
-  BOTTLE_FIELD_LABELS.name,
-  "生産者",
-  "購入場所",
-  BOTTLE_FIELD_LABELS.storage,
-]);
-
 export type BottlePropLayout = "inline" | "stack" | "memo";
 
 export function bottlePropLayout(label: string): BottlePropLayout {
-  if (label === "メモ") {
-    return "memo";
-  }
-  if (STACKED_BOTTLE_PROP_LABELS.has(label)) {
-    return "stack";
-  }
-  return "inline";
+  return label === "メモ" ? "memo" : "inline";
 }
 
 export function formatBottleDisplayDate(value: string): string {
