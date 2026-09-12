@@ -47,7 +47,7 @@ type BottleDetailProps = {
 };
 
 export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDetailProps) {
-  const [lightbox, setLightbox] = useState(false);
+  const [lightbox, setLightbox] = useState<"front" | "back" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [consumeState, setConsumeState] = useState<MotionState>("idle");
   const [followupOpen, setFollowupOpen] = useState(() => shouldShowOpenedFollowup(bottle.id));
@@ -60,6 +60,8 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const { showToast } = useToast();
   useSetHeaderOverride({ title: bottle.name });
   const photo = bottle.photos[0];
+  const backPhoto = bottle.photos[1];
+  const lightboxPhoto = lightbox === "back" ? backPhoto : lightbox === "front" ? photo : undefined;
   const archived = bottle.status === "consumed";
   const statusPill = bottleStatusPill(bottle);
   const pending = consume.isPending || restore.isPending;
@@ -186,7 +188,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         className={photo?.kind === "cutout" ? "bottle-hero bottle-hero-cutout" : "bottle-hero"}
         onClick={() => {
           if (photo) {
-            setLightbox(true);
+            setLightbox("front");
           }
         }}
         aria-label={photo ? "写真を拡大" : undefined}
@@ -210,6 +212,24 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         )}
         <span className="shelf-board bottle-hero-shelf" />
       </button>
+      {backPhoto ? (
+        <button
+          type="button"
+          className="bottle-back-thumb"
+          onClick={() => setLightbox("back")}
+          aria-label="裏面の写真を拡大"
+        >
+          <span className="photo-thumb bottle-back-thumb-frame">
+            <ContentPhoto
+              className="photo-thumb-img"
+              src={photoContentUrl(backPhoto.id)}
+              size={PHOTO_DISPLAY_SIZE.bottleTile}
+              loading="lazy"
+            />
+          </span>
+          <span className="bottle-back-thumb-label">裏面</span>
+        </button>
+      ) : null}
       <div className="bottle-status-row">
         {statusPill.consumed ? (
           <span className="bottle-status-pill is-consumed">{statusPill.label}</span>
@@ -283,11 +303,11 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         </section>
       ) : null}
       <PhotoViewer
-        open={lightbox && Boolean(photo)}
-        src={photo ? photoContentUrl(photo.id) : ""}
-        alt={bottle.name}
-        checkerboard={photo?.kind === "cutout"}
-        onClose={() => setLightbox(false)}
+        open={lightbox !== null && Boolean(lightboxPhoto)}
+        src={lightboxPhoto ? photoContentUrl(lightboxPhoto.id) : ""}
+        alt={lightbox === "back" ? `${bottle.name}（裏面）` : bottle.name}
+        checkerboard={lightboxPhoto?.kind === "cutout"}
+        onClose={() => setLightbox(null)}
       />
       <OpenedFollowupSheet
         open={followupOpen}

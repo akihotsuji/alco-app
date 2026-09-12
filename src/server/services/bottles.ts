@@ -858,13 +858,7 @@ export async function updateBottle(input: {
     db
       .update(photos)
       .set({ bottleId, cellarId: current.cellarId, userId: null, sortOrder, updatedAt })
-      .where(
-        and(
-          eq(photos.id, photo.id),
-          isNull(photos.tastingNoteId),
-          isNull(photos.drinkLogId),
-        ),
-      ),
+      .where(and(eq(photos.id, photo.id), isNull(photos.tastingNoteId), isNull(photos.drinkLogId))),
   );
 
   const extra: BatchItem<"sqlite">[] = [

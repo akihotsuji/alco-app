@@ -34,6 +34,35 @@ export async function processCellarFile(
 }
 
 /**
+ * ボトル裏面用（04-cellar B1b / G2b）。photo-edit を挟まず、中央・拡縮 1 で 2:3 に切った JPEG にする。
+ * 切り抜き・キャラ合成は掛けない（常に `kind = photo`）。読み取り用 JPEG も表面と同じ規格で作る。
+ */
+export async function processBackPhotoFile(
+  file: File,
+  onRecognizeJpeg?: (jpeg: Blob) => void,
+): Promise<ProcessedPhoto> {
+  const capturedAt = (await capturedAtFromFile(file)) ?? undefined;
+  const source = await decodeImage(file);
+  try {
+    const processed = await processPhoto({
+      source,
+      sourceWidth: source.width,
+      sourceHeight: source.height,
+      kind: "cellar",
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0,
+      mascotOn: false,
+      cutoutOn: false,
+      onRecognizeJpeg,
+    });
+    return { ...processed, capturedAt };
+  } finally {
+    source.close();
+  }
+}
+
+/**
  * ノートの撮影・ライブラリ選択用。photo-edit の「使う」を挟まず、中央・拡縮 1 で 4:5 に切り、
  * 設定どおりキャラを合成する（05-notes.md N1）。位置を直したいときはサムネの「編集」から photo-edit を開く。
  */

@@ -22,7 +22,8 @@ describe("PhotoViewer", () => {
     expect(day).toContain("PhotoViewer");
     expect(day).toContain("写真を拡大");
     expect(bottle).toContain("PhotoViewer");
-    expect(bottle).toContain('checkerboard={photo?.kind === "cutout"}');
+    expect(bottle).toContain('checkerboard={lightboxPhoto?.kind === "cutout"}');
+    expect(bottle).toContain("裏面の写真を拡大");
     expect(bottle).not.toContain("bottle-lightbox");
   });
 });

@@ -2369,6 +2369,113 @@ img[data-state="loaded"] {
   color: var(--primary);
 }
 
+/* 読み取り帯の「再読み取り」（04-cellar B2 / G7）。失敗帯の右端に置く */
+.recognize-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.recognize-retry {
+  flex: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* 裏面（04-cellar B1b）。表面の下、サムネ 64×96 + 撮る / 選ぶ / 削除 */
+.back-photo-thumb {
+  width: 64px;
+  height: 96px;
+  border-radius: 8px;
+}
+
+.back-photo-actions {
+  min-height: 96px;
+}
+
+/* bottle-batch の行内の裏面（G2b）: 表面サムネの下に「+ 裏面」または 40×60 サムネ + × */
+.bottle-batch-photos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.bottle-batch-back-add {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.bottle-batch-back {
+  position: relative;
+}
+
+.bottle-batch-back-thumb {
+  width: 40px;
+  height: 60px;
+  border-radius: 8px;
+}
+
+.bottle-batch-back-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.bottle-batch-back-processing {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 24px;
+}
+
+.bottle-batch-back-processing .recognize-spinner {
+  width: 14px;
+  height: 14px;
+  margin-top: 0;
+}
+
+/* bottle-detail T1b: 表面の下に裏面の小サムネ + 「裏面」 */
+.bottle-back-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: center;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+}
+
+.bottle-back-thumb-frame {
+  display: block;
+  width: 64px;
+  height: 96px;
+  border-radius: 8px;
+}
+
+.bottle-back-thumb:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 .bottle-batch-capture {
   gap: var(--space-2);
 }

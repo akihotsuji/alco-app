@@ -29,6 +29,10 @@ export const BOTTLE_BATCH_MESSAGES = {
 export type BottleBatchRow = {
   key: string;
   photo: PhotoAttachment;
+  /** 裏面（任意・最大 1。04-cellar G2b）。photo-edit を通さない JPEG */
+  backPhoto: PhotoAttachment | null;
+  /** 裏面を処理（デコード・トリミング）している間だけ true。アップロード中は `backPhoto.status` */
+  backProcessing: boolean;
   form: BottleFormState;
   /** AI が入れた欄。ユーザーが編集すると外れる */
   aiMarks: readonly RecognizeMarkField[];
@@ -51,6 +55,8 @@ export function newBatchRow(
   return {
     key,
     photo,
+    backPhoto: null,
+    backProcessing: false,
     form,
     aiMarks: [],
     recognize: null,
@@ -138,10 +144,42 @@ export function patchBatchRowForm(
   });
 }
 
+/** 行の裏面を置き換える（追加・再試行・アップロード完了）。`null` で外す */
+export function setBatchBackPhoto(
+  rows: readonly BottleBatchRow[],
+  key: string,
+  backPhoto: PhotoAttachment | null,
+): BottleBatchRow[] {
+  return updateBatchRow(rows, key, (row) => {
+    if (
+      row.backPhoto &&
+      row.backPhoto.previewUrl !== backPhoto?.previewUrl &&
+      row.backPhoto.previewUrl.startsWith("blob:")
+    ) {
+      URL.revokeObjectURL(row.backPhoto.previewUrl);
+    }
+    return { backPhoto, backProcessing: false };
+  });
+}
+
+/** 行の写真の保存状態。裏面があれば裏面のアップロードも待つ（G9 の無効条件） */
+export function batchRowPhotoStatus(row: BottleBatchRow): PhotoAttachment["status"] {
+  if (row.photo.status !== "ready") {
+    return row.photo.status;
+  }
+  if (row.backProcessing) {
+    return "uploading";
+  }
+  return row.backPhoto?.status ?? "ready";
+}
+
 export function removeBatchRow(rows: readonly BottleBatchRow[], key: string): BottleBatchRow[] {
   const target = rows.find((row) => row.key === key);
   if (target?.photo.previewUrl.startsWith("blob:")) {
     URL.revokeObjectURL(target.photo.previewUrl);
+  }
+  if (target?.backPhoto?.previewUrl.startsWith("blob:")) {
+    URL.revokeObjectURL(target.backPhoto.previewUrl);
   }
   return rows.filter((row) => row.key !== key);
 }
@@ -159,29 +197,40 @@ export function batchTotalCount(rows: readonly BottleBatchRow[]): number {
 export function canSubmitBatch(rows: readonly BottleBatchRow[]): boolean {
   return (
     rows.length > 0 &&
-    rows.every((row) => canSubmitBottleForm(row.form, batchRowErrors(row), row.photo.status))
+    rows.every((row) =>
+      canSubmitBottleForm(row.form, batchRowErrors(row), batchRowPhotoStatus(row)),
+    )
   );
 }
 
 export function batchRowBody(row: BottleBatchRow): CreateBottleInput | null {
   return toCreateBottleBody(row.form, row.photo.photoId, {
     capturedAt: row.photo.capturedAt,
+    backPhotoId: row.backPhoto?.photoId ?? null,
   });
 }
 
 /** 未紐付けのままの写真 id（破棄・行削除で `DELETE /api/photos/:id` する） */
 export function batchUnlinkedPhotoIds(rows: readonly BottleBatchRow[]): string[] {
-  return rows
-    .filter((row): row is BottleBatchRow & { photo: { photoId: string } } =>
-      Boolean(row.photo.photoId),
-    )
-    .map((row) => row.photo.photoId);
+  const ids: string[] = [];
+  for (const row of rows) {
+    if (row.photo.photoId) {
+      ids.push(row.photo.photoId);
+    }
+    if (row.backPhoto?.photoId) {
+      ids.push(row.backPhoto.photoId);
+    }
+  }
+  return ids;
 }
 
 export function revokeBatchPreviewUrls(rows: readonly BottleBatchRow[]): void {
   for (const row of rows) {
     if (row.photo.previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(row.photo.previewUrl);
+    }
+    if (row.backPhoto?.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(row.backPhoto.previewUrl);
     }
   }
 }

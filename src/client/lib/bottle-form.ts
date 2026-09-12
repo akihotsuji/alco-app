@@ -262,10 +262,23 @@ function optionalFields(state: BottleFormState): {
   };
 }
 
+/** `photoIds` は常に [表面, 裏面?]。表面が無ければ裏面も送らない（裏面だけの登録はできない） */
+export function bottlePhotoIds(frontPhotoId: string | null, backPhotoId?: string | null): string[] {
+  if (!frontPhotoId) {
+    return [];
+  }
+  return backPhotoId ? [frontPhotoId, backPhotoId] : [frontPhotoId];
+}
+
 export function toCreateBottleBody(
   state: BottleFormState,
   photoId: string | null,
-  options: { now?: Date; storedOnTouched?: boolean; capturedAt?: string | null } = {},
+  options: {
+    now?: Date;
+    storedOnTouched?: boolean;
+    capturedAt?: string | null;
+    backPhotoId?: string | null;
+  } = {},
 ): CreateBottleInput | null {
   const now = options.now ?? new Date();
   const storedOnTouched = options.storedOnTouched ?? false;
@@ -285,16 +298,18 @@ export function toCreateBottleBody(
     ...optionalFields(resolved),
   };
   if (photoId) {
-    body.photoIds = [photoId];
+    body.photoIds = bottlePhotoIds(photoId, options.backPhotoId);
   }
   return body;
 }
 
+/**
+ * `photoIds` は写真構成が変わったときだけ、[表面, 裏面?] の全体で送る（`null` = 変更なし）。
+ */
 export function toUpdateBottleBody(
   state: BottleFormState,
   initial: BottleFormState,
-  replacementPhotoId: string | null,
-  clearPhoto: boolean,
+  photoIds: readonly string[] | null,
 ): UpdateBottleInput | null {
   const next = optionalFields(state);
   const prev = optionalFields(initial);
@@ -335,10 +350,8 @@ export function toUpdateBottleBody(
   if (next.memo !== prev.memo) {
     body.memo = next.memo;
   }
-  if (replacementPhotoId) {
-    body.photoIds = [replacementPhotoId];
-  } else if (clearPhoto) {
-    body.photoIds = [];
+  if (photoIds) {
+    body.photoIds = [...photoIds];
   }
   return Object.keys(body).length > 0 ? body : null;
 }

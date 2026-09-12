@@ -244,6 +244,7 @@ function EditBottlePage({ bottleId }: { bottleId: string }) {
       key={query.data.id}
       bottleId={bottleId}
       initialPhotoId={query.data.photos[0]?.id ?? null}
+      initialBackPhotoId={query.data.photos[1]?.id ?? null}
     />
   );
 }
@@ -251,9 +252,11 @@ function EditBottlePage({ bottleId }: { bottleId: string }) {
 function LoadedEditBottle({
   bottleId,
   initialPhotoId,
+  initialBackPhotoId,
 }: {
   bottleId: string;
   initialPhotoId: string | null;
+  initialBackPhotoId: string | null;
 }) {
   const query = useBottle(bottleId);
   const update = useUpdateBottle();
@@ -278,6 +281,7 @@ function LoadedEditBottle({
         mode="edit"
         initial={bottleFormStateFromBottle(bottle)}
         existingPhotoId={initialPhotoId}
+        existingBackPhotoId={initialBackPhotoId}
         pending={update.isPending}
         deleting={remove.isPending}
         saveState={update.isPending ? "loading" : saveState}
@@ -381,7 +385,7 @@ function LoadedEditBottle({
                   operationKey: newOperationKey(),
                   ...(photoChoice === "mine"
                     ? {
-                        photoIds: mineSnapshot.photos[0] ? [mineSnapshot.photos[0].id] : [],
+                        photoIds: mineSnapshot.photos.map((photo) => photo.id),
                       }
                     : {}),
                 },

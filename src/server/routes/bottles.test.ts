@@ -180,7 +180,10 @@ describe("POST /api/bottles", () => {
     const created = body.items[0];
     expect(created?.photos.map((photo) => photo.id)).toEqual([front.id, back.id]);
     expect(created?.thumbPhotoId).toBe(front.id);
-    const rows = await ctx.db.select().from(photos).where(eq(photos.bottleId, created?.id ?? ""));
+    const rows = await ctx.db
+      .select()
+      .from(photos)
+      .where(eq(photos.bottleId, created?.id ?? ""));
     expect(new Map(rows.map((row) => [row.id, row.sortOrder]))).toEqual(
       new Map([
         [front.id, 0],
@@ -188,7 +191,9 @@ describe("POST /api/bottles", () => {
       ]),
     );
 
-    const detail = bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, created?.id ?? "")).json());
+    const detail = bottleSchema.parse(
+      await (await getBottle(ctx.app, a.cookie, created?.id ?? "")).json(),
+    );
     expect(detail.photos.map((photo) => photo.id)).toEqual([front.id, back.id]);
 
     const extra = await uploadPhoto(ctx.app, a.cookie);

@@ -4,6 +4,8 @@ import { clearPhotoMetrics, getRecentPhotoMetrics } from "./photo/photo-metrics.
 import {
   forgetAllRecognition,
   forgetLabelRecognition,
+  LABEL_RECOGNIZE_CONCURRENCY,
+  RecognitionCancelledError,
   startDrinkRecognition,
   startLabelRecognition,
   startNoteRecognition,
@@ -67,6 +69,71 @@ describe("startLabelRecognition", () => {
     const metric = getRecentPhotoMetrics()[0];
     expect(metric).toMatchObject({ kind: "recognize", ok: true, fieldCount: 1 });
     expect(JSON.stringify(metric)).not.toContain("Test");
+  });
+
+  it("裏面が変わると同じ表面でも再リクエストし、裏面を run に渡す", async () => {
+    const front = new Blob([new Uint8Array([1])], { type: "image/jpeg" });
+    const back = new Blob([new Uint8Array([2])], { type: "image/jpeg" });
+    const backs: Array<Blob | null | undefined> = [];
+    const run = async (_jpeg: Blob, b?: Blob | null) => {
+      backs.push(b);
+      return response;
+    };
+    const first = startLabelRecognition(front, run);
+    expect(startLabelRecognition(front, run)).toBe(first);
+    const withBack = startLabelRecognition(front, run, { back });
+    expect(withBack).not.toBe(first);
+    expect(startLabelRecognition(front, run, { back })).toBe(withBack);
+    await Promise.all([first, withBack]);
+    expect(backs).toEqual([null, back]);
+  });
+
+  it("force は同じ組でも再リクエストする（再読み取り）", async () => {
+    const jpeg = new Blob([new Uint8Array([4])], { type: "image/jpeg" });
+    let calls = 0;
+    const run = async () => {
+      calls += 1;
+      return response;
+    };
+    await startLabelRecognition(jpeg, run);
+    await startLabelRecognition(jpeg, run, { force: true });
+    expect(calls).toBe(2);
+  });
+
+  it("同時に走るのは LABEL_RECOGNIZE_CONCURRENCY まで。残りは順番待ち。中断された待ちは run しない", async () => {
+    let active = 0;
+    let peak = 0;
+    const resolvers: Array<() => void> = [];
+    const run = () =>
+      new Promise<RecognizeResponse>((resolve) => {
+        active += 1;
+        peak = Math.max(peak, active);
+        resolvers.push(() => {
+          active -= 1;
+          resolve(response);
+        });
+      });
+    const blobs = [1, 2, 3, 4].map((n) => new Blob([new Uint8Array([n])], { type: "image/jpeg" }));
+    const controller = new AbortController();
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const promises = blobs.map((blob, index) =>
+      startLabelRecognition(blob, run, index === 3 ? { signal: controller.signal } : {}),
+    );
+    await flush();
+    expect(active).toBe(LABEL_RECOGNIZE_CONCURRENCY);
+    controller.abort();
+    // 1 つ終わると 3 つ目が走る。4 つ目は中断済みなので順番が来ても run しない
+    resolvers.shift()?.();
+    await flush();
+    expect(resolvers).toHaveLength(2);
+    resolvers.shift()?.();
+    await flush();
+    resolvers.shift()?.();
+    await flush();
+    await Promise.all(promises.slice(0, 3));
+    await expect(promises[3]).rejects.toBeInstanceOf(RecognitionCancelledError);
+    expect(peak).toBe(LABEL_RECOGNIZE_CONCURRENCY);
+    expect(resolvers).toHaveLength(0);
   });
 });
 

@@ -2,12 +2,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import {
+  type PhotoAttachment,
   type PhotoCollectSession,
   usePhotoEdit,
   usePhotoFormSession,
 } from "@/client/components/layout/photo-edit-context.tsx";
 import { createBottles } from "@/client/hooks/use-bottles.ts";
-import { deletePhoto } from "@/client/hooks/use-photos.ts";
+import { deletePhoto, uploadPhoto } from "@/client/hooks/use-photos.ts";
+import { backPhotoDraft, backPhotoFailed, backPhotoReady } from "@/client/lib/bottle-back-photo.ts";
 import {
   applyBatchOutcome,
   type BatchSubmitOutcome,
@@ -20,6 +22,7 @@ import {
   remainingBatchRows,
   removeBatchRow,
   revokeBatchPreviewUrls,
+  setBatchBackPhoto,
   updateBatchRow,
   upsertBatchPhoto,
 } from "@/client/lib/bottle-batch.ts";
@@ -28,8 +31,12 @@ import { describeBottleSaveFailure } from "@/client/lib/bottle-form.ts";
 import { markCellarLocalWrite, newOperationKey } from "@/client/lib/cellar-share.ts";
 import { applyRecognizeToForm, countRecognizeFields } from "@/client/lib/label-recognize.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
-import { type ImagePickSource, pickImages } from "@/client/lib/photo/pick-image.ts";
-import { processCellarFile, takeFilesForBatch } from "@/client/lib/photo/process-file.ts";
+import { type ImagePickSource, pickImage, pickImages } from "@/client/lib/photo/pick-image.ts";
+import {
+  processBackPhotoFile,
+  processCellarFile,
+  takeFilesForBatch,
+} from "@/client/lib/photo/process-file.ts";
 import { offerMatchesSession } from "@/client/lib/photo-recognize-offer.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
@@ -61,8 +68,10 @@ export function useBottleBatch(autoCapture: boolean) {
   /** 連続撮影で確保した枠（既存行 + 今の写真 + 次の予約）。addPhoto のたびに既存行数へ戻す */
   const reservedRef = useRef(0);
   const libraryBusyRef = useRef(false);
-  // 行ごとに「どの JPEG を読み取ったか」。再編集で写真が変われば読み直す
-  const recognizedJpegRef = useRef(new Map<string, Blob>());
+  // 行ごとに「どの JPEG の組（表 + 裏）を読み取ったか」。再編集・裏面の増減で読み直す
+  const recognizedRef = useRef(new Map<string, { jpeg: Blob; back: Blob | null }>());
+  // 行を外したら順番待ちの読み取りを打ち切る（回数を消費しない。E48）
+  const controllersRef = useRef(new Map<string, AbortController>());
 
   const bindKey = useCallback((key: string, previousPhotoId?: string | null) => {
     const session: PhotoCollectSession = {
@@ -153,22 +162,24 @@ export function useBottleBatch(autoCapture: boolean) {
     startLabelRecognition(pendingRecognize.jpeg).catch(() => {});
   }, [pendingRecognize, session]);
 
-  // 行ごとのラベル読み取り（04-cellar G7）。設定 OFF なら呼ばない
-  useEffect(() => {
-    if (!getCellarRecognizePref()) {
-      return;
-    }
-    for (const row of rows) {
-      const jpeg = row.photo.recognizeJpeg;
-      if (!jpeg || recognizedJpegRef.current.get(row.key) === jpeg) {
-        continue;
-      }
-      recognizedJpegRef.current.set(row.key, jpeg);
-      const key = row.key;
+  const runRowRecognition = useCallback(
+    (key: string, jpeg: Blob, back: Blob | null, force: boolean) => {
+      controllersRef.current.get(key)?.abort();
+      const controller = new AbortController();
+      controllersRef.current.set(key, controller);
+      recognizedRef.current.set(key, { jpeg, back });
+      const isCurrent = () => {
+        const recognized = recognizedRef.current.get(key);
+        return (
+          recognized?.jpeg === jpeg &&
+          recognized.back === back &&
+          controllersRef.current.get(key) === controller
+        );
+      };
       setRows((current) => updateBatchRow(current, key, { recognize: "loading" }));
-      void startLabelRecognition(jpeg)
+      void startLabelRecognition(jpeg, undefined, { back, force, signal: controller.signal })
         .then((result) => {
-          if (recognizedJpegRef.current.get(key) !== jpeg) {
+          if (!isCurrent()) {
             return;
           }
           if (countRecognizeFields(result.fields) === 0) {
@@ -193,13 +204,108 @@ export function useBottleBatch(autoCapture: boolean) {
           );
         })
         .catch(() => {
-          if (recognizedJpegRef.current.get(key) !== jpeg) {
+          if (!isCurrent()) {
             return;
           }
           setRows((current) => updateBatchRow(current, key, { recognize: "failure" }));
         });
+    },
+    [],
+  );
+
+  // 行ごとのラベル読み取り（04-cellar G7）。表面の JPEG と裏面の JPEG の組が変わった行だけ読み直す。設定 OFF なら呼ばない
+  useEffect(() => {
+    if (!getCellarRecognizePref()) {
+      return;
     }
-  }, [rows]);
+    for (const row of rows) {
+      const jpeg = row.photo.recognizeJpeg;
+      if (!jpeg) {
+        continue;
+      }
+      const back = row.backPhoto?.recognizeJpeg ?? null;
+      const recognized = recognizedRef.current.get(row.key);
+      if (recognized?.jpeg === jpeg && recognized.back === back) {
+        continue;
+      }
+      runRowRecognition(row.key, jpeg, back, false);
+    }
+  }, [rows, runRowRecognition]);
+
+  /** 失敗帯の「再読み取り」。その行だけ同じ画像（表 + 裏）で再リクエストする */
+  const recognizeRow = useCallback(
+    (key: string) => {
+      const row = rowsRef.current.find((item) => item.key === key);
+      const jpeg = row?.photo.recognizeJpeg;
+      if (!row || !jpeg || row.recognize === "loading" || !getCellarRecognizePref()) {
+        return;
+      }
+      runRowRecognition(key, jpeg, row.backPhoto?.recognizeJpeg ?? null, true);
+    },
+    [runRowRecognition],
+  );
+
+  /** 裏面（G2b）。photo-edit を開かず、中央トリミングの JPEG を即アップロードする */
+  const addBackPhoto = useCallback(async (key: string, source: ImagePickSource = "camera") => {
+    const row = rowsRef.current.find((item) => item.key === key);
+    if (!row || row.backProcessing) {
+      return;
+    }
+    const file = await pickImage(source);
+    if (!file) {
+      return;
+    }
+    setRows((current) => updateBatchRow(current, key, { backProcessing: true }));
+    try {
+      const processed = await processBackPhotoFile(file);
+      const previous = rowsRef.current.find((item) => item.key === key)?.backPhoto;
+      const previousId = previous?.photoId;
+      if (previousId) {
+        void deletePhoto(previousId).catch(() => {});
+      }
+      const draft = backPhotoDraft(processed);
+      setRows((current) => setBatchBackPhoto(current, key, draft));
+      try {
+        const meta = await uploadPhoto(draft.blob);
+        if (!rowsRef.current.some((item) => item.key === key && item.backPhoto === draft)) {
+          void deletePhoto(meta.id).catch(() => {});
+          return;
+        }
+        setRows((current) => setBatchBackPhoto(current, key, backPhotoReady(draft, meta.id)));
+      } catch {
+        setRows((current) => setBatchBackPhoto(current, key, backPhotoFailed(draft)));
+      }
+    } catch {
+      setRows((current) => updateBatchRow(current, key, { backProcessing: false }));
+    }
+  }, []);
+
+  const retryBackPhoto = useCallback(async (key: string) => {
+    const current = rowsRef.current.find((row) => row.key === key)?.backPhoto;
+    if (current?.status !== "error") {
+      return;
+    }
+    const draft: PhotoAttachment = { ...current, status: "uploading" };
+    setRows((rows) => setBatchBackPhoto(rows, key, draft));
+    try {
+      const meta = await uploadPhoto(draft.blob);
+      if (!rowsRef.current.some((item) => item.key === key && item.backPhoto === draft)) {
+        void deletePhoto(meta.id).catch(() => {});
+        return;
+      }
+      setRows((rows) => setBatchBackPhoto(rows, key, backPhotoReady(draft, meta.id)));
+    } catch {
+      setRows((rows) => setBatchBackPhoto(rows, key, backPhotoFailed(draft)));
+    }
+  }, []);
+
+  const removeBackPhoto = useCallback((key: string) => {
+    const current = rowsRef.current.find((row) => row.key === key)?.backPhoto;
+    setRows((rows) => setBatchBackPhoto(rows, key, null));
+    if (current?.photoId) {
+      void deletePhoto(current.photoId).catch(() => {});
+    }
+  }, []);
 
   const patchRow = useCallback((key: string, patch: Partial<BottleFormState>) => {
     setRows((current) => patchBatchRowForm(current, key, patch));
@@ -238,19 +344,28 @@ export function useBottleBatch(autoCapture: boolean) {
     if (!current) {
       return;
     }
-    recognizedJpegRef.current.delete(key);
-    if (current.photo.photoId) {
-      try {
-        await deletePhoto(current.photo.photoId);
-      } catch {
-        // 破棄に失敗してもローカルは消す。残党は 24h GC
-      }
-    }
+    recognizedRef.current.delete(key);
+    controllersRef.current.get(key)?.abort();
+    controllersRef.current.delete(key);
+    const ids = [current.photo.photoId, current.backPhoto?.photoId].filter((id): id is string =>
+      Boolean(id),
+    );
+    await Promise.all(
+      ids.map((id) =>
+        deletePhoto(id).catch(() => {
+          // 破棄に失敗してもローカルは消す。残党は 24h GC
+        }),
+      ),
+    );
     setRows((items) => removeBatchRow(items, key));
   }, []);
 
   /** 戻る → 破棄。未紐付けの写真をすべて消す */
   const discardAll = useCallback(async () => {
+    for (const controller of controllersRef.current.values()) {
+      controller.abort();
+    }
+    controllersRef.current.clear();
     const ids = batchUnlinkedPhotoIds(rowsRef.current);
     await Promise.all(ids.map((id) => deletePhoto(id).catch(() => {})));
   }, []);
@@ -311,6 +426,10 @@ export function useBottleBatch(autoCapture: boolean) {
     editPhoto,
     retryPhoto,
     removeRow,
+    recognizeRow,
+    addBackPhoto,
+    retryBackPhoto,
+    removeBackPhoto,
     patchRow,
     toggleDetails,
     discardAll,

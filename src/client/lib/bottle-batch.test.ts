@@ -8,6 +8,7 @@ import {
   BOTTLE_BATCH_MESSAGES,
   type BottleBatchRow,
   batchRowBody,
+  batchRowPhotoStatus,
   batchTotalCount,
   batchUnlinkedPhotoIds,
   canAddBatchRow,
@@ -17,6 +18,7 @@ import {
   patchBatchRowForm,
   remainingBatchRows,
   removeBatchRow,
+  setBatchBackPhoto,
   updateBatchRow,
   upsertBatchPhoto,
 } from "./bottle-batch.ts";
@@ -188,6 +190,44 @@ describe("保存可否と本数", () => {
       "photo-a",
       "photo-b",
     ]);
+  });
+});
+
+describe("裏面（G2b）", () => {
+  it("裏面を付けると photoIds は [表面, 裏面]。外せば表面だけ", () => {
+    const withBack = setBatchBackPhoto([readyRow("a")], "a", photo({ photoId: "back-a" }));
+    expect(batchRowBody(withBack[0] as BottleBatchRow)?.photoIds).toEqual(["photo-a", "back-a"]);
+    expect(batchUnlinkedPhotoIds(withBack)).toEqual(["photo-a", "back-a"]);
+    const removed = setBatchBackPhoto(withBack, "a", null);
+    expect(batchRowBody(removed[0] as BottleBatchRow)?.photoIds).toEqual(["photo-a"]);
+    expect(revoke).toHaveBeenCalled();
+  });
+
+  it("裏面の処理中・アップロード中・失敗は行の保存を止める", () => {
+    const processing = { ...readyRow("a"), backProcessing: true };
+    expect(batchRowPhotoStatus(processing)).toBe("uploading");
+    expect(canSubmitBatch([processing])).toBe(false);
+    const uploading = setBatchBackPhoto(
+      [readyRow("a")],
+      "a",
+      photo({ photoId: null, status: "uploading" }),
+    );
+    expect(canSubmitBatch(uploading)).toBe(false);
+    const failed = setBatchBackPhoto(
+      [readyRow("a")],
+      "a",
+      photo({ photoId: null, status: "error" }),
+    );
+    expect(canSubmitBatch(failed)).toBe(false);
+    const ready = setBatchBackPhoto([readyRow("a")], "a", photo({ photoId: "back-a" }));
+    expect(canSubmitBatch(ready)).toBe(true);
+  });
+
+  it("行を外すと裏面のプレビューも解放し、破棄の対象に裏面の id も入る", () => {
+    const rows = setBatchBackPhoto([readyRow("a")], "a", photo({ photoId: "back-a" }));
+    revoke.mockClear();
+    removeBatchRow(rows, "a");
+    expect(revoke).toHaveBeenCalledTimes(2);
   });
 });
 
