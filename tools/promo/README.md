@@ -5,38 +5,49 @@
 公開名称: **酒のしおり**  
 公開サイト: https://sake-shiori.com
 
+絵コンテ: [docs/storyboard.md](docs/storyboard.md)  
+素材出典: [docs/assets.md](docs/assets.md)
+
 ## 成果物
 
 | 種類 | コマンド | 出力 |
 |---|---|---|
-| 縦型動画 1080×1920 / 30fps / 約30秒 / 音声なし | `pnpm render:video` | `out/sake-shiori-intro.mp4` |
-| 紹介画像 1080×1350 × 3 | `pnpm render:stills` | `out/still-overview.png` ほか |
+| 縦型動画 1080×1920 / 30fps / 約30秒 / 音声なし H.264 | `pnpm render:video` | `out/sake-shiori-intro.mp4` |
+| 紹介画像 1080×1350 × 3 | `pnpm render:stills` | `out/still-overview.png` `out/still-cellar.png` `out/still-notes.png` |
 | 主要シーンの確認フレーム | `pnpm render:preview-frames` | `out/frame-*.png` |
+| Remotion Studio | `pnpm preview` | 既定でポート 3000 |
 
-巨大な MP4 は git に入れない。書き出しは `out/`（gitignore）と、エージェント実行時の成果物添付先を使う。
+巨大な MP4 は git に入れない。`out/` は gitignore。書き出したファイルは実行環境の成果物添付先へコピーする。
+
+書き出しに必要な実画面は `public/shots/` の次の 4 枚（コミット済み）:
+
+- `note-detail.png`
+- `photo-edit-cellar.png`
+- `cellar.png`
+- `notes.png`
 
 ## 再実行
 
-リポジトリルートで `.dev.vars` があること（`.dev.vars.example` をコピーし、`BETTER_AUTH_SECRET` を入れる。値は git に出さない）。
+リポジトリルートに `.dev.vars` があること（`.dev.vars.example` をコピーし、`BETTER_AUTH_SECRET` を入れる。値は git に出さない）。
 
 ```bash
-# 1. デモ写真（架空ラベル）を JPEG 化
 cd tools/promo
-node ../../node_modules/sharp/lib/index.js >/dev/null 2>&1 || true
+pnpm install
+
+# デモ写真（架空ラベル）を JPEG 化。親リポジトリの sharp を使う
 pnpm --dir ../.. exec node tools/promo/scripts/generate-fixtures.mjs
 
-# 2. ローカルアプリへ架空データを投入し、実画面を撮影
+# ローカルアプリへ架空データを投入し、実画面を撮影（任意。shots を取り直すとき）
 pnpm --dir ../.. exec playwright install chromium
 pnpm capture
 
-# 3. Remotion 依存
-pnpm install
+# 型チェック
+pnpm typecheck
 
-# 4. プレビュー（Studio）
+# プレビュー
 pnpm preview
-# http://localhost:3000/IntroVideo など
 
-# 5. 書き出し
+# 書き出し
 pnpm render:preview-frames
 pnpm render:stills
 pnpm render:video
@@ -60,3 +71,5 @@ tools/promo/
 ## 確認した公開機能
 
 本番サイト `https://sake-shiori.com` はログイン後の PWA として動く。紹介しているのは実装済みの記録・セラー・ノート。AI 読み取り、切り抜き、共有セラー、料金、性能、利用実績は出していない。
+
+ローカル撮影では認識を切っているため、「読み取れませんでした」と出るフォーム画面は素材に使っていない。

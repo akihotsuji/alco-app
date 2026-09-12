@@ -1,33 +1,28 @@
-import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import { BrandBackdrop } from "../components/BrandBackdrop";
 import { MascotMark } from "../components/MascotMark";
 import { fontFamily } from "../fonts";
+import { colors } from "../theme";
 
 export const EndScene: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
 
   return (
-    <AbsoluteFill
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <AbsoluteFill>
       <BrandBackdrop />
       <div
         style={{
-          opacity: interpolate(frame, [0, 0.5 * fps], [0, 1], {
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: 400,
+          display: "flex",
+          justifyContent: "center",
+          zIndex: 2,
+          opacity: interpolate(frame, [0, 12], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
             easing: Easing.bezier(0.16, 1, 0.3, 1),
-          }),
-          translate: interpolate(frame, [0, 0.5 * fps], ["0px 12px", "0px 0px"], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-            easing: Easing.bezier(0.2, 0, 0, 1),
           }),
         }}
       >
@@ -35,33 +30,41 @@ export const EndScene: React.FC = () => {
       </div>
       <div
         style={{
-          marginTop: 36,
-          paddingLeft: 80,
-          paddingRight: 80,
+          position: "absolute",
+          left: 80,
+          right: 80,
+          top: 720,
+          zIndex: 2,
           textAlign: "center",
           fontFamily,
-          fontSize: 78,
+          fontSize: 72,
           fontWeight: 700,
-          lineHeight: 1.25,
-          color: "#2B261F",
+          lineHeight: 1.3,
+          color: colors.foreground,
           letterSpacing: "-0.03em",
-          opacity: interpolate(frame, [0.2 * fps, 0.7 * fps], [0, 1], {
+          whiteSpace: "pre-line",
+          opacity: interpolate(frame, [8, 20], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
             easing: Easing.bezier(0.16, 1, 0.3, 1),
           }),
         }}
       >
-        お酒の記憶に、しおりを。
+        {"お酒の記憶に、\nしおりを。"}
       </div>
       <div
         style={{
-          marginTop: 28,
+          position: "absolute",
+          left: 80,
+          right: 80,
+          top: 1000,
+          zIndex: 2,
+          textAlign: "center",
           fontFamily,
-          fontSize: 44,
-          fontWeight: 600,
-          color: "#7A3538",
-          opacity: interpolate(frame, [0.5 * fps, 1 * fps], [0, 1], {
+          fontSize: 48,
+          fontWeight: 700,
+          color: colors.primary,
+          opacity: interpolate(frame, [16, 28], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
             easing: Easing.bezier(0.16, 1, 0.3, 1),
@@ -72,12 +75,17 @@ export const EndScene: React.FC = () => {
       </div>
       <div
         style={{
-          marginTop: 16,
+          position: "absolute",
+          left: 80,
+          right: 80,
+          top: 1080,
+          zIndex: 2,
+          textAlign: "center",
           fontFamily,
           fontSize: 40,
           fontWeight: 500,
-          color: "#5C564C",
-          opacity: interpolate(frame, [0.7 * fps, 1.2 * fps], [0, 1], {
+          color: colors.muted,
+          opacity: interpolate(frame, [22, 34], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
             easing: Easing.bezier(0.16, 1, 0.3, 1),
