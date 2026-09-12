@@ -9,11 +9,11 @@ const source = readFileSync(
 );
 
 describe("LogDayPage D10", () => {
-  it("合計の下にその日いた場所を出し、行の中にマップリンクは置かない", () => {
-    expect(source).toContain("DayPlaces");
-    expect(source.indexOf("<DayPlaces")).toBeGreaterThan(source.indexOf("log-day-total"));
-    expect(source.indexOf("<DayPlaces")).toBeLessThan(source.indexOf("log-list"));
+  it("その日いた場所は出さず、行の中にマップリンクは置かない", () => {
+    expect(source).not.toContain("DayPlaces");
+    expect(source).not.toContain("その日いた場所");
     expect(source).not.toContain("googleMapsSearchUrl");
+    expect(source).toContain("item.placeName");
   });
 
   it("サムネタップは拡大で、行本文は編集へ進む", () => {

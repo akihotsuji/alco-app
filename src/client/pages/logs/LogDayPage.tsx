@@ -5,7 +5,6 @@ import { AnimatedNumber } from "@/client/components/feedback/AnimatedNumber.tsx"
 import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
-import { DayPlaces } from "@/client/components/logs/DayPlaces.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { useDeleteDrinkLog, useDrinkLogsDay } from "@/client/hooks/use-drink-logs.ts";
@@ -101,7 +100,6 @@ function ValidLogDayPage({ day }: { day: string }) {
               </>
             )}
           </p>
-          <DayPlaces items={query.data.items} />
           {query.data.items.length === 0 ? (
             <p className="log-day-empty">
               {query.data.hasAnyLogs
