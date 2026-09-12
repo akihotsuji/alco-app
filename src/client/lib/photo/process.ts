@@ -4,7 +4,6 @@ import {
   type PhotoMascotPose,
 } from "@/shared/constants.ts";
 import { composeMascot } from "./compose-mascot.ts";
-import { decodeImage } from "./decode-image.ts";
 import { cropResize } from "./crop-resize.ts";
 import { createSharedSegmentation } from "./cutout-cache.ts";
 import {
@@ -15,6 +14,7 @@ import {
   cutoutFailureFields,
   emptyCutoutTiming,
 } from "./cutout-result.ts";
+import { decodeImage } from "./decode-image.ts";
 import { encodeCutoutBlob } from "./encode-cutout.ts";
 import {
   type AspectRatio,
