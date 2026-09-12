@@ -1013,7 +1013,7 @@ export async function consumeBottle(input: {
   ]);
 
   const after = updatedRows[0];
-  if (!after || after.status !== "consumed") {
+  if (after?.status !== "consumed") {
     throw new ApiError("conflict", {
       fields: { "": [CELLAR_COPY.alreadyConsumed] },
       conflict: {
@@ -1109,7 +1109,7 @@ export async function restoreBottle(input: {
   ]);
 
   const after = updatedRows[0];
-  if (!after || after.status !== "sealed") {
+  if (after?.status !== "sealed") {
     throw versionConflict(await getOwnBottle(db, userId, bottleId));
   }
   const result = toBottle(after, photoMap.get(bottleId) ?? [], namesFromMap(after, nameMap));

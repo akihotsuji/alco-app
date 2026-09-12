@@ -236,23 +236,25 @@ async function assertOwnerCapacity(
   ];
 
   await Promise.all(
-    checks
-      .filter((check) => check.ownerId)
-      .map(async (check) => {
-        const current =
-          check.field === "bottleId"
-            ? await db.select({ id: photos.id }).from(photos).where(eq(check.column, check.ownerId))
-            : await db
-                .select({ id: photos.id })
-                .from(photos)
-                .where(and(eq(photos.userId, userId), eq(check.column, check.ownerId)));
-        const used = current.filter((item) => item.id !== exceptPhotoId).length;
-        if (used >= check.limit) {
-          throw new ApiError("validation_error", {
-            fields: { [check.field]: [check.message] },
-          });
-        }
-      }),
+    checks.map(async (check) => {
+      const ownerId = check.ownerId;
+      if (!ownerId) {
+        return;
+      }
+      const current =
+        check.field === "bottleId"
+          ? await db.select({ id: photos.id }).from(photos).where(eq(check.column, ownerId))
+          : await db
+              .select({ id: photos.id })
+              .from(photos)
+              .where(and(eq(photos.userId, userId), eq(check.column, ownerId)));
+      const used = current.filter((item) => item.id !== exceptPhotoId).length;
+      if (used >= check.limit) {
+        throw new ApiError("validation_error", {
+          fields: { [check.field]: [check.message] },
+        });
+      }
+    }),
   );
 }
 
