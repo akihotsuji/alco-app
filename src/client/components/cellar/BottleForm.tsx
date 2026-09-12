@@ -37,10 +37,12 @@ import {
   toUpdateBottleBody,
   validateBottleForm,
 } from "@/client/lib/bottle-form.ts";
+import { fetchOwnedPhotoBlob } from "@/client/lib/copy-owned-photo.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { rememberShelfEvent } from "@/client/lib/history-state.ts";
 import {
   applyRecognizeToForm,
+  canOfferSavedFrontBackRecognize,
   countRecognizeFields,
   type RecognizeBannerStatus,
   type RecognizeMarkField,
@@ -48,6 +50,7 @@ import {
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
+import { toRecognizeJpegFromBlob } from "@/client/lib/photo/process.ts";
 import { offerMatchesSession } from "@/client/lib/photo-recognize-offer.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
 import { startLabelRecognition } from "@/client/lib/recognize-session.ts";
@@ -349,12 +352,41 @@ export function BottleFormFields({
   }
 
   function retryRecognition() {
-    const jpeg = recognizeJpegRef.current;
-    if (!jpeg || recognizeStatus === "loading") {
+    void recognizeWithBack();
+  }
+
+  async function recognizeWithBack() {
+    if (recognizeStatus === "loading") {
       return;
     }
-    runRecognition(jpeg, recognizeBackJpegRef.current, true);
+    const back = recognizeBackJpegRef.current;
+    let jpeg = recognizeJpegRef.current ?? attachment?.recognizeJpeg ?? null;
+    if (!jpeg && keptPhotoId) {
+      setRecognizeStatus("loading");
+      try {
+        jpeg = await toRecognizeJpegFromBlob(await fetchOwnedPhotoBlob(keptPhotoId));
+      } catch {
+        setRecognizeStatus("failure");
+        return;
+      }
+      if (!jpeg) {
+        setRecognizeStatus("failure");
+        return;
+      }
+    }
+    if (!jpeg) {
+      return;
+    }
+    recognizeJpegRef.current = jpeg;
+    runRecognition(jpeg, back, true);
   }
+
+  const canOfferBackRecognize = canOfferSavedFrontBackRecognize({
+    hasBackJpeg: Boolean(backRecognizeJpeg),
+    recognizeStatus,
+    recognizePref: getCellarRecognizePref(),
+    hasFrontJpegOrSavedPhoto: Boolean(attachment?.recognizeJpeg || keptPhotoId),
+  });
 
   useEffect(() => {
     const capturedAt = attachment?.capturedAt;
@@ -518,12 +550,14 @@ export function BottleFormFields({
           onClear={() => void backPhoto.clear()}
         />
       ) : null}
-      {recognizeStatus ? (
+      {recognizeStatus || canOfferBackRecognize ? (
         <RecognizeBanner
-          status={recognizeStatus}
+          status={recognizeStatus ?? "offer"}
           onRetry={retryRecognition}
           onRecognizeWithBack={
-            recognizeStatus === "success" && backRecognizeJpeg ? retryRecognition : undefined
+            (recognizeStatus === "success" || !recognizeStatus) && backRecognizeJpeg
+              ? () => void recognizeWithBack()
+              : undefined
           }
         />
       ) : null}

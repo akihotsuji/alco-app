@@ -13,10 +13,15 @@ export function RecognizeBanner({
   onRecognizeWithBack,
 }: {
   status: RecognizeBannerStatus;
-  messages?: Record<RecognizeBannerStatus, string>;
+  messages?: {
+    loading: string;
+    success: string;
+    failure: string;
+    offer?: string;
+  };
   /** 失敗帯だけに「再読み取り」を出す。読み取り中は出さない */
   onRetry?: () => void;
-  /** 成功帯かつ裏面があるとき。「裏面も含めて読み取る」 */
+  /** 成功帯・案内帯。「裏面も含めて読み取る」 */
   onRecognizeWithBack?: () => void;
 }) {
   return (
@@ -32,7 +37,7 @@ export function RecognizeBanner({
           {RECOGNIZE_RETRY_LABEL}
         </button>
       ) : null}
-      {status === "success" && onRecognizeWithBack ? (
+      {(status === "success" || status === "offer") && onRecognizeWithBack ? (
         <button
           type="button"
           className="header-text-link recognize-retry"

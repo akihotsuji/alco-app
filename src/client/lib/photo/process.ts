@@ -4,6 +4,7 @@ import {
   type PhotoMascotPose,
 } from "@/shared/constants.ts";
 import { composeMascot } from "./compose-mascot.ts";
+import { decodeImage } from "./decode-image.ts";
 import { cropResize } from "./crop-resize.ts";
 import { createSharedSegmentation } from "./cutout-cache.ts";
 import {
@@ -69,6 +70,18 @@ export function toRecognizeJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
       ? canvas
       : resizeKeepAspect(canvas, canvas.width, canvas.height, size);
   return toJpegBlobWithinLimit(source);
+}
+
+/** 保存済み表面（WebP 切り抜き含む）を recognize 用 JPEG にする。API は JPEG 以外 415 */
+export async function toRecognizeJpegFromBlob(blob: Blob): Promise<Blob> {
+  const bitmap = await decodeImage(blob);
+  try {
+    const size = fitToLongEdge(bitmap.width, bitmap.height, PHOTO_RECOGNIZE_LONG_EDGE);
+    const canvas = resizeKeepAspect(bitmap, bitmap.width, bitmap.height, size);
+    return toJpegBlobWithinLimit(canvas);
+  } finally {
+    bitmap.close();
+  }
 }
 
 export type ProcessedPhoto = {
