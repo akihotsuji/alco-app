@@ -4,6 +4,7 @@ import {
   isAiRecognitionProfileKey,
 } from "@/shared/ai-recognition.ts";
 import {
+  AI_RECOGNIZE_DAILY_LIMIT_MAX,
   AI_RECOGNIZE_LOOKUP_BUDGET_MS,
   AI_RECOGNIZE_TIMEOUT_MS,
   GEMINI_35_FLASH_LITE_MODEL_ID,
@@ -175,7 +176,7 @@ export function readAiRecognizeDailyLimit(env: object, fallback: number): number
     return fallback;
   }
   const parsed = Number.parseInt(raw, 10);
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10_000) {
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > AI_RECOGNIZE_DAILY_LIMIT_MAX) {
     throw new RecognitionConfigError("unknown_profile", "AI_RECOGNIZE_DAILY_LIMIT");
   }
   return parsed;

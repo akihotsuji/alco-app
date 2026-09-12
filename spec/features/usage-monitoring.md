@@ -124,7 +124,7 @@ pnpm exec wrangler r2 object get alco-app-photos-prod/<key> --file=backups/sampl
 
 | レバー | やり方 | いつ |
 |---|---|---|
-| 認識 | `AI_RECOGNIZE_DAILY_LIMIT` を 30 より小さく（env。無制限化しない） | Neurons / Gateway 支出 |
+| 認識 | `AI_RECOGNIZE_DAILY_LIMIT` を 10000（許容上限 MAX）より小さく（env。無制限化しない） | Neurons / Gateway 支出 |
 | 認識先 | 対象タスクのプロファイルを `workers-ai-llama` に戻す | Gemini の $ を止めたいとき |
 | 写真枚数 | `PHOTO_UPLOAD_DAILY_LIMIT` を下げる（定数。同じ PR） | R2 Class A / 容量 |
 | 写真サイズ | `PHOTO_OUTPUT_LONG_EDGE` / 品質を下げる（同じ PR。画面設計も直す） | R2 容量。最後の手段 |
