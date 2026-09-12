@@ -42,6 +42,10 @@ describe("BottleForm バリデーション表示", () => {
       "<RecognizeBanner status={recognizeStatus} onRetry={retryRecognition} />",
     );
     expect(source).toContain("<BackPhotoField");
+    expect(source).toContain("removeFrontPhoto()");
+    expect(source).toContain("void backPhoto.clear()");
+    expect(source).toContain("savedRef.current = true");
+    expect(source).not.toContain("if (!hasFront && backPhotoHas)");
     expect(source).toContain("<RecognizeBanner");
     expect(source).toContain("FieldWithAiMark");
     expect(source).toContain("BOTTLE_FIELD_LABELS.name");

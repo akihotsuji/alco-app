@@ -329,14 +329,19 @@ export function BottleFormFields({
     runRecognition(jpeg, backRecognizeJpeg, false);
   }, [attachment, backRecognizeJpeg, mode, runRecognition]);
 
-  // 表面を外したら裏面も外す（裏面だけの登録はできない）
-  const backPhotoClear = backPhoto.clear;
-  const backPhotoHas = backPhoto.attachment !== null || backPhoto.keptPhotoId !== null;
-  useEffect(() => {
-    if (!hasFront && backPhotoHas) {
-      void backPhotoClear();
+  // 表面をユーザーが消したときだけ裏面も外す（E41）。
+  // hasFront の変化を見て自動削除しないこと。保存成功後の releaseAttachment で
+  // 表面添付が外れると、紐付け済みの裏面まで DELETE してしまう。
+  function removeFrontPhoto() {
+    void backPhoto.clear();
+    if (attachment) {
+      void clearAttachment("cellar");
+      return;
     }
-  }, [hasFront, backPhotoHas, backPhotoClear]);
+    if (keptPhotoId) {
+      void removeExistingPhoto();
+    }
+  }
 
   function retryRecognition() {
     const jpeg = recognizeJpegRef.current;
@@ -356,6 +361,12 @@ export function BottleFormFields({
       storedOn: capturedAtToCalendarDate(capturedAt, new Date()),
     }));
   }, [attachment?.capturedAt, mode, storedOnTouched]);
+
+  useEffect(() => {
+    if (formError || saveState === "error") {
+      savedRef.current = false;
+    }
+  }, [formError, saveState]);
 
   useEffect(() => {
     const field = firstBottleDetailsErrorField(serverErrors);
@@ -403,6 +414,10 @@ export function BottleFormFields({
       return;
     }
     ignoreRecognizeRef.current = true;
+    // 保存リクエストを出したあと、成功時の releaseAttachment や遷移で
+    // 離脱ガードの破棄が走ると紐付け済み裏面を消してしまう。先に抑止する。
+    savedRef.current = true;
+    setGuard(null);
     const frontPhotoId = attachment?.photoId ?? keptPhotoId ?? null;
     const backPhotoId = frontPhotoId ? backPhoto.photoId : null;
     if (mode === "new") {
@@ -471,13 +486,7 @@ export function BottleFormFields({
           attachment ? () => void editAttachment("cellar") : () => void startCapture("cellar")
         }
         onRetry={() => void retryUpload("cellar")}
-        onClear={
-          attachment
-            ? () => void clearAttachment("cellar")
-            : keptPhotoId
-              ? () => void removeExistingPhoto()
-              : undefined
-        }
+        onClear={attachment || keptPhotoId ? () => removeFrontPhoto() : undefined}
         error={errors.photoIds}
       />
       {hasFront ? (
