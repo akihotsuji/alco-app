@@ -31,9 +31,9 @@ import {
   assertSharedVersion,
   bumpCellarRevision,
   displayNamesById,
-  ensurePersonalCellar,
-  listMemberCellarIds,
+  memberCondition,
   membershipSql,
+  personalCellarSql,
   recordActivity,
   requireAccessibleBottle,
   requireCellarMember,
@@ -361,23 +361,15 @@ function attributesFromBody(body: CreateBottleInput | UpdateBottleInput) {
   };
 }
 
-async function resolveListCellarIds(
-  db: AppBatchDb,
-  userId: string,
-  query: BottlesQuery,
-): Promise<string[]> {
+async function listScopeCondition(db: AppBatchDb, userId: string, query: BottlesQuery) {
   if (query.cellarId) {
     await requireCellarMember(db, userId, query.cellarId);
-    return [query.cellarId];
+    return eq(bottles.cellarId, query.cellarId);
   }
   if (query.scope === "accessible") {
-    const ids = await listMemberCellarIds(db, userId);
-    if (ids.length === 0) {
-      return [await ensurePersonalCellar(db, userId)];
-    }
-    return ids;
+    return memberCondition(userId);
   }
-  return [await ensurePersonalCellar(db, userId)];
+  return personalCellarSql(userId);
 }
 
 function versionConflict(current: Bottle): ApiError {
@@ -397,7 +389,6 @@ export async function createBottles(input: {
   const { db, bucket, userId, body } = input;
   const now = input.now ?? new Date();
   const cellarId = await resolveBottleCellarId(db, userId, body.cellarId);
-  const access = await requireCellarMember(db, userId, cellarId);
   const requestHash = await hashRequestBody({ action: "create", ...body });
   if (body.operationKey) {
     const cached = await readIdempotentResult<{ items: Bottle[] }>(db, {
@@ -463,6 +454,8 @@ export async function createBottles(input: {
     id: crypto.randomUUID(),
     ...attrs,
   }));
+  const nameMap = await displayNamesById(db, [userId]);
+  const names = namesFromMap({ createdBy: userId, updatedBy: userId }, nameMap);
 
   try {
     const statements: BatchItem<"sqlite">[] = rows.map((row) => db.insert(bottles).values(row));
@@ -531,8 +524,6 @@ export async function createBottles(input: {
       );
     }
     if (body.operationKey) {
-      const nameMap = await displayNamesById(db, [userId]);
-      const names = namesFromMap({ createdBy: userId, updatedBy: userId }, nameMap);
       const preview = {
         items: rows.map((row) => toBottle(row, [], names)),
       };
@@ -552,7 +543,6 @@ export async function createBottles(input: {
       throw new ApiError("internal_error");
     }
     await db.batch([firstStatement, ...rest]);
-    void access;
   } catch (error) {
     await Promise.all(flatCopies().map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)));
     if (body.operationKey) {
@@ -612,8 +602,6 @@ export async function createBottles(input: {
     );
   }
 
-  const nameMap = await displayNamesById(db, [userId]);
-  const names = namesFromMap({ createdBy: userId, updatedBy: userId }, nameMap);
   return {
     items: rows.map((row) => toBottle(row, photoByBottle.get(row.id) ?? [], names)),
   };
@@ -679,9 +667,9 @@ export async function listBottles(input: {
   query: BottlesQuery;
 }): Promise<BottlesResponse> {
   const { db, userId, query } = input;
-  const cellarIds = await resolveListCellarIds(db, userId, query);
+  const scopeCondition = await listScopeCondition(db, userId, query);
   const status = viewStatus(query.view);
-  const viewConditions = [inArray(bottles.cellarId, cellarIds)];
+  const viewConditions = [scopeCondition];
   if (status) {
     viewConditions.push(eq(bottles.status, status));
   }
@@ -751,14 +739,16 @@ export async function listBottles(input: {
     countsByType[row.drinkType] += Number(row.n);
   }
   const { page, hasMore } = takeLimitPlusOne(fetched, query.limit);
-  const photoMap = await photosForBottles(
-    db,
-    page.map((row) => row.id),
-  );
-  const nameMap = await displayNamesById(
-    db,
-    page.flatMap((row) => [row.createdBy, row.updatedBy]),
-  );
+  const [photoMap, nameMap] = await Promise.all([
+    photosForBottles(
+      db,
+      page.map((row) => row.id),
+    ),
+    displayNamesById(
+      db,
+      page.flatMap((row) => [row.createdBy, row.updatedBy]),
+    ),
+  ]);
   const last = page.at(-1);
   return {
     items: page.map((row) =>
@@ -806,14 +796,20 @@ export async function updateBottle(input: {
     }
   }
 
-  const desiredPhotoRows =
+  const [photoBundle, nameMap] = await Promise.all([
     body.photoIds === undefined
-      ? undefined
-      : await resolvePatchPhotos(db, userId, bottleId, current.cellarId, body.photoIds);
-  const currentPhotoRows =
-    body.photoIds === undefined
-      ? []
-      : await db.select().from(photos).where(eq(photos.bottleId, bottleId));
+      ? photosForBottles(db, [bottleId]).then((map) => ({
+          desired: undefined as PhotoRow[] | undefined,
+          currentRows: map.get(bottleId) ?? [],
+        }))
+      : Promise.all([
+          resolvePatchPhotos(db, userId, bottleId, current.cellarId, body.photoIds),
+          photosForBottles(db, [bottleId]),
+        ]).then(([desired, map]) => ({ desired, currentRows: map.get(bottleId) ?? [] })),
+    displayNamesById(db, [current.createdBy, userId]),
+  ]);
+  const desiredPhotoRows = photoBundle.desired;
+  const currentPhotoRows = photoBundle.currentRows;
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
@@ -837,7 +833,8 @@ export async function updateBottle(input: {
   const updateStatement = db
     .update(bottles)
     .set(patch)
-    .where(and(...conditions));
+    .where(and(...conditions))
+    .returning();
   const detachStatement =
     removedPhotoRows.length > 0
       ? db
@@ -873,13 +870,15 @@ export async function updateBottle(input: {
     }),
   ];
 
+  let after: BottleRow | undefined;
   try {
-    await db.batch([
+    const [updatedRows] = await db.batch([
       updateStatement,
       ...(detachStatement ? [detachStatement] : []),
       ...attachStatements,
       ...extra,
     ]);
+    after = updatedRows[0];
   } catch (error) {
     if (body.operationKey) {
       const recovered = await recoverIdempotentResult<Bottle>(db, {
@@ -895,9 +894,10 @@ export async function updateBottle(input: {
     throw error;
   }
 
-  const [after] = await db.select().from(bottles).where(eq(bottles.id, bottleId));
   if (!after) {
-    throw new ApiError("not_found");
+    throw body.expectedVersion !== undefined
+      ? versionConflict(await getOwnBottle(db, userId, bottleId))
+      : new ApiError("not_found");
   }
   if (body.expectedVersion !== undefined && after.version !== body.expectedVersion + 1) {
     throw versionConflict(await getOwnBottle(db, userId, bottleId));
@@ -909,7 +909,18 @@ export async function updateBottle(input: {
     );
   }
 
-  const result = await getOwnBottle(db, userId, bottleId);
+  const resultPhotos =
+    desiredPhotoRows === undefined
+      ? currentPhotoRows
+      : desiredPhotoRows.map((photo, sortOrder) => ({
+          ...photo,
+          bottleId,
+          cellarId: current.cellarId,
+          userId: null,
+          sortOrder,
+          updatedAt,
+        }));
+  const result = toBottle(after, resultPhotos, namesFromMap(after, nameMap));
   if (body.operationKey) {
     await db.batch([
       idempotencyInsert(db, {
@@ -973,31 +984,36 @@ export async function consumeBottle(input: {
     conditions.push(eq(bottles.version, body.expectedVersion));
   }
 
-  await db.batch([
-    db
-      .update(bottles)
-      .set({
-        status: "consumed",
-        consumedAt: now,
-        consumedOn: tokyoToday(now),
-        updatedBy: userId,
-        version: current.version + 1,
-        updatedAt: now,
-      })
-      .where(and(...conditions)),
-    bumpCellarRevision(db, current.cellarId, now),
-    recordActivity(db, {
-      cellarId: current.cellarId,
-      actorUserId: userId,
-      action: "bottle_consumed",
-      bottleId,
-      bottleName: current.name,
-      now,
-    }),
+  const [photoMap, nameMap, [updatedRows]] = await Promise.all([
+    photosForBottles(db, [bottleId]),
+    displayNamesById(db, [current.createdBy, userId]),
+    db.batch([
+      db
+        .update(bottles)
+        .set({
+          status: "consumed",
+          consumedAt: now,
+          consumedOn: tokyoToday(now),
+          updatedBy: userId,
+          version: current.version + 1,
+          updatedAt: now,
+        })
+        .where(and(...conditions))
+        .returning(),
+      bumpCellarRevision(db, current.cellarId, now),
+      recordActivity(db, {
+        cellarId: current.cellarId,
+        actorUserId: userId,
+        action: "bottle_consumed",
+        bottleId,
+        bottleName: current.name,
+        now,
+      }),
+    ]),
   ]);
 
-  const [after] = await db.select().from(bottles).where(eq(bottles.id, bottleId));
-  if (!after || after.status !== "consumed") {
+  const after = updatedRows[0];
+  if (after?.status !== "consumed") {
     throw new ApiError("conflict", {
       fields: { "": [CELLAR_COPY.alreadyConsumed] },
       conflict: {
@@ -1006,7 +1022,7 @@ export async function consumeBottle(input: {
       },
     });
   }
-  const result = await getOwnBottle(db, userId, bottleId);
+  const result = toBottle(after, photoMap.get(bottleId) ?? [], namesFromMap(after, nameMap));
   if (body.operationKey) {
     await db.batch([
       idempotencyInsert(db, {
@@ -1064,34 +1080,39 @@ export async function restoreBottle(input: {
     conditions.push(eq(bottles.version, body.expectedVersion));
   }
 
-  await db.batch([
-    db
-      .update(bottles)
-      .set({
-        status: "sealed",
-        consumedAt: null,
-        consumedOn: null,
-        updatedBy: userId,
-        version: current.version + 1,
-        updatedAt: now,
-      })
-      .where(and(...conditions)),
-    bumpCellarRevision(db, current.cellarId, now),
-    recordActivity(db, {
-      cellarId: current.cellarId,
-      actorUserId: userId,
-      action: "bottle_restored",
-      bottleId,
-      bottleName: current.name,
-      now,
-    }),
+  const [photoMap, nameMap, [updatedRows]] = await Promise.all([
+    photosForBottles(db, [bottleId]),
+    displayNamesById(db, [current.createdBy, userId]),
+    db.batch([
+      db
+        .update(bottles)
+        .set({
+          status: "sealed",
+          consumedAt: null,
+          consumedOn: null,
+          updatedBy: userId,
+          version: current.version + 1,
+          updatedAt: now,
+        })
+        .where(and(...conditions))
+        .returning(),
+      bumpCellarRevision(db, current.cellarId, now),
+      recordActivity(db, {
+        cellarId: current.cellarId,
+        actorUserId: userId,
+        action: "bottle_restored",
+        bottleId,
+        bottleName: current.name,
+        now,
+      }),
+    ]),
   ]);
 
-  const [after] = await db.select().from(bottles).where(eq(bottles.id, bottleId));
-  if (!after || after.status !== "sealed") {
+  const after = updatedRows[0];
+  if (after?.status !== "sealed") {
     throw versionConflict(await getOwnBottle(db, userId, bottleId));
   }
-  const result = await getOwnBottle(db, userId, bottleId);
+  const result = toBottle(after, photoMap.get(bottleId) ?? [], namesFromMap(after, nameMap));
   if (body.operationKey) {
     await db.batch([
       idempotencyInsert(db, {

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { bottles, drinkLogs, photos } from "@/db/schema.ts";
+import { bottles, drinkLogs, photos, userCellarSlots } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import {
   BOTTLE_MESSAGES,
@@ -371,6 +371,17 @@ describe("POST /api/bottles", () => {
 });
 
 describe("GET /api/bottles", () => {
+  it("ボトルが無い新規ユーザーの一覧は空で、個人セラーを作らない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "new@example.com");
+    const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
+    expect(cellar.items).toEqual([]);
+    expect(cellar.totalCount).toBe(0);
+    expect(
+      await ctx.db.select().from(userCellarSlots).where(eq(userCellarSlots.userId, a.userId)),
+    ).toEqual([]);
+  });
+
   it("未認証は 401", async () => {
     const { app } = await createTestApp();
     const res = await getBottles(app, "");

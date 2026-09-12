@@ -324,7 +324,9 @@ export async function listDrinkLogs(input: {
     );
   }
 
-  const [agg, fetched, anyLog] = await Promise.all([
+  const pageWhere = and(...pageConditions);
+  const filteredBeyondUser = Boolean(query.date || query.from || query.to || query.bottleId);
+  const [agg, fetched, photoRows, anyLog] = await Promise.all([
     db
       .select({
         n: count(),
@@ -336,26 +338,34 @@ export async function listDrinkLogs(input: {
     db
       .select()
       .from(drinkLogs)
-      .where(and(...pageConditions))
+      .where(pageWhere)
       .orderBy(desc(drinkLogs.drunkAt), desc(drinkLogs.id))
       .limit(query.limit + 1),
     db
-      .select({ id: drinkLogs.id })
-      .from(drinkLogs)
-      .where(eq(drinkLogs.userId, userId))
-      .limit(1)
-      .then((rows) => rows[0]),
+      .select()
+      .from(photos)
+      .where(
+        and(
+          eq(photos.userId, userId),
+          sql`${photos.drinkLogId} IN (
+            SELECT ${drinkLogs.id} FROM ${drinkLogs}
+            WHERE ${pageWhere}
+            ORDER BY ${drinkLogs.drunkAt} DESC, ${drinkLogs.id} DESC
+            LIMIT ${query.limit + 1}
+          )`,
+        ),
+      )
+      .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
+    filteredBeyondUser
+      ? db
+          .select({ id: drinkLogs.id })
+          .from(drinkLogs)
+          .where(eq(drinkLogs.userId, userId))
+          .limit(1)
+          .then((rows) => rows[0])
+      : Promise.resolve(undefined),
   ]);
   const { page, hasMore } = takeLimitPlusOne(fetched, query.limit);
-  const pageIds = page.map((row) => row.id);
-  const photoRows =
-    pageIds.length === 0
-      ? []
-      : await db
-          .select()
-          .from(photos)
-          .where(and(inArray(photos.drinkLogId, pageIds), eq(photos.userId, userId)))
-          .orderBy(asc(photos.sortOrder), asc(photos.createdAt));
   const thumbByLogId = new Map<string, string>();
   for (const photo of photoRows) {
     if (photo.drinkLogId && !thumbByLogId.has(photo.drinkLogId)) {
@@ -364,12 +374,13 @@ export async function listDrinkLogs(input: {
   }
 
   const last = page.at(-1);
+  const totalCount = Number(agg?.n ?? 0);
   return {
     items: page.map((row) => toDrinkLogItem(row, thumbByLogId.get(row.id) ?? null)),
     nextCursor: hasMore && last ? encodeCursor(last) : null,
-    totalCount: Number(agg?.n ?? 0),
+    totalCount,
     totalAlcoholG: sumAlcoholGrams([Number(agg?.alcohol ?? 0)]),
-    hasAnyLogs: anyLog !== undefined,
+    hasAnyLogs: filteredBeyondUser ? anyLog !== undefined : totalCount > 0,
   };
 }
 
@@ -468,17 +479,24 @@ export async function updateDrinkLog(input: {
     identity.origin = originWrite;
   }
 
-  const desiredPhotoRows =
+  const [desiredPhotoRows, currentPhotoRows] =
     body.photoIds === undefined
-      ? undefined
-      : await resolvePatchPhotos(db, userId, logId, body.photoIds);
-  const currentPhotoRows =
-    body.photoIds === undefined
-      ? []
-      : await db
-          .select()
-          .from(photos)
-          .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)));
+      ? [
+          undefined,
+          await db
+            .select()
+            .from(photos)
+            .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
+            .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
+        ]
+      : await Promise.all([
+          resolvePatchPhotos(db, userId, logId, body.photoIds),
+          db
+            .select()
+            .from(photos)
+            .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
+            .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
+        ]);
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
 
@@ -562,18 +580,11 @@ export async function updateDrinkLog(input: {
     );
   }
 
-  const [row] = await db
-    .select()
-    .from(drinkLogs)
-    .where(and(eq(drinkLogs.id, logId), eq(drinkLogs.userId, userId)));
-  if (!row) {
-    throw new ApiError("not_found");
-  }
-  const finalPhotos = await db
-    .select()
-    .from(photos)
-    .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
-    .orderBy(asc(photos.sortOrder), asc(photos.createdAt));
+  const row: DrinkLogRow = { ...current, ...patch };
+  const finalPhotos =
+    desiredPhotoRows === undefined
+      ? currentPhotoRows
+      : desiredPhotoRows.map((photo) => ({ ...photo, drinkLogId: logId, updatedAt }));
   return toDrinkLog(row, finalPhotos);
 }
 
@@ -611,8 +622,12 @@ export async function getDrinkLogSummary(input: {
     throw new ApiError("internal_error");
   }
 
-  const rows = await input.db
-    .select({ drunkOn: drinkLogs.drunkOn, alcoholG: drinkLogs.alcoholG })
+  const grouped = await input.db
+    .select({
+      drunkOn: drinkLogs.drunkOn,
+      n: count(),
+      alcohol: sql<number>`coalesce(sum(${drinkLogs.alcoholG}), 0)`,
+    })
     .from(drinkLogs)
     .where(
       and(
@@ -620,24 +635,27 @@ export async function getDrinkLogSummary(input: {
         gte(drinkLogs.drunkOn, from),
         lte(drinkLogs.drunkOn, to),
       ),
-    );
+    )
+    .groupBy(drinkLogs.drunkOn);
 
-  const rowsByDate = new Map<string, number[]>();
-  for (const row of rows) {
-    const values = rowsByDate.get(row.drunkOn) ?? [];
-    values.push(row.alcoholG);
-    rowsByDate.set(row.drunkOn, values);
+  const rowsByDate = new Map<string, { count: number; alcoholG: number }>();
+  for (const row of grouped) {
+    rowsByDate.set(row.drunkOn, {
+      count: Number(row.n),
+      alcoholG: Number(row.alcohol),
+    });
   }
 
   const today = tokyoToday(input.now);
   const days = dates.map((date) => {
-    const alcoholValues = rowsByDate.get(date) ?? [];
+    const agg = rowsByDate.get(date);
+    const logCount = agg?.count ?? 0;
     const isFuture = date > today;
     return {
       date,
-      count: alcoholValues.length,
-      alcoholG: sumAlcoholGrams(alcoholValues),
-      isDryDay: isDryDay(alcoholValues.length, isFuture),
+      count: logCount,
+      alcoholG: agg ? sumAlcoholGrams([agg.alcoholG]) : 0,
+      isDryDay: isDryDay(logCount, isFuture),
       isFuture,
     };
   });
@@ -647,8 +665,8 @@ export async function getDrinkLogSummary(input: {
     from,
     to,
     timezone: TOKYO_TIME_ZONE,
-    totalCount: rows.length,
-    totalAlcoholG: sumAlcoholGrams(rows.map((row) => row.alcoholG)),
+    totalCount: grouped.reduce((sum, row) => sum + Number(row.n), 0),
+    totalAlcoholG: sumAlcoholGrams(grouped.map((row) => Number(row.alcohol))),
     dryDayCount: days.filter((day) => day.isDryDay).length,
     days,
   };
