@@ -7,6 +7,8 @@ export type AdapterRequest = {
   profile: ModelProfile;
   kind: AdapterCallKind;
   jpegBytes?: Uint8Array;
+  /** 2 枚目以降の画像（ボトル裏面など）。`jpegBytes` の直後に同じ順で並べる。 */
+  extraJpegBytes?: readonly Uint8Array[];
   systemPrompt: string;
   userPrompt: string;
   schema: Record<string, unknown>;

@@ -16,6 +16,7 @@ import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottleBatch } from "@/client/hooks/use-bottle-batch.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
+import { BACK_PHOTO_LABELS } from "@/client/lib/bottle-back-photo.ts";
 import {
   BOTTLE_BATCH_MESSAGES,
   type BottleBatchRow,
@@ -27,7 +28,11 @@ import {
 import { BOTTLE_SAVE_LABELS, type BottleFormState } from "@/client/lib/bottle-form.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { rememberShelfEvent } from "@/client/lib/history-state.ts";
-import { RECOGNIZE_BANNER, type RecognizeMarkField } from "@/client/lib/label-recognize.ts";
+import {
+  RECOGNIZE_BANNER,
+  RECOGNIZE_RETRY_LABEL,
+  type RecognizeMarkField,
+} from "@/client/lib/label-recognize.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
 import {
@@ -160,6 +165,10 @@ export function BottleBatchForm() {
             onEditPhoto={() => void batch.editPhoto(row.key)}
             onRetryPhoto={() => void batch.retryPhoto(row.key)}
             onRemove={() => void batch.removeRow(row.key)}
+            onRecognizeRetry={() => batch.recognizeRow(row.key)}
+            onAddBackPhoto={() => void batch.addBackPhoto(row.key, "camera")}
+            onRetryBackPhoto={() => void batch.retryBackPhoto(row.key)}
+            onRemoveBackPhoto={() => batch.removeBackPhoto(row.key)}
           />
         ))}
       </ol>
@@ -225,6 +234,10 @@ function BatchRowCard({
   onEditPhoto,
   onRetryPhoto,
   onRemove,
+  onRecognizeRetry,
+  onAddBackPhoto,
+  onRetryBackPhoto,
+  onRemoveBackPhoto,
 }: {
   row: BottleBatchRow;
   index: number;
@@ -234,6 +247,10 @@ function BatchRowCard({
   onEditPhoto: () => void;
   onRetryPhoto: () => void;
   onRemove: () => void;
+  onRecognizeRetry: () => void;
+  onAddBackPhoto: () => void;
+  onRetryBackPhoto: () => void;
+  onRemoveBackPhoto: () => void;
 }) {
   const id = useId();
   const errors = batchRowErrors(row);
@@ -245,36 +262,45 @@ function BatchRowCard({
   return (
     <li className="bottle-batch-row" aria-label={`${index + 1} 本目`}>
       <div className="bottle-batch-row-main">
-        <div
-          className={
-            cutout ? "photo-thumb bottle-batch-thumb is-cutout" : "photo-thumb bottle-batch-thumb"
-          }
-        >
-          <button
-            type="button"
-            className="bottle-batch-thumb-button"
-            aria-label="写真を編集"
-            disabled={disabled}
-            onClick={onEditPhoto}
+        <div className="bottle-batch-photos">
+          <div
+            className={
+              cutout ? "photo-thumb bottle-batch-thumb is-cutout" : "photo-thumb bottle-batch-thumb"
+            }
           >
-            <ContentPhoto
-              src={row.photo.previewUrl}
-              className="photo-thumb-img"
-              size={PHOTO_DISPLAY_SIZE.bottleTile}
-              loading="eager"
-            />
-          </button>
-          {row.photo.status === "uploading" ? (
-            <span className="photo-tile-progress" role="status">
-              アップロード中
-            </span>
-          ) : null}
-          {row.photo.status === "error" ? (
-            <button type="button" className="photo-tile-retry" onClick={onRetryPhoto}>
-              <span aria-hidden>!</span>
-              <span>再試行</span>
+            <button
+              type="button"
+              className="bottle-batch-thumb-button"
+              aria-label="写真を編集"
+              disabled={disabled}
+              onClick={onEditPhoto}
+            >
+              <ContentPhoto
+                src={row.photo.previewUrl}
+                className="photo-thumb-img"
+                size={PHOTO_DISPLAY_SIZE.bottleTile}
+                loading="eager"
+              />
             </button>
-          ) : null}
+            {row.photo.status === "uploading" ? (
+              <span className="photo-tile-progress" role="status">
+                アップロード中
+              </span>
+            ) : null}
+            {row.photo.status === "error" ? (
+              <button type="button" className="photo-tile-retry" onClick={onRetryPhoto}>
+                <span aria-hidden>!</span>
+                <span>再試行</span>
+              </button>
+            ) : null}
+          </div>
+          <BatchBackPhoto
+            row={row}
+            disabled={disabled}
+            onAdd={onAddBackPhoto}
+            onRetry={onRetryBackPhoto}
+            onRemove={onRemoveBackPhoto}
+          />
         </div>
         <div className="bottle-batch-fields">
           <div className="bottle-batch-name-row">
@@ -401,7 +427,17 @@ function BatchRowCard({
           ) : (
             <Sparkles size={14} aria-hidden />
           )}
-          {RECOGNIZE_BANNER[row.recognize]}
+          <span className="recognize-banner-text">{RECOGNIZE_BANNER[row.recognize]}</span>
+          {row.recognize === "failure" ? (
+            <button
+              type="button"
+              className="header-text-link recognize-retry"
+              disabled={disabled}
+              onClick={onRecognizeRetry}
+            >
+              {RECOGNIZE_RETRY_LABEL}
+            </button>
+          ) : null}
         </p>
       ) : null}
       {row.error ? (
@@ -410,6 +446,73 @@ function BatchRowCard({
         </p>
       ) : null}
     </li>
+  );
+}
+
+/** 行の裏面（04-cellar G2b）。「+ 裏面」→ 40×60 サムネ + × */
+function BatchBackPhoto({
+  row,
+  disabled,
+  onAdd,
+  onRetry,
+  onRemove,
+}: {
+  row: BottleBatchRow;
+  disabled: boolean;
+  onAdd: () => void;
+  onRetry: () => void;
+  onRemove: () => void;
+}) {
+  if (row.backProcessing) {
+    return (
+      <span className="bottle-batch-back-processing" role="status">
+        <span className="recognize-spinner" aria-hidden />
+      </span>
+    );
+  }
+  if (!row.backPhoto) {
+    return (
+      <button
+        type="button"
+        className="header-text-link bottle-batch-back-add"
+        disabled={disabled}
+        onClick={onAdd}
+      >
+        {BACK_PHOTO_LABELS.add}
+      </button>
+    );
+  }
+  return (
+    <div className="bottle-batch-back">
+      <div className="photo-thumb bottle-batch-back-thumb">
+        <ContentPhoto
+          src={row.backPhoto.previewUrl}
+          className="photo-thumb-img"
+          size={PHOTO_DISPLAY_SIZE.bottleTile}
+          loading="eager"
+          alt={BACK_PHOTO_LABELS.thumbAlt}
+        />
+        {row.backPhoto.status === "uploading" ? (
+          <span className="photo-tile-progress" role="status">
+            アップロード中
+          </span>
+        ) : null}
+        {row.backPhoto.status === "error" ? (
+          <button type="button" className="photo-tile-retry" onClick={onRetry}>
+            <span aria-hidden>!</span>
+            <span>{BACK_PHOTO_LABELS.retry}</span>
+          </button>
+        ) : null}
+      </div>
+      <IconButton
+        label="裏面を外す"
+        className="bottle-batch-back-remove"
+        disabled={disabled}
+        onClick={onRemove}
+      >
+        <X size={14} />
+      </IconButton>
+    </div>
   );
 }
 

@@ -17,16 +17,16 @@ export function createWorkersAiAdapter(ai: Ai): RecognitionAdapter {
         throw new RecognitionConfigError("unknown_profile", "image_required");
       }
       throwIfAborted(request.signal);
-      const imageUrl = `data:image/jpeg;base64,${bytesToBase64(request.jpegBytes)}`;
+      const imageParts = [request.jpegBytes, ...(request.extraJpegBytes ?? [])].map((bytes) => ({
+        type: "image_url" as const,
+        image_url: { url: `data:image/jpeg;base64,${bytesToBase64(bytes)}` },
+      }));
       const raw: unknown = await ai.run(request.profile.modelId, {
         messages: [
           { role: "system", content: request.systemPrompt },
           {
             role: "user",
-            content: [
-              { type: "image_url", image_url: { url: imageUrl } },
-              { type: "text", text: request.userPrompt },
-            ],
+            content: [...imageParts, { type: "text", text: request.userPrompt }],
           },
         ],
         guided_json: request.schema,

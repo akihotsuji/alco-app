@@ -154,9 +154,10 @@ export function conflictFields(input: {
       prefer: changedByMe && !changedByThem ? "mine" : "current",
     });
   }
-  const initialPhoto = input.initial.photos[0]?.id ?? "";
-  const minePhoto = input.mine.photos[0]?.id ?? "";
-  const currentPhoto = input.current.photos[0]?.id ?? "";
+  const photoKey = (bottle: Bottle) => bottle.photos.map((photo) => photo.id).join(",");
+  const initialPhoto = photoKey(input.initial);
+  const minePhoto = photoKey(input.mine);
+  const currentPhoto = photoKey(input.current);
   if (minePhoto !== initialPhoto || currentPhoto !== initialPhoto) {
     fields.push({
       key: "photo",

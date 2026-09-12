@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
@@ -13,8 +13,10 @@ import {
 } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
+import { BackPhotoField } from "@/client/components/photo/BackPhotoField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
+import { useBackPhoto } from "@/client/hooks/use-back-photo.ts";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
@@ -24,6 +26,7 @@ import {
   type BottleFormErrors,
   type BottleFormField,
   type BottleFormState,
+  bottlePhotoIds,
   canSubmitBottleForm,
   createEmptyBottleForm,
   firstBottleDetailsErrorField,
@@ -79,6 +82,8 @@ type BottleFormProps = {
   mode: "new" | "edit";
   initial?: BottleFormState;
   existingPhotoId?: string | null;
+  /** 保存済みの裏面（`photos[1]`）。編集だけ */
+  existingBackPhotoId?: string | null;
   onCreate?: (body: ReturnType<typeof toCreateBottleBody>) => void;
   onUpdate?: (body: ReturnType<typeof toUpdateBottleBody>) => void;
   onDelete?: () => void;
@@ -100,6 +105,7 @@ export function BottleFormFields({
   mode,
   initial,
   existingPhotoId = null,
+  existingBackPhotoId = null,
   onCreate,
   onUpdate,
   onDelete,
@@ -130,6 +136,7 @@ export function BottleFormFields({
   const [detailsOpen, setDetailsOpen] = useState(() => hasBottleDetails(baseline));
   const [keptPhotoId, setKeptPhotoId] = useState(existingPhotoId);
   const [photoDeleting, setPhotoDeleting] = useState(false);
+  const backPhoto = useBackPhoto(existingBackPhotoId);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [recognizeStatus, setRecognizeStatus] = useState<RecognizeBannerStatus | null>(null);
@@ -142,6 +149,7 @@ export function BottleFormFields({
   const savedRef = useRef(false);
   const ignoreRecognizeRef = useRef(false);
   const recognizeJpegRef = useRef<Blob | null>(null);
+  const recognizeBackJpegRef = useRef<Blob | null>(null);
   const recognizeRequestRef = useRef(0);
   const drinkTypeTouchedRef = useRef(false);
   const aiMarksRef = useRef(aiMarks);
@@ -151,11 +159,16 @@ export function BottleFormFields({
   storedOnTouchedRef.current = storedOnTouched;
   const attachment =
     attachments.cellar?.sessionId === session.sessionId ? attachments.cellar : undefined;
-  const photoStatus: PhotoSaveStatus = attachment
+  const frontStatus: PhotoSaveStatus = attachment
     ? attachment.status
     : keptPhotoId
       ? "ready"
       : "none";
+  const hasFront = frontStatus !== "none";
+  // 表面が無いのに裏面だけ残っていれば外す（裏面だけの登録はできない。E41）
+  const backStatus: PhotoSaveStatus = hasFront ? backPhoto.status : "none";
+  const photoStatus: PhotoSaveStatus =
+    frontStatus === "ready" && backStatus !== "none" ? backStatus : frontStatus;
   const clientErrors = validateBottleForm(state, new Date(), { existingOrigin: baseline.origin });
   const errors: BottleFormErrors = visibleFieldErrors(clientErrors, serverErrors, {
     touched,
@@ -164,7 +177,8 @@ export function BottleFormFields({
   const dirty =
     isBottleFormDirty(state, baseline, mode === "new") ||
     attachment !== undefined ||
-    keptPhotoId !== existingPhotoId;
+    keptPhotoId !== existingPhotoId ||
+    backPhoto.changed;
   const blockingErrors: BottleFormErrors = { ...clientErrors, ...serverErrors };
   if (!detailsOpen && firstBottleDetailsErrorField(blockingErrors)) {
     for (const field of BOTTLE_DETAILS_ERROR_FIELDS) {
@@ -172,7 +186,11 @@ export function BottleFormFields({
     }
   }
   const canSubmit =
-    dirty && canSubmitBottleForm(state, blockingErrors, photoStatus) && !photoDeleting && !deleting;
+    dirty &&
+    canSubmitBottleForm(state, blockingErrors, photoStatus) &&
+    !photoDeleting &&
+    !backPhoto.deleting &&
+    !deleting;
   const detailsId = useId();
 
   useEffect(() => {
@@ -246,30 +264,11 @@ export function BottleFormFields({
     startLabelRecognition(pendingRecognize.jpeg).catch(() => {});
   }, [pendingRecognize, session]);
 
-  useEffect(() => {
-    if (!getCellarRecognizePref()) {
-      setRecognizeStatus(null);
-      return;
-    }
-    if (mode !== "new" && !attachment?.recognizeJpeg) {
-      return;
-    }
-    const jpeg = attachment?.recognizeJpeg;
-    if (!jpeg) {
-      if (!attachment) {
-        setRecognizeStatus(null);
-        recognizeJpegRef.current = null;
-      }
-      return;
-    }
-    if (jpeg === recognizeJpegRef.current) {
-      return;
-    }
-    recognizeJpegRef.current = jpeg;
+  const runRecognition = useCallback((jpeg: Blob, back: Blob | null, force: boolean) => {
     const requestId = recognizeRequestRef.current + 1;
     recognizeRequestRef.current = requestId;
     setRecognizeStatus("loading");
-    void startLabelRecognition(jpeg)
+    void startLabelRecognition(jpeg, undefined, { back, force })
       .then((result) => {
         if (ignoreRecognizeRef.current || requestId !== recognizeRequestRef.current) {
           return;
@@ -299,7 +298,58 @@ export function BottleFormFields({
         }
         setRecognizeStatus("failure");
       });
-  }, [attachment, mode]);
+  }, []);
+
+  const backRecognizeJpeg = hasFront ? (backPhoto.attachment?.recognizeJpeg ?? null) : null;
+
+  // 表面の JPEG（新規、または編集でそのセッションに付けた分）と裏面の JPEG の組が変わったら読み取る。
+  // 裏面だけ足しても表面の JPEG が端末に無い（編集で保存済み）ときは走らせない（cellar.md 3.3）。
+  useEffect(() => {
+    if (!getCellarRecognizePref()) {
+      setRecognizeStatus(null);
+      return;
+    }
+    if (mode !== "new" && !attachment?.recognizeJpeg) {
+      return;
+    }
+    const jpeg = attachment?.recognizeJpeg;
+    if (!jpeg) {
+      if (!attachment) {
+        setRecognizeStatus(null);
+        recognizeJpegRef.current = null;
+        recognizeBackJpegRef.current = null;
+      }
+      return;
+    }
+    if (jpeg === recognizeJpegRef.current && backRecognizeJpeg === recognizeBackJpegRef.current) {
+      return;
+    }
+    recognizeJpegRef.current = jpeg;
+    recognizeBackJpegRef.current = backRecognizeJpeg;
+    runRecognition(jpeg, backRecognizeJpeg, false);
+  }, [attachment, backRecognizeJpeg, mode, runRecognition]);
+
+  // 表面をユーザーが消したときだけ裏面も外す（E41）。
+  // hasFront の変化を見て自動削除しないこと。保存成功後の releaseAttachment で
+  // 表面添付が外れると、紐付け済みの裏面まで DELETE してしまう。
+  function removeFrontPhoto() {
+    void backPhoto.clear();
+    if (attachment) {
+      void clearAttachment("cellar");
+      return;
+    }
+    if (keptPhotoId) {
+      void removeExistingPhoto();
+    }
+  }
+
+  function retryRecognition() {
+    const jpeg = recognizeJpegRef.current;
+    if (!jpeg || recognizeStatus === "loading") {
+      return;
+    }
+    runRecognition(jpeg, recognizeBackJpegRef.current, true);
+  }
 
   useEffect(() => {
     const capturedAt = attachment?.capturedAt;
@@ -311,6 +361,12 @@ export function BottleFormFields({
       storedOn: capturedAtToCalendarDate(capturedAt, new Date()),
     }));
   }, [attachment?.capturedAt, mode, storedOnTouched]);
+
+  useEffect(() => {
+    if (formError || saveState === "error") {
+      savedRef.current = false;
+    }
+  }, [formError, saveState]);
 
   useEffect(() => {
     const field = firstBottleDetailsErrorField(serverErrors);
@@ -358,22 +414,31 @@ export function BottleFormFields({
       return;
     }
     ignoreRecognizeRef.current = true;
+    // 保存リクエストを出したあと、成功時の releaseAttachment や遷移で
+    // 離脱ガードの破棄が走ると紐付け済み裏面を消してしまう。先に抑止する。
+    savedRef.current = true;
+    setGuard(null);
+    const frontPhotoId = attachment?.photoId ?? keptPhotoId ?? null;
+    const backPhotoId = frontPhotoId ? backPhoto.photoId : null;
     if (mode === "new") {
       onCreate?.(
         toCreateBottleBody(resolvedState, attachment?.photoId ?? null, {
           now,
           storedOnTouched: storedOnTouchedRef.current,
           capturedAt: attachment?.capturedAt,
+          backPhotoId,
         }),
       );
       return;
     }
+    // 写真構成（表 / 裏のどちらか）が変わったときだけ、[表面, 裏面?] の全体を送る
+    const photosChanged =
+      attachment !== undefined || keptPhotoId !== existingPhotoId || backPhoto.changed;
     onUpdate?.(
       toUpdateBottleBody(
         resolvedState,
         baseline,
-        attachment?.photoId ?? null,
-        keptPhotoId === null && existingPhotoId !== null,
+        photosChanged ? bottlePhotoIds(frontPhotoId, backPhotoId) : null,
       ),
     );
   }
@@ -394,6 +459,7 @@ export function BottleFormFields({
   }
 
   async function discard() {
+    backPhoto.discard();
     await clearAttachment("cellar");
     savedRef.current = true;
     setGuard(null);
@@ -420,16 +486,24 @@ export function BottleFormFields({
           attachment ? () => void editAttachment("cellar") : () => void startCapture("cellar")
         }
         onRetry={() => void retryUpload("cellar")}
-        onClear={
-          attachment
-            ? () => void clearAttachment("cellar")
-            : keptPhotoId
-              ? () => void removeExistingPhoto()
-              : undefined
-        }
+        onClear={attachment || keptPhotoId ? () => removeFrontPhoto() : undefined}
         error={errors.photoIds}
       />
-      {recognizeStatus ? <RecognizeBanner status={recognizeStatus} /> : null}
+      {hasFront ? (
+        <BackPhotoField
+          attachment={backPhoto.attachment}
+          existingPreviewUrl={backPhoto.keptPhotoId ? photoContentUrl(backPhoto.keptPhotoId) : null}
+          processing={backPhoto.processing}
+          disabled={backPhoto.deleting || pending}
+          onCapture={() => void backPhoto.pick("camera")}
+          onLibrary={() => void backPhoto.pick("library")}
+          onRetry={() => void backPhoto.retry()}
+          onClear={() => void backPhoto.clear()}
+        />
+      ) : null}
+      {recognizeStatus ? (
+        <RecognizeBanner status={recognizeStatus} onRetry={retryRecognition} />
+      ) : null}
       <div className="log-form-section">
         <label className="field-label" htmlFor="bottle-name">
           {BOTTLE_FIELD_LABELS.name}

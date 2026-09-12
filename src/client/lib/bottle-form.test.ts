@@ -96,6 +96,19 @@ describe("toCreate / toUpdate", () => {
     });
   });
 
+  it("裏面は表面の後ろに付く。表面が無ければ裏面も送らない", () => {
+    const withBack = toCreateBottleBody({ ...EMPTY, name: "赤" }, "front", {
+      now: NOW,
+      backPhotoId: "back",
+    });
+    expect(withBack?.photoIds).toEqual(["front", "back"]);
+    const backOnly = toCreateBottleBody({ ...EMPTY, name: "赤" }, null, {
+      now: NOW,
+      backPhotoId: "back",
+    });
+    expect(backOnly?.photoIds).toBeUndefined();
+  });
+
   it("保管日を変えたらその値。日付またぎでも手動値は維持", () => {
     const opened = createEmptyBottleForm(new Date("2026-09-06T03:00:00.000Z"));
     const nextDay = new Date("2026-09-07T03:00:00.000Z");
@@ -129,14 +142,17 @@ describe("toCreate / toUpdate", () => {
 
   it("編集は変わった欄だけ。写真削除は空配列。空の保管欄は埋めない", () => {
     const initial = { ...createEmptyBottleForm(NOW), name: "元", storedOn: "", storage: "" };
-    expect(toUpdateBottleBody(initial, initial, null, false)).toBeNull();
-    expect(toUpdateBottleBody({ ...initial, name: "改名" }, initial, null, false)).toEqual({
+    expect(toUpdateBottleBody(initial, initial, null)).toBeNull();
+    expect(toUpdateBottleBody({ ...initial, name: "改名" }, initial, null)).toEqual({
       name: "改名",
     });
-    expect(toUpdateBottleBody(initial, initial, null, true)).toEqual({ photoIds: [] });
-    expect(
-      toUpdateBottleBody({ ...initial, storedOn: "2026-01-02" }, initial, null, false),
-    ).toEqual({ storedOn: "2026-01-02" });
+    expect(toUpdateBottleBody(initial, initial, [])).toEqual({ photoIds: [] });
+    expect(toUpdateBottleBody(initial, initial, ["front", "back"])).toEqual({
+      photoIds: ["front", "back"],
+    });
+    expect(toUpdateBottleBody({ ...initial, storedOn: "2026-01-02" }, initial, null)).toEqual({
+      storedOn: "2026-01-02",
+    });
   });
 });
 

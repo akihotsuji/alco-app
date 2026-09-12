@@ -38,7 +38,14 @@ describe("BottleForm バリデーション表示", () => {
   });
 
   it("読み取り帯を出し、AI 印は触ると消える欄に付ける", () => {
-    expect(source).toContain("recognizeStatus ? <RecognizeBanner");
+    expect(source).toContain(
+      "<RecognizeBanner status={recognizeStatus} onRetry={retryRecognition} />",
+    );
+    expect(source).toContain("<BackPhotoField");
+    expect(source).toContain("removeFrontPhoto()");
+    expect(source).toContain("void backPhoto.clear()");
+    expect(source).toContain("savedRef.current = true");
+    expect(source).not.toContain("if (!hasFront && backPhotoHas)");
     expect(source).toContain("<RecognizeBanner");
     expect(source).toContain("FieldWithAiMark");
     expect(source).toContain("BOTTLE_FIELD_LABELS.name");
@@ -50,7 +57,7 @@ describe("BottleForm バリデーション表示", () => {
 
   it("読み取りは pendingRecognizeJpeg で先に始め、attachment 側は同じ Blob の結果に相乗りする", () => {
     expect(source).toContain("startLabelRecognition(pendingRecognize.jpeg)");
-    expect(source).toContain("startLabelRecognition(jpeg)");
+    expect(source).toContain("startLabelRecognition(jpeg, undefined, { back, force })");
     expect(source).not.toContain("recognizeLabel(");
     expect(source).toContain("offerMatchesSession(pendingRecognize, session)");
     expect(source).toContain('mode !== "new" && !attachment?.recognizeJpeg');

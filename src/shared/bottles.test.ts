@@ -76,9 +76,10 @@ describe("createBottleSchema", () => {
     expect(messagesOf(createBottleSchema, { ...BASE, count: 13 }).count).toEqual([
       BOTTLE_MESSAGES.count,
     ]);
-    expect(messagesOf(createBottleSchema, { ...BASE, photoIds: [UUID, UUID] }).photoIds).toEqual([
-      BOTTLE_MESSAGES.photoIdsMax,
-    ]);
+    expect(
+      messagesOf(createBottleSchema, { ...BASE, photoIds: [UUID, UUID, UUID] }).photoIds,
+    ).toEqual([BOTTLE_MESSAGES.photoIdsMax]);
+    expect(createBottleSchema.safeParse({ ...BASE, photoIds: [UUID, UUID] }).success).toBe(true);
   });
 
   it("年・価格・購入日", () => {

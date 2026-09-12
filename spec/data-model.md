@@ -27,7 +27,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | マイドリンク名上限 | 40 文字 | 1 タップ表示 |
 | 評価 | 整数 `rating_x10`（10〜50、5 刻み）。1.0〜5.0 の 0.5 刻み | float 比較を避ける |
 | 写真の持ち方 | 単一 `photos` テーブル。所有者列（`bottle_id` / `tasting_note_id` / 1-07 で `drink_log_id` 追加）は最大 1 つ。すべて NULL は未紐付け（先アップロード） | 4-04 / 5-03 の推奨フロー |
-| ボトル写真 | スキーマは 1:N。MVP UI は 1 枚（`sort_order` 最小をサムネ） | 要件 1.3 は「写真」、ノート側が複数枚 |
+| ボトル写真 | スキーマは 1:N。UI は最大 2 枚: `sort_order = 0` が表面（サムネ）、`1` が裏面（任意。詳細と AI 読み取りにだけ使う）。列の追加なし | 要件 1.3 は「写真」、ノート側が複数枚。裏面は既存 `sort_order` で表す（マイグレーション不要） |
 | ボトル種類 | 飲酒記録と同じ 12 種 enum（ワイン系 6 + その他 6） | フィルタ共通化。2026-09-08 に赤／白／ロゼ／スパークリング／オレンジを追加。既存の `wine` は「色不明のワイン」として残す |
 | ノートの銘柄 | **スナップショット必須**（`drink_name` / `drink_type`）+ 任意の `bottle_id` | ボトル改名後も当時の記録を残す |
 | ボトル削除時のノート | **`bottle_id` を SET NULL**。ノートは残す | テイスティング履歴を消さない |
@@ -48,7 +48,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 記録の写真 | `photos.drink_log_id`（任意、CASCADE）。1 記録につき **1 枚** | 写真を撮って記録する UX |
 | 写真の所有者 | `bottle_id` / `tasting_note_id` / `drink_log_id` は **最大 1 つ**（CHECK）。3 つとも NULL は未紐付け | 排他を 3 way に拡張 |
 | 未紐付け写真 | 作成 24 時間で GC（Cron Trigger 日次）。R2 と D1 の両方を消す | 「使う」直後にアップロードするため放棄分が出る |
-| 写真枚数 | 記録 1 / ボトル 1 / ノート **6**（確定） | 5-01 の「提案 6」を確定 |
+| 写真枚数 | 記録 1 / ボトル **2**（表面 + 任意の裏面） / ノート **6**（確定） | 5-01 の「提案 6」を確定。ボトルの裏面は cellar.md 6 章 |
 | 写真の中身 | 加工後（向き補正・必要なら切り抜き・キャラ合成済み）の画像 **1 枚だけ**。元画像は保存しない。色補正はしない | R2 を倍にしない（[07-photo-capture.md](screen-designs/07-photo-capture.md)） |
 | 写真の種別 | `photos.kind`: `photo`（長方形 JPEG）/ `cutout`（背景除去済み透過 WebP。セラーのみ）。サーバーが画像ヘッダから判定 | 棚で描き方を分ける（2026-09-05） |
 | ラベル読み取り | **テーブルを持たない**。`POST /api/bottles/recognize` は候補を返すだけで保存しない。利用回数の上限はユーザーごとに日次でカウント（`ai_usage` テーブル、下記 6.6） | 認識回数と課金の保護 |
@@ -350,7 +350,7 @@ erDiagram
 | `price_jpy` | 0 以上の整数円、または NULL |
 | 登録時の本数 `count` | 整数 1〜12（API 入力のみ。列は無い。N 行に展開） |
 | マイドリンク件数 | ユーザーあたり 30（アプリ制限。DB CHECK なし） |
-| 写真枚数 | 記録 1 / ボトル 1 / ノート 6（アプリ制限。DB CHECK なし） |
+| 写真枚数 | 記録 1 / ボトル 2（表面 + 裏面） / ノート 6（アプリ制限。DB CHECK なし） |
 | 写真 1 枚 | ≦ 1MB、長辺 ≦ 1600px、`image/jpeg` / `image/png` / `image/webp` |
 
 ---
@@ -489,7 +489,7 @@ erDiagram
 | tastingNoteId | tasting_note_id | text | YES | FK → tasting_notes.id CASCADE | 所有者の一つ |
 | drinkLogId | drink_log_id | text | YES | FK → drink_logs.id CASCADE | 所有者の一つ（1-07） |
 | kind | kind | text | NO | CHECK `photo` / `cutout`, default `photo` | `cutout` = 背景除去済み透過 WebP（セラー）。サーバーが WebP の alpha フラグで判定 |
-| sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。ボトルサムネは最小 |
+| sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。ボトルは 0 = 表面（サムネ）、1 = 裏面 |
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
 
@@ -503,7 +503,7 @@ CHECK (
 
 | bottle_id | tasting_note_id | drink_log_id | 意味 |
 |---|---|---|---|
-| 値 | NULL | NULL | ボトル写真（1 枚） |
+| 値 | NULL | NULL | ボトル写真（表面 + 任意の裏面） |
 | NULL | 値 | NULL | ノート写真（≦6） |
 | NULL | NULL | 値 | 記録写真（1 枚） |
 | NULL | NULL | NULL | 未紐付け（先アップロード）。**24 時間で GC** |

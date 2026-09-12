@@ -9,6 +9,7 @@ import {
   LABEL_RECOGNIZE_GEMINI_SCHEMA,
   LABEL_RECOGNIZE_GUIDED_JSON_SCHEMA,
   LABEL_RECOGNIZE_SYSTEM_PROMPT,
+  LABEL_RECOGNIZE_TWO_SIDED_USER_PROMPT,
   LABEL_RECOGNIZE_USER_PROMPT,
 } from "../label-recognizer/prompt.ts";
 import {
@@ -82,12 +83,14 @@ export function createTaskRecognizer(env: object, task: AiRecognitionTask): Labe
       profile: profile.key,
       modelId: profile.modelId,
       async recognize(jpegBytes, options) {
+        const back = task === "label" ? options?.backJpegBytes : undefined;
         const result = await adapter.invoke({
           profile,
           kind: "extract",
           jpegBytes,
+          extraJpegBytes: back ? [back] : undefined,
           systemPrompt: prompts.systemPrompt,
-          userPrompt: prompts.userPrompt,
+          userPrompt: back ? LABEL_RECOGNIZE_TWO_SIDED_USER_PROMPT : prompts.userPrompt,
           schema: prompts.schema,
           search: false,
           signal: options?.signal,

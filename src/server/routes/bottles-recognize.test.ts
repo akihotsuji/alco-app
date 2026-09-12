@@ -86,6 +86,66 @@ describe("POST /api/bottles/recognize", () => {
     expect(await usageCount(ctx, a.userId)).toBe(1);
   });
 
+  it("back パートがあれば裏面も同じ呼び出しに渡し、回数は 1 回。キャッシュは表 1 枚と分ける", async () => {
+    const calls: Array<{ front: number; back: number | undefined }> = [];
+    const ctx = await createTestApp({
+      labelRecognizer: createStubLabelRecognizer(async (bytes, options) => {
+        calls.push({ front: bytes.byteLength, back: options?.backJpegBytes?.byteLength });
+        return {
+          name: { value: options?.backJpegBytes ? "表裏" : "表のみ", confidence: 0.9 },
+        };
+      }),
+    });
+    const a = await session(ctx.app, "a@example.com");
+    const front = makeJpeg(320, 480);
+    const back = makeJpeg(300, 450);
+
+    const single = await postRecognize(ctx.app, a.cookie, front);
+    expect(single.status).toBe(200);
+    expect(recognizeResponseSchema.parse(await single.json()).fields.name?.value).toBe("表のみ");
+
+    const form = new FormData();
+    form.set("file", new File([Uint8Array.from(front)], "front.jpg", { type: "image/jpeg" }));
+    form.set("back", new File([Uint8Array.from(back)], "back.jpg", { type: "image/jpeg" }));
+    const both = await ctx.app.request("/api/bottles/recognize", {
+      method: "POST",
+      headers: { Cookie: a.cookie },
+      body: form,
+    });
+    expect(both.status).toBe(200);
+    const body = recognizeResponseSchema.parse(await both.json());
+    expect(body.fields.name?.value).toBe("表裏");
+    expect(body.remainingToday).toBe(AI_RECOGNIZE_DAILY_LIMIT - 2);
+    expect(calls).toEqual([
+      { front: front.byteLength, back: undefined },
+      { front: front.byteLength, back: back.byteLength },
+    ]);
+    expect(await usageCount(ctx, a.userId)).toBe(2);
+  });
+
+  it("back パートも表面と同じ検証（PNG は 415、1MB 超は 413）。回数は加算しない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const withBack = (back: Uint8Array, type = "image/jpeg") => {
+      const form = new FormData();
+      form.set(
+        "file",
+        new File([Uint8Array.from(makeJpeg(320, 480))], "front.jpg", { type: "image/jpeg" }),
+      );
+      form.set("back", new File([Uint8Array.from(back)], "back.bin", { type }));
+      return ctx.app.request("/api/bottles/recognize", {
+        method: "POST",
+        headers: { Cookie: a.cookie },
+        body: form,
+      });
+    };
+    const png = await withBack(makePng(320, 480), "image/jpeg");
+    expect(png.status).toBe(415);
+    const big = await withBack(new Uint8Array(PHOTO_MAX_BYTES + 1));
+    expect(big.status).toBe(413);
+    expect(await usageCount(ctx, a.userId)).toBe(0);
+  });
+
   it("モデル出力が壊れていても 200 で空 fields。回数は加算する", async () => {
     const ctx = await createTestApp({
       labelRecognizer: createStubLabelRecognizer(async () => "definitely not json"),

@@ -30,7 +30,10 @@ export const BOTTLE_TEXT_MAX_LENGTH = IDENTITY_TEXT_MAX_LENGTH;
 export const BOTTLE_MEMO_MAX_LENGTH = 2000;
 export const BOTTLE_COUNT_MIN = 1;
 export const BOTTLE_COUNT_MAX = 12;
-export const BOTTLE_PHOTO_MAX = 1;
+/** ボトル写真は表面（sort_order 0）+ 任意の裏面（sort_order 1）の最大 2 枚。 */
+export const BOTTLE_PHOTO_MAX = 2;
+export const BOTTLE_PHOTO_FRONT_INDEX = 0;
+export const BOTTLE_PHOTO_BACK_INDEX = 1;
 export const BOTTLE_SEARCH_MAX_LENGTH = 100;
 
 export const BOTTLE_VIEWS = ["cellar", "archive", "all"] as const;
@@ -50,7 +53,7 @@ export const BOTTLE_MESSAGES = {
   priceJpy: "0以上の整数で入力してください",
   memo: `${BOTTLE_MEMO_MAX_LENGTH}文字以内で入力してください`,
   count: `${BOTTLE_COUNT_MIN}以上${BOTTLE_COUNT_MAX}以下で入力してください`,
-  photoIdsMax: `写真は${BOTTLE_PHOTO_MAX}枚まで添付できます`,
+  photoIdsMax: `写真は表面と裏面の${BOTTLE_PHOTO_MAX}枚まで添付できます`,
   photoNotFound: "写真をもう一度撮ってください",
   patchEmpty: "変更する項目を指定してください",
   view: "一覧の種類が正しくありません",
