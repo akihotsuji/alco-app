@@ -2,7 +2,7 @@
 
 家族・カップルが、一つのセラー在庫をそれぞれのアカウントで共同管理する。ボトルの正本は 1 行 = 1 本。ユーザーごとのコピー同期はしない。
 
-- 状態: 実装（2026-09-11。調査 SHA `97db2b0e7093c4d571210e7a00e76dbccdd6cf13`）
+- 状態: 実装（2026-09-11。調査 SHA `97db2b0e7093c4d571210e7a00e76dbccdd6cf13`）。本番の `0010_shared_cellar` 適用で既存ボトル写真が消えた。原因と復旧は [operations.md](../operations.md) 10 章
 - 画面の正本: [screen-designs/04-cellar.md](../screen-designs/04-cellar.md)、[screen-designs/11-shared-cellar.md](../screen-designs/11-shared-cellar.md)
 - API の正本: [api-design.md](../api-design.md) 4.8
 - 列の正本: [data-model.md](../data-model.md) 6.13〜

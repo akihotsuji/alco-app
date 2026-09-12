@@ -43,6 +43,57 @@ function applyMigration(db: DatabaseSync, tag: string) {
   }
 }
 
+/**
+ * D1 は各 statement を暗黙のトランザクションで実行し、`PRAGMA foreign_keys=OFF` を無視する。
+ * 公式: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
+ */
+function applyMigrationAsD1(db: DatabaseSync, tag: string) {
+  const sqlText = readFileSync(path.join(migrationsDir, `${tag}.sql`), "utf8");
+  for (const raw of sqlText.split("--> statement-breakpoint")) {
+    const statement = raw.trim();
+    if (statement === "") {
+      continue;
+    }
+    if (/^PRAGMA\s+foreign_keys\s*=\s*OFF\s*;?$/i.test(statement)) {
+      continue;
+    }
+    db.exec(statement);
+  }
+}
+
+function applyThrough(db: DatabaseSync, lastExclusiveTag: string) {
+  for (const entry of readJournal().entries) {
+    if (entry.tag === lastExclusiveTag) {
+      break;
+    }
+    applyMigration(db, entry.tag);
+  }
+}
+
+function seedPreSharedCellar(db: DatabaseSync) {
+  insertUser(db, "u1");
+  db.prepare(
+    `INSERT INTO bottles (id, user_id, name, drink_type, created_at, updated_at)
+     VALUES ('b1', 'u1', 'Vosne', 'wine_red', ?, ?)`,
+  ).run(NOW, NOW);
+  db.prepare(
+    `INSERT INTO photos (id, user_id, r2_key, content_type, byte_size, bottle_id, created_at, updated_at)
+     VALUES ('p-bottle', 'u1', 'p-bottle.jpg', 'image/jpeg', 100, 'b1', ?, ?)`,
+  ).run(NOW, NOW);
+  db.prepare(
+    `INSERT INTO photos (id, user_id, r2_key, content_type, byte_size, created_at, updated_at)
+     VALUES ('p-loose', 'u1', 'p-loose.jpg', 'image/jpeg', 100, ?, ?)`,
+  ).run(NOW, NOW);
+  db.prepare(
+    `INSERT INTO drink_logs (id, user_id, drunk_at, drunk_on, drink_type, volume_ml, abv_percent, alcohol_g, bottle_id, created_at, updated_at)
+     VALUES ('l1', 'u1', ?, '2026-09-10', 'wine_red', 120, 13, 12.5, 'b1', ?, ?)`,
+  ).run(NOW, NOW, NOW);
+  db.prepare(
+    `INSERT INTO tasting_notes (id, user_id, bottle_id, drink_name, drink_type, tasted_on, rating_x10, created_at, updated_at)
+     VALUES ('n1', 'u1', 'b1', 'Vosne', 'wine_red', '2026-09-10', 40, ?, ?)`,
+  ).run(NOW, NOW);
+}
+
 /** journal の順に全マイグレーション SQL を空の SQLite に適用する（wrangler d1 migrations apply の再現） */
 function openMigratedDb(): DatabaseSync {
   const db = new DatabaseSync(":memory:");
@@ -204,6 +255,71 @@ describe("マイグレーション（src/db/migrations）", () => {
       ].sort(),
     );
     db.close();
+  });
+});
+
+describe("0010_shared_cellar と D1 の外部キー", () => {
+  it("同一接続なら PRAGMA foreign_keys=OFF が効き、ボトル写真と紐付けは残る", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    applyThrough(db, "0010_shared_cellar");
+    seedPreSharedCellar(db);
+    applyMigration(db, "0010_shared_cellar");
+    expect(photoIds(db)).toEqual(["p-bottle", "p-loose"]);
+    expect(
+      (db.prepare("SELECT bottle_id AS id FROM drink_logs WHERE id = 'l1'").get() as { id: string })
+        .id,
+    ).toBe("b1");
+    expect(
+      (
+        db.prepare("SELECT bottle_id AS id FROM tasting_notes WHERE id = 'n1'").get() as {
+          id: string;
+        }
+      ).id,
+    ).toBe("b1");
+    db.close();
+  });
+
+  it("D1 相当（foreign_keys=OFF 無効）では DROP bottles が CASCADE し、写真と記録・ノートの紐付けが消える", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    applyThrough(db, "0010_shared_cellar");
+    seedPreSharedCellar(db);
+    applyMigrationAsD1(db, "0010_shared_cellar");
+    expect(photoIds(db)).toEqual(["p-loose"]);
+    expect(db.prepare("SELECT id FROM photos WHERE id = 'p-bottle'").get()).toBeUndefined();
+    expect(
+      (db.prepare("SELECT id FROM bottles WHERE id = 'b1'").get() as { id: string } | undefined)
+        ?.id,
+    ).toBe("b1");
+    expect(
+      (
+        db.prepare("SELECT bottle_id AS id FROM drink_logs WHERE id = 'l1'").get() as {
+          id: string | null;
+        }
+      ).id,
+    ).toBeNull();
+    expect(
+      (
+        db.prepare("SELECT bottle_id AS id FROM tasting_notes WHERE id = 'n1'").get() as {
+          id: string | null;
+        }
+      ).id,
+    ).toBeNull();
+    db.close();
+  });
+
+  it("0010 より後のマイグレーションは bottles / photos を CASCADE 付きのまま DROP しない", () => {
+    let afterSharedCellar = false;
+    for (const entry of readJournal().entries) {
+      if (!afterSharedCellar) {
+        afterSharedCellar = entry.tag === "0010_shared_cellar";
+        continue;
+      }
+      const sqlText = readFileSync(path.join(migrationsDir, `${entry.tag}.sql`), "utf8");
+      expect(sqlText, entry.tag).not.toMatch(/DROP TABLE `bottles`/i);
+      expect(sqlText, entry.tag).not.toMatch(/DROP TABLE `photos`/i);
+    }
   });
 });
 

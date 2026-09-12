@@ -53,6 +53,10 @@ alwaysApply: false
 - カレンダー日は `text` の `YYYY-MM-DD`（Asia/Tokyo）。UTC 日付にしない
 - `drink_type` / `bottle status` の値は `src/shared/constants.ts`（`DRINK_TYPES` / `BOTTLE_STATUSES`）を唯一のソースにし、DB CHECK と Zod enum の両方をそこから作る
 
+## D1 のテーブル再作成
+
+リモート D1 は `PRAGMA foreign_keys=OFF` を無視する。`DROP TABLE bottles` は `photos` を CASCADE 削除し、記録・ノートの `bottle_id` を SET NULL する。drizzle-kit が出す `__new_*` + DROP をそのまま当てない。子を先にコピーする。詳細は `db-migration` スキルと [operations.md](../../spec/operations.md) 10 章。
+
 ## 禁止
 
 - マイグレーションやシードにパスワード・API キーを埋め込まない

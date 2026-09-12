@@ -57,6 +57,8 @@ pnpm db:generate --name add_bottle_rating
 
 SQLite は `ALTER TABLE` が弱いため、列の型変更・NOT NULL 化・CHECK 変更は drizzle-kit が **テーブル再作成**（`__new_xxx` を作ってコピー → 旧テーブル DROP → RENAME）を出す。データが入っている環境に当てる前に、コピー時の `INSERT INTO ... SELECT` が全列を扱っているか確認する。
 
+**D1 では `PRAGMA foreign_keys=OFF` は効かない。** 各 statement が暗黙のトランザクションで `foreign_keys=on` 相当になる（[公式](https://developers.cloudflare.com/d1/sql-api/foreign-keys/)）。`PRAGMA defer_foreign_keys=ON` も `ON DELETE CASCADE` は止めない。親テーブル（`bottles` 等）を DROP すると、子の `photos` は消え、`drink_logs` / `tasting_notes` の `bottle_id` は SET NULL になる。0010 で本番のボトル写真が消えた。同じ形の DROP は出さない。子を先に退避・再作成してから親を落とす。
+
 ### 5. ローカル D1 に適用する
 
 ```powershell
