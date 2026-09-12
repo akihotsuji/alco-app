@@ -258,6 +258,24 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 
 ---
 
+## ワードマーク
+
+認証画面 L2（ログイン・サインアップ・年齢確認・パスワード再設定）の公開名称。正本は [assets/brand/wordmark.svg](assets/brand/wordmark.svg)。画面の出し方は [screen-designs/01-auth.md](screen-designs/01-auth.md)。
+
+| 項目 | 値 |
+|---|---|
+| `--wordmark-width` | 200px |
+| 比率 | viewBox `8 3 1012 286`（幅:高さ ≈ 3.54:1） |
+| インク | `#6C2639`（ファイル内。トークンにしない） |
+| ボトル金 | `#D0AF77`（ファイル内。トークンにしない） |
+| 名前 | `alt` / `aria-label` は「酒のしおり」。仮名 `alco-app` は出さない |
+| 差し替え | SVG を同じパスで上書きする。PNG 直置きはしない。`dangerouslySetInnerHTML` は使わない。色・比率・幅を変えるときは本表と `01-auth.md` を同じ PR で直す |
+| ダーク | 同じ SVG。`html[data-theme="dark"]` で `brightness(1.45) saturate(0.9)`。ロゴは WCAG コントラスト例外 |
+
+実装は `src/client/components/brand/Wordmark.tsx` が `src/client/assets/brand/wordmark.svg` を `<img>` で読む（仕様正本と同一内容）。
+
+---
+
 ## 陳列・写真（1-07 追補）
 
 | トークン | ライト | ダーク | 用途 |

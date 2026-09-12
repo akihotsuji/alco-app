@@ -66,6 +66,7 @@
   --tab-h: 72px;
   --tab-center-size: 60px;
   --tab-center-lift: 12px;
+  --wordmark-width: 200px;
   --page-pad-x: 20px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
@@ -545,6 +546,25 @@ select {
   gap: var(--space-2);
   padding: calc(var(--space-5) + var(--safe-top)) calc(var(--space-5) + var(--safe-right))
     calc(var(--space-5) + var(--safe-bottom)) calc(var(--space-5) + var(--safe-left));
+}
+
+/* 認証 L2: ワードマーク SVG。色はファイル内の指定。ロゴはコントラスト例外 */
+.auth-wordmark {
+  display: block;
+  width: var(--wordmark-width);
+  height: auto;
+  aspect-ratio: 1012 / 286;
+  margin: 0 0 var(--space-5);
+}
+
+html[data-theme="dark"] .auth-wordmark {
+  filter: brightness(1.45) saturate(0.9);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) .auth-wordmark {
+    filter: brightness(1.45) saturate(0.9);
+  }
 }
 
 /* auth-age A5: 年 / 月 / 日 を数字キーボードで打つ 3 欄（spec/screen-designs/01-auth.md） */
