@@ -4,7 +4,15 @@ import { photos } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
-import { makeGif, makeHeic, makeHtml, makeJpeg, makeSvg, makeWebpVp8x } from "../image-fixtures.ts";
+import {
+  makeGif,
+  makeHeic,
+  makeHtml,
+  makeJpeg,
+  makePng,
+  makeSvg,
+  makeWebpVp8x,
+} from "../image-fixtures.ts";
 import {
   createTestApp,
   createTestUser,
@@ -75,6 +83,14 @@ describe("POST /api/photos", () => {
       "cutout.webp",
       "application/octet-stream",
     );
+    expect(res.status).toBe(201);
+    expect(photoMetaSchema.parse(await res.json()).kind).toBe("cutout");
+  });
+
+  it("PNG + alpha は kind=cutout", async () => {
+    const { app } = await createTestApp();
+    const { cookie } = await session(app, "a@example.com");
+    const res = await postPhoto(app, cookie, makePng(400, 600, 6), {}, "cutout.png", "image/png");
     expect(res.status).toBe(201);
     expect(photoMetaSchema.parse(await res.json()).kind).toBe("cutout");
   });

@@ -25,6 +25,12 @@ describe("inspectImageBytes", () => {
     });
   });
 
+  it("PNG の color type 4/6 は kind=cutout", () => {
+    expect(inspectImageBytes(makePng(400, 600, 6)).kind).toBe("cutout");
+    expect(inspectImageBytes(makePng(400, 600, 4)).kind).toBe("cutout");
+    expect(inspectImageBytes(makePng(400, 600, 2)).kind).toBe("photo");
+  });
+
   it("WebP VP8X の alpha フラグで kind を決める", () => {
     const photo = inspectImageBytes(makeWebpVp8x({ width: 400, height: 600, alpha: false }));
     expect(photo.kind).toBe("photo");

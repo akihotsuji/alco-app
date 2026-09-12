@@ -43,7 +43,7 @@ export function makeJpeg(width: number, height: number, extraBytes = 0): Uint8Ar
   return Uint8Array.from(bytes);
 }
 
-export function makePng(width: number, height: number): Uint8Array {
+export function makePng(width: number, height: number, colorType = 2): Uint8Array {
   const ihdr = [
     ...u32be(13),
     0x49,
@@ -53,7 +53,7 @@ export function makePng(width: number, height: number): Uint8Array {
     ...u32be(width),
     ...u32be(height),
     0x08,
-    0x02,
+    colorType,
     0x00,
     0x00,
     0x00,
