@@ -113,8 +113,10 @@ export const PHOTO_GC_BATCH_SIZE = 500;
 /** 写真アップロードの日次上限（ユーザー / JST 日）。UI / PP には数値を出さない（8-05） */
 export const PHOTO_UPLOAD_DAILY_LIMIT = 80;
 export const AI_USAGE_RETENTION_DAYS = 30;
-/** ラベル読み取りの日次上限（ユーザー / JST 日）。api-design 4.5.3。env で上書き可 */
-export const AI_RECOGNIZE_DAILY_LIMIT = 30;
+/** env / 定数が取れる日次上限の上限。無制限化しない */
+export const AI_RECOGNIZE_DAILY_LIMIT_MAX = 10_000;
+/** ラベル読み取りの日次上限（ユーザー / JST 日）。api-design 4.5.3。一旦 MAX。env で下げられる */
+export const AI_RECOGNIZE_DAILY_LIMIT = AI_RECOGNIZE_DAILY_LIMIT_MAX;
 export const AI_RECOGNIZE_TIMEOUT_MS = 20_000;
 /** 未使用だった全体寄り 20s。検索専用予算には使わない */
 export const AI_RECOGNIZE_LOOKUP_TIMEOUT_MS = 20_000;

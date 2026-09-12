@@ -526,7 +526,7 @@ CHECK (
 | usedOn | used_on | text | NO | PK の一部 | JST 日 `YYYY-MM-DD` |
 | count | count | integer | NO | default 0 | その日の呼び出し回数 |
 
-- 上限はアプリ定数（初期値 **30 回 / 日 / ユーザー**）。超過は 429 `rate_limited`
+- 上限はアプリ定数（**10000 回 / 日 / ユーザー**。許容上限 MAX。env で下げられる。無制限化しない）。超過は 429 `rate_limited`
 - 画像・結果・プロンプトは保存しない。行は 30 日で削除（未紐付け写真 GC と同じ日次ジョブ）
 
 ### 6.7 legal_consents（8-01）

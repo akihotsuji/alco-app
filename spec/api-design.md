@@ -54,7 +54,7 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 | 未紐付け GC | **Cron Trigger（日次）** で作成 24h 超の未紐付け写真を R2 + D1 から削除。公開エンドポイントではない（Worker の `scheduled` ハンドラ） | 放棄分の掃除 |
 | 一覧のサムネ | drink-log 一覧にも `thumbPhotoId` を含める。bottles 一覧は `thumbPhotoKind`（`photo` / `cutout`）も返す | 日別の行サムネ、棚の描き分け |
 | 写真の種別 | 写真メタに `kind`（`photo` / `cutout`）。サーバーが WebP の alpha フラグで判定し、クライアント申告は受け取らない | 切り抜き（2026-09-05） |
-| ラベル読み取り | **`POST /api/bottles/recognize`** を追加。認識プロファイルで候補を返す。**保存しない**。日次上限 30 回 / ユーザー（429） | オーナー決定（2026-09-05）。既定は記録と同じ Gemini。プロバイダは差し替え可能 |
+| ラベル読み取り | **`POST /api/bottles/recognize`** を追加。認識プロファイルで候補を返す。**保存しない**。日次上限 10000 回 / ユーザー（429。許容上限 MAX） | オーナー決定（2026-09-05、上限は 2026-09-12 に MAX）。既定は記録と同じ Gemini。プロバイダは差し替え可能 |
 
 ---
 
@@ -495,7 +495,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 
 #### POST /api/drink-logs/recognize
 
-記録写真（グラス / 缶 / 瓶 / ラベル）から **品名・識別 4 項目・種類・量・度数の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` と **同じ 30 回 / 日（JST）** を共有する。正本は [features/ai-recognition.md](features/ai-recognition.md)。
+記録写真（グラス / 缶 / 瓶 / ラベル）から **品名・識別 4 項目・種類・量・度数の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` と **同じ 10000 回 / 日（JST。許容上限 MAX）** を共有する。正本は [features/ai-recognition.md](features/ai-recognition.md)。
 
 `multipart/form-data`、パート名 `file`。JPEG、≦1MB。切り抜き不要（写真全体）。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。
 
@@ -569,7 +569,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 |---|---|
 | 入力 | JSON。`drinkName` / `producer` は 1〜100 文字必須。`vintage` は 1800〜2100 整数、`drinkType` は 12 種、`appellation` ≦100 は任意。値は識別対象データとして扱い、命令として解釈しない |
 | 出力 | `fields` は `origin` / `variety` のみ。根拠は `product_source`（出典 URL が grounding で確認できたときだけ）。一致不足は `matched=false` で空 `fields`（200） |
-| 上限 | 抽出と同じ日次 30 回を **1 回消費** する（429 `rate_limited`）。検索非対応プロファイルでは消費せず `matched=false`。上流失敗は 502（返金）。時間予算 6 秒 |
+| 上限 | 抽出と同じ日次 10000 回（許容上限 MAX）を **1 回消費** する（429 `rate_limited`）。検索非対応プロファイルでは消費せず `matched=false`。上流失敗は 502（返金）。時間予算 6 秒 |
 | クライアント | 抽出応答の `lookupSuggested` が true で、生産国・品種のどちらかが空欄（ユーザー未入力）のときだけ 1 回呼ぶ。失敗しても抽出結果は残す |
 
 ### 4.4 my-drinks
@@ -694,7 +694,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | プロンプト | サーバー固定。ユーザー入力を含めない。「JSON のみで返す」指示 + スキーマ例。言語は日本語ラベル・英語ラベル両対応 |
 | 出力の扱い | モデル出力は **信頼しない入力**として Zod で検証する。`name` / `producer` / `origin` / `variety` ≦100 文字、`vintage` 1800〜2100 の整数、`drinkType` 12 種、`abvPercent` 0〜100 小数 1 桁、`confidence` 0〜1。検証に落ちたフィールドは **省く**（全体を失敗にしない）。文字列は制御文字を除去 |
 | 欠落 | 読めなかったフィールドは省く。`fields` が空でも 200 |
-| 上限 | ユーザーごと **30 回 / 日（JST）**。`ai_usage` を先に加算し、超過は 429 `rate_limited`。失敗（502）は加算しない |
+| 上限 | ユーザーごと **10000 回 / 日（JST。許容上限 MAX）**。`ai_usage` を先に加算し、超過は 429 `rate_limited`。失敗（502）は加算しない |
 | タイムアウト | プロファイルに従う（Gemini 25 秒 / Llama 20 秒）。超過は 502 `upstream_error` |
 | ログ | 件数・所要時間・成否のみ。画像・出力テキストをログに出さない |
 | 保存 | 画像も結果も保存しない。写真の保存は別途 4.7 |
@@ -739,7 +739,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 #### POST /api/tasting-notes/recognize
 
-ノート写真（ラベル / グラス / 缶 / 瓶）から **品名・種類・識別 4 項目の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` および `POST /api/drink-logs/recognize` と **同じ 30 回 / 日（JST）** を共有する。`/:id` より **先に登録**する。`max_tokens` は 500 程度。
+ノート写真（ラベル / グラス / 缶 / 瓶）から **品名・種類・識別 4 項目の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` および `POST /api/drink-logs/recognize` と **同じ 10000 回 / 日（JST。許容上限 MAX）** を共有する。`/:id` より **先に登録**する。`max_tokens` は 500 程度。
 
 `multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。出力上限はプロファイル（Llama は 500 程度）。
 

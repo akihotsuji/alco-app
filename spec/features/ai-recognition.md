@@ -52,7 +52,7 @@
 | `AI_NOTE_RECOGNITION_PROFILE` | `gemini-3.7-flash` | ノート |
 | `AI_GATEWAY_ID` | `default` | AI Gateway の ID |
 | `AI_GATEWAY_COLLECT_LOG` | `0` | `1` / `true` のときだけ Gateway 本文ログを取る。既定は取らない |
-| `AI_RECOGNIZE_DAILY_LIMIT` | `30` | ユーザー / JST 日のアプリ側上限。無制限化しない |
+| `AI_RECOGNIZE_DAILY_LIMIT` | `10000` | ユーザー / JST 日のアプリ側上限。許容上限 MAX（一旦この値）。env で下げられる。無制限化しない |
 
 対応済みプロファイル:
 
@@ -159,7 +159,7 @@
 
 ## 10. 料金・ログ
 
-- アプリの日次 30 回と Gateway の支出上限は別。後者は Cloudflare ダッシュボードで設定する
+- アプリの日次 10000 回（許容上限 MAX）と Gateway の支出上限は別。後者は Cloudflare ダッシュボードで設定する
 - 失敗やタイムアウトでも上流課金が残り得る
 - アプリログに写真本体・Base64・認証情報を出さない。件数・時間・フィールド数・profile 名だけ
 - 失敗時は `[drink-recognize] ok=false reason=` に status と短いメッセージだけ出す（写真・Base64・Cookie は落とす）。クライアント応答は `upstream_error`
