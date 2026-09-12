@@ -95,6 +95,14 @@ $RECYCLE.BIN/
 *.p12
 *.pfx
 
+# Remotion 紹介素材の書き出し（巨大な MP4 は git に入れない）
+tools/promo/out/
+tools/promo/node_modules/
+
+# Remotion 公式スキルのローカルコピー
+.agents/
+skills-lock.json
+
 # --- ローカル検証の一時ファイル（スクリーンショット・ヘッドレスブラウザのプロファイル） ---
 .tmp-shots/
 

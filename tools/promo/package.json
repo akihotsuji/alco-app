@@ -1,0 +1,34 @@
+{
+  "name": "sake-shiori-promo",
+  "version": "1.0.0",
+  "description": "酒のしおり 紹介動画・紹介画像（本番アプリから分離）",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "preview": "remotion studio --no-open",
+    "dev": "remotion studio --no-open",
+    "fixtures": "node scripts/generate-fixtures.mjs",
+    "capture": "pnpm --dir ../.. exec playwright test -c tools/promo/playwright.config.ts",
+    "render:video": "remotion render IntroVideo out/sake-shiori-intro.mp4 --codec=h264 --audio-codec=aac --muted",
+    "render:stills": "remotion still StillOverview out/still-overview.png && remotion still StillCellar out/still-cellar.png && remotion still StillNotes out/still-notes.png",
+    "render:preview-frames": "remotion still IntroVideo out/frame-01-hook.png --frame=30 && remotion still IntroVideo out/frame-02-register.png --frame=180 && remotion still IntroVideo out/frame-03-cellar.png --frame=430 && remotion still IntroVideo out/frame-04-notes.png --frame=680 && remotion still IntroVideo out/frame-05-end.png --frame=860",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.524",
+    "@remotion/google-fonts": "4.0.524",
+    "@remotion/transitions": "4.0.524",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.524"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "typescript": "5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
