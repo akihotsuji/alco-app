@@ -11,6 +11,7 @@ const walkthroughDir = process.env.WALKTHROUGH_DIR;
 const BOTTLE_NAME = "ソーラリス千曲川メルロー-(SOLARIS CHIKUMAGAWA MERLOT)";
 const BOTTLE_PRODUCER = "マンズワイン (MANNS WINES)";
 const BATCH_NAME = "E2Eまとめて裏面";
+const EDIT_BOTTLE_NAME = "E2E編集で裏面を足す";
 
 test.use({
   video: walkthroughDir ? "on" : "off",
@@ -167,4 +168,44 @@ test("まとめて追加の行に裏面と再読み取りを付けられる", as
   await expect(page.getByRole("button", { name: "裏面の写真を拡大" })).toBeVisible();
   const bottleId = new URL(page.url()).pathname.split("/").pop();
   await expectBottlePhotos(page, bottleId ?? "", 2);
+});
+
+test("表面だけのボトルに裏面を足すと案内帯から表と裏で読み取れる", async ({ page }) => {
+  await signUpAsNewUser(page);
+  await mainNav(page).getByRole("button", { name: "セラー" }).click();
+  await page.getByRole("link", { name: "ボトルを追加" }).click();
+  await pickFrontFromLibrary(page, frontJpeg);
+  await page.getByLabel("品名").fill(EDIT_BOTTLE_NAME);
+  const arrange = page.getByRole("button", { name: "棚に並べる（1 本）" });
+  await expect(arrange).toBeEnabled({ timeout: 30_000 });
+  await arrange.click();
+  await expect(page.getByRole("heading", { name: EDIT_BOTTLE_NAME })).toBeVisible();
+
+  await page.getByRole("link", { name: "編集" }).click();
+  await expect(page.getByRole("heading", { name: "ボトルを編集" })).toBeVisible();
+  await expect(page.getByText("裏面も使ってラベルを読み取れます")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "裏面も含めて読み取る" })).toHaveCount(0);
+  await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
+
+  const backChooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "裏面を選ぶ" }).click();
+  await (await backChooser).setFiles(backJpeg);
+  await expect(page.getByRole("img", { name: "裏面の写真" })).toBeVisible();
+  await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
+  await expect(page.getByText("裏面も使ってラベルを読み取れます")).toBeVisible();
+  const withBack = page.getByRole("button", { name: "裏面も含めて読み取る" });
+  await expect(withBack).toBeVisible();
+  await shot(page, "cellar_edit_back_offer");
+
+  await page.getByLabel("生産者").fill("手入力の生産者");
+  await withBack.click();
+  await expect(page.getByText("ラベルを読み取り中…")).toBeVisible();
+  await expect(page.getByRole("button", { name: "裏面も含めて読み取る" })).toHaveCount(0);
+  await expect(
+    page
+      .getByText("ラベルから読み取りました。内容を確認して保存してください")
+      .or(page.getByRole("button", { name: "再読み取り" })),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByLabel("生産者")).toHaveValue("手入力の生産者");
+  await shot(page, "cellar_edit_back_recognize_done");
 });
