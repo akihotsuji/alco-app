@@ -53,9 +53,68 @@ export function formatBackupStamp(at: Date): string {
   return `${iso.slice(0, 10)}T${iso.slice(11, 13)}${iso.slice(14, 16)}${iso.slice(17, 19)}Z`;
 }
 
-export function buildObjectKey(database: BackupDatabase, at: Date): string {
+export const BACKUP_OBJECT_KINDS = ["scheduled", "pre-migrate"] as const;
+export type BackupObjectKind = (typeof BACKUP_OBJECT_KINDS)[number];
+
+export function parseBackupObjectKind(input: string | undefined): BackupObjectKind {
+  const value = (input ?? "scheduled").trim();
+  if (value === "scheduled" || value === "pre-migrate") {
+    return value;
+  }
+  throw new Error("object-key --kind must be scheduled or pre-migrate");
+}
+
+export function buildObjectKey(
+  database: BackupDatabase,
+  at: Date,
+  kind: BackupObjectKind = "scheduled",
+): string {
   const target = BACKUP_TARGETS[database];
-  return `${target.prefix}/${database}-${formatBackupStamp(at)}.sql.gz`;
+  const file = `${database}-${formatBackupStamp(at)}.sql.gz`;
+  if (kind === "pre-migrate") {
+    return `${target.prefix}/pre-migrate/${file}`;
+  }
+  return `${target.prefix}/${file}`;
+}
+
+const ESC = String.fromCharCode(27);
+const NO_PENDING_MIGRATIONS = /No migrations to apply/i;
+const PENDING_MIGRATIONS = /Migrations to be applied:/i;
+
+export function stripAnsi(input: string): string {
+  let text = input;
+  let start = text.indexOf(ESC);
+  while (start !== -1) {
+    if (text[start + 1] !== "[") {
+      start = text.indexOf(ESC, start + 1);
+      continue;
+    }
+    const end = text.indexOf("m", start + 2);
+    if (end === -1) {
+      break;
+    }
+    text = `${text.slice(0, start)}${text.slice(end + 1)}`;
+    start = text.indexOf(ESC);
+  }
+  return text;
+}
+
+/**
+ * wrangler d1 migrations list の stdout。未適用 0 件なら
+ * "✅ No migrations to apply!"、あれば "Migrations to be applied:"。
+ * どちらも無い／両方ある出力は解釈不能として落とす。
+ */
+export function hasPendingRemoteMigrations(listOutput: string): boolean {
+  const text = stripAnsi(listOutput);
+  const hasNone = NO_PENDING_MIGRATIONS.test(text);
+  const hasPending = PENDING_MIGRATIONS.test(text);
+  if (hasNone && !hasPending) {
+    return false;
+  }
+  if (hasPending && !hasNone) {
+    return true;
+  }
+  throw new Error("Could not determine pending D1 migrations from wrangler list output");
 }
 
 export function isProtectedDatabase(name: string): boolean {
@@ -126,7 +185,14 @@ if (isCli) {
         if (Number.isNaN(at.getTime())) {
           fail("object-key --at must be an ISO timestamp");
         }
-        stdout.write(`${buildObjectKey(database, at)}\n`);
+        const kind = parseBackupObjectKind(readFlag(args, "--kind"));
+        stdout.write(`${buildObjectKey(database, at, kind)}\n`);
+        break;
+      }
+      case "pending-migrations": {
+        const filePath = readFlag(args, "--file");
+        const text = filePath ? readFileSync(filePath, "utf8") : readFileSync(0, "utf8");
+        stdout.write(`${hasPendingRemoteMigrations(text) ? "pending" : "none"}\n`);
         break;
       }
       case "summarize": {
@@ -160,7 +226,7 @@ if (isCli) {
       }
       default:
         fail(
-          "Usage: d1-backup.ts databases|rehearse-source|object-key|summarize|assert-restore-target|sanitize-log",
+          "Usage: d1-backup.ts databases|rehearse-source|object-key|pending-migrations|summarize|assert-restore-target|sanitize-log",
         );
     }
   } catch (error) {

@@ -19,7 +19,7 @@ Phase 7-02 の本番側。dev 自動デプロイは先行済み（[dev-deploy-ci
 - `.github/workflows/deploy-prod.yml`
 - タグ `vX.Y.Z`（例 `v1.0.0`）
 - `workflow_dispatch`（ref は `main` のみ）
-- デプロイ前の CI 成功確認、`CLOUDFLARE_ENV=production pnpm build`、本番 D1 migrate、`wrangler deploy --env production`
+- デプロイ前の CI 成功確認、`CLOUDFLARE_ENV=production pnpm build`、未適用 migrate があるときの本番 D1 全表バックアップ、本番 D1 migrate、`wrangler deploy --env production`
 - 公開 Actions ログから `workers.dev` URL を除去する
 
 **対象外**
@@ -55,8 +55,11 @@ Phase 7-02 の本番側。dev 自動デプロイは先行済み（[dev-deploy-ci
 2. 同じ SHA でワークフロー `CI` が `success` であることを確認（失敗ならデプロイしない）
 3. `pnpm install --frozen-lockfile`
 4. `CLOUDFLARE_ENV=production pnpm build`（Vite プラグインが `env.production` 向けに `dist/` を作る。未設定だと `dev` になり、`wrangler deploy --env production` が拒否する）
-5. `pnpm exec wrangler d1 migrations apply alco-app-prod --remote --env production`（失敗したらデプロイしない）
-6. `pnpm exec wrangler deploy --env production`（既存の wrangler secret は消さない）
+5. `pnpm exec wrangler d1 migrations list alco-app-prod --remote --env production`。未適用があれば本番 D1 を全表 export → gzip → 非公開 R2 `alco-app-d1-backups` の `prod/pre-migrate/` へ置く（日次 Backup D1 と同じ経路。失敗したら migrate しない）。未適用が 0 件ならこのバックアップは飛ばす
+6. `pnpm exec wrangler d1 migrations apply alco-app-prod --remote --env production`（失敗したらデプロイしない）
+7. `pnpm exec wrangler deploy --env production`（既存の wrangler secret は消さない）
+
+写真 R2 の複製はこのステップではしない。migrate が消すのは D1 行であり、日次バックアップと同じ範囲（D1 全表）を残す。保持は 14 日（[d1-backup.md](d1-backup.md)）。
 
 認証は GitHub Secrets の名前だけを使う。値はログに出さない。
 
@@ -99,7 +102,7 @@ dev デプロイと同じ `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`。権
 1. Environment `production` の必須レビューアを入れる
 2. Actions → **Deploy prod** → Run workflow → ブランチ `main`
 3. Environment の承認を求められたら Approve
-4. ジョブが migrate → deploy する
+4. ジョブが（未適用 migrate があれば D1 バックアップしてから）migrate → deploy する
 5. ログに `workers.dev` URL が残っていないこと（`[redacted-url]`）
 
 タグで上げるとき（PC または後続）:
@@ -115,7 +118,7 @@ git push origin v1.0.0
 
 ## 7. テスト
 
-- `src/ci/deploy-prod-workflow.test.ts`: 起動条件、`CLOUDFLARE_ENV=production` で build、`--env production`、migrate が deploy より前、CI 成功確認、secret の echo 禁止、PR から起動しない
+- `src/ci/deploy-prod-workflow.test.ts`: 起動条件、`CLOUDFLARE_ENV=production` で build、`--env production`、未適用 list → D1 export → migrate → deploy の順、CI 成功確認、secret の echo 禁止、PR から起動しない、SQL artifact 禁止
 - `src/ci/require-ci-success.test.ts`: `CI` 成功以外は拒否
 
 ---

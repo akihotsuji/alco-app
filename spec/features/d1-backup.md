@@ -18,6 +18,7 @@
 
 - Time Travel の現行仕様確認（保持期間・in-place 復元）
 - `.github/workflows/backup-d1.yml`（`schedule` + `workflow_dispatch`）
+- Deploy prod が未適用 migrate を検知したときの本番 D1 事前バックアップ（[deploy-prod.md](deploy-prod.md)）
 - `wrangler d1 export --remote` の成果を gzip して R2 へ置く
 - 保持 14 日（R2 lifecycle）
 - 復元手順の正本は [operations.md](../operations.md)（本ファイル 7 章は要約）
@@ -82,6 +83,8 @@ Time Travel は短い窓の誤操作向け。14 日超や「DB ごと消した�
 | `workflow_dispatch` で `mode=rehearse` | **一時 D1** `alco-app-d1-restore-rehearsal` へ import。prod / dev は上書きしない。既定の export 元は dev |
 | `pull_request` / `pull_request_target` | 起動しない |
 | `main` への push | 起動しない（デプロイワークフローとは分ける） |
+| Deploy prod（未適用 migrate あり） | 本番 D1 だけを export → `prod/pre-migrate/`。失敗したら migrate しない |
+| Deploy prod（未適用 0 件） | このバックアップはしない。日次分は残る |
 
 `.github/workflows/ci.yml` は検証のみのまま。バックアップも Cloudflare シークレットも参照しない。
 
@@ -104,8 +107,11 @@ Time Travel は短い窓の誤操作向け。14 日超や「DB ごと消した�
 6. ログには **バイト数と sha256 だけ**。SQL 本文・`INSERT`・メール・**すべての http(s) URL** は出さない（`wrangler d1 export` は約1時間有効の presigned URL を stdout に出す）
 7. 作業ファイルを消す
 
-オブジェクトキー: `{prod|dev}/{database}-{YYYY-MM-DDThhmmss}Z.sql.gz`  
+オブジェクトキー（日次）: `{prod|dev}/{database}-{YYYY-MM-DDThhmmss}Z.sql.gz`  
 例（架空）: `prod/alco-app-prod-2026-09-09T170000Z.sql.gz`
+
+オブジェクトキー（Deploy prod の migrate 直前）: `{prod|dev}/pre-migrate/{database}-{YYYY-MM-DDThhmmss}Z.sql.gz`  
+例（架空）: `prod/pre-migrate/alco-app-prod-2026-09-11T144700Z.sql.gz`
 
 `actions/upload-artifact` は使わない。`contents: write` も付けない。
 
@@ -165,8 +171,9 @@ Actions の `mode=rehearse` は 7.2 を自動化する。復元先名が `alco-a
 
 ## 9. テスト
 
-- `src/ci/d1-backup.test.ts`: 対象の解釈、オブジェクトキー、14 日 lifecycle、復元先の拒否、ログから SQL / メール / 署名付き URL を消す、ファイル要約が本文を返さない
+- `src/ci/d1-backup.test.ts`: 対象の解釈、オブジェクトキー（日次 / pre-migrate）、未適用 migrate 判定、14 日 lifecycle、復元先の拒否、ログから SQL / メール / 署名付き URL を消す、ファイル要約が本文を返さない
 - `src/ci/backup-d1-workflow.test.ts`: schedule、artifact 禁止、prod 上書き禁止、公開ログ対策
+- `src/ci/deploy-prod-workflow.test.ts`: migrate 前の本番 D1 export と `prod/pre-migrate/` キー
 - `src/ci/wrangler-env.test.ts`: バックアップバケットを Worker に bind しない
 
 ---

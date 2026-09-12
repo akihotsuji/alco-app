@@ -23,7 +23,7 @@
 | D1 | `alco-app-dev` | `alco-app-prod` |
 | 写真 R2 | `alco-app-photos-dev` | `alco-app-photos-prod` |
 | 公開ホスト | `workers.dev`（文書に URL を書かない） | `https://sake-shiori.com` |
-| バックアップ R2 | 共通 `alco-app-d1-backups`（Worker に bind しない。キー接頭辞 `dev/` / `prod/`） | 同左 |
+| バックアップ R2 | 共通 `alco-app-d1-backups`（Worker に bind しない。キー接頭辞 `dev/` / `prod/` / `prod/pre-migrate/`） | 同左 |
 
 **本番と dev を取り違えない。** コマンドのデータベース名と `--env` を毎回声に出す。無引数の `wrangler deploy` は使わない。
 
@@ -131,7 +131,7 @@ undo は restore が返す「直前のブックマーク」へ再度 restore す
 
 ### 5.2 export → 一時 D1（R2 に 14 日）
 
-キー例（架空）: `prod/alco-app-prod-2026-09-09T170000Z.sql.gz`
+キー例（架空）: `prod/alco-app-prod-2026-09-09T170000Z.sql.gz`（日次）。Deploy prod が未適用 migrate の直前に取った分は `prod/pre-migrate/` 配下。
 
 ```powershell
 pnpm exec wrangler r2 object get alco-app-d1-backups/<key> --file=backups/restore.sql.gz --remote
@@ -272,7 +272,7 @@ R2 の実体は `photos` 行が消えても残っていることがある（CASC
 復旧（本番をいきなり上書きしない。5 章）:
 
 1. 現行 prod を export して控える
-2. 0010 適用前のバックアップを一時 D1 へ。候補: `prod/alco-app-prod-2026-09-10T192922Z.sql.gz`（2026-09-10 19:29 UTC。0010 は 2026-09-11 14:47 UTC）。ギャップ分は Time Travel（Free は 7 日）
+2. 0010 適用前のバックアップを一時 D1 へ。候補: `prod/alco-app-prod-2026-09-10T192922Z.sql.gz`（2026-09-10 19:29 UTC。0010 は 2026-09-11 14:47 UTC）。当時は Deploy prod の migrate 直前バックアップが無かった。ギャップ分は Time Travel（Free は 7 日）。以降の破壊的 migrate は `prod/pre-migrate/` を先に見る
 3. 一時 DB で `photos.bottle_id IS NOT NULL` の行を見る。現行 prod に同じ `id` が無ければ、現行 `bottles.cellar_id` を付けて `user_id=NULL` で戻す
 4. 記録・ノートはバックアップで `bottle_id` があり現行が NULL、かつそのボトルが残っている行だけ戻す
 5. `GET /api/photos/:id/content` で自分の 1 枚だけ確認してから次へ

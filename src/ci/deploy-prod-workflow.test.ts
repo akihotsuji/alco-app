@@ -33,13 +33,20 @@ describe("deploy-prod.yml", () => {
   it("requires CI success then migrates production D1 before env.production deploy", () => {
     const ciAt = indexAfter(deployProd, "src/ci/require-ci-success.ts");
     const buildAt = indexAfter(deployProd, "pnpm build");
+    const listAt = indexAfter(
+      deployProd,
+      "wrangler d1 migrations list alco-app-prod --remote --env production",
+    );
+    const exportAt = indexAfter(deployProd, "wrangler d1 export alco-app-prod --remote");
     const migrateAt = indexAfter(
       deployProd,
       "wrangler d1 migrations apply alco-app-prod --remote --env production",
     );
     const deployAt = indexAfter(deployProd, "wrangler deploy --env production");
     expect(ciAt).toBeLessThan(buildAt);
-    expect(buildAt).toBeLessThan(migrateAt);
+    expect(buildAt).toBeLessThan(listAt);
+    expect(listAt).toBeLessThan(exportAt);
+    expect(exportAt).toBeLessThan(migrateAt);
     expect(migrateAt).toBeLessThan(deployAt);
     expect(deployProd).not.toMatch(/--env dev/);
     const deployLines = deployProd.split("\n").filter((line) => line.includes("wrangler deploy"));
@@ -47,6 +54,24 @@ describe("deploy-prod.yml", () => {
     for (const line of deployLines) {
       expect(line).toContain("--env production");
     }
+  });
+
+  it("backs up production D1 to the private bucket before migrate when pending", () => {
+    expect(deployProd).toContain("src/ci/d1-backup.ts");
+    expect(deployProd).toContain("pending-migrations");
+    expect(deployProd).toContain("--kind pre-migrate");
+    expect(deployProd).toMatch(/r2 object put "alco-app-d1-backups\/\$\{key}"/);
+    expect(deployProd).toContain("src/ci/d1-backup-lifecycle.json");
+    expect(deployProd).toMatch(/wrangler d1 export[\s\S]*?sanitize-log/);
+    expect(deployProd).toMatch(/gzip -n -9[\s\S]*?summarize/);
+    expect(deployProd).toContain("set -euo pipefail");
+    expect(deployProd).not.toContain("upload-artifact");
+    expect(deployProd).not.toContain("actions/upload-artifact");
+    expect(deployProd).not.toContain("alco-app-photos-prod");
+    expect(deployProd).not.toContain("time-travel restore");
+    expect(deployProd).not.toMatch(/d1 execute alco-app-prod/);
+    expect(deployProd).not.toMatch(/d1 delete alco-app-prod/);
+    expect(deployProd).not.toContain("--update-config");
   });
 
   it("builds the Vite worker bundle for env.production", () => {
