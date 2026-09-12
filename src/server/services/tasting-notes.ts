@@ -406,7 +406,8 @@ export async function listTastingNotes(input: {
     );
   }
 
-  const [totalRow, fetched] = await Promise.all([
+  const pageWhere = and(...pageFilters);
+  const [totalRow, fetched, photoRows] = await Promise.all([
     db
       .select({ n: count() })
       .from(tastingNotes)
@@ -415,20 +416,26 @@ export async function listTastingNotes(input: {
     db
       .select()
       .from(tastingNotes)
-      .where(and(...pageFilters))
+      .where(pageWhere)
       .orderBy(desc(tastingNotes.tastedOn), desc(tastingNotes.id))
       .limit(query.limit + 1),
+    db
+      .select()
+      .from(photos)
+      .where(
+        and(
+          eq(photos.userId, userId),
+          sql`${photos.tastingNoteId} IN (
+            SELECT ${tastingNotes.id} FROM ${tastingNotes}
+            WHERE ${pageWhere}
+            ORDER BY ${tastingNotes.tastedOn} DESC, ${tastingNotes.id} DESC
+            LIMIT ${query.limit + 1}
+          )`,
+        ),
+      )
+      .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
   ]);
   const { page, hasMore } = takeLimitPlusOne(fetched, query.limit);
-  const pageIds = page.map((row) => row.id);
-  const photoRows =
-    pageIds.length === 0
-      ? []
-      : await db
-          .select()
-          .from(photos)
-          .where(and(inArray(photos.tastingNoteId, pageIds), eq(photos.userId, userId)))
-          .orderBy(asc(photos.sortOrder), asc(photos.createdAt));
   const thumbByNoteId = new Map<string, string>();
   const countByNoteId = new Map<string, number>();
   for (const photo of photoRows) {
@@ -506,12 +513,27 @@ export async function updateTastingNote(input: {
     }
   }
 
-  const desiredPhotoRows =
+  const [photoBundle, bottle] = await Promise.all([
     body.photoIds === undefined
-      ? undefined
-      : await resolvePatchPhotos(db, userId, noteId, body.photoIds);
-  const currentPhotoRows =
-    body.photoIds === undefined ? [] : await loadNotePhotos(db, userId, noteId);
+      ? loadNotePhotos(db, userId, noteId).then((rows) => ({
+          desired: undefined as PhotoRow[] | undefined,
+          current: rows,
+        }))
+      : Promise.all([
+          resolvePatchPhotos(db, userId, noteId, body.photoIds),
+          loadNotePhotos(db, userId, noteId),
+        ]).then(([desired, currentRows]) => ({ desired, current: currentRows })),
+    bottleSnap
+      ? Promise.resolve({
+          id: bottleSnap.id,
+          name: bottleSnap.name,
+          drinkType: bottleSnap.drinkType,
+          status: bottleSnap.status,
+        })
+      : loadBottleForNote(db, userId, bottleId),
+  ]);
+  const desiredPhotoRows = photoBundle.desired;
+  const currentPhotoRows = photoBundle.current;
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
@@ -601,7 +623,17 @@ export async function updateTastingNote(input: {
     );
   }
 
-  return getOwnTastingNote(db, userId, noteId);
+  const updatedRow: NoteRow = { ...current, ...patch };
+  const photoRows =
+    desiredPhotoRows === undefined
+      ? currentPhotoRows
+      : desiredPhotoRows.map((photo, index) => ({
+          ...photo,
+          tastingNoteId: noteId,
+          sortOrder: index,
+          updatedAt,
+        }));
+  return toTastingNote(updatedRow, photoRows, bottle);
 }
 
 export async function deleteTastingNote(input: {

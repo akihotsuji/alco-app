@@ -153,6 +153,11 @@ export function memberCondition(userId: string) {
   return sql`${bottles.cellarId} IN (SELECT ${cellarMembers.cellarId} FROM ${cellarMembers} WHERE ${cellarMembers.userId} = ${userId})`;
 }
 
+/** 個人セラーが未作成ならヒットしない（一覧ではスロットを作らない） */
+export function personalCellarSql(userId: string) {
+  return sql`${bottles.cellarId} = (SELECT ${userCellarSlots.personalCellarId} FROM ${userCellarSlots} WHERE ${userCellarSlots.userId} = ${userId})`;
+}
+
 export async function listMemberCellarIds(db: AppBatchDb, userId: string): Promise<string[]> {
   const rows = await db
     .select({ cellarId: cellarMembers.cellarId })

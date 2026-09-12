@@ -26,7 +26,12 @@ import {
 } from "@/shared/photos.ts";
 import { tokyoDayStartMs, tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
-import { bumpCellarRevision, recordActivity, requireAccessibleBottle } from "./cellar-access.ts";
+import {
+  type AccessibleBottle,
+  bumpCellarRevision,
+  recordActivity,
+  requireAccessibleBottle,
+} from "./cellar-access.ts";
 import { ImageInspectFailure, inspectImageBytes } from "./image-inspect.ts";
 
 export type PhotoObject = {
@@ -230,24 +235,25 @@ async function assertOwnerCapacity(
     },
   ];
 
-  for (const check of checks) {
-    if (!check.ownerId) {
-      continue;
-    }
-    const current =
-      check.field === "bottleId"
-        ? await db.select({ id: photos.id }).from(photos).where(eq(check.column, check.ownerId))
-        : await db
-            .select({ id: photos.id })
-            .from(photos)
-            .where(and(eq(photos.userId, userId), eq(check.column, check.ownerId)));
-    const used = current.filter((item) => item.id !== exceptPhotoId).length;
-    if (used >= check.limit) {
-      throw new ApiError("validation_error", {
-        fields: { [check.field]: [check.message] },
-      });
-    }
-  }
+  await Promise.all(
+    checks
+      .filter((check) => check.ownerId)
+      .map(async (check) => {
+        const current =
+          check.field === "bottleId"
+            ? await db.select({ id: photos.id }).from(photos).where(eq(check.column, check.ownerId))
+            : await db
+                .select({ id: photos.id })
+                .from(photos)
+                .where(and(eq(photos.userId, userId), eq(check.column, check.ownerId)));
+        const used = current.filter((item) => item.id !== exceptPhotoId).length;
+        if (used >= check.limit) {
+          throw new ApiError("validation_error", {
+            fields: { [check.field]: [check.message] },
+          });
+        }
+      }),
+  );
 }
 
 export async function assertPhotoDailyLimit(input: {
@@ -276,23 +282,32 @@ export async function createPhoto(input: {
   dailyLimit?: number;
   now?: Date;
 }): Promise<PhotoMeta> {
-  await assertPhotoDailyLimit({
-    db: input.db,
-    userId: input.userId,
-    limit: input.dailyLimit,
-    now: input.now,
-  });
   const inspected = inspectOrThrow(input.bytes);
 
   const owners = normalizeUploadOwners(input.fields);
   assertSingleOwner(owners);
-  await assertOwnResource(input.db, input.userId, owners);
-  await assertOwnerCapacity(input.db, input.userId, owners);
+
+  const [bottle] = await Promise.all([
+    owners.bottleId
+      ? requireAccessibleBottle(input.db, input.userId, owners.bottleId)
+      : Promise.resolve(null),
+    assertOwnedRow(input.db, input.userId, tastingNotes, owners.tastingNoteId),
+    assertOwnedRow(input.db, input.userId, drinkLogs, owners.drinkLogId),
+    assertPhotoDailyLimit({
+      db: input.db,
+      userId: input.userId,
+      limit: input.dailyLimit,
+      now: input.now,
+    }),
+    assertOwnerCapacity(input.db, input.userId, owners),
+  ]);
 
   let cellarId: string | null = null;
   let ownerUserId: string | null = input.userId;
   if (owners.bottleId) {
-    const bottle = await requireAccessibleBottle(input.db, input.userId, owners.bottleId);
+    if (!bottle) {
+      throw new ApiError("not_found");
+    }
     cellarId = bottle.cellarId;
     ownerUserId = null;
   }
@@ -327,20 +342,21 @@ export async function createPhoto(input: {
     createdAt: now,
   });
 
-  const [alive] = await input.db
-    .select({ id: user.id })
-    .from(user)
-    .where(eq(user.id, input.userId));
-  const [held] = await input.db
-    .select({ r2Key: photoObjectReservations.r2Key })
-    .from(photoObjectReservations)
-    .where(
-      and(
-        eq(photoObjectReservations.r2Key, r2Key),
-        eq(photoObjectReservations.userId, input.userId),
-        gte(photoObjectReservations.leaseUntil, now),
+  const [aliveRows, heldRows] = await Promise.all([
+    input.db.select({ id: user.id }).from(user).where(eq(user.id, input.userId)),
+    input.db
+      .select({ r2Key: photoObjectReservations.r2Key })
+      .from(photoObjectReservations)
+      .where(
+        and(
+          eq(photoObjectReservations.r2Key, r2Key),
+          eq(photoObjectReservations.userId, input.userId),
+          gte(photoObjectReservations.leaseUntil, now),
+        ),
       ),
-    );
+  ]);
+  const alive = aliveRows[0];
+  const held = heldRows[0];
   if (!alive || !held) {
     await input.db.delete(photoObjectReservations).where(eq(photoObjectReservations.r2Key, r2Key));
     throw new ApiError("unauthorized");
@@ -369,8 +385,8 @@ export async function createPhoto(input: {
     throw error;
   }
 
-  if (owners.bottleId) {
-    await touchBottlePhoto(input.db, input.userId, owners.bottleId, now);
+  if (owners.bottleId && bottle) {
+    await touchBottlePhoto(input.db, input.userId, owners.bottleId, now, bottle);
   }
 
   return toPhotoMeta(row);
@@ -485,8 +501,9 @@ async function touchBottlePhoto(
   userId: string,
   bottleId: string,
   now: Date = new Date(),
+  known?: AccessibleBottle,
 ): Promise<void> {
-  const current = await requireAccessibleBottle(db, userId, bottleId);
+  const current = known ?? (await requireAccessibleBottle(db, userId, bottleId));
   await db.batch([
     db
       .update(bottles)
