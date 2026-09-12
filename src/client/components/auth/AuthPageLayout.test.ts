@@ -9,10 +9,11 @@ const source = readFileSync(
 );
 
 describe("AuthPageLayout L2", () => {
-  it("ワードマークは公開名称で、仮名 alco-app を出さない", () => {
-    expect(source).toContain("PWA_NAME");
+  it("ワードマークは SVG 部品で、仮名 alco-app を出さない", () => {
+    expect(source).toContain("<Wordmark");
     expect(source).toContain('pose="default"');
     expect(source).toContain("size={120}");
+    expect(source).not.toContain("PWA_NAME");
     expect(source).not.toContain("alco-app");
   });
 });

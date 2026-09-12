@@ -1,8 +1,8 @@
 import type { FormEvent, ReactNode } from "react";
+import { Wordmark } from "@/client/components/brand/Wordmark.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { Card, CardContent } from "@/client/components/ui/card.tsx";
-import { PWA_NAME } from "@/shared/pwa.ts";
 
 type AuthPageLayoutProps = {
   title: string;
@@ -34,7 +34,7 @@ export function AuthPageLayout({
   return (
     <main className="auth-page">
       <Mascot pose="default" size={120} aria-hidden />
-      <p className="mb-6 text-[13px] font-semibold text-muted">{PWA_NAME}</p>
+      <Wordmark />
       <Card className="w-full max-w-[360px] p-6">
         <CardContent>
           <form className="flex flex-col" onSubmit={onSubmit} noValidate>
