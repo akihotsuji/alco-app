@@ -120,16 +120,23 @@ function parseJpegSize(bytes: Uint8Array): { width: number; height: number } | n
   return null;
 }
 
-function parsePngSize(bytes: Uint8Array): { width: number; height: number } | null {
-  if (bytes.length < 24 || !asciiAt(bytes, 12, "IHDR")) {
+function parsePngSize(
+  bytes: Uint8Array,
+): { width: number; height: number; hasAlpha: boolean } | null {
+  if (bytes.length < 26 || !asciiAt(bytes, 12, "IHDR")) {
     return null;
   }
   const width = u32be(bytes, 16);
   const height = u32be(bytes, 20);
-  if (!width || !height) {
+  const colorType = bytes[25];
+  if (!width || !height || colorType === undefined) {
     return null;
   }
-  return { width, height };
+  return {
+    width,
+    height,
+    hasAlpha: colorType === 4 || colorType === 6,
+  };
 }
 
 function findChunk(bytes: Uint8Array, name: string, from: number): number {
@@ -260,7 +267,13 @@ export function inspectImageBytes(bytes: Uint8Array): InspectedImage {
       throw new ImageInspectFailure("invalid_dimensions");
     }
     assertLongEdge(size);
-    return { contentType: "image/png", extension: "png", kind: "photo", ...size };
+    return {
+      contentType: "image/png",
+      extension: "png",
+      kind: size.hasAlpha ? "cutout" : "photo",
+      width: size.width,
+      height: size.height,
+    };
   }
 
   if (asciiAt(bytes, 0, "RIFF") && asciiAt(bytes, 8, "WEBP")) {

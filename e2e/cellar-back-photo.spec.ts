@@ -8,7 +8,8 @@ const frontJpeg = process.env.CELLAR_FRONT_JPEG ?? drinkJpeg;
 const backJpeg = process.env.CELLAR_BACK_JPEG ?? drinkJpeg;
 const walkthroughDir = process.env.WALKTHROUGH_DIR;
 
-const BOTTLE_NAME = "E2E裏面ワイン";
+const BOTTLE_NAME = "ソーラリス千曲川メルロー-(SOLARIS CHIKUMAGAWA MERLOT)";
+const BOTTLE_PRODUCER = "マンズワイン (MANNS WINES)";
 const BATCH_NAME = "E2Eまとめて裏面";
 
 test.use({
@@ -38,6 +39,12 @@ async function pickFrontFromLibrary(page: Page, file: string): Promise<void> {
   await page.getByRole("button", { name: "写真を選ぶ" }).click();
   await (await chooserPromise).setFiles(file);
   await confirmCellarPhotoEdit(page);
+}
+
+async function expectPropRightAligned(page: Page, label: string): Promise<void> {
+  const row = page.locator(".bottle-prop", { has: page.locator("dt", { hasText: label }) });
+  await expect(row).toHaveClass(/is-inline/);
+  await expect(row.locator("dd")).toHaveCSS("text-align", "right");
 }
 
 async function expectBottlePhotos(page: Page, bottleId: string, count: number): Promise<void> {
@@ -81,15 +88,28 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await expect(page.getByRole("dialog", { name: "写真を編集" })).toHaveCount(0);
   await expect(page.getByRole("img", { name: "裏面の写真" })).toBeVisible();
   await expect(page.getByText("アップロード中")).toHaveCount(0);
+  await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "裏面も含めて読み取る" })).toHaveCount(0);
   await shot(page, "cellar_new_front_and_back");
 
   await page.getByLabel("品名").fill(BOTTLE_NAME);
+  await page.getByLabel("生産者").fill(BOTTLE_PRODUCER);
   const arrange = page.getByRole("button", { name: "棚に並べる（1 本）" });
   await expect(arrange).toBeEnabled();
   await arrange.click();
 
   await expect(page.getByRole("heading", { name: BOTTLE_NAME })).toBeVisible();
   await expect(page.getByRole("button", { name: "裏面の写真を拡大" })).toBeVisible();
+  await expectPropRightAligned(page, "品名");
+  await expectPropRightAligned(page, "生産者");
+  await expectPropRightAligned(page, "保管場所");
+  const props = page.locator(".bottle-props");
+  await props.scrollIntoViewIfNeeded();
+  await shot(page, "cellar_detail_props_right_align_scrolled");
+  if (walkthroughDir) {
+    await props.screenshot({ path: `${walkthroughDir}/cellar_detail_props_block.png` });
+  }
   await shot(page, "cellar_detail_with_back_thumb");
   await page.getByRole("button", { name: "裏面の写真を拡大" }).click();
   const viewer = page.getByRole("dialog", { name: "写真" });
@@ -132,6 +152,8 @@ test("まとめて追加の行に裏面と再読み取りを付けられる", as
   await (await backChooser).setFiles(backJpeg);
   await expect(page.getByRole("img", { name: "裏面の写真" })).toBeVisible();
   await expect(page.getByRole("button", { name: "裏面を外す" })).toBeVisible();
+  await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible();
   await shot(page, "cellar_batch_with_back");
 
   await page.getByLabel("品名").fill(BATCH_NAME);

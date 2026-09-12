@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
+import { photoFileName } from "@/client/lib/photo/photo-file.ts";
 
 export function photoContentUrl(id: string): string {
   return `/api/photos/${id}/content`;
@@ -22,7 +23,7 @@ export async function uploadPhoto(
     drinkLogId?: string;
     sortOrder?: string;
   } = {
-    file: new File([file], file.type === "image/webp" ? "photo.webp" : "photo.jpg", {
+    file: new File([file], photoFileName(file.type), {
       type: file.type || "image/jpeg",
     }),
   };

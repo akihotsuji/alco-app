@@ -17,7 +17,7 @@
 | 比率 | ノート・セラーの編集は固定: ノート **4:5**、セラー **2:3**。**酒記録の保存画像は全体を保持**し、サムネ比率は画面側で `object-fit` | 記録はラベル欠けを避ける。一覧の見た目は CSS |
 | 色補正 | **廃止**。旧 `photo.filter` が残っていても再有効化しない | 誤った色味の焼き込みを止める |
 | キャラ合成 | 記録・ノートのみ。右下。4 ポーズから処理開始時に抽選。グローなし。設定 S3 を自動適用。酒記録では撮影ごとに選ばない | 2026-09-09 |
-| 背景除去（切り抜き） | **セラーのみ、MVP**（2026-09-05 決定）。ブラウザ WASM（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`）。トグル「切り抜く」既定 ON。出力は透過 WebP、`photos.kind = cutout`。失敗・未対応では長方形 JPEG（`kind = photo`）にフォールバック | ガラス棚に本物のシルエットで立たせる |
+| 背景除去（切り抜き） | **セラーのみ、MVP**（2026-09-05 決定）。ブラウザ WASM（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`）。トグル「切り抜く」既定 ON。出力は透過 WebP、WebP 化できない端末（iOS Safari 等）は透過 PNG。どちらも `photos.kind = cutout`。推論失敗・未対応では長方形 JPEG（`kind = photo`）にフォールバック。**エンコードだけ失敗したときは切り抜き前 JPEG に落とさない** | ガラス棚に本物のシルエットで立たせる |
 | ラベル読み取り | セラーは切り抜く**前**の 2:3 JPEG を `POST /api/bottles/recognize` へ。記録はキャラ合成**前**の **全体 JPEG** を `POST /api/drink-logs/recognize` へ。ノートは切り抜き後・合成前の 4:5 JPEG を `POST /api/tasting-notes/recognize` へ。画像は保存しない。撮影日は EXIF → `File.lastModified` で日付欄の既定（AI には送らない） | [04-cellar.md](04-cellar.md) B2 / [03-log.md](03-log.md) N1 / [05-notes.md](05-notes.md) N1 / [ai-recognition.md](../features/ai-recognition.md) |
 | HEIC | iOS の `capture` 撮影は JPEG で来る。ライブラリ選択で HEIC が来た場合、`createImageBitmap` より先に Safari の `<img>` でデコードし Canvas / ImageBitmap 化する。JPEG でも `createImageBitmap` が失敗したら同じ経路。デコードできないブラウザでは「この形式は使えません。JPEG / PNG を選んでください」 | サーバーは常に JPEG を受ける |
 | アップロード時期 | 酒記録・ノートは撮影確定直後（ノートの再編集は「使う」直後）。セラーは「使う」直後。**未紐付けで `POST /api/photos`**。フォーム保存時に `photoIds` で紐付け | 保存ボタン押下を速くする。放棄分はサーバー GC（24h） |
@@ -57,7 +57,7 @@
 | P4 | （廃止） | — | 色補正トグル |
 | P5 | （廃止） | — | キャラトグル。設定 S3 を処理開始時に読む。ノートのプレビューは設定どおり合成結果を見せる |
 | P5b | 切り抜きトグル | Chip（✓） | **セラーのみ**、既定 ON。ON のときプレビュー背景を市松にして切り抜き結果を見せる（処理中はマスコット `surprised` + 「この写真を切り抜いています」、初回は「初回のみ数十 MB を取得します」）。失敗時は**今回の編集画面だけ**自動で OFF。読み込み／初期化失敗は「切り抜きの読み込みに失敗しました。長方形のまま保存します」、被写体を切り抜けなかったときは「うまく抜けませんでした。長方形のまま保存します」。`photo.cutout` は変更しない |
-| P6 | 使う | Button 主 | 合成 → 画像化（cutout は WebP、他は JPEG）→ アップロード開始 → 閉じる。呼び出し元にサムネと `photoId`（アップロード中は進捗）。セラーでは切り抜く前の JPEG も呼び出し元へ渡す（読み取り用。保存しない）。まとめて追加では **同じタップ**で次のカメラを開き、今の写真は裏で処理する（OS キャンセルでループ終了） |
+| P6 | 使う | Button 主 | 合成 → 画像化（cutout は WebP、WebP 化できない端末は透過 PNG、他は JPEG）→ アップロード開始 → 閉じる。呼び出し元にサムネと `photoId`（アップロード中は進捗）。セラーでは切り抜く前の JPEG も呼び出し元へ渡す（読み取り用。保存しない）。まとめて追加では **同じタップ**で次のカメラを開き、今の写真は裏で処理する（OS キャンセルでループ終了） |
 | P6b | 連続撮影の件数 | テキスト | まとめて追加で 1 本以上裏に積んだとき「N 本を裏で処理しています」 |
 
 モック: [photo-edit-bottle.png](../wireframes/mocks/photo-edit-bottle.png)（セラー。切り抜き ON）
@@ -74,7 +74,8 @@ File → createImageBitmap（EXIF orientation 補正）。失敗・HEIC は `<im
                     → 「使う」ではこの時点で呼び出し元へ渡し、ラベル読み取りを **背景除去を待たずに** 始める
                  → [切り抜き ON] segmentBottle（WASM）→ マスク cleanup・品質判定 → マスクをキャッシュ
                                  → 2:3 透過キャンバスに下端から 4% + 落ち影 → WebP 0.9
-                                 → 失敗なら切り抜く前 JPEG にフォールバック（理由 `CutoutFailureReason` を保持）
+                                 → WebP 化できない端末は同じキャンバスの透過 PNG（切り抜き前 JPEG には落とさない）
+                                 → 推論失敗なら切り抜く前 JPEG にフォールバック（理由 `CutoutFailureReason` を保持）
                  → [切り抜き OFF] 切り抜く前 JPEG
      → POST /api/photos（multipart: file, 任意 bottleId / tastingNoteId / drinkLogId）
 ```
@@ -122,7 +123,7 @@ File → createImageBitmap（EXIF orientation 補正）。失敗・HEIC は `<im
 |---|---|
 | 認証 | 必須。`user_id` はセッション |
 | MIME | **magic bytes** で `image/jpeg` / `image/png` / `image/webp` のみ。SVG / GIF / HEIC は 415 |
-| `kind` | WebP かつ VP8X ヘッダに alpha フラグ → `cutout`、それ以外 `photo`。クライアント申告は受け取らない |
+| `kind` | WebP かつ VP8X ヘッダに alpha フラグ、または PNG の IHDR color type 4（グレー+α）/ 6（RGBA） → `cutout`。それ以外 `photo`。クライアント申告は受け取らない |
 | サイズ | ≦ 1MB。超過は 413 |
 | 寸法 | 長辺 ≦ 1600（クライアント 1280 + 余裕）。超過は 400 |
 | キー | `{photoId}.jpg` 等サーバー生成。ファイル名・`user_id` を含めない |
@@ -136,7 +137,7 @@ File → createImageBitmap（EXIF orientation 補正）。失敗・HEIC は `<im
 
 - [ ] 撮影（`capture="environment"`）と「写真を選ぶ / ライブラリから」（`capture` なし）の 2 経路がある。**酒記録・ノートは `photo-edit` を開かず詳細入力へ進む**（ノートは中央 4:5 で自動トリミング。位置直しはサムネの「編集」で `photo-edit`）。セラーは明示タップで `photo-edit`。ホームに撮影開始のボタンは無い。セラー `?camera=1` はディープリンク用
 - [ ] セラー（追加時・編集時）・ノート（サムネの「編集」）は比率 2:3 / 4:5 の枠、ドラッグ・ピンチ、切り抜きトグル（セラーのみ）。色補正トグルとキャラトグルは無い。セラーの「編集」はカメラを起動せず `photo-edit` を開く。撮り直しとライブラリ選択は別操作
-- [ ] 切り抜きが透過 WebP（`kind = cutout`）で保存され、失敗時に長方形 JPEG へフォールバックする。初回モデル DL の進捗が出る。処理中はマスコットと「この写真を切り抜いています」で、今この画像を変換していることが分かる
+- [ ] 切り抜きが透過 WebP、または WebP 化できない端末では透過 PNG（どちらも `kind = cutout`）で保存され、推論失敗時に長方形 JPEG へフォールバックする。エンコードだけ失敗したときは切り抜き前の元画像を登録画面に出さない。初回モデル DL の進捗が出る。処理中はマスコットと「この写真を切り抜いています」で、今この画像を変換していることが分かる
 - [ ] 出力が JPEG 長辺 1280、品質 0.82、EXIF なし。キャラは右下 短辺 22%・余白 4%。背後の白いグローは無い。ポーズは 4 つのうち編集画面オープン時に 1 つ
 - [ ] 「使う」直後に未紐付けアップロード、フォーム保存で `photoIds` 紐付け。まとめて追加では同じタップで次の撮影が開き、「N 本を裏で処理しています」が出る
 - [ ] サーバー: magic bytes、1MB、SVG/GIF 415、他人の紐付け先 404、未紐付け 24h GC

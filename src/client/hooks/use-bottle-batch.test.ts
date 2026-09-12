@@ -16,4 +16,10 @@ describe("useBottleBatch 連続撮影 / 複数選択（04-cellar G8）", () => {
     expect(source).toContain("nextCollect: reserveCollect");
     expect(source).toContain("burst: {");
   });
+
+  it("表面 JPEG の初回だけ自動読み取りし、裏面追加では走らない", () => {
+    expect(source).toContain("runRowRecognition(row.key, jpeg, null, false)");
+    expect(source).not.toContain("runRowRecognition(row.key, jpeg, back, false)");
+    expect(source).toContain("row.backPhoto?.recognizeJpeg ?? null, true");
+  });
 });

@@ -37,3 +37,8 @@ export async function toJpegBlobWithinLimit(
 export function toWebpBlob(canvas: HTMLCanvasElement, quality = PHOTO_WEBP_QUALITY): Promise<Blob> {
   return canvasToBlob(canvas, "image/webp", quality);
 }
+
+/** 切り抜きキャンバス用。品質引数は PNG では無視される */
+export function toPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return canvasToBlob(canvas, "image/png", 1);
+}

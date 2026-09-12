@@ -60,3 +60,12 @@ describe("toRecognizeJpeg", () => {
     expect(source).not.toMatch(/const recognizeJpeg = await toJpegBlob/);
   });
 });
+
+describe("processCellarPhoto 切り抜きエンコード", () => {
+  it("使うは encodeCutoutBlob で、WebP 以外を切り抜き前 JPEG に落とさない", () => {
+    const source = readFileSync(new URL("./process.ts", import.meta.url), "utf8");
+    expect(source).toContain("encodeCutoutBlob(dest)");
+    expect(source).not.toContain('if (blob.type !== "image/webp")');
+    expect(source).not.toContain("toWebpBlob(dest)");
+  });
+});

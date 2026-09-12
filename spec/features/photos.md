@@ -7,7 +7,7 @@
 - 取り込みは 2 経路。基本は撮影（`accept="image/*"` + `capture="environment"`）。保存済み写真は別ボタン（`capture` なし）。記録・セラー・ノートのフォームは「写真を撮る / 選ぶ」を同じ大きさで並べ、明示タップだけ。ホームに撮影開始のボタンは置かない。セラー追加のアプリ内導線は `?camera=1` を付けない。記録・ノートは `?camera=1` でも自動起動しない。`getUserMedia` は使わない
 - 切り抜き・キャラ合成・JPEG 化はすべて端末内 Canvas。色補正はしない。サーバーは検証と保存だけ
 - 「使う」直後に **未紐付け** で `POST /api/photos`。フォーム保存時の `photoIds` 紐付けは各機能フェーズ
-- 背景除去の実体は 4-06（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`。ORT の glue `.mjs` と `.wasm` を同じディレクトリへ明示）。2-08 はトグル差し込み口と、WebP VP8X alpha → `kind=cutout` のサーバー判定
+- 背景除去の実体は 4-06（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`。ORT の glue `.mjs` と `.wasm` を同じディレクトリへ明示）。2-08 はトグル差し込み口と、WebP VP8X alpha / PNG IHDR color type 4・6 → `kind=cutout` のサーバー判定
 
 ## クライアント
 
@@ -19,7 +19,8 @@
 | `computeCoverCrop` / `cropResize` | 4:5 / 2:3、拡縮 1.0〜3.0、長辺 1280 |
 | `processLogFile` / `processLogPhoto` | 酒記録。全体リサイズ、認識用 JPEG、設定どおりキャラ合成。`photo-edit` を挟まない |
 | `composeMascot` | 右下、短辺 22%、余白 4%、**グローなし**。線色 `#2B261F`。`pickMascotPose()` で 4 ポーズから抽選 |
-| `toJpegBlob` / `toWebpBlob` | JPEG 0.82 / 切り抜き WebP 0.9。Canvas 再エンコードで EXIF なし |
+| `toJpegBlob` / `toWebpBlob` / `toPngBlob` | JPEG 0.82 / 切り抜き WebP 0.9 / 切り抜き PNG。Canvas 再エンコードで EXIF なし |
+| `encodeCutoutBlob` | 切り抜きキャンバスを保存用にする。WebP を優先。iOS Safari のように `toBlob("image/webp")` が PNG を返す／失敗するときは **切り抜き済み PNG** を使う。切り抜き前 JPEG には落とさない。1MB 超は縮小 |
 | `preparePhoto` / `prepareRecognitionImage` | 比率・位置・拡縮の確定と、切り抜く前の 2:3 JPEG（ラベル読み取り用。色補正なし） |
 | `segmentBottle` / `composeBottleCutout` | セラーのみ。WASM SIMD で U2-Net-P を 1 本ずつ実行（実行中 1 + pending 最新 1）。ORT の `.mjs` / `.wasm` は同一オリジン `/models/ort/` を明示。マスクは cleanup・品質判定を通し、同一条件では再利用。失敗は `CutoutError`（理由付き） |
 | `previewCutout` / `processPhoto` | 編集画面のプレビューと「使う」。同じマスクを共有し、`processPhoto` は `cutout` に成否・理由・工程時間を返す。失敗・未対応は JPEG 長方形。記録・ノートはキャラ合成前の JPEG を `recognizeJpeg` として返す |

@@ -14,6 +14,7 @@ import {
   cutoutFailureFields,
   emptyCutoutTiming,
 } from "./cutout-result.ts";
+import { encodeCutoutBlob } from "./encode-cutout.ts";
 import {
   type AspectRatio,
   aspectForKind,
@@ -31,7 +32,7 @@ import {
   segmentBottle,
   supportsBackgroundRemoval,
 } from "./remove-background.ts";
-import { toJpegBlob, toJpegBlobWithinLimit, toWebpBlob } from "./to-jpeg-blob.ts";
+import { toJpegBlob, toJpegBlobWithinLimit } from "./to-jpeg-blob.ts";
 
 export type PhotoProcessKind = "log" | "cellar" | "note";
 
@@ -328,13 +329,12 @@ async function processCellarPhoto(
     });
     composeMs = Math.round(performance.now() - composeStart);
     const encodeStart = performance.now();
-    const blob = await toWebpBlob(dest).catch((error: unknown) => {
-      throw new CutoutError("encode", undefined, { cause: error });
+    const blob = await encodeCutoutBlob(dest).catch((error: unknown) => {
+      throw error instanceof CutoutError
+        ? error
+        : new CutoutError("encode", undefined, { cause: error });
     });
     encodeMs = Math.round(performance.now() - encodeStart);
-    if (blob.type !== "image/webp") {
-      throw new CutoutError("encode", `type=${blob.type || "empty"}`);
-    }
     const cutout: CutoutOutcome = {
       status: "success",
       cached,

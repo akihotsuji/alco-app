@@ -13,6 +13,7 @@ import { copyOwnedPhoto, fetchOwnedPhotoBlob } from "@/client/lib/copy-owned-pho
 import { historyHasFlag, withHistoryFlag } from "@/client/lib/history-state.ts";
 import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
+import { photoFileName } from "@/client/lib/photo/photo-file.ts";
 import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
 import type { ProcessedPhoto } from "@/client/lib/photo/process.ts";
 import { processLogFile, processNoteFile } from "@/client/lib/photo/process-file.ts";
@@ -677,7 +678,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       if (!blob) {
         return;
       }
-      const file = new File([blob], blob.type === "image/webp" ? "photo.webp" : "photo.jpg", {
+      const file = new File([blob], photoFileName(blob.type), {
         type: blob.type || "image/jpeg",
       });
       const decoded = await decodePickedFile(file);
@@ -701,7 +702,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       burstRef.current = null;
       setBurstActive(false);
       capturedAtRef.current = collect.previousCapturedAt;
-      const file = new File([blob], blob.type === "image/webp" ? "photo.webp" : "photo.jpg", {
+      const file = new File([blob], photoFileName(blob.type), {
         type: blob.type || "image/jpeg",
       });
       const decoded = await decodePickedFile(file);
