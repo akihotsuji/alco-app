@@ -5,6 +5,7 @@
   "repository": {},
   "license": "UNLICENSED",
   "private": true,
+  "type": "module",
   "scripts": {
     "preview": "remotion studio --no-open",
     "dev": "remotion studio --no-open",

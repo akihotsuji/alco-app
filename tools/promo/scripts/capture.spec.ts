@@ -29,7 +29,18 @@ async function waitForVisualReady(page: Page): Promise<void> {
   });
 }
 
+async function scrollMainToTop(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const content = document.querySelector(".app-content");
+    if (content instanceof HTMLElement) {
+      content.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
+  });
+}
+
 async function shot(page: Page, name: string): Promise<void> {
+  await scrollMainToTop(page);
   await waitForVisualReady(page);
   await page.screenshot({
     path: path.join(shotsDir, `${name}.png`),
@@ -110,11 +121,11 @@ async function addLog(page: Page, log: (typeof DEMO_LOGS)[number], captureForm: 
   await pickLibraryPhoto(page, log.photo, false);
   await page.locator("#log-drink-name").fill(log.name);
   await selectDrinkType(page, log.drinkTypeLabel);
-  await page.getByPlaceholder("店名など").fill(log.place);
   await expect(page.getByText("アップロード中")).toHaveCount(0, { timeout: 30_000 });
   if (captureForm) {
     await shot(page, "log-new");
   }
+  await page.getByPlaceholder("店名など").fill(log.place);
   const save = page.getByRole("button", { name: "記録を保存" });
   await expect(save).toBeEnabled();
   await save.click();
@@ -167,17 +178,12 @@ test("デモデータを投入して紹介用スクリーンショットを撮�
   await page.goto("/cellar");
   await expect(page.getByRole("heading", { name: "セラー" })).toBeVisible();
   await expect(page.getByText("北窓ヴィンヤード ピノ・ノワール")).toBeVisible();
-  const typeView = page.getByRole("button", { name: "1 本ずつ" });
-  if ((await typeView.getAttribute("aria-pressed")) === "false") {
-    await typeView.click();
+  const oneView = page.getByRole("button", { name: "1 本ずつ" });
+  if ((await oneView.getAttribute("aria-pressed")) === "false") {
+    await oneView.click();
   }
+  await expect(page.getByText("霧谷蒸溜所 12年")).toBeVisible();
   await shot(page, "cellar");
-  const typeToggle = page.getByRole("button", { name: "種類ごと" });
-  if ((await typeToggle.count()) > 0) {
-    await typeToggle.click();
-    await shot(page, "cellar-by-type");
-    await page.getByRole("button", { name: "1 本ずつ" }).click();
-  }
 
   for (const [index, log] of DEMO_LOGS.entries()) {
     await addLog(page, log, index === 0);
