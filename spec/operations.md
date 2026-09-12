@@ -2,7 +2,7 @@
 
 オーナーがエージェントなしでも、Logs を見て復元を試みられる手順。値・トークン・SQL 本文・Cookie は書かない。コマンドは **2026-09-09** の wrangler 公式（Workers rollback / D1 Time Travel）に合わせた。バージョンが変わっていたら実行前に `--help` を見る。
 
-- 状態: **作成済み**（2026-09-09）。8-05 で WAF / 誤ブロック解除を追記（2026-09-10）。8-06 で使用量の週次確認を 9 章に追加
+- 状態: **作成済み**（2026-09-09）。8-05 で WAF / 誤ブロック解除を追記（2026-09-10）。8-06 で使用量の週次確認を 9 章に追加。10 章で 0010 によるボトル写真消失を追記（2026-09-12）
 - 監視の正本: [features/monitoring.md](features/monitoring.md)
 - 使用量の正本: [features/usage-monitoring.md](features/usage-monitoring.md)
 - バックアップの正本: [features/d1-backup.md](features/d1-backup.md)
@@ -250,3 +250,31 @@ pnpm exec wrangler d1 export alco-app-prod --remote --env production --output=ba
 - AI Gateway: spend limits（超過は 429。手入力は続く）
 
 Paid（月 5 USD）に進む条件は usage-monitoring 8 章。
+
+---
+
+## 10. ボトル写真がシルエットだけになる（0010 / D1 FK）
+
+症状: ボトル詳細が種類別 SVG だけ。`GET /api/bottles/:id` の `photos` が空。撮影してラベルは読めたが画像が無い、と見える。
+
+原因: 2026-09-11 の本番デプロイで `0010_shared_cellar` が `bottles` を再作成した。D1 は `PRAGMA foreign_keys=OFF` を無視する（[公式](https://developers.cloudflare.com/d1/sql-api/foreign-keys/)）。`DROP TABLE bottles` が `photos.bottle_id` の CASCADE を実行し、ボトル写真行が消えた。同じ DROP で `drink_logs.bottle_id` / `tasting_notes.bottle_id` は SET NULL。ボトル行自体と R2 オブジェクトは残る。ローカルの `node:sqlite` 同一接続では PRAGMA が効くため、既存の migrations テストだけでは検知できなかった。
+
+確認（値・氏名・銘柄は出さない。件数だけ）:
+
+```powershell
+pnpm exec wrangler d1 execute alco-app-prod --remote --env production --command "SELECT COUNT(*) AS bottles FROM bottles;"
+pnpm exec wrangler d1 execute alco-app-prod --remote --env production --command "SELECT COUNT(*) AS bottle_photos FROM photos WHERE bottle_id IS NOT NULL;"
+pnpm exec wrangler d1 execute alco-app-prod --remote --env production --command "SELECT COUNT(*) AS logs_unlinked FROM drink_logs WHERE bottle_id IS NULL;"
+```
+
+R2 の実体は `photos` 行が消えても残っていることがある（CASCADE は D1 だけ）。キーはサーバー生成 UUID。バックアップの旧行から戻せる。
+
+復旧（本番をいきなり上書きしない。5 章）:
+
+1. 現行 prod を export して控える
+2. 0010 適用前のバックアップを一時 D1 へ。候補: `prod/alco-app-prod-2026-09-10T192922Z.sql.gz`（2026-09-10 19:29 UTC。0010 は 2026-09-11 14:47 UTC）。ギャップ分は Time Travel（Free は 7 日）
+3. 一時 DB で `photos.bottle_id IS NOT NULL` の行を見る。現行 prod に同じ `id` が無ければ、現行 `bottles.cellar_id` を付けて `user_id=NULL` で戻す
+4. 記録・ノートはバックアップで `bottle_id` があり現行が NULL、かつそのボトルが残っている行だけ戻す
+5. `GET /api/photos/:id/content` で自分の 1 枚だけ確認してから次へ
+
+撮り直しは R2 が無い行だけ。チェックリストや Issue に SQL 本文・Cookie・氏名を貼らない。
