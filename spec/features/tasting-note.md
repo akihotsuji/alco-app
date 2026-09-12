@@ -246,7 +246,7 @@ PATCH の `photoIds` は **差し替え**（配列順 = `sortOrder` 0, 1, …）
 |---|---|
 | MIME | magic bytes で jpeg のみ（キャラ合成前の 4:5 JPEG）。他形式は 415 |
 | サイズ | ≦1MB。長辺 ≦1600 |
-| 日次上限 | セラー・記録と **同じ** `ai_usage`（30 回 / ユーザー / JST 日）。先加算。502 は加算しない |
+| 日次上限 | セラー・記録と **同じ** `ai_usage`（10000 回 / ユーザー / JST 日。許容上限 MAX）。先加算。502 は加算しない |
 | タイムアウト | 20 秒。超過は 502 `upstream_error` |
 | 出力 | `drinkName` ≦100、`drinkType` 12 種、`producer` / `origin` / `variety` ≦100、`vintage` 1800〜2100。検証落ちは省く。`fields` 空でも 200。`name` / `drinkName` はどちらも品名 |
 | プロンプト | サーバー固定。ユーザー入力を含めない。ラベルまたはグラス写真から推測してよい |
@@ -457,7 +457,7 @@ data-model 6.4 の列 + `photos` メタ配列（`sortOrder` 昇順、最大 6）
 | 写真 | magic bytes・1MB・キー生成・配信認可は 2-08 のまま。紐付け時も `photos.user_id === session` |
 | エラー | 400 の `fields` に内部パスを出さない。500 はスタックを出さない |
 | ログ | 4 欄本文・写真をサーバーログに出さない（メソッドとパスだけ） |
-| レート制限 | recognize はセラー・記録と **同じ 30 回 / ユーザー / JST 日**（`ai_usage`）。アプリ全体の制限は Phase 8 |
+| レート制限 | recognize はセラー・記録と **同じ 10000 回 / ユーザー / JST 日**（`ai_usage`。許容上限 MAX）。アプリ全体の制限は Phase 8 |
 
 ---
 

@@ -37,7 +37,7 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 | キャラクター | インライン SVG の React コンポーネント（`<Mascot />`） | テーマ追従・拡縮自由・追加依存なし。ラスタ画像は持たない（[character.md](character.md)） |
 | 定期処理 | Workers **Cron Triggers**（`scheduled`） | 未紐付け写真の日次 GC、`ai_usage` の掃除。無料枠に含まれる |
 | 背景除去（切り抜き） | ブラウザ WASM（`onnxruntime-web` MIT + U2-Net-P。同一オリジン `/models/`） | セラーの棚に切り抜きボトルを立てる（2026-09-05 に MVP へ）。`@imgly/background-removal` は AGPL-3.0 のため不採用。端末内処理でサーバー費用ゼロ。初回にモデルを DL（Cache API）。失敗時は長方形にフォールバック |
-| ラベル読み取り | **設定可能な認識プロファイル**（binding `AI` + AI Gateway Unified Billing） | 記録・セラー・ノートの既定は `google/gemini-3.7-flash`。Llama は env で戻せる。モデル ID はサーバー設定だけ。日次 30 回。詳細は [features/ai-recognition.md](features/ai-recognition.md) |
+| ラベル読み取り | **設定可能な認識プロファイル**（binding `AI` + AI Gateway Unified Billing） | 記録・セラー・ノートの既定は `google/gemini-3.7-flash`。Llama は env で戻せる。モデル ID はサーバー設定だけ。日次 10000 回（許容上限 MAX）。詳細は [features/ai-recognition.md](features/ai-recognition.md) |
 | PWA | vite-plugin-pwa | manifest / アイコン（キャラクター由来）/ スタンドアロン表示を宣言的に設定 |
 | Lint / Format | Biome | ESLint+Prettierの2本立てを避け、1ツールで完結。高速で設定が少ない |
 | テスト | Vitest (+ Testing Library) / Playwright | 単体・コンポーネントテストはVitest。主要導線のE2EスモークはPlaywright |
@@ -223,7 +223,7 @@ alco-app/
 |---|---|---|
 | Workers | 10 万リクエスト/日（UTC 0:00 リセット）。静的アセットは無料・無制限。CPU 10 ms/起動。Cron 含む | 個人利用では余裕。一般公開後はボットを先に見る（8-05）。超過は Error 1027 |
 | Workers Logs | 20 万イベント/日、保持 3 日 | サンプリング 100%。`console.log` を増やさない |
-| Workers AI | 1 万 Neurons/日 | Llama に戻したとき。ユーザー日次 30 回。超過は Workers Paid |
+| Workers AI | 1 万 Neurons/日 | Llama に戻したとき。ユーザー日次 10000 回（許容上限 MAX）。超過は Workers Paid |
 | AI Gateway（Gemini） | 無料枠なし（Unified Billing） | 記録・セラー・ノートの既定。spend limit をオーナーが付ける。最初に $ が付きやすい |
 | D1 | 5 GB（アカウント合計）・読取 500 万行/日・書込 10 万行/日 | テキスト中心。全件スキャンを避ける |
 | R2 | 10 GB-month・Class A 100 万/月・Class B 1000 万/月・転送無料 | 加工済み写真（〜300KB/枚）。バックアップバケットも同じ 10 GB |

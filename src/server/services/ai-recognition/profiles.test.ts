@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  AI_RECOGNIZE_DAILY_LIMIT,
+  AI_RECOGNIZE_DAILY_LIMIT_MAX,
   GEMINI_35_FLASH_LITE_MODEL_ID,
   GEMINI_37_FLASH_MODEL_ID,
   WORKERS_AI_VISION_MODEL,
@@ -7,6 +9,7 @@ import {
 import { recognitionCacheKey } from "./cache.ts";
 import {
   RecognitionConfigError,
+  readAiRecognizeDailyLimit,
   readProfileKey,
   resolveModelProfile,
   timeoutMsForRecognizer,
@@ -95,6 +98,27 @@ describe("recognitionCacheKey", () => {
     );
     expect(recognitionCacheKey(base)).not.toBe(
       recognitionCacheKey({ ...base, searchEnabled: false }),
+    );
+  });
+});
+
+describe("readAiRecognizeDailyLimit", () => {
+  it("未設定なら fallback、MAX は受け、超過と 0 は設定エラー", () => {
+    expect(readAiRecognizeDailyLimit({}, 30)).toBe(30);
+    expect(
+      readAiRecognizeDailyLimit(
+        { AI_RECOGNIZE_DAILY_LIMIT: String(AI_RECOGNIZE_DAILY_LIMIT_MAX) },
+        30,
+      ),
+    ).toBe(AI_RECOGNIZE_DAILY_LIMIT);
+    expect(() =>
+      readAiRecognizeDailyLimit(
+        { AI_RECOGNIZE_DAILY_LIMIT: String(AI_RECOGNIZE_DAILY_LIMIT_MAX + 1) },
+        30,
+      ),
+    ).toThrow(RecognitionConfigError);
+    expect(() => readAiRecognizeDailyLimit({ AI_RECOGNIZE_DAILY_LIMIT: "0" }, 30)).toThrow(
+      RecognitionConfigError,
     );
   });
 });
