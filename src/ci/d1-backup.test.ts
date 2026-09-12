@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,7 +10,9 @@ import {
   BACKUP_TARGETS,
   buildObjectKey,
   formatBackupStamp,
+  hasPendingRemoteMigrations,
   isProtectedDatabase,
+  parseBackupObjectKind,
   parseBackupSelection,
   pickRehearseSource,
   REHEARSAL_DATABASE,
@@ -17,6 +20,7 @@ import {
   RETENTION_MAX_AGE_SECONDS,
   SCHEDULE_CRON_UTC,
   sanitizeBackupLog,
+  stripAnsi,
   summarizeBackupFile,
 } from "@/ci/d1-backup.ts";
 
@@ -41,10 +45,23 @@ describe("d1 backup helpers", () => {
   it("builds a dated R2 key without putting dumps in the photos buckets", () => {
     const at = new Date("2026-09-09T17:00:05.123Z");
     expect(formatBackupStamp(at)).toBe("2026-09-09T170005Z");
+    expect(parseBackupObjectKind(undefined)).toBe("scheduled");
+    expect(parseBackupObjectKind("scheduled")).toBe("scheduled");
+    expect(parseBackupObjectKind("pre-migrate")).toBe("pre-migrate");
+    expect(() => parseBackupObjectKind("photos")).toThrow(/--kind/);
     expect(buildObjectKey("alco-app-prod", at)).toBe(
       "prod/alco-app-prod-2026-09-09T170005Z.sql.gz",
     );
+    expect(buildObjectKey("alco-app-prod", at, "scheduled")).toBe(
+      "prod/alco-app-prod-2026-09-09T170005Z.sql.gz",
+    );
+    expect(buildObjectKey("alco-app-prod", at, "pre-migrate")).toBe(
+      "prod/pre-migrate/alco-app-prod-2026-09-09T170005Z.sql.gz",
+    );
     expect(buildObjectKey("alco-app-dev", at)).toBe("dev/alco-app-dev-2026-09-09T170005Z.sql.gz");
+    expect(buildObjectKey("alco-app-dev", at, "pre-migrate")).toBe(
+      "dev/pre-migrate/alco-app-dev-2026-09-09T170005Z.sql.gz",
+    );
     expect(BACKUP_BUCKET).toBe("alco-app-d1-backups");
     expect(BACKUP_TARGETS["alco-app-prod"].wranglerEnv).toBe("production");
     expect(BACKUP_TARGETS["alco-app-dev"].wranglerEnv).toBe("dev");
@@ -107,6 +124,47 @@ describe("d1 backup helpers", () => {
     expect(sanitized).not.toMatch(/https?:\/\//i);
     expect(sanitized).not.toContain("X-Amz-Signature");
     expect(sanitized).not.toContain("cloudflarestorage.com");
+  });
+
+  it("detects pending wrangler remote migrations and rejects ambiguous list output", () => {
+    expect(hasPendingRemoteMigrations("✅ No migrations to apply!")).toBe(false);
+    expect(hasPendingRemoteMigrations("No migrations to apply!")).toBe(false);
+    expect(hasPendingRemoteMigrations("\u001b[32m✅ No migrations to apply!\u001b[0m")).toBe(false);
+    expect(
+      hasPendingRemoteMigrations(
+        [
+          "Migrations to be applied:",
+          "┌──────────────────────┐",
+          "│ Name                 │",
+          "├──────────────────────┤",
+          "│ 0011_example         │",
+          "└──────────────────────┘",
+        ].join("\n"),
+      ),
+    ).toBe(true);
+    expect(() => hasPendingRemoteMigrations("")).toThrow(/pending D1 migrations/);
+    expect(() => hasPendingRemoteMigrations("🌀 Executing on remote database")).toThrow(
+      /pending D1 migrations/,
+    );
+    expect(() =>
+      hasPendingRemoteMigrations("Migrations to be applied:\n✅ No migrations to apply!"),
+    ).toThrow(/pending D1 migrations/);
+    expect(stripAnsi("\u001b[31mred\u001b[0m")).toBe("red");
+
+    const dir = mkdtempSync(path.join(tmpdir(), "d1-pending-"));
+    const filePath = path.join(dir, "list.txt");
+    writeFileSync(filePath, "✅ No migrations to apply!\n");
+    const cli = [
+      "--experimental-strip-types",
+      "--disable-warning=ExperimentalWarning",
+      path.join(repoRoot, "src/ci/d1-backup.ts"),
+      "pending-migrations",
+      "--file",
+      filePath,
+    ];
+    expect(execFileSync(process.execPath, cli, { encoding: "utf8" }).trim()).toBe("none");
+    writeFileSync(filePath, "Migrations to be applied:\n");
+    expect(execFileSync(process.execPath, cli, { encoding: "utf8" }).trim()).toBe("pending");
   });
 
   it("summarizes a dump by size and hash without returning the file body", () => {

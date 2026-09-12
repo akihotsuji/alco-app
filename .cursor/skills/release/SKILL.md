@@ -23,7 +23,7 @@ description: alco-appの本番リリース手順。チェックリスト実行�
 2. [spec/security-audit-release.md](../../../spec/security-audit-release.md) が Critical / High ゼロ。新しい API を足したら再監査
 3. 本番 secret が入っている（入れるのはオーナー。[spec/secrets.md](../../../spec/secrets.md)）
 4. GitHub Environment `production` の必須レビューアがある
-5. Actions → **Deploy prod** → ブランチ `main`（またはタグ push）→ 承認。中で migrate → deploy
+5. Actions → **Deploy prod** → ブランチ `main`（またはタグ push）→ 承認。中で未適用 migrate があれば D1 バックアップ → migrate → deploy
 6. `GET https://sake-shiori.com/api/health`
 7. 本番だけのユーザーでログイン。記録 / ボトル / ノートを 1 件ずつ。写真は自分だけ
 8. 任意でホーム画面に追加

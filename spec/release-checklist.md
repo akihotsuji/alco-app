@@ -33,6 +33,7 @@
 
 - [ ] Actions → **Deploy prod** → `main`（またはタグ `vX.Y.Z`）→ Environment 承認
 - [ ] ログに `workers.dev` URL が残っていない（`[redacted-url]`）
+- [ ] 未適用 migrate があったときは `prod/pre-migrate/` への D1 バックアップが migrate より前に成功している
 - [ ] 本番 migrate が deploy より前に成功している
 - [ ] `GET https://sake-shiori.com/api/health` が `{ "ok": true }`
 - [ ] www / 本番 `workers.dev` が apex へ 308（パス維持）
