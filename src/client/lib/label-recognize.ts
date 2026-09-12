@@ -6,14 +6,30 @@ export const RECOGNIZE_BANNER = {
   loading: "ラベルを読み取り中…",
   success: "ラベルから読み取りました。内容を確認して保存してください",
   failure: "読み取れませんでした（手で入力してください）",
+  offer: "裏面も使ってラベルを読み取れます",
 } as const;
 
-export type RecognizeBannerStatus = "loading" | "success" | "failure";
+export type RecognizeBannerStatus = "loading" | "success" | "failure" | "offer";
+
+/** 編集で保存済み表面に、このセッションで裏面 JPEG を足したときだけ案内帯を出す */
+export function canOfferSavedFrontBackRecognize(input: {
+  hasBackJpeg: boolean;
+  recognizeStatus: RecognizeBannerStatus | null;
+  recognizePref: boolean;
+  hasFrontJpegOrSavedPhoto: boolean;
+}): boolean {
+  return (
+    input.hasBackJpeg &&
+    input.recognizeStatus === null &&
+    input.recognizePref &&
+    input.hasFrontJpegOrSavedPhoto
+  );
+}
 
 /** 失敗帯から出す。同じ画像（表 + 裏）で再リクエストする（cellar.md 3.3 B2 / 3.3b 再読み取り） */
 export const RECOGNIZE_RETRY_LABEL = "再読み取り";
 
-/** 成功帯かつ裏面があるとき。表 + 裏で穴埋めする（自動では走らない） */
+/** 成功帯・案内帯。表 + 裏で穴埋めする（自動では走らない） */
 export const RECOGNIZE_WITH_BACK_LABEL = "裏面も含めて読み取る";
 
 export type RecognizeMarkField = "name" | "producer" | "origin" | "variety" | "vintage";

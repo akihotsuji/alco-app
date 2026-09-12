@@ -72,4 +72,13 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain("offerMatchesSession(pendingRecognize, session)");
     expect(source).toContain('mode !== "new" && !attachment?.recognizeJpeg');
   });
+
+  it("編集で裏面だけ足したときは保存済み表面を JPEG 化して案内帯から手動で読む", () => {
+    expect(source).toContain("canOfferSavedFrontBackRecognize");
+    expect(source).toContain("fetchOwnedPhotoBlob");
+    expect(source).toContain("toRecognizeJpegFromBlob");
+    expect(source).toContain('status={recognizeStatus ?? "offer"}');
+    expect(source).toContain("runRecognition(jpeg, back, true)");
+    expect(source).not.toContain("runRecognition(jpeg, backRecognizeJpeg, false)");
+  });
 });

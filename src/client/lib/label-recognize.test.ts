@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_BOTTLE_FORM } from "./bottle-form.ts";
-import { applyRecognizeToForm, countRecognizeFields } from "./label-recognize.ts";
+import {
+  applyRecognizeToForm,
+  canOfferSavedFrontBackRecognize,
+  countRecognizeFields,
+  RECOGNIZE_BANNER,
+} from "./label-recognize.ts";
 
 describe("applyRecognizeToForm", () => {
   it("空欄にだけ入れ、確度 0.5 未満と度数は捨てる", () => {
@@ -73,6 +78,29 @@ describe("applyRecognizeToForm", () => {
     expect(second.next.producer).toBe("手入力");
     expect(second.marks.has("name")).toBe(true);
     expect(second.marks.has("producer")).toBe(false);
+  });
+});
+
+describe("canOfferSavedFrontBackRecognize", () => {
+  const ready = {
+    hasBackJpeg: true,
+    recognizeStatus: null,
+    recognizePref: true,
+    hasFrontJpegOrSavedPhoto: true,
+  } as const;
+
+  it("編集で裏面だけ足したとき案内帯を出す", () => {
+    expect(canOfferSavedFrontBackRecognize(ready)).toBe(true);
+    expect(RECOGNIZE_BANNER.offer).toBe("裏面も使ってラベルを読み取れます");
+  });
+
+  it("このセッションで既に読んでいる・設定OFF・裏面なしでは出さない", () => {
+    expect(canOfferSavedFrontBackRecognize({ ...ready, recognizeStatus: "success" })).toBe(false);
+    expect(canOfferSavedFrontBackRecognize({ ...ready, recognizePref: false })).toBe(false);
+    expect(canOfferSavedFrontBackRecognize({ ...ready, hasBackJpeg: false })).toBe(false);
+    expect(canOfferSavedFrontBackRecognize({ ...ready, hasFrontJpegOrSavedPhoto: false })).toBe(
+      false,
+    );
   });
 });
 

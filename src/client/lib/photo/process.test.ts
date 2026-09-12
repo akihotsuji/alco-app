@@ -59,6 +59,13 @@ describe("toRecognizeJpeg", () => {
     expect(matches).toHaveLength(3);
     expect(source).not.toMatch(/const recognizeJpeg = await toJpegBlob/);
   });
+
+  it("保存済み表面は toRecognizeJpegFromBlob で JPEG 化する（recognize は JPEG 以外 415）", () => {
+    const source = readFileSync(new URL("./process.ts", import.meta.url), "utf8");
+    expect(source).toContain("export async function toRecognizeJpegFromBlob");
+    expect(source).toContain("decodeImage(blob)");
+    expect(source).toContain("toJpegBlobWithinLimit(canvas)");
+  });
 });
 
 describe("processCellarPhoto 切り抜きエンコード", () => {
