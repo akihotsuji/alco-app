@@ -93,7 +93,7 @@ export type PhotoKind = (typeof PHOTO_KINDS)[number];
 
 export const DEFAULT_PHOTO_KIND: PhotoKind = "photo";
 
-/** 設定画面のバージョン表記。ビルド時定数（spec/screen-designs/06-settings.md S7） */
+/** 製品版。設定のビルド ID（デプロイ SHA）とは別（spec/screen-designs/06-settings.md S7） */
 export const APP_VERSION = "0.1.0";
 
 /** サーバーが受け付ける画像 MIME。クライアント申告は信用せず magic bytes で決める */

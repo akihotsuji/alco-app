@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
-import { requestAppReload } from "@/client/lib/app-reload.ts";
+import { refreshAppToLatest } from "@/client/lib/app-refresh.ts";
 import { BOOT_COPY, SW_UPDATE_EVENT } from "@/client/lib/boot.ts";
 
 export function SwUpdateHost() {
@@ -17,7 +17,7 @@ export function SwUpdateHost() {
           label: BOOT_COPY.updateAction,
           onSelect: () => {
             requestLeave(() => {
-              requestAppReload("user");
+              void refreshAppToLatest();
             });
           },
         },

@@ -50,6 +50,11 @@
   Content-Type: text/css
   X-Content-Type-Options: nosniff
 
+/version.json
+  Cache-Control: no-cache
+  Content-Type: application/json
+  X-Content-Type-Options: nosniff
+
 /manifest.webmanifest
   Content-Type: application/manifest+json
   X-Content-Type-Options: nosniff

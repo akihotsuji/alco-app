@@ -30,11 +30,17 @@ describe("SettingsPage S11 / S12", () => {
     expect(source.indexOf('to="/settings/feedback"')).toBeLessThan(
       source.indexOf('legalHref("/terms", "settings")'),
     );
+    expect(source.indexOf('legalHref("/privacy", "settings")')).toBeLessThan(
+      source.indexOf("<AppRefreshRow"),
+    );
   });
 
-  it("版表記は公開名称とバージョンを並べ、仮名 alco-app を出さない", () => {
+  it("版表記は公開名称とバージョンとビルド ID を並べ、仮名 alco-app を出さない", () => {
     expect(source).toContain("PWA_NAME");
     expect(source).toContain("APP_VERSION");
+    expect(source).toContain("formatAppVersionLabel");
+    expect(source).toContain("readClientBuildId");
+    expect(source).toContain("AppRefreshRow");
     expect(source).not.toContain("alco-app");
   });
 

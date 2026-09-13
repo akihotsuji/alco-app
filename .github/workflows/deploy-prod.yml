@@ -53,6 +53,7 @@ jobs:
       - name: Build
         env:
           CLOUDFLARE_ENV: production
+          VITE_APP_BUILD_ID: ${{ github.sha }}
         run: pnpm build
 
       - name: Require Cloudflare secrets

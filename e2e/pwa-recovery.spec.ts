@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { parseAppVersionManifest } from "../src/shared/app-version.ts";
+import { APP_VERSION } from "../src/shared/constants.ts";
 import { signUpAsNewUser } from "./helpers/auth.ts";
 
 async function waitForActiveSw(page: import("@playwright/test").Page) {
@@ -40,6 +42,14 @@ test("初回起動と再読み込みで空画面にならない", async ({ page,
   const swText = await swSource.text();
   expect(swText).not.toContain("isPwaNetworkOnlyPath");
   expect(swText).toContain("/api/");
+  expect(swText).toContain("/version.json");
+
+  const version = await request.get("/version.json");
+  expect(version.status()).toBe(200);
+  expect(version.headers()["content-type"] ?? "").toContain("application/json");
+  const published = parseAppVersionManifest(await version.json());
+  expect(published?.version).toBe(APP_VERSION);
+  expect(published?.buildId).toMatch(/^(?:dev|[0-9a-f]{7})$/);
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();

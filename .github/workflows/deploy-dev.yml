@@ -45,6 +45,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        env:
+          VITE_APP_BUILD_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
         run: pnpm build
 
       - name: Require Cloudflare secrets

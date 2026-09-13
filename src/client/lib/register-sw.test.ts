@@ -25,6 +25,7 @@ describe("installServiceWorker", () => {
     expect(source).not.toContain("workbox-window");
     expect(source).not.toContain("window.location.reload");
     expect(main).toContain("installServiceWorker()");
+    expect(main).toContain("installVersionWatch()");
     expect(main).toContain("installAssetRecovery()");
   });
 
@@ -47,6 +48,26 @@ describe("installServiceWorker", () => {
     expect(register).toHaveBeenCalledWith("/sw.js", { updateViaCache: "none" });
     listener?.();
     await Promise.resolve();
+    await Promise.resolve();
     expect(onRegisterError).toHaveBeenCalledTimes(1);
+  });
+
+  it("フォアグラウンド復帰で registration.update を呼ぶ", async () => {
+    const update = vi.fn(async () => undefined);
+    const register = vi.fn(async () => ({ update }));
+    let onVisible: (() => void) | undefined;
+    installServiceWorker({
+      prod: true,
+      hasServiceWorker: true,
+      hadControllerAtStart: true,
+      register,
+      addControllerChangeListener: () => undefined,
+      addVisibleListener: (listener) => {
+        onVisible = listener;
+      },
+    });
+    await Promise.resolve();
+    onVisible?.();
+    expect(update).toHaveBeenCalledTimes(1);
   });
 });
