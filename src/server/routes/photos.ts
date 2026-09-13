@@ -92,7 +92,7 @@ export function createPhotosRoute(deps: PhotoRouteDeps) {
             "Cache-Control": PHOTO_CONTENT_CACHE_CONTROL,
           });
         }
-        const content = await readOwnedPhotoContent(deps.getBucket(c), row, variant);
+        const content = await readOwnedPhotoContent(deps.getDb(c), deps.getBucket(c), row, variant);
         return c.body(content.body, 200, {
           "Content-Type": content.contentType,
           "Cache-Control": PHOTO_CONTENT_CACHE_CONTROL,

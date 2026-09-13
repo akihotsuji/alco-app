@@ -613,8 +613,9 @@ async function persistPhotoThumb(input: {
 
 /** `getOwnPhoto` で所有確認した行の本文を R2 から読む。行を渡す側が userId 一致を保証する */
 export async function readOwnedPhotoContent(
+  db: AppSqliteDb | AppBatchDb,
   bucket: PhotoBucket,
-  row: Pick<typeof photos.$inferSelect, "r2Key" | "contentType" | "kind">,
+  row: Pick<typeof photos.$inferSelect, "id" | "r2Key" | "contentType" | "kind">,
   variant?: "thumb",
 ): Promise<{ body: ArrayBuffer; contentType: string; kind: PhotoKind }> {
   if (variant !== "thumb") {
@@ -645,6 +646,8 @@ export async function readOwnedPhotoContent(
   }
   const bytes = new Uint8Array(await original.arrayBuffer());
   const thumb = await persistPhotoThumb({
+    db,
+    photoId: row.id,
     bucket,
     r2Key: row.r2Key,
     kind: row.kind,

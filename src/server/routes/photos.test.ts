@@ -326,6 +326,42 @@ describe("GET /api/photos/:id と content", () => {
     expect(ctx.photos.keys()).toEqual([]);
   });
 
+  it("サムネが無くても GET で作り、D1 行が消えたあとは書かない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "thumb-lazy@example.com");
+    const bytes = new Uint8Array(
+      await sharp({
+        create: { width: 800, height: 600, channels: 3, background: { r: 40, g: 80, b: 160 } },
+      })
+        .jpeg({ quality: 80 })
+        .toBuffer(),
+    );
+    const created = await postPhoto(ctx.app, a.cookie, bytes);
+    const meta = photoMetaSchema.parse(await created.json());
+    const thumbKey = photoThumbR2Key(`${meta.id}.jpg`, "photo");
+    expect(ctx.photos.keys()).toContain(thumbKey);
+    await ctx.photos.delete(thumbKey);
+    expect(ctx.photos.keys()).not.toContain(thumbKey);
+
+    const regenerated = await ctx.app.request(`/api/photos/${meta.id}/content?variant=thumb`, {
+      headers: { Cookie: a.cookie },
+    });
+    expect(regenerated.status).toBe(200);
+    expect(ctx.photos.keys()).toContain(thumbKey);
+
+    const [row] = await ctx.db.select().from(photos).where(eq(photos.id, meta.id));
+    if (!row) {
+      throw new Error("expected photo row");
+    }
+    await ctx.photos.delete(thumbKey);
+    await ctx.db.delete(photos).where(eq(photos.id, meta.id));
+    const { readOwnedPhotoContent } = await import("../services/photos.ts");
+    const fallback = await readOwnedPhotoContent(ctx.db, ctx.photos, row, "thumb");
+    expect(fallback.contentType).toBe("image/jpeg");
+    expect((fallback.body as ArrayBuffer).byteLength).toBeGreaterThan(0);
+    expect(ctx.photos.keys()).not.toContain(thumbKey);
+  });
+
   it("未認証の thumb は 401", async () => {
     const { app } = await createTestApp();
     const res = await app.request(
