@@ -47,6 +47,14 @@ function getBottles(app: Ctx["app"], cookie: string, search = "") {
   return app.request(`/api/bottles${suffix}`, { headers: { Cookie: cookie } });
 }
 
+function putBottleOrder(app: Ctx["app"], cookie: string, body: unknown) {
+  return app.request("/api/bottles/order", {
+    method: "PUT",
+    headers: { Cookie: cookie, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 function getBottle(app: Ctx["app"], cookie: string, id: string) {
   return app.request(`/api/bottles/${id}`, { headers: { Cookie: cookie } });
 }
@@ -957,5 +965,109 @@ describe("POST /api/bottles/:id/restore", () => {
     expect(
       bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, consumedId)).json()).status,
     ).toBe("consumed");
+  });
+});
+
+describe("PUT /api/bottles/order", () => {
+  it("未認証は 401", async () => {
+    const { app } = await createTestApp();
+    const res = await putBottleOrder(app, "", { drinkType: "wine", bottleIds: [MISSING] });
+    expect(res.status).toBe(401);
+  });
+
+  it("種類内の順を書き、drinkType 付き一覧がその順になる。新しい本は先頭", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const first = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { name: "先", drinkType: "wine" })).json(),
+    ).items[0];
+    const second = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { name: "後", drinkType: "wine" })).json(),
+    ).items[0];
+    await postBottle(ctx.app, a.cookie, { name: "ビール", drinkType: "beer" });
+    expect(first && second).toBeTruthy();
+    const before = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "drinkType=wine")).json(),
+    );
+    expect(before.items.map((item) => item.name)).toEqual(["後", "先"]);
+
+    const ordered = await putBottleOrder(ctx.app, a.cookie, {
+      drinkType: "wine",
+      bottleIds: [first?.id, second?.id],
+    });
+    expect(ordered.status).toBe(200);
+    expect(await ordered.json()).toEqual({ ok: true });
+
+    const after = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "drinkType=wine")).json(),
+    );
+    expect(after.items.map((item) => item.name)).toEqual(["先", "後"]);
+  });
+
+  it("他人の id・consumed・他種類は 404。集合不足は 409", async () => {
+    const ctx = await createTestApp();
+    const [a, b] = await createTestUserPair(ctx.app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+    const mine = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { name: "自分1", drinkType: "wine" })).json(),
+    ).items[0];
+    const mine2 = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { name: "自分2", drinkType: "wine" })).json(),
+    ).items[0];
+    const beer = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { name: "ビール", drinkType: "beer" })).json(),
+    ).items[0];
+    const other = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, b.cookie, { name: "他人", drinkType: "wine" })).json(),
+    ).items[0];
+    await seedConsumed(
+      ctx,
+      "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      a.id,
+      "開栓",
+      new Date("2026-09-01T00:00:00.000Z"),
+      "2026-09-01",
+    );
+
+    const foreign = await putBottleOrder(ctx.app, a.cookie, {
+      drinkType: "wine",
+      bottleIds: [mine?.id, other?.id],
+    });
+    expect(foreign.status).toBe(404);
+
+    const wrongType = await putBottleOrder(ctx.app, a.cookie, {
+      drinkType: "wine",
+      bottleIds: [mine?.id, beer?.id],
+    });
+    expect(wrongType.status).toBe(404);
+
+    const consumed = await putBottleOrder(ctx.app, a.cookie, {
+      drinkType: "beer",
+      bottleIds: ["ffffffff-ffff-4fff-8fff-ffffffffffff"],
+    });
+    expect(consumed.status).toBe(404);
+
+    const otherUser = await putBottleOrder(ctx.app, b.cookie, {
+      drinkType: "wine",
+      bottleIds: [mine?.id],
+    });
+    expect(otherUser.status).toBe(404);
+    expect(await foreign.json()).toEqual(await otherUser.json());
+
+    const incomplete = await putBottleOrder(ctx.app, a.cookie, {
+      drinkType: "wine",
+      bottleIds: [mine?.id],
+    });
+    expect(incomplete.status).toBe(409);
+    const conflict = apiErrorBodySchema.parse(await incomplete.json());
+    expect(conflict.error).toBe("conflict");
+    expect(conflict.conflict?.reason).toBe("set");
+
+    const still = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "drinkType=wine")).json(),
+    );
+    expect(still.items.map((item) => item.id).toSorted()).toEqual([mine?.id, mine2?.id].toSorted());
   });
 });

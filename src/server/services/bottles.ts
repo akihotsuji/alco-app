@@ -1,8 +1,8 @@
-import { and, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
-import { bottles, photos } from "@/db/schema.ts";
+import { bottles, photos, userCellarSlots } from "@/db/schema.ts";
 import {
   BOTTLE_MESSAGES,
   BOTTLE_PHOTO_MAX,
@@ -18,6 +18,7 @@ import {
   emptyCountsByType,
   escapeLike,
   normalizeOptionalText,
+  type ReorderBottlesInput,
   type UpdateBottleInput,
 } from "@/shared/bottles.ts";
 import { CELLAR_COPY } from "@/shared/cellars.ts";
@@ -155,15 +156,25 @@ function cursorError(): ApiError {
   });
 }
 
-function sortAt(row: { createdAt: Date; consumedAt: Date | null }, view: BottleView): number {
-  if (view === "archive") {
+function usesTypeSort(query: Pick<BottlesQuery, "view" | "drinkType">): boolean {
+  return query.view === "cellar" && Boolean(query.drinkType);
+}
+
+function listCursorAt(
+  row: { createdAt: Date; consumedAt: Date | null; sortOrder: number },
+  query: Pick<BottlesQuery, "view" | "drinkType">,
+): number {
+  if (query.view === "archive") {
     return row.consumedAt?.getTime() ?? 0;
+  }
+  if (usesTypeSort(query)) {
+    return row.sortOrder;
   }
   return row.createdAt.getTime();
 }
 
-function encodeCursor(row: BottleRow, view: BottleView): string {
-  return btoa(JSON.stringify({ id: row.id, at: sortAt(row, view) }))
+function encodeCursor(row: BottleRow, query: Pick<BottlesQuery, "view" | "drinkType">): string {
+  return btoa(JSON.stringify({ id: row.id, at: listCursorAt(row, query) }))
     .replaceAll("+", "-")
     .replaceAll("/", "_")
     .replaceAll("=", "");
@@ -379,6 +390,45 @@ function versionConflict(current: Bottle): ApiError {
   });
 }
 
+async function frontSortOrders(
+  db: AppBatchDb,
+  cellarId: string,
+  drinkType: DrinkType,
+  count: number,
+): Promise<number[]> {
+  const [row] = await db
+    .select({ min: sql<number | null>`min(${bottles.sortOrder})` })
+    .from(bottles)
+    .where(
+      and(
+        eq(bottles.cellarId, cellarId),
+        eq(bottles.drinkType, drinkType),
+        eq(bottles.status, "sealed"),
+      ),
+    );
+  const start = (row?.min ?? 0) - count;
+  return Array.from({ length: count }, (_, index) => start + index);
+}
+
+async function resolveReorderCellarId(
+  db: AppBatchDb,
+  userId: string,
+  cellarId: string | undefined,
+): Promise<string> {
+  if (cellarId) {
+    await requireCellarMember(db, userId, cellarId);
+    return cellarId;
+  }
+  const [slot] = await db
+    .select({ personalCellarId: userCellarSlots.personalCellarId })
+    .from(userCellarSlots)
+    .where(eq(userCellarSlots.userId, userId));
+  if (!slot) {
+    throw new ApiError("not_found");
+  }
+  return slot.personalCellarId;
+}
+
 export async function createBottles(input: {
   db: AppBatchDb;
   bucket: PhotoBucket;
@@ -403,6 +453,7 @@ export async function createBottles(input: {
   }
 
   const count = body.count ?? 1;
+  const sortOrders = await frontSortOrders(db, cellarId, body.drinkType, count);
   const sourcePhotos = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
 
   // copies[i] = i+2 本目に付ける写真の組（表 + 裏）。1 本目は元の未紐付け写真をそのまま紐付ける。
@@ -450,9 +501,10 @@ export async function createBottles(input: {
     updatedAt: now,
   };
 
-  const rows: BottleRow[] = Array.from({ length: count }, () => ({
+  const rows: BottleRow[] = Array.from({ length: count }, (_, index) => ({
     id: crypto.randomUUID(),
     ...attrs,
+    sortOrder: sortOrders[index] ?? 0,
   }));
   const nameMap = await displayNamesById(db, [userId]);
   const names = namesFromMap({ createdBy: userId, updatedBy: userId }, nameMap);
@@ -693,15 +745,20 @@ export async function listBottles(input: {
         id: bottles.id,
         createdAt: bottles.createdAt,
         consumedAt: bottles.consumedAt,
+        sortOrder: bottles.sortOrder,
       })
       .from(bottles)
       .where(and(eq(bottles.id, cursor.id), ...viewConditions));
-    if (!anchor || sortAt(anchor, query.view) !== cursor.at) {
+    if (!anchor || listCursorAt(anchor, query) !== cursor.at) {
       throw cursorError();
     }
     if (query.view === "archive") {
       itemConditions.push(
         sql`(coalesce(${bottles.consumedAt}, 0) < ${cursor.at} or (coalesce(${bottles.consumedAt}, 0) = ${cursor.at} and ${bottles.id} < ${cursor.id}))`,
+      );
+    } else if (usesTypeSort(query)) {
+      itemConditions.push(
+        sql`(${bottles.sortOrder} > ${cursor.at} or (${bottles.sortOrder} = ${cursor.at} and ${bottles.id} > ${cursor.id}))`,
       );
     } else {
       itemConditions.push(
@@ -726,10 +783,11 @@ export async function listBottles(input: {
       .from(bottles)
       .where(and(...itemConditions))
       .orderBy(
-        query.view === "archive"
-          ? desc(sql`coalesce(${bottles.consumedAt}, 0)`)
-          : desc(bottles.createdAt),
-        desc(bottles.id),
+        ...(query.view === "archive"
+          ? [desc(sql`coalesce(${bottles.consumedAt}, 0)`), desc(bottles.id)]
+          : usesTypeSort(query)
+            ? [asc(bottles.sortOrder), asc(bottles.id)]
+            : [desc(bottles.createdAt), desc(bottles.id)]),
       )
       .limit(query.limit + 1),
   ]);
@@ -754,7 +812,7 @@ export async function listBottles(input: {
     items: page.map((row) =>
       toBottleItem(row, photoMap.get(row.id) ?? [], namesFromMap(row, nameMap)),
     ),
-    nextCursor: hasMore && last ? encodeCursor(last, query.view) : null,
+    nextCursor: hasMore && last ? encodeCursor(last, query) : null,
     totalCount: Number(totalRow?.n ?? 0),
     countsByType,
   };
@@ -813,9 +871,17 @@ export async function updateBottle(input: {
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
+  const typeChanged =
+    body.drinkType !== undefined &&
+    body.drinkType !== current.drinkType &&
+    current.status === "sealed";
+  const nextSortOrder = typeChanged
+    ? ((await frontSortOrders(db, current.cellarId, body.drinkType, 1))[0] ?? 0)
+    : undefined;
   const patch = {
     ...attributesFromBody({ ...body, origin: undefined }),
     ...(body.origin === undefined ? {} : { origin: writtenOrigin(body.origin, current.origin) }),
+    ...(nextSortOrder === undefined ? {} : { sortOrder: nextSortOrder }),
     updatedBy: userId,
     version: current.version + 1,
     updatedAt,
@@ -1080,6 +1146,7 @@ export async function restoreBottle(input: {
     conditions.push(eq(bottles.version, body.expectedVersion));
   }
 
+  const sortOrder = (await frontSortOrders(db, current.cellarId, current.drinkType, 1))[0] ?? 0;
   const [photoMap, nameMap, [updatedRows]] = await Promise.all([
     photosForBottles(db, [bottleId]),
     displayNamesById(db, [current.createdBy, userId]),
@@ -1090,6 +1157,7 @@ export async function restoreBottle(input: {
           status: "sealed",
           consumedAt: null,
           consumedOn: null,
+          sortOrder,
           updatedBy: userId,
           version: current.version + 1,
           updatedAt: now,
@@ -1126,6 +1194,107 @@ export async function restoreBottle(input: {
     ]);
   }
   return result;
+}
+
+export async function reorderBottles(input: {
+  db: AppBatchDb;
+  userId: string;
+  body: ReorderBottlesInput;
+  now?: Date;
+}): Promise<{ ok: true }> {
+  const { db, userId, body } = input;
+  const now = input.now ?? new Date();
+  const cellarId = await resolveReorderCellarId(db, userId, body.cellarId);
+  const requestHash = await hashRequestBody({ action: "reorder", ...body });
+  if (body.operationKey) {
+    const cached = await readIdempotentResult<{ ok: true }>(db, {
+      actorUserId: userId,
+      cellarId,
+      operationKey: body.operationKey,
+      requestHash,
+    });
+    if (cached) {
+      return cached;
+    }
+  }
+
+  const currentRows = await db
+    .select({ id: bottles.id })
+    .from(bottles)
+    .where(
+      and(
+        eq(bottles.cellarId, cellarId),
+        eq(bottles.drinkType, body.drinkType),
+        eq(bottles.status, "sealed"),
+        membershipSql(userId),
+      ),
+    );
+  const currentIds = new Set(currentRows.map((row) => row.id));
+  if (body.bottleIds.some((id) => !currentIds.has(id))) {
+    throw new ApiError("not_found");
+  }
+  if (currentIds.size !== body.bottleIds.length) {
+    throw new ApiError("conflict", {
+      fields: { bottleIds: [BOTTLE_MESSAGES.orderConflict] },
+      conflict: { reason: "set" },
+    });
+  }
+
+  const orderCases = body.bottleIds.map((id, index) => sql`when ${id} then ${index}`);
+  const statements: BatchItem<"sqlite">[] = [
+    db
+      .update(bottles)
+      .set({
+        sortOrder: sql`case ${bottles.id} ${sql.join(orderCases, sql` `)} end`,
+        version: sql`${bottles.version} + 1`,
+        updatedBy: userId,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(bottles.cellarId, cellarId),
+          eq(bottles.drinkType, body.drinkType),
+          eq(bottles.status, "sealed"),
+          inArray(bottles.id, body.bottleIds),
+          membershipSql(userId),
+        ),
+      ),
+    bumpCellarRevision(db, cellarId, now),
+  ];
+  if (body.operationKey) {
+    statements.push(
+      idempotencyInsert(db, {
+        actorUserId: userId,
+        cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+        result: { ok: true },
+        now,
+      }),
+    );
+  }
+
+  const [first, ...rest] = statements;
+  if (!first) {
+    throw new ApiError("internal_error");
+  }
+  try {
+    await db.batch([first, ...rest]);
+  } catch (error) {
+    if (body.operationKey) {
+      const recovered = await recoverIdempotentResult<{ ok: true }>(db, {
+        actorUserId: userId,
+        cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+      });
+      if (recovered) {
+        return recovered;
+      }
+    }
+    throw error;
+  }
+  return { ok: true };
 }
 
 export async function deleteBottle(input: {

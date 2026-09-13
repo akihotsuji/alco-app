@@ -228,6 +228,8 @@ export const bottles = sqliteTable(
     storage: text("storage"),
     memo: text("memo"),
     status: text("status", { enum: BOTTLE_STATUSES }).notNull().default(DEFAULT_BOTTLE_STATUS),
+    // 小さいほど先。意味があるのは sealed。範囲は (cellar_id, drink_type)
+    sortOrder: integer("sort_order").notNull().default(0),
     // consumed のとき必須、それ以外 NULL。consumed_on は consumed_at から JST でサーバー算出
     consumedAt: integer("consumed_at", { mode: "timestamp_ms" }),
     consumedOn: text("consumed_on"),
@@ -237,6 +239,12 @@ export const bottles = sqliteTable(
     index("bottles_cellar_status_idx").on(table.cellarId, table.status),
     index("bottles_cellar_type_idx").on(table.cellarId, table.drinkType),
     index("bottles_cellar_consumed_idx").on(table.cellarId, table.consumedAt),
+    index("bottles_cellar_type_sort_idx").on(
+      table.cellarId,
+      table.drinkType,
+      table.status,
+      table.sortOrder,
+    ),
     drinkTypeCheck("bottles"),
     check("bottles_status_check", sql`status IN (${inList(BOTTLE_STATUSES)})`),
   ],
