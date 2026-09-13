@@ -4,11 +4,18 @@ import { emptyCountsByType } from "@/shared/bottles.ts";
 import {
   bottleTileVisual,
   chunkShelfRows,
+  edgeScrollDelta,
   groupBottlesByConsumedMonth,
+  indexFromClientPoint,
+  isBottleDetailPath,
+  keepsTypeGrid,
+  moveItem,
   parseCellarListView,
   parseDrinkTypeParam,
+  pointerMovedBeyond,
   rankByCreatedAtDesc,
   resolveCellarListView,
+  sameIdOrder,
   shelfColumns,
   shelfPageLimit,
   shelfRowIndex,
@@ -132,6 +139,51 @@ describe("applyCellarToolbarParams", () => {
       "2",
       "3",
     ]);
+  });
+});
+
+describe("moveItem / sameIdOrder / hit test", () => {
+  it("挿入で順列を入れ替え、範囲外は複製だけ返す", () => {
+    expect(moveItem(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"]);
+    expect(moveItem(["a", "b", "c"], 2, 0)).toEqual(["c", "a", "b"]);
+    expect(moveItem(["a", "b"], 0, 0)).toEqual(["a", "b"]);
+    expect(moveItem(["a", "b"], -1, 0)).toEqual(["a", "b"]);
+    expect(moveItem(["a", "b"], 0, 3)).toEqual(["a", "b"]);
+  });
+
+  it("id 列が同じときだけ同じ順とみなす", () => {
+    expect(sameIdOrder([{ id: "1" }, { id: "2" }], [{ id: "1" }, { id: "2" }])).toBe(true);
+    expect(sameIdOrder([{ id: "1" }, { id: "2" }], [{ id: "2" }, { id: "1" }])).toBe(false);
+    expect(sameIdOrder([{ id: "1" }], [{ id: "1" }, { id: "2" }])).toBe(false);
+  });
+
+  it("ポインタに最も近いマスを返す", () => {
+    const rects = [
+      { left: 0, top: 0, width: 40, height: 40 },
+      { left: 50, top: 0, width: 40, height: 40 },
+      { left: 0, top: 50, width: 40, height: 40 },
+    ];
+    expect(indexFromClientPoint(10, 10, rects)).toBe(0);
+    expect(indexFromClientPoint(70, 10, rects)).toBe(1);
+    expect(indexFromClientPoint(10, 70, rects)).toBe(2);
+    expect(indexFromClientPoint(0, 0, [])).toBe(0);
+  });
+
+  it("端付近だけスクロール量を返し、長押し判定は 10px", () => {
+    expect(edgeScrollDelta(10, 0, 400, 56, 16)).toBe(-16);
+    expect(edgeScrollDelta(390, 0, 400, 56, 16)).toBe(16);
+    expect(edgeScrollDelta(200, 0, 400, 56, 16)).toBe(0);
+    expect(pointerMovedBeyond(0, 0, 6, 6)).toBe(false);
+    expect(pointerMovedBeyond(0, 0, 10, 0)).toBe(true);
+  });
+
+  it("ボトル詳細だけグリッドを残し、他のセラー経路は閉じる", () => {
+    expect(isBottleDetailPath("/cellar/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")).toBe(true);
+    expect(isBottleDetailPath("/cellar/new")).toBe(false);
+    expect(isBottleDetailPath("/cellar/archive")).toBe(false);
+    expect(keepsTypeGrid("/cellar")).toBe(true);
+    expect(keepsTypeGrid("/cellar/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")).toBe(true);
+    expect(keepsTypeGrid("/settings")).toBe(false);
   });
 });
 

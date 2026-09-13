@@ -4,13 +4,14 @@ import { Link, useLocation } from "react-router";
 import { CellarSwitcher } from "@/client/components/cellar/CellarSwitcher.tsx";
 import { CellarToolbar } from "@/client/components/cellar/CellarToolbar.tsx";
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
-import { Shelf, ShelfSkeleton } from "@/client/components/cellar/Shelf.tsx";
+import { Shelf, ShelfSkeleton, TypeShelfHeading } from "@/client/components/cellar/Shelf.tsx";
 import { useAnimatedNumber } from "@/client/components/feedback/AnimatedNumber.tsx";
 import { shouldPlayEmptyEnter } from "@/client/components/feedback/EmptyState.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
+import { useTypeGrid } from "@/client/components/layout/type-grid-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { buttonVariants } from "@/client/components/ui/button.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
@@ -76,6 +77,16 @@ function TypeShelfRow({
   enterId: string | null;
   cellarId?: string;
 }) {
+  const typeGrid = useTypeGrid();
+  const label = `${DRINK_TYPE_LABELS[drinkType]} ${formatBottleCount(count)}`;
+  const openType = () =>
+    typeGrid.openGrid({
+      drinkType,
+      count,
+      searchActive: Boolean(q),
+      ...(q ? { q } : {}),
+      ...(cellarId ? { cellarId } : {}),
+    });
   const query = useInfiniteBottles({
     view: "cellar",
     drinkType,
@@ -87,9 +98,7 @@ function TypeShelfRow({
   if (query.isPending) {
     return (
       <section className="shelf-type" aria-busy>
-        <p className="shelf-ghost">
-          {DRINK_TYPE_LABELS[drinkType]} {formatBottleCount(count)}
-        </p>
+        <TypeShelfHeading label={label} onOpen={openType} />
         <div className="shelf-type-scroll">
           <div className="shelf-board" />
         </div>
@@ -105,13 +114,14 @@ function TypeShelfRow({
       columns={items.length}
       mode="cellar"
       layout="type"
-      ghostLabel={`${DRINK_TYPE_LABELS[drinkType]} ${formatBottleCount(count)}`}
+      ghostLabel={label}
       highlightRow={highlight ? 0 : null}
       enterId={enterId}
       canLoadMore={Boolean(query.hasNextPage && !query.isFetchingNextPage)}
       onLoadMore={() => {
         void query.fetchNextPage();
       }}
+      onOpenType={openType}
     />
   );
 }

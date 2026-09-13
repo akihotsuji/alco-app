@@ -14,6 +14,14 @@ export const SHELF_WIDE_MIN_PX = 480;
 export const SHELF_TYPE_PAGE_LIMIT = 12;
 export const SHELF_TYPE_TILE_PX = 72;
 export const SHELF_TYPE_GAP_PX = 22;
+export const TYPE_GRID_COLUMNS = 4;
+export const TYPE_GRID_PAGE_LIMIT = 100;
+export const TYPE_GRID_GAP_PX = 12;
+export const TYPE_GRID_LONG_PRESS_MS = 400;
+export const TYPE_GRID_MOVE_THRESHOLD_PX = 10;
+export const TYPE_GRID_EDGE_SCROLL_PX = 56;
+export const TYPE_GRID_EDGE_SCROLL_STEP_PX = 16;
+export const TYPE_GRID_HISTORY_FLAG = "alcoTypeGrid";
 
 export function shelfColumns(width: number): number {
   return width >= SHELF_WIDE_MIN_PX ? SHELF_COLUMNS_WIDE : SHELF_COLUMNS_NARROW;
@@ -65,6 +73,106 @@ export function bottleTileVisual(
     return "silhouette";
   }
   return thumbPhotoKind;
+}
+
+export function moveItem<T>(items: readonly T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
+    return [...items];
+  }
+  const next = [...items];
+  const [picked] = next.splice(from, 1);
+  if (picked === undefined) {
+    return [...items];
+  }
+  next.splice(to, 0, picked);
+  return next;
+}
+
+export function sameIdOrder(
+  left: readonly { id: string }[],
+  right: readonly { id: string }[],
+): boolean {
+  return left.length === right.length && left.every((item, index) => item.id === right[index]?.id);
+}
+
+export type ClientRectLike = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+/** ポインタに最も近いマスの添字（ドラッグ中の挿入先） */
+export function indexFromClientPoint(
+  clientX: number,
+  clientY: number,
+  rects: readonly ClientRectLike[],
+): number {
+  if (rects.length === 0) {
+    return 0;
+  }
+  let best = 0;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < rects.length; index += 1) {
+    const rect = rects[index];
+    if (!rect) {
+      continue;
+    }
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = (clientX - cx) ** 2 + (clientY - cy) ** 2;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = index;
+    }
+  }
+  return best;
+}
+
+export function edgeScrollDelta(
+  clientY: number,
+  viewportTop: number,
+  viewportBottom: number,
+  edgePx = TYPE_GRID_EDGE_SCROLL_PX,
+  stepPx = TYPE_GRID_EDGE_SCROLL_STEP_PX,
+): number {
+  if (clientY < viewportTop + edgePx) {
+    return -stepPx;
+  }
+  if (clientY > viewportBottom - edgePx) {
+    return stepPx;
+  }
+  return 0;
+}
+
+export function pointerMovedBeyond(
+  startX: number,
+  startY: number,
+  currentX: number,
+  currentY: number,
+  thresholdPx = TYPE_GRID_MOVE_THRESHOLD_PX,
+): boolean {
+  const dx = currentX - startX;
+  const dy = currentY - startY;
+  return dx * dx + dy * dy >= thresholdPx * thresholdPx;
+}
+
+const CELLAR_DETAIL_RESERVED = new Set(["new", "archive", "batch", "share"]);
+
+/** `/cellar/:bottleId`（追加・貯蔵庫・共有は除く） */
+export function isBottleDetailPath(pathname: string): boolean {
+  const segments = pathname.split("/").filter(Boolean);
+  const id = segments[1];
+  return (
+    segments.length === 2 &&
+    segments[0] === "cellar" &&
+    id !== undefined &&
+    !CELLAR_DETAIL_RESERVED.has(id)
+  );
+}
+
+export function keepsTypeGrid(pathname: string): boolean {
+  return pathname === "/cellar" || isBottleDetailPath(pathname);
 }
 
 export function chunkShelfRows<T>(items: readonly T[], columns: number): T[][] {

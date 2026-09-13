@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
+import { TypeGridHost } from "@/client/components/cellar/TypeGridHost.tsx";
 import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { SwUpdateHost } from "@/client/components/feedback/SwUpdateHost.tsx";
 import { ToastHost } from "@/client/components/feedback/ToastProvider.tsx";
@@ -17,6 +18,7 @@ import {
 } from "@/client/components/layout/header-override-context.tsx";
 import { LeaveGuardProvider } from "@/client/components/layout/leave-guard-context.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
+import { useTypeGrid } from "@/client/components/layout/type-grid-context.tsx";
 import { PhotoEditHost } from "@/client/components/photo/PhotoEditHost.tsx";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { useTabDataPrefetch } from "@/client/hooks/use-tab-data-prefetch.ts";
@@ -48,14 +50,17 @@ function AppShellFrame() {
   const location = useLocation();
   const navigate = useNavigate();
   const photoEdit = usePhotoEdit();
+  const typeGrid = useTypeGrid();
   const guide = useFirstRunGuide();
   const reduceMotion = useReducedMotion();
   const { override } = useHeaderOverride();
   const contentRef = useRef<HTMLDivElement>(null);
   useTabDataPrefetch();
   const route = resolveAppRoute(location.pathname, new Date(), location.search);
+  const typeGridVisible = typeGrid.open && location.pathname === "/cellar";
   const hideTabs =
-    hidesTabBar(location.pathname, photoEdit.open) || isGuidePracticeStep(guide.step);
+    hidesTabBar(location.pathname, photoEdit.open, typeGridVisible) ||
+    isGuidePracticeStep(guide.step);
   const addFab = hideTabs ? null : addFabForRoute(location.pathname, location.search);
   const header = {
     ...route.header,
@@ -100,7 +105,13 @@ function AppShellFrame() {
   }
 
   return (
-    <div className={appShellClassName({ hideTabs, hideHeader: route.hideHeader })}>
+    <div
+      className={
+        typeGridVisible
+          ? `${appShellClassName({ hideTabs, hideHeader: route.hideHeader })} has-type-grid`
+          : appShellClassName({ hideTabs, hideHeader: route.hideHeader })
+      }
+    >
       {route.hideHeader ? null : <AppHeader header={header} />}
       <ToastHost />
       <div ref={contentRef} className={addFab ? "app-content has-add-fab" : "app-content"}>
@@ -117,6 +128,7 @@ function AppShellFrame() {
       )}
       {addFab ? <AddFab fab={addFab} /> : null}
       <FirstRunGuideHost />
+      <TypeGridHost />
       <PhotoEditHost />
     </div>
   );
