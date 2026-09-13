@@ -1,39 +1,41 @@
-import {
-  type PointerEvent as ReactPointerEvent,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { BottleTile } from "@/client/components/cellar/BottleTile.tsx";
 import { ShelfSkeleton } from "@/client/components/cellar/Shelf.tsx";
+import { TypeGridDragPreview } from "@/client/components/cellar/TypeGridDragPreview.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { useTypeGrid } from "@/client/components/layout/type-grid-context.tsx";
 import { useInfiniteBottles, useReorderBottles } from "@/client/hooks/use-bottles.ts";
 import { useFocusTrap } from "@/client/hooks/use-focus-trap.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { useTypeGridDrag } from "@/client/hooks/use-type-grid-drag.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { newOperationKey } from "@/client/lib/cellar-share.ts";
 import {
-  advanceTypeGridGesture,
-  capturePointerSafe,
-  chunkShelfRows,
-  edgeScrollDelta,
-  indexFromClientPoint,
   keepsTypeGrid,
-  moveItem,
   sameIdOrder,
-  shiftRectsForScroll,
   TYPE_GRID_COLUMNS,
-  TYPE_GRID_LONG_PRESS_MS,
   TYPE_GRID_PAGE_LIMIT,
-  type TypeGridGesture,
 } from "@/client/lib/cellar-shelf.ts";
-import { haptic } from "@/client/lib/haptic.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
+import {
+  applyItemsOrder,
+  canStartTypeGridReorder,
+  idSetKey,
+  mergeExternalBottleSet,
+  moveSelectedId,
+  nextSaveAttempt,
+  saveSuccessMatchesCurrent,
+  shouldAcceptServerOrder,
+  type TypeGridSavePhase,
+  type TypeGridSaveSnapshot,
+  typeGridBoardRow,
+  typeGridCellPlacement,
+  typeGridLiveMessage,
+  typeGridRowCount,
+} from "@/client/lib/type-grid-drag.ts";
 import { cn } from "@/client/lib/utils.ts";
 import type { BottleItem } from "@/shared/bottles.ts";
 import { BOTTLE_MESSAGES, formatBottleCount } from "@/shared/bottles.ts";
@@ -63,8 +65,11 @@ export function TypeGridOverlay() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const followRef = useRef<HTMLDivElement>(null);
+  const assistLaunchRef = useRef<HTMLButtonElement>(null);
   const reduceMotion = useReducedMotion();
   const { showToast } = useToast();
+  const { setGuard } = useLeaveGuard();
   const reorder = useReorderBottles();
   const query = useInfiniteBottles(
     {
@@ -82,9 +87,11 @@ export function TypeGridOverlay() {
   const loadedAll = Boolean(query.data) && !query.hasNextPage && !query.isFetchingNextPage;
   const [items, setItems] = useState<BottleItem[]>([]);
   const [baseline, setBaseline] = useState<BottleItem[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [liftedId, setLiftedId] = useState<string | null>(null);
-  const [blockNavigate, setBlockNavigate] = useState(false);
+  const [savePhase, setSavePhase] = useState<TypeGridSavePhase>("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [liveMessage, setLiveMessage] = useState("");
+  const [assistActive, setAssistActive] = useState(false);
+  const [assistId, setAssistId] = useState<string | null>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const dirty = !searchActive && !sameIdOrder(items, baseline);
@@ -92,13 +99,47 @@ export function TypeGridOverlay() {
   dirtyRef.current = dirty;
   const searchRef = useRef(searchActive);
   searchRef.current = searchActive;
-  const savingRef = useRef(false);
-  const gestureRef = useRef<TypeGridGesture>({ kind: "idle" });
-  const pressTimerRef = useRef<number>(0);
-  const slotsRef = useRef<{ rects: DOMRect[]; scrollTop: number } | null>(null);
-  const flipPrev = useRef(new Map<string, DOMRect>());
+  const savePhaseRef = useRef(savePhase);
+  savePhaseRef.current = savePhase;
+  const lastAttemptRef = useRef<TypeGridSaveSnapshot | null>(null);
+  const persistRef = useRef<() => Promise<boolean>>(async () => true);
 
   useFocusTrap(visible, dialogRef);
+
+  const announce = useCallback((message: string) => {
+    setLiveMessage(message);
+  }, []);
+
+  const listReady = canStartTypeGridReorder({
+    loadedAll,
+    searchActive,
+    saving: savePhase === "saving" || savePhase === "conflict",
+    fetchError: query.isError,
+    count: items.length,
+    phase: "idle",
+  });
+
+  const drag = useTypeGridDrag({
+    enabled: listReady,
+    items,
+    itemsRef,
+    setItems,
+    scrollerRef,
+    gridRef,
+    followRef,
+    reduceMotion,
+    visible,
+    announce,
+  });
+
+  const canReorder = canStartTypeGridReorder({
+    loadedAll,
+    searchActive,
+    saving: savePhase === "saving" || savePhase === "conflict",
+    fetchError: query.isError,
+    count: items.length,
+    phase: drag.phase,
+  });
 
   useEffect(() => {
     if (!open || !query.hasNextPage || query.isFetchingNextPage || query.isError) {
@@ -108,20 +149,59 @@ export function TypeGridOverlay() {
   }, [open, query.fetchNextPage, query.hasNextPage, query.isError, query.isFetchingNextPage]);
 
   useEffect(() => {
-    if (!loadedAll || dirtyRef.current) {
+    void serverKey;
+    if (!loadedAll) {
       return;
     }
-    void serverKey;
-    setItems((current) => (sameIdOrder(current, serverItems) ? current : serverItems));
-    setBaseline((current) => (sameIdOrder(current, serverItems) ? current : serverItems));
-  }, [loadedAll, serverItems, serverKey]);
+    if (
+      shouldAcceptServerOrder({
+        phase: drag.phase,
+        savePhase: savePhaseRef.current,
+        dirty: dirtyRef.current,
+      })
+    ) {
+      setItems((current) => (sameIdOrder(current, serverItems) ? current : serverItems));
+      setBaseline((current) => (sameIdOrder(current, serverItems) ? current : serverItems));
+      return;
+    }
+    if (idSetKey(serverItems) !== idSetKey(itemsRef.current)) {
+      setItems((current) => mergeExternalBottleSet(current, serverItems));
+      setBaseline((current) => mergeExternalBottleSet(current, serverItems));
+    }
+  }, [drag.phase, loadedAll, serverItems, serverKey]);
+
+  const recoverFromConflict = useCallback(async (): Promise<boolean> => {
+    setSavePhase("conflict");
+    try {
+      const result = await query.refetch();
+      if (result.error || !result.data) {
+        setSaveError(BOTTLE_MESSAGES.orderConflict);
+        return false;
+      }
+      const next = flattenPages(result.data.pages);
+      setItems(next);
+      setBaseline(next);
+      dirtyRef.current = false;
+      lastAttemptRef.current = null;
+      setSavePhase("idle");
+      setSaveError(null);
+      return false;
+    } catch {
+      setSaveError(BOTTLE_MESSAGES.orderConflict);
+      return false;
+    }
+  }, [query]);
 
   const persist = useCallback(async (): Promise<boolean> => {
+    drag.abortForClose();
     if (searchRef.current || !dirtyRef.current) {
       return true;
     }
-    if (savingRef.current) {
+    if (savePhaseRef.current === "saving") {
       return false;
+    }
+    if (savePhaseRef.current === "conflict") {
+      return recoverFromConflict();
     }
     const drink = session?.drinkType;
     if (!drink) {
@@ -131,34 +211,59 @@ export function TypeGridOverlay() {
     if (bottleIds.length === 0) {
       return true;
     }
-    savingRef.current = true;
-    setSaving(true);
+    const snapshot = nextSaveAttempt({
+      currentIds: bottleIds,
+      lastAttempt: lastAttemptRef.current,
+      newKey: newOperationKey,
+      drinkType: drink,
+      ...(session?.cellarId ? { cellarId: session.cellarId } : {}),
+    });
+    lastAttemptRef.current = snapshot;
+    savePhaseRef.current = "saving";
+    setSavePhase("saving");
+    setSaveError(null);
     try {
       await reorder.mutateAsync({
         drinkType: drink,
-        bottleIds,
-        ...(session?.cellarId ? { cellarId: session.cellarId } : {}),
-        operationKey: newOperationKey(),
+        bottleIds: snapshot.bottleIds,
+        ...(snapshot.cellarId ? { cellarId: snapshot.cellarId } : {}),
+        operationKey: snapshot.operationKey,
       });
-      setBaseline(itemsRef.current);
-      return true;
-    } catch (error) {
-      showToast({ message: saveMessage(error) });
-      if (isApiClientError(error) && error.conflict?.reason === "set") {
-        void query.refetch();
+      if (
+        saveSuccessMatchesCurrent(
+          snapshot.bottleIds,
+          itemsRef.current.map((item) => item.id),
+        )
+      ) {
+        setBaseline(applyItemsOrder(itemsRef.current, snapshot.bottleIds));
         dirtyRef.current = false;
       }
+      lastAttemptRef.current = null;
+      savePhaseRef.current = "idle";
+      setSavePhase("idle");
+      return true;
+    } catch (error) {
+      const message = saveMessage(error);
+      setSaveError(message);
+      showToast({ message });
+      if (
+        isApiClientError(error) &&
+        (error.code === "not_found" || error.conflict?.reason === "set")
+      ) {
+        return recoverFromConflict();
+      }
+      savePhaseRef.current = "failed";
+      setSavePhase("failed");
       return false;
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
     }
-  }, [query, reorder, session, showToast]);
+  }, [drag, recoverFromConflict, reorder, session, showToast]);
+
+  persistRef.current = persist;
 
   useEffect(() => {
-    registerCloseHandler(persist);
+    registerCloseHandler(() => persistRef.current());
     return () => registerCloseHandler(null);
-  }, [persist, registerCloseHandler]);
+  }, [registerCloseHandler]);
 
   useEffect(() => {
     if (!open) {
@@ -176,11 +281,13 @@ export function TypeGridOverlay() {
     }
     function onHide() {
       if (document.visibilityState === "hidden") {
-        void persist();
+        drag.cancelActiveGesture();
+        void persistRef.current();
       }
     }
     function onPageHide() {
-      void persist();
+      drag.cancelActiveGesture();
+      void persistRef.current();
     }
     document.addEventListener("visibilitychange", onHide);
     window.addEventListener("pagehide", onPageHide);
@@ -188,208 +295,102 @@ export function TypeGridOverlay() {
       document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("pagehide", onPageHide);
     };
-  }, [open, persist]);
+  }, [drag, open]);
 
   useEffect(() => {
     if (!visible) {
       return;
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        requestClose();
+      if (event.key !== "Escape") {
+        return;
       }
-    }
-    function onContextMenu(event: Event) {
+      if (drag.phase === "press" || drag.phase === "drag" || drag.phase === "scroll") {
+        event.preventDefault();
+        event.stopPropagation();
+        drag.cancelActiveGesture();
+        return;
+      }
+      if (drag.phase === "settling") {
+        event.preventDefault();
+        event.stopPropagation();
+        drag.completeSettlingNow();
+        return;
+      }
+      if (assistActive) {
+        event.preventDefault();
+        event.stopPropagation();
+        setAssistActive(false);
+        setAssistId(null);
+        assistLaunchRef.current?.focus();
+        return;
+      }
       event.preventDefault();
+      requestClose();
     }
     window.addEventListener("keydown", onKeyDown);
-    document.addEventListener("contextmenu", onContextMenu, { capture: true });
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("contextmenu", onContextMenu, { capture: true });
-    };
-  }, [requestClose, visible]);
-
-  const orderKey = items.map((item) => item.id).join(",");
-  useLayoutEffect(() => {
-    void orderKey;
-    const root = gridRef.current;
-    if (!root) {
-      return;
-    }
-    const nodes = root.querySelectorAll<HTMLElement>("[data-bottle-id]");
-    if (reduceMotion) {
-      flipPrev.current.clear();
-      for (const node of nodes) {
-        const id = node.dataset.bottleId;
-        if (id) {
-          flipPrev.current.set(id, node.getBoundingClientRect());
-        }
-      }
-      return;
-    }
-    for (const node of nodes) {
-      const id = node.dataset.bottleId;
-      if (!id) {
-        continue;
-      }
-      const next = node.getBoundingClientRect();
-      const last = flipPrev.current.get(id);
-      flipPrev.current.set(id, next);
-      if (!last || node.dataset.lifted === "1") {
-        continue;
-      }
-      const dx = last.left - next.left;
-      const dy = last.top - next.top;
-      if (dx === 0 && dy === 0) {
-        continue;
-      }
-      node.style.transition = "none";
-      node.style.transform = `translate(${dx}px, ${dy}px)`;
-      requestAnimationFrame(() => {
-        node.style.transition = "transform var(--dur-state) var(--ease-out)";
-        node.style.transform = "";
-      });
-    }
-  }, [orderKey, reduceMotion]);
-
-  const canReorder = loadedAll && !searchActive && !saving && !query.isError;
-  const rows = chunkShelfRows(items, TYPE_GRID_COLUMNS);
-  const countLabel = formatBottleCount(loadedAll ? items.length : (session?.count ?? items.length));
-
-  const clearPressTimer = useCallback(() => {
-    if (pressTimerRef.current) {
-      window.clearTimeout(pressTimerRef.current);
-      pressTimerRef.current = 0;
-    }
-  }, []);
-
-  const blockClickBriefly = useCallback(() => {
-    setBlockNavigate(true);
-    window.setTimeout(() => setBlockNavigate(false), 400);
-  }, []);
-
-  const endDrag = useCallback(() => {
-    gestureRef.current = { kind: "idle" };
-    slotsRef.current = null;
-    setLiftedId(null);
-    blockClickBriefly();
-  }, [blockClickBriefly]);
-
-  const readRects = useCallback(() => {
-    const root = gridRef.current;
-    if (!root) {
-      return [];
-    }
-    return [...root.querySelectorAll<HTMLElement>("[data-bottle-id]")].map((node) =>
-      node.getBoundingClientRect(),
-    );
-  }, []);
-
-  const onPointerMove = useCallback(
-    (event: PointerEvent) => {
-      const current = gestureRef.current;
-      const next = advanceTypeGridGesture(current, {
-        type: "move",
-        pointerId: event.pointerId,
-        clientX: event.clientX,
-        clientY: event.clientY,
-      });
-      if (next.gesture.kind === "scroll" && current.kind === "press") {
-        clearPressTimer();
-        blockClickBriefly();
-      }
-      gestureRef.current = next.gesture;
-      if (next.scrollDy !== 0) {
-        event.preventDefault();
-        const scroller = scrollerRef.current;
-        if (scroller) {
-          scroller.scrollTop += next.scrollDy;
-        }
-        return;
-      }
-      const drag = next.gesture.kind === "drag" ? next.gesture : null;
-      if (!drag || drag.pointerId !== event.pointerId) {
-        return;
-      }
-      event.preventDefault();
-      const scroller = scrollerRef.current;
-      if (scroller) {
-        const bounds = scroller.getBoundingClientRect();
-        const delta = edgeScrollDelta(event.clientY, bounds.top, bounds.bottom);
-        if (delta !== 0) {
-          scroller.scrollTop += delta;
-        }
-      }
-      const slots = slotsRef.current;
-      const rects = slots
-        ? shiftRectsForScroll(slots.rects, (scroller?.scrollTop ?? 0) - slots.scrollTop)
-        : readRects();
-      const nextIndex = indexFromClientPoint(event.clientX, event.clientY, rects);
-      const currentIndex = itemsRef.current.findIndex((item) => item.id === drag.id);
-      if (currentIndex < 0 || nextIndex === currentIndex) {
-        return;
-      }
-      setItems((currentItems) => moveItem(currentItems, currentIndex, nextIndex));
-    },
-    [blockClickBriefly, clearPressTimer, readRects],
-  );
-
-  const onPointerUp = useCallback(
-    (event: PointerEvent) => {
-      const current = gestureRef.current;
-      const next = advanceTypeGridGesture(current, { type: "up", pointerId: event.pointerId });
-      if (next.gesture.kind === "idle" && current.kind !== "idle") {
-        clearPressTimer();
-      }
-      if (current.kind === "drag" && current.pointerId === event.pointerId) {
-        endDrag();
-        return;
-      }
-      gestureRef.current = next.gesture;
-    },
-    [clearPressTimer, endDrag],
-  );
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [assistActive, drag, requestClose, visible]);
 
   useEffect(() => {
-    window.addEventListener("pointermove", onPointerMove, { passive: false });
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerUp);
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerUp);
-    };
-  }, [onPointerMove, onPointerUp]);
-
-  function onCellPointerDown(event: ReactPointerEvent<HTMLElement>, id: string) {
-    if (!canReorder || event.button !== 0) {
+    const busy = dirty || drag.phase !== "idle" || savePhase === "saving";
+    if (!busy) {
+      setGuard(null);
       return;
     }
-    clearPressTimer();
-    const pointerId = event.pointerId;
-    gestureRef.current = {
-      kind: "press",
-      pointerId,
-      id,
-      x: event.clientX,
-      y: event.clientY,
-    };
-    capturePointerSafe(event.currentTarget, pointerId);
-    pressTimerRef.current = window.setTimeout(() => {
-      const next = advanceTypeGridGesture(gestureRef.current, { type: "longpress", id });
-      if (next.gesture.kind !== "drag") {
-        return;
-      }
-      gestureRef.current = next.gesture;
-      slotsRef.current = {
-        rects: readRects(),
-        scrollTop: scrollerRef.current?.scrollTop ?? 0,
-      };
-      setLiftedId(id);
-      haptic("light");
-    }, TYPE_GRID_LONG_PRESS_MS);
+    setGuard((proceed) => {
+      void persistRef.current().then((ok) => {
+        if (ok) {
+          proceed();
+        }
+      });
+    });
+    return () => setGuard(null);
+  }, [dirty, drag.phase, savePhase, setGuard]);
+
+  const countLabel = formatBottleCount(loadedAll ? items.length : (session?.count ?? items.length));
+  const rowCount = typeGridRowCount(items.length, TYPE_GRID_COLUMNS);
+  const preventTileNavigate =
+    drag.suppressNavigate || assistActive || drag.phase === "drag" || drag.phase === "settling";
+
+  function onAssistSelect(id: string) {
+    setAssistId(id);
+    const index = items.findIndex((item) => item.id === id);
+    const item = items[index];
+    if (item) {
+      announce(
+        typeGridLiveMessage({
+          kind: "assist-select",
+          name: item.name,
+          index,
+          total: items.length,
+        }),
+      );
+    }
+  }
+
+  function moveAssist(direction: -1 | 1) {
+    if (!assistId) {
+      return;
+    }
+    const nextIds = moveSelectedId(
+      items.map((item) => item.id),
+      assistId,
+      direction,
+    );
+    setItems(applyItemsOrder(items, nextIds));
+    const index = nextIds.indexOf(assistId);
+    const item = items.find((row) => row.id === assistId);
+    if (item && index >= 0) {
+      announce(
+        typeGridLiveMessage({
+          kind: "position",
+          name: item.name,
+          index,
+          total: nextIds.length,
+        }),
+      );
+    }
   }
 
   if (!open || !session || !drinkType) {
@@ -404,14 +405,14 @@ export function TypeGridOverlay() {
       aria-modal="true"
       aria-labelledby="type-grid-title"
       aria-hidden={visible ? undefined : true}
-      onContextMenu={(event) => event.preventDefault()}
+      data-phase={drag.phase}
     >
       <header className="type-grid-bar">
         <button
           type="button"
           className="header-text-link"
           onClick={() => requestClose()}
-          disabled={saving}
+          disabled={savePhase === "saving"}
         >
           完了
         </button>
@@ -421,8 +422,84 @@ export function TypeGridOverlay() {
         </h2>
         <span className="type-grid-bar-end" />
       </header>
+      <div className="visually-hidden" aria-live="polite" aria-atomic="true">
+        {liveMessage}
+      </div>
       <div className="type-grid-body" ref={scrollerRef}>
-        {searchActive ? null : <p className="type-grid-hint">長押しして並べ替え</p>}
+        {searchActive ? null : (
+          <div className="type-grid-tools">
+            <p className="type-grid-hint">長押しして並べ替え</p>
+            {listReady || assistActive ? (
+              <button
+                type="button"
+                className="type-grid-assist-launch"
+                ref={assistLaunchRef}
+                disabled={!canReorder && !assistActive}
+                onClick={() => {
+                  if (assistActive) {
+                    return;
+                  }
+                  setAssistActive(true);
+                  const first = items[0];
+                  if (first) {
+                    onAssistSelect(first.id);
+                    window.setTimeout(() => {
+                      gridRef.current
+                        ?.querySelector<HTMLElement>(`[data-bottle-id="${first.id}"] button`)
+                        ?.focus();
+                    }, 0);
+                  }
+                }}
+              >
+                並べ替え
+              </button>
+            ) : null}
+          </div>
+        )}
+        {assistActive ? (
+          <div className="type-grid-assist" role="toolbar" aria-label="並べ替え">
+            <button type="button" className="type-grid-assist-btn" onClick={() => moveAssist(-1)}>
+              前へ
+            </button>
+            <button type="button" className="type-grid-assist-btn" onClick={() => moveAssist(1)}>
+              次へ
+            </button>
+            <button
+              type="button"
+              className="type-grid-assist-btn"
+              onClick={() => {
+                setAssistActive(false);
+                const selected = assistId;
+                setAssistId(null);
+                window.setTimeout(() => {
+                  if (selected) {
+                    gridRef.current
+                      ?.querySelector<HTMLElement>(`[data-bottle-id="${selected}"] button`)
+                      ?.focus();
+                    return;
+                  }
+                  assistLaunchRef.current?.focus();
+                }, 0);
+              }}
+            >
+              決定
+            </button>
+          </div>
+        ) : null}
+        {saveError ? (
+          <div className="type-grid-save-error" role="alert">
+            <p>{saveError}</p>
+            <button
+              type="button"
+              className="type-grid-assist-btn"
+              onClick={() => {
+                void persist();
+              }}
+            >
+              {savePhase === "conflict" ? "最新の棚を読み込む" : "再試行"}
+            </button>
+          </div>
+        ) : null}
         {query.isPending || (open && !loadedAll && !query.isError) ? (
           <ShelfSkeleton columns={TYPE_GRID_COLUMNS} rows={2} />
         ) : null}
@@ -431,36 +508,48 @@ export function TypeGridOverlay() {
         ) : null}
         {loadedAll && !query.isError ? (
           <div className="type-grid-shelf" ref={gridRef}>
-            {rows.map((row, rowIndex) => (
-              <div className="type-grid-row" key={row[0]?.id ?? String(rowIndex)}>
-                <div className="type-grid-row-items">
-                  {row.map((item) => {
-                    const lifted = liftedId === item.id;
-                    return (
-                      <div
-                        className="type-grid-cell"
-                        data-bottle-id={item.id}
-                        data-lifted={lifted ? "1" : undefined}
-                        key={item.id}
-                      >
-                        <BottleTile
-                          item={item}
-                          mode="cellar"
-                          size="type"
-                          preventNavigate={blockNavigate || lifted}
-                          suppressNativePress
-                          onPointerDown={(event) => onCellPointerDown(event, item.id)}
-                        />
-                      </div>
-                    );
-                  })}
+            {items.map((item, index) => {
+              const place = typeGridCellPlacement(index, TYPE_GRID_COLUMNS);
+              const ghost = drag.activeId === item.id;
+              return (
+                <div
+                  className="type-grid-cell"
+                  data-bottle-id={item.id}
+                  data-ghost={ghost ? "1" : undefined}
+                  data-reorder={listReady ? "1" : undefined}
+                  data-selected={assistActive && assistId === item.id ? "1" : undefined}
+                  key={item.id}
+                  style={{ gridColumn: place.column, gridRow: place.row }}
+                >
+                  <BottleTile
+                    item={item}
+                    mode="cellar"
+                    size="type"
+                    preventNavigate={preventTileNavigate}
+                    suppressNativePress
+                    lockTouchAction={listReady}
+                    onPointerDown={(event) => drag.onCellPointerDown(event, item.id)}
+                    onActivate={assistActive ? () => onAssistSelect(item.id) : undefined}
+                  />
                 </div>
-                <div className="shelf-board" />
-              </div>
+              );
+            })}
+            {Array.from({ length: rowCount }, (_, row) => `board-${row}`).map((boardId, row) => (
+              <div
+                className="type-grid-board shelf-board"
+                key={boardId}
+                aria-hidden="true"
+                style={{ gridColumn: "1 / -1", gridRow: typeGridBoardRow(row) }}
+              />
             ))}
           </div>
         ) : null}
       </div>
+      <TypeGridDragPreview
+        follow={drag.follow}
+        layerRef={followRef}
+        lifted={drag.phase === "drag" && !reduceMotion}
+      />
     </div>
   );
 }

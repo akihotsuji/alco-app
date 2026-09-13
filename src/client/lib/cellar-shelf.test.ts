@@ -224,8 +224,8 @@ describe("moveItem / sameIdOrder / hit test", () => {
     expect(shiftRectsForScroll(rects, 20)[0]?.top).toBe(60);
   });
 
-  it("離れたポインタへの capture は投げない", () => {
-    expect(() =>
+  it("離れたポインタへの capture は投げず失敗を返す", () => {
+    expect(
       capturePointerSafe(
         {
           setPointerCapture: () => {
@@ -234,7 +234,15 @@ describe("moveItem / sameIdOrder / hit test", () => {
         },
         1,
       ),
-    ).not.toThrow();
+    ).toBe(false);
+    expect(
+      capturePointerSafe(
+        {
+          setPointerCapture: () => {},
+        },
+        1,
+      ),
+    ).toBe(true);
   });
 
   it("ボトル詳細だけグリッドを残し、他のセラー経路は閉じる", () => {

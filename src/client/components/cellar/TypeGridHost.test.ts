@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const host = readFileSync(join(here, "TypeGridHost.tsx"), "utf8");
 const overlay = readFileSync(join(here, "TypeGridOverlay.tsx"), "utf8");
+const preview = readFileSync(join(here, "TypeGridDragPreview.tsx"), "utf8");
+const hook = readFileSync(join(here, "../../hooks/use-type-grid-drag.ts"), "utf8");
 const shell = readFileSync(join(here, "../layout/AppShell.tsx"), "utf8");
 const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
@@ -23,22 +25,30 @@ describe("TypeGridHost", () => {
     expect(overlay).toContain("長押しして並べ替え");
     expect(overlay).toContain("searchActive");
     expect(overlay).toContain("useReorderBottles");
-    expect(overlay).toContain("TYPE_GRID_LONG_PRESS_MS");
     expect(overlay).toContain("pagehide");
     expect(overlay).toContain("visibilitychange");
     expect(overlay).toContain("suppressNativePress");
-    expect(overlay).toContain("onContextMenu");
-    expect(overlay).toContain('document.addEventListener("contextmenu"');
-    expect(overlay).toContain("advanceTypeGridGesture");
-    expect(overlay).toContain("capturePointerSafe");
-    expect(overlay).toContain("shiftRectsForScroll");
+    expect(overlay).toContain("useTypeGridDrag");
+    expect(overlay).toContain("TypeGridDragPreview");
+    expect(overlay).toContain("並べ替え");
+    expect(overlay).toContain("決定");
+    expect(overlay).toContain("aria-live");
+    expect(hook).toContain("TYPE_GRID_LONG_PRESS_MS");
+    expect(hook).toContain("advanceTypeGridGesture");
+    expect(hook).toContain("capturePointerSafe");
+    expect(hook).toContain("shiftRectsForScroll");
+    expect(hook).toContain("followLayerPosition");
+    expect(preview).toContain("aria-hidden");
+    expect(preview).toContain("BottleTileFace");
   });
 
   it("種類グリッドの棚板は横一杯、タイル名は1行省略", () => {
-    expect(css).toContain(".type-grid-row .shelf-board");
-    expect(css).toContain(".type-grid-row-items");
+    expect(css).toContain(".type-grid-board");
+    expect(css).toContain(".type-grid-follow");
+    expect(css).toContain('.type-grid-cell[data-reorder="1"]');
+    expect(css).not.toContain(".type-grid {\n  touch-action: none;");
     expect(css).not.toContain(".type-grid {\n  touch-action: pan-y;");
-    expect(css).toMatch(/\.type-grid-cell \{[\s\S]*?touch-action: none;/);
+    expect(css).toMatch(/\.type-grid-cell\[data-reorder="1"\] \{[\s\S]*?touch-action: none;/);
     expect(css).toMatch(/\.bottle-tile-name,[\s\S]*?text-overflow: ellipsis/);
   });
 });

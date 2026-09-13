@@ -11,6 +11,7 @@ const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
 describe("ContentPhoto", () => {
   it("既定は lazy と async decode で、寸法を属性に出す", () => {
+    expect(source).toContain("readySrc");
     expect(source).toContain('loading = "lazy"');
     expect(source).toContain('decoding="async"');
     expect(source).toContain("draggable={false}");
