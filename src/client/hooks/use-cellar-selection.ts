@@ -51,6 +51,7 @@ export function useCellarSelection() {
     ...query,
     items,
     selected,
+    storedId,
     shared,
     personal,
     select,

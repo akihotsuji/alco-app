@@ -188,7 +188,7 @@ function LogDayRow({ item, ref, highlighted, fading, removing, onPreviewPhoto }:
         >
           <ContentPhoto
             className="log-row-thumb"
-            src={photoContentUrl(item.thumbPhotoId)}
+            src={photoContentUrl(item.thumbPhotoId, "thumb")}
             size={PHOTO_DISPLAY_SIZE.logRow}
           />
         </button>

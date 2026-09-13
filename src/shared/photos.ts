@@ -2,6 +2,11 @@ import { z } from "zod";
 import { PHOTO_CONTENT_TYPES, PHOTO_KINDS } from "./constants.ts";
 
 export const PHOTO_SINGLE_OWNER_MESSAGE = "紐付け先は1つまでにしてください";
+export const PHOTO_VARIANT_MESSAGE = "画像の種類が正しくありません";
+
+/** 配信の派生。省略時は保存原本。一覧だけ `thumb` を付ける */
+export const PHOTO_CONTENT_VARIANTS = ["thumb"] as const;
+export type PhotoContentVariant = (typeof PHOTO_CONTENT_VARIANTS)[number];
 
 const emptyToUndefined = (value: unknown) => {
   if (value === "" || value === null || value === undefined) {
@@ -45,6 +50,12 @@ function refineSingleOwner(
 export const photoIdParamSchema = z
   .object({
     id: z.string().uuid(),
+  })
+  .strict();
+
+export const photoContentQuerySchema = z
+  .object({
+    variant: z.enum(PHOTO_CONTENT_VARIANTS, { error: PHOTO_VARIANT_MESSAGE }).optional(),
   })
   .strict();
 

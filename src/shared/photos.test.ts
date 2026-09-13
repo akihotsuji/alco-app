@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   PHOTO_SINGLE_OWNER_MESSAGE,
+  PHOTO_VARIANT_MESSAGE,
+  photoContentQuerySchema,
   photoOwnerIds,
   photoPatchSchema,
   photoUploadFieldsSchema,
@@ -17,6 +19,20 @@ describe("photoOwnerIds", () => {
       [BOTTLE],
     );
     expect(photoOwnerIds({ bottleId: BOTTLE, tastingNoteId: NOTE })).toEqual([BOTTLE, NOTE]);
+  });
+});
+
+describe("photoContentQuerySchema", () => {
+  it("省略と thumb だけ通し、それ以外は 400 相当", () => {
+    expect(photoContentQuerySchema.parse({})).toEqual({});
+    expect(photoContentQuerySchema.parse({ variant: "thumb" })).toEqual({ variant: "thumb" });
+    const result = photoContentQuerySchema.safeParse({ variant: "original" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.message === PHOTO_VARIANT_MESSAGE)).toBe(
+        true,
+      );
+    }
   });
 });
 

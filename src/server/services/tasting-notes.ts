@@ -22,6 +22,7 @@ import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { requireOwnBottle } from "./bottles.ts";
 import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
+import { deletePhotoR2Objects } from "./r2-delete.ts";
 
 type NoteRow = typeof tastingNotes.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
@@ -211,7 +212,7 @@ async function removeDetachedPhoto(
   photo: PhotoRow,
 ): Promise<void> {
   try {
-    await bucket.delete(photo.r2Key);
+    await deletePhotoR2Objects(bucket, photo.r2Key);
     await db
       .delete(photos)
       .where(and(eq(photos.id, photo.id), eq(photos.userId, userId), isNull(photos.tastingNoteId)));
@@ -657,7 +658,7 @@ export async function deleteTastingNote(input: {
   for (const photo of photoRows) {
     const scope = and(eq(photos.id, photo.id), eq(photos.userId, userId));
     try {
-      await bucket.delete(photo.r2Key);
+      await deletePhotoR2Objects(bucket, photo.r2Key);
       await db.delete(photos).where(scope);
     } catch {
       await db.update(photos).set({ tastingNoteId: null, updatedAt: new Date() }).where(scope);

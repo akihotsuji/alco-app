@@ -41,6 +41,7 @@ describe("ContentPhoto", () => {
   });
 
   it("BottleTile は写真到着まで種類のボトル型をプレースホルダに置き、到着でフェードアウトする", () => {
+    expect(tileSource).toContain('photoContentUrl(item.thumbPhotoId, "thumb")');
     expect(tileSource).toContain('className="bottle-tile-placeholder" data-state={photoState}');
     expect(tileSource).toContain("onStateChange={setPhotoState}");
     expect(css).toMatch(/\.bottle-tile-placeholder\[data-state="loaded"\]\s*\{\s*opacity:\s*0;/);

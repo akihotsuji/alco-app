@@ -23,7 +23,7 @@ import {
 } from "@/shared/bottles.ts";
 import { CELLAR_COPY } from "@/shared/cellars.ts";
 import type { BottleStatus, DrinkType, PhotoContentType, PhotoKind } from "@/shared/constants.ts";
-import { DEFAULT_BOTTLE_STATUS, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
+import { DEFAULT_BOTTLE_STATUS, DRINK_TYPES, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
@@ -44,6 +44,7 @@ import { hashRequestBody } from "./cellar-crypto.ts";
 import { idempotencyInsert, readIdempotentResult, recoverIdempotentResult } from "./idempotency.ts";
 import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
+import { deletePhotoR2Objects } from "./r2-delete.ts";
 
 type BottleRow = typeof bottles.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
@@ -158,6 +159,16 @@ function cursorError(): ApiError {
 
 function usesTypeSort(query: Pick<BottlesQuery, "view" | "drinkType">): boolean {
   return query.view === "cellar" && Boolean(query.drinkType);
+}
+
+function listOrderBy(query: Pick<BottlesQuery, "view" | "drinkType">) {
+  if (query.view === "archive") {
+    return [desc(sql`coalesce(${bottles.consumedAt}, 0)`), desc(bottles.id)] as const;
+  }
+  if (usesTypeSort(query)) {
+    return [asc(bottles.sortOrder), asc(bottles.id)] as const;
+  }
+  return [desc(bottles.createdAt), desc(bottles.id)] as const;
 }
 
 function listCursorAt(
@@ -312,7 +323,7 @@ async function removeDetachedPhoto(
   photo: PhotoRow,
 ): Promise<void> {
   try {
-    await bucket.delete(photo.r2Key);
+    await deletePhotoR2Objects(bucket, photo.r2Key);
     await db
       .delete(photos)
       .where(and(eq(photos.id, photo.id), eq(photos.userId, userId), isNull(photos.bottleId)));
@@ -470,7 +481,7 @@ export async function createBottles(input: {
       }
     } catch (error) {
       await Promise.all(
-        flatCopies().map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)),
+        flatCopies().map((copy) => deletePhotoR2Objects(bucket, copy.r2Key).catch(() => undefined)),
       );
       throw error;
     }
@@ -596,7 +607,9 @@ export async function createBottles(input: {
     }
     await db.batch([firstStatement, ...rest]);
   } catch (error) {
-    await Promise.all(flatCopies().map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)));
+    await Promise.all(
+      flatCopies().map((copy) => deletePhotoR2Objects(bucket, copy.r2Key).catch(() => undefined)),
+    );
     if (body.operationKey) {
       const recovered = await recoverIdempotentResult<{ items: Bottle[] }>(db, {
         actorUserId: userId,
@@ -767,28 +780,82 @@ export async function listBottles(input: {
     }
   }
 
+  const countQuery = db
+    .select({ n: count() })
+    .from(bottles)
+    .where(and(...viewConditions))
+    .then((rows) => rows[0]);
+  const typeCountQuery = db
+    .select({ drinkType: bottles.drinkType, n: count() })
+    .from(bottles)
+    .where(and(...viewConditions))
+    .groupBy(bottles.drinkType);
+
+  if (query.group === "type") {
+    const [totalRow, typeRows] = await Promise.all([countQuery, typeCountQuery]);
+    const countsByType: CountsByType = emptyCountsByType();
+    for (const row of typeRows) {
+      countsByType[row.drinkType] += Number(row.n);
+    }
+    const typesToFetch = DRINK_TYPES.filter((drinkType) => countsByType[drinkType] > 0);
+    const fetchedByType = await Promise.all(
+      typesToFetch.map(async (drinkType) => {
+        const typeQuery = { view: query.view, drinkType };
+        const rows = await db
+          .select()
+          .from(bottles)
+          .where(and(...itemConditions, eq(bottles.drinkType, drinkType)))
+          .orderBy(...listOrderBy(typeQuery))
+          .limit(query.limit + 1);
+        return { drinkType, rows, typeQuery };
+      }),
+    );
+    const pages = fetchedByType.map(({ drinkType, rows, typeQuery }) => {
+      const { page, hasMore } = takeLimitPlusOne(rows, query.limit);
+      const last = page.at(-1);
+      return {
+        drinkType,
+        page,
+        nextCursor: hasMore && last ? encodeCursor(last, typeQuery) : null,
+      };
+    });
+    const previewRows = pages.flatMap((shelf) => shelf.page);
+    const [photoMap, nameMap] = await Promise.all([
+      photosForBottles(
+        db,
+        previewRows.map((row) => row.id),
+      ),
+      displayNamesById(
+        db,
+        previewRows.flatMap((row) => [row.createdBy, row.updatedBy]),
+      ),
+    ]);
+    const typeShelves = pages
+      .map((shelf) => ({
+        drinkType: shelf.drinkType,
+        items: shelf.page.map((row) =>
+          toBottleItem(row, photoMap.get(row.id) ?? [], namesFromMap(row, nameMap)),
+        ),
+        nextCursor: shelf.nextCursor,
+      }))
+      .filter((shelf) => shelf.items.length > 0);
+    return {
+      items: typeShelves.flatMap((shelf) => shelf.items),
+      nextCursor: null,
+      totalCount: Number(totalRow?.n ?? 0),
+      countsByType,
+      typeShelves,
+    };
+  }
+
   const [totalRow, typeRows, fetched] = await Promise.all([
-    db
-      .select({ n: count() })
-      .from(bottles)
-      .where(and(...viewConditions))
-      .then((rows) => rows[0]),
-    db
-      .select({ drinkType: bottles.drinkType, n: count() })
-      .from(bottles)
-      .where(and(...viewConditions))
-      .groupBy(bottles.drinkType),
+    countQuery,
+    typeCountQuery,
     db
       .select()
       .from(bottles)
       .where(and(...itemConditions))
-      .orderBy(
-        ...(query.view === "archive"
-          ? [desc(sql`coalesce(${bottles.consumedAt}, 0)`), desc(bottles.id)]
-          : usesTypeSort(query)
-            ? [asc(bottles.sortOrder), asc(bottles.id)]
-            : [desc(bottles.createdAt), desc(bottles.id)]),
-      )
+      .orderBy(...listOrderBy(query))
       .limit(query.limit + 1),
   ]);
 
@@ -1330,7 +1397,7 @@ export async function deleteBottle(input: {
   for (const photo of photoRows) {
     const scope = eq(photos.id, photo.id);
     try {
-      await bucket.delete(photo.r2Key);
+      await deletePhotoR2Objects(bucket, photo.r2Key);
       await db.delete(photos).where(scope);
     } catch {
       await db

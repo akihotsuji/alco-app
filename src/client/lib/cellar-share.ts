@@ -54,6 +54,15 @@ export function captureJoinTokenFromLocation(
   return readJoinToken();
 }
 
+const CELLAR_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function usableStoredCellarId(raw: string | null | undefined): string | undefined {
+  if (raw && CELLAR_ID_RE.test(raw)) {
+    return raw;
+  }
+  return undefined;
+}
+
 export function readSelectedCellarId(): string | null {
   try {
     const raw = localStorage.getItem("cellar.selectedId");
@@ -61,6 +70,20 @@ export function readSelectedCellarId(): string | null {
   } catch {
     return null;
   }
+}
+
+/** 画面と先読みが同じ `cellarId` を使う。個人の初回は省略（既存契約） */
+export function bottlesQueryCellarId(
+  selected: CellarSummary | undefined,
+  storedId: string | null,
+): string | undefined {
+  if (selected) {
+    if (storedId || selected.kind === "shared") {
+      return selected.id;
+    }
+    return undefined;
+  }
+  return usableStoredCellarId(storedId);
 }
 
 export function writeSelectedCellarId(id: string): void {

@@ -141,6 +141,22 @@ describe("bottlesQuerySchema", () => {
     expect(parsed).toEqual({ view: "all", q: "赤", drinkType: "wine", limit: 12 });
   });
 
+  it("group=type は cellar だけで通る", () => {
+    expect(bottlesQuerySchema.parse({ group: "type", limit: "12" })).toEqual({
+      view: "cellar",
+      group: "type",
+      limit: 12,
+    });
+  });
+
+  it("group=type は drinkType / cursor / cellar 以外の view を拒む", () => {
+    expect(bottlesQuerySchema.safeParse({ group: "type", drinkType: "wine" }).success).toBe(false);
+    expect(bottlesQuerySchema.safeParse({ group: "type", cursor: "abc" }).success).toBe(false);
+    expect(bottlesQuerySchema.safeParse({ group: "type", view: "archive" }).success).toBe(false);
+    expect(bottlesQuerySchema.safeParse({ group: "type", view: "all" }).success).toBe(false);
+    expect(bottlesQuerySchema.safeParse({ group: "shelf" }).success).toBe(false);
+  });
+
   it("不正な view / 長すぎる q はエラー", () => {
     const view = bottlesQuerySchema.safeParse({ view: "opened" });
     expect(view.success).toBe(false);

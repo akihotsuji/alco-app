@@ -2,10 +2,12 @@ import { type QueryClient, type QueryKey, useQueryClient } from "@tanstack/react
 import { useEffect } from "react";
 import { useLocation } from "react-router";
 import { bottlesInfiniteQueryOptions, bottlesQueryOptions } from "@/client/hooks/use-bottles.ts";
+import { cellarsQueryOptions } from "@/client/hooks/use-cellars.ts";
 import { drinkLogSummaryQueryOptions } from "@/client/hooks/use-drink-log-summary.ts";
 import { myDrinksQueryOptions } from "@/client/hooks/use-my-drinks.ts";
 import { tastingNotesInfiniteQueryOptions } from "@/client/hooks/use-tasting-notes.ts";
-import { shelfColumns, shelfPageLimit } from "@/client/lib/cellar-shelf.ts";
+import { readSelectedCellarId, usableStoredCellarId } from "@/client/lib/cellar-share.ts";
+import { SHELF_TYPE_PAGE_LIMIT, shelfColumns, shelfPageLimit } from "@/client/lib/cellar-shelf.ts";
 import { getCellarListViewPref } from "@/client/lib/preferences.ts";
 import type { CellarListView } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
@@ -44,21 +46,30 @@ export type TabPrefetchInput = {
   cellarView: CellarListView;
   viewportWidth: number;
   today: string;
+  cellarId?: string;
 };
 
 export function tabPrefetchEntries(input: TabPrefetchInput): TabPrefetchEntry[] {
   const day = drinkLogSummaryQueryOptions("day", input.today);
   const week = drinkLogSummaryQueryOptions("week", input.today);
   const myDrinks = myDrinksQueryOptions();
+  const cellars = cellarsQueryOptions();
   const notes = tastingNotesInfiniteQueryOptions({});
+  const cellarId = input.cellarId;
   const cellar = (() => {
     if (input.cellarView === "type") {
-      const meta = bottlesQueryOptions({ view: "cellar", limit: 1 });
-      return single(meta, (qc) => qc.prefetchQuery(meta));
+      const grouped = bottlesQueryOptions({
+        view: "cellar",
+        group: "type",
+        limit: SHELF_TYPE_PAGE_LIMIT,
+        ...(cellarId ? { cellarId } : {}),
+      });
+      return single(grouped, (qc) => qc.prefetchQuery(grouped));
     }
     const shelf = bottlesInfiniteQueryOptions({
       view: "cellar",
       limit: shelfPageLimit(shelfColumns(input.viewportWidth)),
+      ...(cellarId ? { cellarId } : {}),
     });
     return infinite(shelf, (qc) => qc.prefetchInfiniteQuery(shelf));
   })();
@@ -66,6 +77,7 @@ export function tabPrefetchEntries(input: TabPrefetchInput): TabPrefetchEntry[] 
     single(day, (qc) => qc.prefetchQuery(day)),
     single(week, (qc) => qc.prefetchQuery(week)),
     single(myDrinks, (qc) => qc.prefetchQuery(myDrinks)),
+    single(cellars, (qc) => qc.prefetchQuery(cellars)),
     cellar,
     infinite(notes, (qc) => qc.prefetchInfiniteQuery(notes)),
   ];
@@ -120,6 +132,7 @@ export function useTabDataPrefetch(): void {
           cellarView: getCellarListViewPref(),
           viewportWidth: window.innerWidth,
           today: tokyoToday(),
+          cellarId: usableStoredCellarId(readSelectedCellarId()),
         }),
       );
     }, TAB_PREFETCH_DELAY_MS);

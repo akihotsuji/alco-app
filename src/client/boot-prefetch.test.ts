@@ -74,39 +74,91 @@ describe("boot-prefetch の経路", () => {
 
   it("セラー一覧の GET は useBottles / useInfiniteBottles と同じ URL になる", () => {
     const client = createApiClient();
-    const typeMeta = client.api.bottles.$path({ query: { view: "cellar", limit: "1" } });
+    const cellars = client.api.cellars.$path();
+    const typeGrouped = client.api.bottles.$path({
+      query: { view: "cellar", limit: String(SHELF_TYPE_PAGE_LIMIT), group: "type" },
+    });
     const narrow = client.api.bottles.$path({
       query: { view: "cellar", limit: String(shelfPageLimit(SHELF_COLUMNS_NARROW)) },
     });
     const wide = client.api.bottles.$path({
       query: { view: "cellar", limit: String(shelfPageLimit(SHELF_COLUMNS_WIDE)) },
     });
+    const cellarId = "11111111-1111-4111-8111-111111111111";
+    const narrowWithCellar = client.api.bottles.$path({
+      query: {
+        view: "cellar",
+        limit: String(shelfPageLimit(SHELF_COLUMNS_NARROW)),
+        cellarId,
+      },
+    });
+    const typeWithCellar = client.api.bottles.$path({
+      query: {
+        view: "cellar",
+        limit: String(SHELF_TYPE_PAGE_LIMIT),
+        group: "type",
+        cellarId,
+      },
+    });
     expect(DEFAULT_CELLAR_LIST_VIEW).toBe("one");
     expect(CELLAR_PREF_KEYS.listView).toBe("cellar.listView");
+    expect(CELLAR_PREF_KEYS.selectedId).toBe("cellar.selectedId");
     expect(SHELF_WIDE_MIN_PX).toBe(480);
     expect(SHELF_COLUMNS_NARROW).toBe(3);
     expect(SHELF_COLUMNS_WIDE).toBe(4);
+    expect(cellars).toBe("/api/cellars");
     // 種類ごと（保存値・URL。URL が保存値より優先）
     expect(cellarDataPaths({ search: "", storedView: "type", viewportWidth: 390 })).toEqual([
-      typeMeta,
+      cellars,
+      typeGrouped,
     ]);
     expect(
       cellarDataPaths({ search: "?view=type", storedView: "one", viewportWidth: 390 }),
-    ).toEqual([typeMeta]);
+    ).toEqual([cellars, typeGrouped]);
     // 1 本ずつ（既定。列数は幅で変わる）
-    expect(cellarDataPaths({ search: "", storedView: null, viewportWidth: 390 })).toEqual([narrow]);
+    expect(cellarDataPaths({ search: "", storedView: null, viewportWidth: 390 })).toEqual([
+      cellars,
+      narrow,
+    ]);
     expect(cellarDataPaths({ search: "", storedView: "bogus", viewportWidth: 390 })).toEqual([
+      cellars,
       narrow,
     ]);
     expect(cellarDataPaths({ search: "?view=one", storedView: null, viewportWidth: 480 })).toEqual([
+      cellars,
       wide,
     ]);
-    // 絞り込み中は先読みしない
-    expect(cellarDataPaths({ search: "?q=abc", storedView: null, viewportWidth: 390 })).toEqual([]);
+    expect(
+      cellarDataPaths({
+        search: "",
+        storedView: null,
+        viewportWidth: 390,
+        storedCellarId: cellarId,
+      }),
+    ).toEqual([cellars, narrowWithCellar]);
+    expect(
+      cellarDataPaths({
+        search: "?view=type",
+        storedView: "one",
+        viewportWidth: 390,
+        storedCellarId: cellarId,
+      }),
+    ).toEqual([cellars, typeWithCellar]);
+    expect(
+      cellarDataPaths({
+        search: "",
+        storedView: null,
+        viewportWidth: 390,
+        storedCellarId: "not-a-uuid",
+      }),
+    ).toEqual([cellars, narrow]);
+    // 絞り込み中はボトルを先読みしない（cellars は取る）
+    expect(cellarDataPaths({ search: "?q=abc", storedView: null, viewportWidth: 390 })).toEqual([
+      cellars,
+    ]);
     expect(
       cellarDataPaths({ search: "?view=one&drinkType=wine", storedView: null, viewportWidth: 390 }),
-    ).toEqual([]);
-    // 種類ごとの棚は meta の後に走る（先読み対象外）
+    ).toEqual([cellars]);
     expect(SHELF_TYPE_PAGE_LIMIT).toBe(12);
   });
 

@@ -26,14 +26,17 @@ import { useCellarListView } from "@/client/hooks/use-cellar-list-view.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
-import { newOperationKey } from "@/client/lib/cellar-share.ts";
+import {
+  bottlesQueryCellarId,
+  newOperationKey,
+  usableStoredCellarId,
+} from "@/client/lib/cellar-share.ts";
 import {
   rankByCreatedAtDesc,
   SHELF_TYPE_PAGE_LIMIT,
   shelfColumns,
   shelfPageLimit,
   shelfRowIndex,
-  visibleDrinkTypes,
 } from "@/client/lib/cellar-shelf.ts";
 import {
   captureCellarVisit,
@@ -54,8 +57,8 @@ import { MOTION_MS } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { cn } from "@/client/lib/utils.ts";
-import type { BottleItem, CountsByType } from "@/shared/bottles.ts";
-import { formatBottleCount } from "@/shared/bottles.ts";
+import type { BottleItem, BottlesResponse, CountsByType } from "@/shared/bottles.ts";
+import { emptyCountsByType, formatBottleCount } from "@/shared/bottles.ts";
 import { DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
 
 function flattenPages(pages: { items: BottleItem[] }[] | undefined): BottleItem[] {
@@ -69,6 +72,8 @@ function TypeShelfRow({
   highlight,
   enterId,
   cellarId,
+  initialPage,
+  initialPageUpdatedAt,
 }: {
   drinkType: DrinkType;
   count: number;
@@ -76,6 +81,8 @@ function TypeShelfRow({
   highlight: boolean;
   enterId: string | null;
   cellarId?: string;
+  initialPage: BottlesResponse;
+  initialPageUpdatedAt: number;
 }) {
   const typeGrid = useTypeGrid();
   const label = `${DRINK_TYPE_LABELS[drinkType]} ${formatBottleCount(count)}`;
@@ -87,13 +94,23 @@ function TypeShelfRow({
       ...(q ? { q } : {}),
       ...(cellarId ? { cellarId } : {}),
     });
-  const query = useInfiniteBottles({
-    view: "cellar",
-    drinkType,
-    limit: SHELF_TYPE_PAGE_LIMIT,
-    ...(q ? { q } : {}),
-    ...(cellarId ? { cellarId } : {}),
-  });
+  const query = useInfiniteBottles(
+    {
+      view: "cellar",
+      drinkType,
+      limit: SHELF_TYPE_PAGE_LIMIT,
+      ...(q ? { q } : {}),
+      ...(cellarId ? { cellarId } : {}),
+    },
+    true,
+    {
+      initialData: {
+        pages: [initialPage],
+        pageParams: [undefined],
+      },
+      initialDataUpdatedAt: initialPageUpdatedAt,
+    },
+  );
   const items = flattenPages(query.data?.pages);
   if (query.isPending) {
     return (
@@ -154,9 +171,9 @@ export function CellarList() {
   const [highlightType, setHighlightType] = useState<DrinkType | null>(null);
   const [enterId, setEnterId] = useState<string | null>(null);
 
-  const { selected } = useCellarSelection();
-  const cellarId = selected?.id;
-  const bottlesReady = Boolean(cellarId);
+  const { selected, storedId, isPending: cellarsPending } = useCellarSelection();
+  const cellarId = bottlesQueryCellarId(selected, storedId);
+  const optimisticCellarPending = cellarsPending && Boolean(usableStoredCellarId(storedId));
   const pageLimit = shelfPageLimit(columns);
   const oneQuery = useInfiniteBottles(
     {
@@ -166,16 +183,17 @@ export function CellarList() {
       ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
       ...(cellarId ? { cellarId } : {}),
     },
-    view === "one" && bottlesReady,
+    view === "one",
   );
   const typeMeta = useBottles(
     {
       view: "cellar",
-      limit: 1,
+      group: "type",
+      limit: SHELF_TYPE_PAGE_LIMIT,
       ...(filters.q ? { q: filters.q } : {}),
       ...(cellarId ? { cellarId } : {}),
     },
-    view === "type" && bottlesReady,
+    view === "type",
   );
 
   const oneItems = flattenPages(oneQuery.data?.pages);
@@ -187,8 +205,10 @@ export function CellarList() {
   const headerTarget =
     headerSeed !== undefined ? headerSeed : actualCount === undefined ? undefined : actualCount;
   const animatedCount = useAnimatedNumber(headerTarget);
-  const pending = view === "type" ? typeMeta.isPending : oneQuery.isPending;
-  const errored = view === "type" ? typeMeta.isError : oneQuery.isError;
+  const bottlesPending = view === "type" ? typeMeta.isPending : oneQuery.isPending;
+  const bottlesError = view === "type" ? typeMeta.isError : oneQuery.isError;
+  const pending = bottlesPending || (bottlesError && optimisticCellarPending);
+  const errored = bottlesError && !optimisticCellarPending;
   const refetch = view === "type" ? typeMeta.refetch : oneQuery.refetch;
   const fetching = view === "type" ? typeMeta.isFetching : oneQuery.isFetching;
   const filteredOut = Boolean(filters.q || (view === "one" && filters.drinkType));
@@ -340,7 +360,7 @@ export function CellarList() {
     });
   }, [left, oneItems, queryClient, showToast, showUndo, view]);
 
-  const types = countsByType ? visibleDrinkTypes(countsByType) : [];
+  const typeShelves = typeMeta.data?.typeShelves ?? [];
 
   return (
     <div className="cellar-list">
@@ -417,15 +437,22 @@ export function CellarList() {
       ) : null}
       {view === "type" && !emptyInventory && !emptyFilter && !pending && !errored ? (
         <div className="shelf-by-type">
-          {types.map((drinkType) => (
+          {typeShelves.map((shelf) => (
             <TypeShelfRow
-              key={drinkType}
-              drinkType={drinkType}
-              count={countsByType?.[drinkType] ?? 0}
+              key={`${shelf.drinkType}:${cellarId ?? ""}:${filters.q ?? ""}`}
+              drinkType={shelf.drinkType}
+              count={countsByType?.[shelf.drinkType] ?? 0}
               q={filters.q || undefined}
-              highlight={highlightType === drinkType}
+              highlight={highlightType === shelf.drinkType}
               enterId={enterId}
               cellarId={cellarId}
+              initialPage={{
+                items: shelf.items,
+                nextCursor: shelf.nextCursor,
+                totalCount: typeTotal ?? 0,
+                countsByType: countsByType ?? emptyCountsByType(),
+              }}
+              initialPageUpdatedAt={typeMeta.dataUpdatedAt}
             />
           ))}
         </div>

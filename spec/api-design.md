@@ -621,7 +621,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 **共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。代わりに `cellarId` / `version` / `createdByName` / `updatedByName`。日付は `purchasedOn` / `storedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`storedOn` は保管日で `purchasedOn` とは別項目。`priceJpy` は整数円または null。`status` は `sealed` \| `consumed`。`quantity` は無い（1 行 = 1 本）。`openedOn` は持たない。認可は対象セラーの有効メンバー。
 
-詳細・作成応答に `photos`（4.7 のメタ配列、最大 2。`sortOrder` 昇順で `[0]` = 表面、`[1]` = 裏面）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。
+詳細・作成応答に `photos`（4.7 のメタ配列、最大 2。`sortOrder` 昇順で `[0]` = 表面、`[1]` = 裏面）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。`group=type` のときだけ任意フィールド `typeShelves`（種類ごとの先頭 `limit` 本と各棚の `nextCursor`）を付ける。
 
 #### GET /api/bottles
 
@@ -630,6 +630,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 | `view` | `cellar`（既定。`sealed`。`drinkType` ありは `sortOrder` 昇順、なしは `createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用。`createdAt` 降順） |
 | `q` | 品名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
 | `drinkType` | 12 種のいずれか |
+| `group` | `type` のみ。`view=cellar` 専用。`drinkType` / `cursor` と同時指定不可。種類ごとの先頭 `limit` 本を `typeShelves` に載せる。トップレベル `nextCursor` は `null`。`items` は全棚プレビューの連結 |
 | `limit`, `cursor` | 2.7 |
 | `cellarId` | 指定したらそのセラー。省略かつ `scope` なしは **個人セラーのみ**（旧クライアント互換。共有ボトルは返さない） |
 | `scope` | `personal`（個人のみ）\| `accessible`（個人 + 参加中の共有。ピッカー用） |
@@ -842,18 +843,22 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 
 認可後、R2 からストリーム。
 
+| クエリ | 必須 | 説明 |
+|---|---|---|
+| `variant` | 任意 | `thumb` のみ。長辺 400px の派生。省略時は保存原本。それ以外は 400 |
+
 | ヘッダ | 値 |
 |---|---|
-| Content-Type | 保存した `contentType` |
-| Cache-Control | `private, max-age=31536000, immutable` |
-| ETag | `"{photoId}"`（写真は差し替え不可。ID が内容を表す） |
+| Content-Type | 原本は保存した `contentType`。`thumb` は `kind=photo` なら `image/jpeg`、`cutout` なら `image/png` |
+| Cache-Control | `private, no-cache` |
+| ETag | 原本 `"{photoId}"`、サムネ `"{photoId}:thumb"` |
 | Content-Disposition | `inline` |
 
 `If-None-Match` が ETag と一致（弱比較 `W/` と `*` も可）すれば、**認可の後に** 304 を返し R2 を読まない。
 
 同一オリジンの `<img src>` に Cookie が付く。公開 CDN には載せない。ログにオブジェクト全量を出さない。
 
-他人・不明は 404（403 にしない）。
+他人・不明は 404（403 にしない）。不正な `variant` は 400。
 
 #### PATCH /api/photos/:id
 
@@ -863,7 +868,7 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 
 #### DELETE /api/photos/:id
 
-メタ削除 + R2 削除。R2 失敗時は日次 GC で再試行。200 `{ "ok": true }`。
+メタ削除 + R2 削除（原本と `{id}.thumb.jpg` / `{id}.thumb.png`）。R2 失敗時は日次 GC で再試行。200 `{ "ok": true }`。
 
 #### 未紐付け GC（`scheduled`）
 

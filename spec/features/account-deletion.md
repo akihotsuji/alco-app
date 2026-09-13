@@ -41,7 +41,7 @@
 | 本人確認 | パスワード設定済みは現行パスワードを Better Auth `verifyPassword` で照合。Google のみはセッション `createdAt` が 5 分以内。`updatedAt` は使わない | 独自ハッシュ照合は作らない。5 分は今回の設計値 |
 | 対象ユーザー | サーバーが確認したセッションの `user.id` のみ | URL / body の userId・メール・r2Key は使わない |
 | Cookie キャッシュ | 保護 API の `getSession` は `disableCookieCache: true`。設定の `cookieCache.enabled` は false | 削除直後の署名付き Cookie で保護 API・写真配信を使えないようにする |
-| 写真配信 | 今後の `GET /api/photos/:id/content` は `private, no-store` | 1 年 immutable は見直す。既存レスポンスへの遡及はしない |
+| 写真配信 | 今後の `GET /api/photos/:id/content` は `private, no-cache` | 端末保存は可。表示のたびに認可後再検証する。1 年 immutable には戻さない。既存レスポンスへの遡及はしない |
 | R2 障害 | タイムアウト・5xx・権限障害は成功にしない。オブジェクト無しは成功 | 既存 photo-gc も同じ原則 |
 | 独立台帳 | D1 outbox（`account_deletion_records`）を写真 R2 の `account-deletion-ledger/{userId}` へ転記 | 復元対象 D1 と独立。アプリ Worker にバックアップ SQL は読ませない |
 | 保持 | 削除記録は最大復元可能期間＋余裕。設計上の目安はバックアップ 14 日＋ Time Travel 7 日。本番未確認は「全部 14 日以内」と書かない | [d1-backup.md](d1-backup.md) |
@@ -86,7 +86,7 @@
 
 受付後にタスクを処理する。`waitUntil` は初回加速のみ。日次 `scheduled` が未完了を再実行する。
 
-- 成功: R2 delete 成功、または既に存在しない
+- 成功: R2 delete 成功、または既に存在しない。写真タスクは原本キーから派生（`{id}.thumb.jpg` / `{id}.thumb.png`）も消す
 - 失敗: タイムアウト・5xx・権限。タスクを残しバックオフ再試行
 - 成功後の D1 更新失敗でも再削除できる（冪等）
 - 試行上限に達しても捨てない。24 時間超は監視対象

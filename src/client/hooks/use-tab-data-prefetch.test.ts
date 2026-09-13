@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { bottlesInfiniteQueryOptions, bottlesQueryOptions } from "@/client/hooks/use-bottles.ts";
+import { cellarsQueryOptions } from "@/client/hooks/use-cellars.ts";
 import { drinkLogSummaryQueryOptions } from "@/client/hooks/use-drink-log-summary.ts";
 import { myDrinksQueryOptions } from "@/client/hooks/use-my-drinks.ts";
 import { tastingNotesInfiniteQueryOptions } from "@/client/hooks/use-tasting-notes.ts";
+import { SHELF_TYPE_PAGE_LIMIT } from "@/client/lib/cellar-shelf.ts";
 import { createQueryClient } from "@/client/lib/query-client.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import {
@@ -21,36 +23,82 @@ describe("tabPrefetchEntries", () => {
       drinkLogSummaryQueryOptions("day", TODAY).queryKey,
       drinkLogSummaryQueryOptions("week", TODAY).queryKey,
       myDrinksQueryOptions().queryKey,
+      cellarsQueryOptions().queryKey,
       // 1 本ずつ表示は 3 列 × 2 行分（CellarList と同じ limit）
       bottlesInfiniteQueryOptions({ view: "cellar", limit: 6 }).queryKey,
       tastingNotesInfiniteQueryOptions({}).queryKey,
     ]);
-    expect(entries.map((e) => e.kind)).toEqual(["query", "query", "query", "infinite", "infinite"]);
+    expect(entries.map((e) => e.kind)).toEqual([
+      "query",
+      "query",
+      "query",
+      "query",
+      "infinite",
+      "infinite",
+    ]);
   });
 
   it("広い画面では 4 列 × 2 行分を先読みする", () => {
     const entries = tabPrefetchEntries({ cellarView: "one", viewportWidth: 480, today: TODAY });
-    expect(entries[3]?.queryKey).toEqual(
+    expect(entries[4]?.queryKey).toEqual(
       bottlesInfiniteQueryOptions({ view: "cellar", limit: 8 }).queryKey,
     );
   });
 
-  it("種類ごと表示のときは meta 用の limit=1 の単発 query を先読みする", () => {
+  it("種類ごと表示のときは group=type の単発 query を先読みする", () => {
     const entries = tabPrefetchEntries({ cellarView: "type", viewportWidth: 390, today: TODAY });
-    expect(entries[3]).toMatchObject({
+    expect(entries[4]).toMatchObject({
       kind: "query",
-      queryKey: bottlesQueryOptions({ view: "cellar", limit: 1 }).queryKey,
+      queryKey: bottlesQueryOptions({
+        view: "cellar",
+        group: "type",
+        limit: SHELF_TYPE_PAGE_LIMIT,
+      }).queryKey,
     });
+  });
+
+  it("保存済み cellarId をボトル先読みに載せる", () => {
+    const cellarId = "11111111-1111-4111-8111-111111111111";
+    const one = tabPrefetchEntries({
+      cellarView: "one",
+      viewportWidth: 390,
+      today: TODAY,
+      cellarId,
+    });
+    expect(one[4]?.queryKey).toEqual(
+      bottlesInfiniteQueryOptions({ view: "cellar", limit: 6, cellarId }).queryKey,
+    );
+    const type = tabPrefetchEntries({
+      cellarView: "type",
+      viewportWidth: 390,
+      today: TODAY,
+      cellarId,
+    });
+    expect(type[4]?.queryKey).toEqual(
+      bottlesQueryOptions({
+        view: "cellar",
+        group: "type",
+        limit: SHELF_TYPE_PAGE_LIMIT,
+        cellarId,
+      }).queryKey,
+    );
   });
 
   it("キーは各画面の hook が使うものと一致する（キャッシュが当たる）", () => {
     const entries = tabPrefetchEntries({ cellarView: "one", viewportWidth: 390, today: TODAY });
     expect(entries[0]?.queryKey).toEqual(queryKeys.drinkLogSummary("day", TODAY));
     expect(entries[2]?.queryKey).toEqual(queryKeys.myDrinks);
-    expect(entries[3]?.queryKey).toEqual(
-      queryKeys.bottlesList({ view: "cellar", q: undefined, drinkType: undefined, limit: 6 }),
-    );
+    expect(entries[3]?.queryKey).toEqual(queryKeys.cellarsList);
     expect(entries[4]?.queryKey).toEqual(
+      queryKeys.bottlesList({
+        view: "cellar",
+        q: undefined,
+        drinkType: undefined,
+        group: undefined,
+        limit: 6,
+      }),
+    );
+    expect(entries[5]?.queryKey).toEqual(
       queryKeys.tastingNotesList({
         bottleId: undefined,
         q: undefined,
@@ -72,7 +120,7 @@ describe("prefetchTabData", () => {
 
     prefetchTabData(queryClient, entries);
 
-    expect(prefetchQuery).toHaveBeenCalledTimes(3);
+    expect(prefetchQuery).toHaveBeenCalledTimes(4);
     expect(prefetchInfiniteQuery).toHaveBeenCalledTimes(2);
   });
 
@@ -91,7 +139,7 @@ describe("prefetchTabData", () => {
 
     prefetchTabData(queryClient, entries);
 
-    expect(prefetchQuery).toHaveBeenCalledTimes(2);
+    expect(prefetchQuery).toHaveBeenCalledTimes(3);
     expect(prefetchInfiniteQuery).toHaveBeenCalledTimes(1);
   });
 });

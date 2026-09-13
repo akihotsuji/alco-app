@@ -44,7 +44,13 @@
 
 - `r2_key` は `{photoId}.jpg` 等。ファイル名・`user_id` を含めない
 - レスポンスに `r2Key` / `userId` を出さない
-- 配信: 今後の `GET /api/photos/:id/content` は `Cache-Control: private, no-store` + `ETag: "{photoId}"`。アカウント削除後に端末キャッシュから本文を再利用しないため、1 年 immutable は見直す。既存レスポンスへの遡及はしない。`If-None-Match` が一致すれば **認可の後に** 304（本文なし。R2 を読まない）。他人・不明は一致しても 404
+- 配信: `GET /api/photos/:id/content`
+  - クエリ `variant=thumb` は長辺 400px の派生（棚 100×150・ノートカード 160×200 の 2x）。`kind=photo` は JPEG、`kind=cutout` は PNG（アルファを残す）。省略時は保存原本。不正な `variant` は 400
+  - 一覧（棚タイル・日別行・ボトルピッカー・ノートカード）だけ `?variant=thumb`。詳細ヒーロー・ライトボックス・編集・複製（`copy-owned-photo`）は原本
+  - `Cache-Control: private, no-cache`。端末保存は可。表示のたびに認可後再検証する。削除・権限喪失のあと本文を再検証なしで出さない。1 年 immutable には戻さない。既存レスポンスへの遡及はしない
+  - ETag は原本 `"{photoId}"`、サムネ `"{photoId}:thumb"`。`If-None-Match` が一致すれば **認可の後に** 304（本文なし。R2 を読まない）。他人・不明は一致しても 404
+  - 派生の R2 キーは `{photoId}.thumb.jpg` / `{photoId}.thumb.png`。アップロード後と初回 GET で作る。デコードできなければ原本を返す。有料の画像 CDN / Cloudflare Images は使わない
+  - 削除・未紐付け GC・アカウント削除は原本と派生を消す
 - R2 put の前に `photo_object_reservations`（`r2_key` + `user_id`、lease。user CASCADE は付けない）へ予約する。put 直前にユーザー存在と lease を確認する。ユーザー削除後の遅延 put は予約が取れなければ書かない
 - Cron（`0 18 * * *`）: 未紐付け 24h 超を最大 500 件、R2 → D1。R2 のタイムアウト・5xx・権限障害では D1 行を消さない（オブジェクト無しは成功）。件数だけログ。HTTP の GC は無い。同じ cron がアカウント削除の写真タスクと台帳転記も再実行する（[account-deletion.md](account-deletion.md)）
 - 日次上限は `photos.uploaded_by`（なければ個人 `user_id`）をユーザー単位で数える。R2 書き込み前に判定する。詳細は [rate-limit-abuse.md](rate-limit-abuse.md)

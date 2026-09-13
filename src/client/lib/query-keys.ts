@@ -27,6 +27,7 @@ export const queryKeys = {
     view?: string;
     q?: string;
     drinkType?: string;
+    group?: string;
     limit?: number;
     cellarId?: string;
     scope?: string;

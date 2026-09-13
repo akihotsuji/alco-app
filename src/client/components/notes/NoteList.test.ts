@@ -29,6 +29,7 @@ describe("NoteList 空状態と 404", () => {
     expect(card).toContain("item.taste");
     expect(card).toContain("formatRatingX10");
     expect(card).toContain("ContentPhoto");
+    expect(card).toContain('photoContentUrl(item.thumbPhotoId, "thumb")');
     expect(card).toContain("PHOTO_DISPLAY_SIZE.noteCard");
     expect(card).not.toContain("Planeta");
     expect(card).not.toContain("dangerouslySetInnerHTML");

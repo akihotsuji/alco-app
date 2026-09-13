@@ -59,8 +59,8 @@
 先読み:
 
 - 起動直後: `boot-prefetch.ts` を **別エントリ**（本番は main より前の `<script type="module">`）として読む。メイン JS の解析を待たず、**開いたパス**の chunk を `import()` する（`/login` なら login だけ。`/` なら shell + home）。セッション Cookie は httpOnly なので JS からは見ない
-- 同じ script が `GET /api/auth/get-session` と、ゲスト専用画面（`/login` `/signup` `/forgot-password` `/reset-password`）以外では `GET /api/me` を **並行して**先に飛ばす。`/` ではホームが待つ summary（day/week）と my-drinks、`/cellar` では棚の 1 ページ目（保存済みの表示形式と画面幅から limit を決める。種類ごとなら `limit=1` の meta）、`/notes` では一覧の 1 ページ目も先に飛ばし、Hono RPC / Better Auth が応答を使い切る（楽観的更新ではない）。検索・種類・評価のフィルタが URL にあるときは一覧を先読みしない
-- 認証後シェル（`AppShellFrame`）は描画が落ち着いた **300 ms 後の idle** に、下部タブの初期一覧（ホームの summary / my-drinks、セラーの 1 ページ目、ノートの 1 ページ目）を `prefetchQuery` / `prefetchInfiniteQuery` で先読みする（`use-tab-data-prefetch.ts`）。各画面の hook と同じ `queryOptions` を使うのでキーが一致し、タブを開いた瞬間にキャッシュが当たる。すでにキャッシュ（取得中を含む）がある query は触らない
+- 同じ script が `GET /api/auth/get-session` と、ゲスト専用画面（`/login` `/signup` `/forgot-password` `/reset-password`）以外では `GET /api/me` を **並行して**先に飛ばす。`/` ではホームが待つ summary（day/week）と my-drinks、`/cellar` では `GET /api/cellars` と棚の 1 ページ目を並行して飛ばす（保存済みの表示形式と画面幅から limit を決める。`localStorage` の選択セラー ID があれば `cellarId` を付ける。種類ごとなら `group=type&limit=12` の 1 本。1 本ずつなら `limit=6|8`）、`/notes` では一覧の 1 ページ目も先に飛ばし、Hono RPC / Better Auth が応答を使い切る（楽観的更新ではない）。検索・種類・評価のフィルタが URL にあるときはボトル一覧を先読みしない（`GET /api/cellars` は飛ばす）
+- 認証後シェル（`AppShellFrame`）は描画が落ち着いた **300 ms 後の idle** に、下部タブの初期一覧（ホームの summary / my-drinks、`GET /api/cellars`、セラーの 1 ページ目、ノートの 1 ページ目）を `prefetchQuery` / `prefetchInfiniteQuery` で先読みする（`use-tab-data-prefetch.ts`）。各画面の hook と同じ `queryOptions` を使うのでキーが一致し、タブを開いた瞬間にキャッシュが当たる。すでにキャッシュ（取得中を含む）がある query は触らない。セラーのボトル先読みも保存済み `cellarId` を付け、画面の query と URL を揃える
 - 先読み GET は 10 秒で打ち切る。失敗した Promise を本バンドルが待たず、通常の `fetch` にフォールバックする。画面 `import()` の失敗は握りつぶして未処理拒否にしない（本体の Error Boundary / `vite:preloadError` が復旧する）
 - タブ / FAB / ヘッダー / ホームの導線: `pointerenter` と `focus` で行き先の chunk を先読み
 - 中央タブ「記録」は `logForm` と `photoEdit`
@@ -82,7 +82,7 @@
 
 - `ContentPhoto` は `data-state="loading|loaded"` を持つ。`loading` は不透明 0、`loaded` で 0 → 1 を `--dur-state`。`load` / `error` のどちらでも `loaded` にする（透明のまま残さない）。ブラウザキャッシュに乗っていて `complete` なら最初から `loaded`（動かない）
 - 棚タイルは写真到着まで **種類のボトル型**（`BottleSilhouette`）を背後に置き、到着で写真とクロスフェード。ノートカードは inset の枠（スケルトンと同じ静止表現）。シマー・点滅はしない
-- 配信は `Cache-Control: private, max-age=31536000, immutable` + `ETag`（[photos.md](photos.md)）。写真は差し替え不可で ID が変わるため、2 回目以降はネットワークに出ない
+- 配信は `Cache-Control: private, no-cache` + `ETag`（[photos.md](photos.md)）。2 回目以降は認可後再検証の 304。一覧は `?variant=thumb`（長辺 400）。1 年 immutable には戻さない
 
 ---
 
@@ -168,7 +168,7 @@ Vite が 500 kB 超を警告。ボトルネックは **初期 JS 1 本に全画�
 |---|---|---|
 | セッションの Cookie キャッシュ | **撤回**（アカウント削除。2026-09-11）。保護 API は毎回 D1 で session + user を確認する。[auth.md](auth.md) / [account-deletion.md](account-deletion.md) | 退会直後の署名付き Cookie で保護 API・写真配信を使えないようにする。往復の目安は約 230 ms |
 | 年齢確認の肯定キャッシュ | isolate 内で「確認済み userId」を最大 1000 件覚える。[age-verification.md](age-verification.md) | 同じ isolate に当たる 2 回目以降で 1 往復が消える |
-| 写真の長期キャッシュ | **見直し**（アカウント削除。2026-09-11）。今後の配信は `private, no-store`。[photos.md](photos.md) | 削除後の端末キャッシュ再利用を避ける。表示性能への影響は後続で測る |
+| 写真の長期キャッシュ | **見直し**（アカウント削除。2026-09-11、セラー一覧 P3）。今後の配信は `private, no-cache`。[photos.md](photos.md) | 端末保存は可。表示のたびに再検証する。削除後に本文を再検証なしで出さない |
 | 起動・待機時の先読み | 3 章「先読み」 | タブを開いた瞬間にキャッシュが当たる |
 | query の保持 24 時間 | `gcTime` を 24 時間に延長（`staleTime` 30 秒はそのまま） | 5 分以上ぶりのタブ切替でもスケルトンに戻らず、古い一覧を即描いて裏で取り直す |
 | 写真のプレースホルダ | 4 章「到着の見せ方」 | 初回でも「空白」ではなく「読み込み中」に見える |
@@ -177,9 +177,15 @@ Vite が 500 kB 超を警告。ボトルネックは **初期 JS 1 本に全画�
 
 - **Smart Placement**: `run_worker_first: true` のため Worker が D1 側へ寄るとアセット配信が遠くなる。効果は D1 の所在（`wrangler d1 info`）を見てから判断する
 - D1 のリージョン移設（作り直しになる）
-- 写真のサムネイル派生（R2 書き込み 2 倍。まずキャッシュで様子を見る）
-- 写真 `no-store` / 署名付き URL / 詳細埋め込み（P0 / P2。認可・削除の仕様判断が先）
+- 署名付き URL / 詳細埋め込み
 - 保護 API の Cookie キャッシュ再有効化（P5。アカウント削除とトレードオフ）
+- 種類グリッドの `loadedAll` 待ち・チャンク先読み（P4）
+
+実装済み（セラー一覧 P3。2026-09-13）:
+
+- 一覧写真は `GET /api/photos/:id/content?variant=thumb`（長辺 400。`photo` は JPEG、`cutout` は PNG）
+- 配信は `private, no-cache` + 派生別 ETag。再訪は 304。1 年 immutable には戻さない
+- 有料の画像 CDN / Cloudflare Images は使わない。JPEG は `jpeg-js`、PNG は Worker の CompressionStream、WebP 切り抜きは `@jsquash/webp` でデコードして PNG サムネにする
 
 実装済み（P1 / P3。2026-09-12）:
 

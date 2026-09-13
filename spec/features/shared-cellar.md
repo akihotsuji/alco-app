@@ -204,7 +204,7 @@
 | 参加 | 認証済み POST のみ。GET やプレビューで消費しない。既存 CSRF / Origin 対策 |
 | URL | 生トークンは `#t=`（フラグメント）。クエリやサーバーログに出さない |
 | 未ログイン join | ボトル・写真・メンバー名を出さない |
-| 写真 | `private, no-store` 維持。SW / Cache Storage / 永続 Query へ共有応答を新規保存しない |
+| 写真 | `private, no-cache`（再検証必須。1 年 immutable には戻さない）。SW / Cache Storage / 永続 Query へ共有応答を新規保存しない |
 | レート | 招待発行・確認/参加・共有作成。期限判定はサーバー時刻 |
 | ログ | トークン・メール・Cookie を出さない |
 
