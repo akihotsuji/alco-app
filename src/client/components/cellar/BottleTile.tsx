@@ -77,6 +77,7 @@ export function BottleTile({
         {mode === "archived" && item.consumedOn ? (
           <span className="bottle-tile-date">{formatShortMonthDay(item.consumedOn)}</span>
         ) : null}
+        {suppressNativePress ? <span className="bottle-tile-press-shield" aria-hidden /> : null}
       </span>
       <span className="bottle-tile-name">{item.name}</span>
       {showSub && vintage ? <span className="bottle-tile-sub">{vintage}</span> : null}
@@ -89,6 +90,7 @@ export function BottleTile({
         type="button"
         className={className}
         data-enter={enter ? "1" : undefined}
+        data-press-safe="1"
         onClick={onActivate}
         onPointerDown={onPointerDown}
         onContextMenu={(event) => event.preventDefault()}

@@ -7,6 +7,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const shelf = readFileSync(join(here, "Shelf.tsx"), "utf8");
 const tile = readFileSync(join(here, "BottleTile.tsx"), "utf8");
 const list = readFileSync(join(here, "CellarList.tsx"), "utf8");
+const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
 describe("Shelf / BottleTile / CellarList", () => {
   it("段の棚板ハイライトとタイル出現を data 属性で発火する", () => {
@@ -22,6 +23,11 @@ describe("Shelf / BottleTile / CellarList", () => {
     expect(tile).toContain("PHOTO_DISPLAY_SIZE.bottleTile");
     expect(tile).toContain("suppressNativePress");
     expect(tile).toContain("onContextMenu");
+    expect(tile).toContain("data-press-safe");
+    expect(tile).toContain("bottle-tile-press-shield");
+    expect(css).toContain(".bottle-tile-press-shield");
+    expect(css).toContain(".type-grid-cell img");
+    expect(css).toContain("-webkit-touch-callout: none");
   });
 
   it("空状態と種類ごと / 1 本ずつの切替がある", () => {

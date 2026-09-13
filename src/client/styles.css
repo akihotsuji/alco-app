@@ -2680,6 +2680,22 @@ img[data-state="loaded"] {
 .type-grid-cell svg {
   pointer-events: none;
   -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.bottle-tile[data-press-safe="1"] {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.bottle-tile-press-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
 }
 
 .type-grid-cell[data-lifted="1"] {

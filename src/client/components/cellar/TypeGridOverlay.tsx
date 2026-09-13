@@ -206,8 +206,15 @@ export function TypeGridOverlay() {
         requestClose();
       }
     }
+    function onContextMenu(event: Event) {
+      event.preventDefault();
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("contextmenu", onContextMenu, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("contextmenu", onContextMenu, { capture: true });
+    };
   }, [requestClose, visible]);
 
   const orderKey = items.map((item) => item.id).join(",");
@@ -378,6 +385,7 @@ export function TypeGridOverlay() {
       aria-modal="true"
       aria-labelledby="type-grid-title"
       aria-hidden={visible ? undefined : true}
+      onContextMenu={(event) => event.preventDefault()}
     >
       <header className="type-grid-bar">
         <button
