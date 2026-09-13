@@ -73,6 +73,7 @@ export function ContentPhoto({
       height={size.height}
       loading={loading}
       decoding="async"
+      draggable={false}
       data-state={state}
       onLoad={settle}
       onError={settle}

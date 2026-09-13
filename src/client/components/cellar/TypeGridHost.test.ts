@@ -25,5 +25,8 @@ describe("TypeGridHost", () => {
     expect(overlay).toContain("TYPE_GRID_LONG_PRESS_MS");
     expect(overlay).toContain("pagehide");
     expect(overlay).toContain("visibilitychange");
+    expect(overlay).toContain("suppressNativePress");
+    expect(overlay).toContain("onContextMenu");
+    expect(overlay).toContain('document.addEventListener("contextmenu"');
   });
 });

@@ -206,8 +206,15 @@ export function TypeGridOverlay() {
         requestClose();
       }
     }
+    function onContextMenu(event: Event) {
+      event.preventDefault();
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("contextmenu", onContextMenu, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("contextmenu", onContextMenu, { capture: true });
+    };
   }, [requestClose, visible]);
 
   const orderKey = items.map((item) => item.id).join(",");
@@ -339,7 +346,7 @@ export function TypeGridOverlay() {
     };
   }, [onPointerMove, onPointerUp]);
 
-  function onCellPointerDown(event: ReactPointerEvent<HTMLDivElement>, index: number, id: string) {
+  function onCellPointerDown(event: ReactPointerEvent<HTMLElement>, index: number, id: string) {
     if (!canReorder || event.button !== 0) {
       return;
     }
@@ -378,6 +385,7 @@ export function TypeGridOverlay() {
       aria-modal="true"
       aria-labelledby="type-grid-title"
       aria-hidden={visible ? undefined : true}
+      onContextMenu={(event) => event.preventDefault()}
     >
       <header className="type-grid-bar">
         <button
@@ -416,13 +424,14 @@ export function TypeGridOverlay() {
                         data-bottle-id={item.id}
                         data-lifted={lifted ? "1" : undefined}
                         key={item.id}
-                        onPointerDown={(event) => onCellPointerDown(event, index, item.id)}
                       >
                         <BottleTile
                           item={item}
                           mode="cellar"
                           size="type"
                           preventNavigate={blockNavigate || lifted}
+                          suppressNativePress
+                          onPointerDown={(event) => onCellPointerDown(event, index, item.id)}
                         />
                       </div>
                     );
