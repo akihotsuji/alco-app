@@ -23,6 +23,7 @@ import {
   setComposeMascotPref,
 } from "@/client/lib/preferences.ts";
 import { APP_VERSION } from "@/shared/constants.ts";
+import { FEEDBACK_COPY } from "@/shared/feedback.ts";
 import { legalHref } from "@/shared/legal.ts";
 import { PWA_NAME } from "@/shared/pwa.ts";
 
@@ -163,6 +164,10 @@ export function SettingsPage() {
       <section className="settings-section">
         <h2 className="settings-heading">このアプリ</h2>
         <div className="settings-group">
+          <Link className="settings-row" to="/settings/feedback">
+            <span>{FEEDBACK_COPY.settingsRow}</span>
+            <ChevronRight size={20} className="settings-chevron" aria-hidden />
+          </Link>
           <Link className="settings-row" to={legalHref("/terms", "settings")}>
             <span>利用規約</span>
             <ChevronRight size={20} className="settings-chevron" aria-hidden />

@@ -5,6 +5,8 @@ import {
   accountDeletionPhotoTasks,
   accountDeletionRecords,
   drinkLogs,
+  feedbackPhotos,
+  feedbacks,
   photos,
   session,
   user,
@@ -209,6 +211,50 @@ describe("POST /api/me/account-deletion", () => {
       headers: { Cookie: b.cookie },
     });
     expect(stillB.status).toBe(200);
+  });
+
+  it("ご意見は退会後も匿名で残り、R2 は回収しない", async () => {
+    const { app, db, photos: bucket } = await createTestApp();
+    const userA = await createTestUser(app, {
+      name: "A",
+      email: "fb-del@example.com",
+      password: "password1",
+    });
+    const form = new FormData();
+    form.set("category", "improvement");
+    form.set("body", "棚が使いにくい");
+    form.append(
+      "photos",
+      new File([Uint8Array.from(makeJpeg(80, 80))], "shot.jpg", { type: "image/jpeg" }),
+    );
+    const created = await app.request("/api/feedback", {
+      method: "POST",
+      headers: { Cookie: userA.cookie },
+      body: form,
+    });
+    expect(created.status).toBe(201);
+    const [row] = await db.select().from(feedbacks);
+    const [photo] = await db.select().from(feedbackPhotos);
+    expect(row?.userId).toBe(userA.id);
+    expect(photo?.r2Key).toMatch(/^feedback\//);
+    expect(bucket.keys()).toContain(photo?.r2Key);
+
+    const res = await requestAccountDeletion(app, userA.cookie, {
+      confirmed: true,
+      password: "password1",
+    });
+    expect(res.status).toBe(202);
+
+    const [kept] = await db.select().from(feedbacks);
+    expect(kept?.body).toBe("棚が使いにくい");
+    expect(kept?.userId).toBeNull();
+    const [keptPhoto] = await db.select().from(feedbackPhotos);
+    expect(keptPhoto?.r2Key).toBe(photo?.r2Key);
+    const tasks = await db.select().from(accountDeletionPhotoTasks);
+    expect(tasks.map((task) => task.r2Key)).not.toContain(photo?.r2Key);
+
+    await runAccountDeletionJobs({ db, bucket });
+    expect(bucket.keys()).toContain(photo?.r2Key);
   });
 
   it("年齢未確認でも本人確認後に削除できる", async () => {

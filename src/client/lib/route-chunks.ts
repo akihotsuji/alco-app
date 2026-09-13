@@ -15,6 +15,7 @@ export const routeChunks = {
   cellar: () => import("@/client/pages/cellar/CellarPages.tsx"),
   notes: () => import("@/client/pages/notes/NotePages.tsx"),
   settings: () => import("@/client/pages/SettingsPage.tsx"),
+  feedback: () => import("@/client/pages/FeedbackPage.tsx"),
   accountDeletion: () => import("@/client/pages/AccountDeletionPages.tsx"),
   join: () => import("@/client/pages/JoinPage.tsx"),
   notFound: () => import("@/client/pages/NotFoundPage.tsx"),
@@ -94,6 +95,9 @@ export function chunkIdForPath(pathname: string): RouteChunkId | null {
   }
   if (pathname === "/account-deleted" || pathname === "/settings/account/delete") {
     return "accountDeletion";
+  }
+  if (pathname === "/settings/feedback") {
+    return "feedback";
   }
   if (pathname === "/join") {
     return "join";

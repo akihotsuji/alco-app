@@ -1326,6 +1326,39 @@ img[data-state="loaded"] {
   flex-shrink: 0;
 }
 
+.feedback-note {
+  margin: 0;
+  font-size: var(--text-note);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.feedback-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feedback-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.feedback-thumb-img {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: var(--shadow-inset-sm);
+  background: var(--surface);
+}
+
 .recognize-banner {
   display: flex;
   flex-wrap: wrap;

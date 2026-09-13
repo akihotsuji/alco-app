@@ -107,7 +107,10 @@ export function useTabDataPrefetch(): void {
   const queryClient = useQueryClient();
   const location = useLocation();
   useEffect(() => {
-    if (location.pathname === "/settings/account/delete") {
+    if (
+      location.pathname === "/settings/account/delete" ||
+      location.pathname === "/settings/feedback"
+    ) {
       return;
     }
     return scheduleIdle(() => {

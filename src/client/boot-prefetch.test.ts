@@ -40,6 +40,7 @@ describe("boot-prefetch の経路", () => {
       "/cellar/archive",
       "/notes/new",
       "/settings",
+      "/settings/feedback",
       "/settings/account/delete",
       "/account-deleted",
       "/join",

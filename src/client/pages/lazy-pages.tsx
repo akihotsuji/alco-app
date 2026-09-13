@@ -186,6 +186,11 @@ export const SettingsPage = lazy(async () => {
   return { default: Page };
 });
 
+export const FeedbackPage = lazy(async () => {
+  const { FeedbackPage: Page } = await import("@/client/pages/FeedbackPage.tsx");
+  return { default: Page };
+});
+
 export const AccountDeletePage = lazy(async () => {
   const { AccountDeletePage: Page } = await import("@/client/pages/AccountDeletionPages.tsx");
   return { default: Page };

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { FEEDBACK_COPY } from "@/shared/feedback.ts";
 import {
   remainingToastMs,
   TOAST_ACTION_DURATION_MS,
@@ -22,6 +23,7 @@ describe("toastShowsCheer", () => {
     expect(toastShowsCheer("棚に並べました")).toBe(true);
     expect(toastShowsCheer("棚に 3 本並べました")).toBe(true);
     expect(toastShowsCheer(TOAST_MESSAGES.saveFailed)).toBe(false);
+    expect(toastShowsCheer(FEEDBACK_COPY.sent)).toBe(false);
     expect(toastShowsCheer(TOAST_MESSAGES.updateAvailable)).toBe(false);
     expect(toastShowsCheer("読み込めませんでした")).toBe(false);
   });

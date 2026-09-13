@@ -12,6 +12,7 @@ const INVENTORY_KEYS = [
   "CLOUDFLARE_API_TOKEN",
   "CLOUDFLARE_ACCOUNT_ID",
   "RESEND_API_KEY",
+  "FEEDBACK_TO",
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
   "TURNSTILE_SECRET_KEY",
@@ -89,6 +90,8 @@ describe("secret inventory", () => {
     expect(example).not.toMatch(/^ALERT_WEBHOOK_URL=.+$/m);
     expect(example).toMatch(/^RESEND_API_KEY=$/m);
     expect(example).not.toMatch(/^RESEND_API_KEY=.+$/m);
+    expect(example).toContain("FEEDBACK_TO=");
+    expect(example).not.toMatch(/^FEEDBACK_TO=.+$/m);
     expect(example).toMatch(/^GOOGLE_CLIENT_ID=$/m);
     expect(example).not.toMatch(/^GOOGLE_CLIENT_ID=.+$/m);
     expect(example).toMatch(/^GOOGLE_CLIENT_SECRET=$/m);

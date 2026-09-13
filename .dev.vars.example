@@ -7,6 +7,8 @@ BETTER_AUTH_SECRET=
 # ALERT_WEBHOOK_URL=
 # パスワードリセット（8-03）。未設定ならメールは送らない。値はチャットに貼らない
 RESEND_API_KEY=
+# ご意見の通知先（任意）。未設定なら D1 保存のみ。値はチャットに貼らない
+# FEEDBACK_TO=
 # Google OAuth（8-04）。未設定なら Google ログインは失敗する。値はチャットに貼らない
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=

@@ -57,7 +57,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 
 ## 2. 原則
 
-1. **アプリ所有テーブルはすべて `user_id` を持つ**。値はセッション由来のみ。クライアント入力のスキーマに `userId` を含めない。
+1. **アプリ所有テーブルはすべて `user_id` を持つ**。値はセッション由来のみ。クライアント入力のスキーマに `userId` を含めない。例外: アカウント削除の実行用テーブル（6.9〜6.12）と、退会後も残すご意見（`feedbacks.user_id` は SET NULL、`feedback_photos` は `feedback_id` のみ。6.14）。
 2. **`user_id` の FK は Better Auth の `user.id` を参照**する。`ON DELETE CASCADE`。
 3. **他ユーザー行を JOIN で混ぜない**。一覧・詳細・集計はすべて `user_id = session.userId` を最初の条件にする。
 4. **更新・削除は「id の存在」ではなく「id + user_id の一致」**。不一致は存在しない場合と同じ 404（API。1-05）。
@@ -75,7 +75,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 領域 | テーブル | 管理 |
 |---|---|---|
 | 認証 | `user`, `session`, `account`, `verification` | **Auth ライブラリ管理**。`npx auth@latest generate`（Phase 2-02） |
-| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents`, `age_verifications`, `cellars`, `user_cellar_slots`, `cellar_members`, `cellar_invitations`, `cellar_owner_transfers`, `cellar_activity`, `cellar_idempotency` | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01。`age_verifications` は 8-02。セラー共有は 6.13 / [shared-cellar.md](features/shared-cellar.md) |
+| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents`, `age_verifications`, `cellars`, `user_cellar_slots`, `cellar_members`, `cellar_invitations`, `cellar_owner_transfers`, `cellar_activity`, `cellar_idempotency`, `feedbacks`, `feedback_photos` | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01。`age_verifications` は 8-02。セラー共有は 6.13 / [shared-cellar.md](features/shared-cellar.md)。ご意見は 6.14 / [feedback.md](features/feedback.md) |
 
 Auth コアの列はライブラリ版に従う。以下は実装時の参照用であり、**列名・追加列を凍結しない**。プラグイン追加で増える可能性がある。
 
@@ -114,6 +114,8 @@ erDiagram
     user ||--o{ ai_usage : "daily count"
     user ||--o| legal_consents : "signup consent"
     user ||--o| age_verifications : "age gate"
+    user ||--o{ feedbacks : "optional after delete"
+    feedbacks ||--o{ feedback_photos : "0-3"
     account_deletion_requests ||--o{ account_deletion_photo_tasks : "r2 keys"
     account_deletion_requests ||--o| account_deletion_records : "outbox"
     my_drinks ||--o{ drink_logs : "optional ref"
@@ -675,6 +677,39 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 
 履歴は 30 日で GC。退会者名は保存し続けない（表示時に「退会したメンバー」）。冪等は `(actor_user_id, cellar_id, operation_key)` を主キーにし、24h で捨てる。
 
+### 6.14 feedbacks / feedback_photos（ご意見・ご要望）
+
+設定から送った改善案・不具合。退会後も匿名で残す。[feedback.md](features/feedback.md)。
+
+#### feedbacks
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | UUID v4 |
+| userId | user_id | text | YES | FK → user.id **SET NULL** | 送信時は必須。退会で外す |
+| category | category | text | NO | CHECK `improvement` / `bug` / `other` | |
+| body | body | text | NO | 1〜2000（Zod） | 本文。メールは持たない |
+| createdAt | created_at | integer | NO | | UTC ms |
+
+#### feedback_photos
+
+`photos` テーブルには入れない（退会時の R2 回収に巻き込まれない）。
+
+| 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | UUID v4 |
+| feedbackId | feedback_id | text | NO | FK → feedbacks.id CASCADE | |
+| r2Key | r2_key | text | NO | UNIQUE。形は `feedback/{id}.{ext}` | サーバー生成。user_id / 元ファイル名を含めない |
+| contentType | content_type | text | NO | jpeg / png / webp | magic bytes |
+| byteSize | byte_size | integer | NO | ≦ 1 MiB | |
+| width / height | | integer | YES | | |
+| sortOrder | sort_order | integer | NO | 0〜2 | |
+| createdAt | created_at | integer | NO | | |
+
+- 1 件あたり最大 3 枚（Zod）
+- 配信 API は作らない。運営者は通知メールの添付と D1 / R2 で見る
+- 日次件数は `user_id IS NOT NULL` の行だけ数える（退会後の行は新しいアカウントの枠に入らない）
+
 ---
 
 ## 7. インデックス
@@ -705,6 +740,9 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | `legal_consents_user_uidx` | legal_consents | `user_id` UNIQUE | ユーザーあたり 1 同意 |
 | `account_deletion_photo_tasks_due_idx` | account_deletion_photo_tasks | `status`, `next_attempt_at` | 未完了タスクの再実行 |
 | `photo_object_reservations_user_lease_idx` | photo_object_reservations | `user_id`, `lease_until` | 期限切れ予約の回収 |
+| `feedbacks_user_created_idx` | feedbacks | `user_id`, `created_at` | 日次上限 |
+| `feedback_photos_feedback_idx` | feedback_photos | `feedback_id` | 添付の列挙 |
+| `feedback_photos_r2_key_uidx` | feedback_photos | `r2_key` UNIQUE | キー衝突防止 |
 
 名前検索（銘柄・生産者）は個人規模では `user_id` 絞り込み + `LIKE` で足りる。全文検索インデックスは作らない。
 
@@ -719,6 +757,8 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | 親 | 子 | ON DELETE | 理由 |
 |---|---|---|---|
 | `user.id` | 個人所有テーブル（`ai_usage` / `legal_consents` / `age_verifications` / `cellar_members` / `user_cellar_slots` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない。共有ボトルは CASCADE しない |
+| `user.id` | `feedbacks.user_id` | **SET NULL** | ご意見は匿名化して残す。メールは持たない |
+| `feedbacks.id` | `feedback_photos.feedback_id` | CASCADE | 本文を消すときだけ画像メタも消す（通常の退会では消さない） |
 | `user.id` | `cellars.owner_user_id` | **RESTRICT** | 他メンバーがいる共有セラーは移譲または削除が先 |
 | `cellars.id` | `bottles.cellar_id` / ボトル写真の `photos.cellar_id` | CASCADE | 共有セラー削除で在庫とボトル写真が消える |
 | `cellars.id` | `user_cellar_slots.shared_cellar_id` | SET NULL | 参加スロットを空ける |

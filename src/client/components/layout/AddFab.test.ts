@@ -22,6 +22,7 @@ describe("AddFab（00-common 1.4）", () => {
   it("作成・編集・詳細・他タブには出さない", () => {
     expect(addFabForRoute("/")).toBeNull();
     expect(addFabForRoute("/settings")).toBeNull();
+    expect(addFabForRoute("/settings/feedback")).toBeNull();
     expect(addFabForRoute("/cellar/new")).toBeNull();
     expect(addFabForRoute("/cellar/batch")).toBeNull();
     expect(addFabForRoute("/cellar/archive")).toBeNull();

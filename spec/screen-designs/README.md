@@ -36,6 +36,7 @@ Phase 1-07 の成果物。**全画面の要素・機能・状態・遷移・イ�
 | [08-first-run-guide.md](08-first-run-guide.md) | 初回ガイド（招待・練習。ルートなし） | 2026-09-08 |
 | [09-legal.md](09-legal.md) | `legal-terms` `legal-privacy` | 8-01 |
 | [10-account-deletion.md](10-account-deletion.md) | `settings-account-delete` `account-deleted` | 2026-09-11 |
+| [12-feedback.md](12-feedback.md) | `settings-feedback` | ご意見・ご要望 |
 
 ---
 

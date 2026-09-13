@@ -28,7 +28,7 @@ const CELLAR_TABLES = [
   "cellar_idempotency",
 ];
 
-const APP_TABLES = [...USER_SCOPED_TABLES, "bottles", "photos"];
+const APP_TABLES = [...USER_SCOPED_TABLES, "bottles", "photos", "feedbacks", "feedback_photos"];
 
 type Journal = { entries: { idx: number; tag: string }[] };
 
@@ -331,7 +331,7 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
 
   it("schema.ts の全テーブルについて列名・NOT NULL・インデックスが DB と一致する（generate 忘れ検知）", () => {
     const db = openMigratedDb();
-    expect(tables.length).toBe(23);
+    expect(tables.length).toBe(25);
     for (const table of tables) {
       const config = getTableConfig(table);
       const info = db.prepare(`PRAGMA table_info("${config.name}")`).all() as {
@@ -406,6 +406,28 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
     );
     expect(bottleCols).not.toContain("user_id");
     expect(bottleCols).toContain("cellar_id");
+    db.close();
+  });
+
+  it("feedbacks.user_id は ON DELETE SET NULL、feedback_photos は feedback_id のみ", () => {
+    const db = openMigratedDb();
+    const feedbackFks = db.prepare("PRAGMA foreign_key_list('feedbacks')").all() as {
+      table: string;
+      from: string;
+      to: string;
+      on_delete: string;
+    }[];
+    expect(feedbackFks.find((fk) => fk.from === "user_id")).toMatchObject({
+      table: "user",
+      to: "id",
+      on_delete: "SET NULL",
+    });
+    const photoFks = db.prepare("PRAGMA foreign_key_list('feedback_photos')").all() as {
+      table: string;
+      from: string;
+    }[];
+    expect(photoFks.filter((fk) => fk.from === "user_id")).toEqual([]);
+    expect(photoFks.find((fk) => fk.from === "feedback_id")?.table).toBe("feedbacks");
     db.close();
   });
 
@@ -563,6 +585,26 @@ describe("制約の挙動", () => {
 
   it("存在しない user の個人セラーは FK で拒否する", () => {
     expect(() => insertBottle(db, "b1", "ghost")).toThrow(/FOREIGN KEY/);
+  });
+
+  it("user 削除でご意見は user_id が NULL になり本文と添付は残る", () => {
+    db.prepare(
+      "INSERT INTO feedbacks (id, user_id, category, body, created_at) VALUES ('f1', 'u1', 'improvement', '棚が使いにくい', ?)",
+    ).run(NOW);
+    db.prepare(
+      "INSERT INTO feedback_photos (id, feedback_id, r2_key, content_type, byte_size, sort_order, created_at) VALUES ('fp1', 'f1', 'feedback/fp1.jpg', 'image/jpeg', 10, 0, ?)",
+    ).run(NOW);
+    db.prepare("DELETE FROM user WHERE id = 'u1'").run();
+    const row = db.prepare("SELECT user_id, body FROM feedbacks WHERE id = 'f1'").get() as {
+      user_id: string | null;
+      body: string;
+    };
+    expect(row.user_id).toBeNull();
+    expect(row.body).toBe("棚が使いにくい");
+    expect(
+      (db.prepare("SELECT id FROM feedback_photos WHERE id = 'fp1'").get() as { id: string } | undefined)
+        ?.id,
+    ).toBe("fp1");
   });
 
   it("オーナーが残っている個人セラーがあると user 削除は RESTRICT で失敗する", () => {
