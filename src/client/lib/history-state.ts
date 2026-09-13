@@ -21,7 +21,7 @@ export function historyHasFlag(state: unknown, flag: string): boolean {
 }
 
 /**
- * `photo-edit` のオーバーレイ用に 1 段積む history.state。
+ * `photo-edit` / `bottle-type-grid` のオーバーレイ用に 1 段積む history.state。
  * React Router の `idx` を 1 進めて引き継ぐ（後で `navigate(..., { replace: true })` したときに
  * router が正しい idx を書き戻せるようにする。idx が無いディープリンク直開きでは付けない）。
  */

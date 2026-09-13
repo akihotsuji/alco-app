@@ -36,7 +36,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | 開栓時の記録自動作成 | 作らない（2026-09-06）。1 杯は `log-new` |
 | ノート CRUD / ノート節の中身 | Phase 5。4-02 ではノート節を **出さない** |
 | 写真パイプライン本体（撮影・編集・`POST /api/photos`・未紐付け GC） | 2-08 済み。本フェーズは呼び出しと `photoIds` 紐付け、切り抜き（4-06）、陳列描画（4-04） |
-| 並び替え DnD | 作らない（`createdAt` 降順固定） |
+| 種類セクション自体の並べ替え | 作らない（12 種の定義順のまま） |
 | 共有セラーの招待・参加・権限 | [shared-cellar.md](shared-cellar.md) |
 
 ---
@@ -78,8 +78,8 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | C4 | 表示切替 | 「種類ごと」「1 本ずつ」。URL `?view=` と `localStorage` `cellar.listView`（既定 `one`） | クライアント |
 | C5 | 検索 | Chip → Input。品名・生産者・品種の部分一致。300ms デバウンス。最大 100 文字 | `q` |
 | C6 | 種類フィルタ | Chip「種類 ▼」→ 12 種ダイアログ。単一選択。選択中は「赤ワイン ×」。**種類ごと表示では非表示** | `drinkType` |
-| C8 | 棚（1 本ずつ） | 3 列 / 段（480px 以上は 4 列）。`createdAt` 降順（新しい本が左上）。段ごとにガラス棚板。最後の段が 1〜2 本でも棚板は横一杯 | `items[]` |
-| C9 | 棚（種類ごと） | 種類は 12 種の定義順。在庫 0 の種類は出さない。段は横スクロール（`scroll-snap`）。ゴースト見出し「種類名 N 本」（N は `countsByType`）。棚板は本数分の幅 | 種類ごとに `GET /api/bottles?view=cellar&drinkType=&limit=12` |
+| C8 | 棚（1 本ずつ） | 3 列 / 段（480px 以上は 4 列）。種類フィルタなしは `createdAt` 降順（新しい本が左上）。種類フィルタありは `sort_order` 昇順。段ごとにガラス棚板。最後の段が 1〜2 本でも棚板は横一杯 | `items[]` |
+| C9 | 棚（種類ごと） | 種類は 12 種の定義順。在庫 0 の種類は出さない。段は横スクロール（`scroll-snap`）。見出し「種類名 N 本 ›」（N は `countsByType`）はボタン。タップで `bottle-type-grid`。棚板は本数分の幅。段の並びは `sort_order` | 種類ごとに `GET /api/bottles?view=cellar&drinkType=&limit=12` |
 | C10 | ボトル | 切り抜き 100×150（種類ごとは 72×120）+ 名前 13px 1 行省略。`cutout` は contain・下端揃え。`photo` は cover・角 8px。無ければ種類別シルエット | `GET /api/photos/:id/content`、`thumbPhotoKind` |
 | C11 | サブ行 | 1 本ずつだけ。年があるときだけ出す。無ければ出さない（「NV」と書かない）。種類ごとでは出さない | `vintage` |
 | C12 | タップ | `/cellar/:bottleId` | — |
@@ -90,6 +90,24 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 - `q` / `drinkType` は URL に載せ、再訪で残す。空の `q` は付けない
 - `<img loading="lazy">`。同一オリジン GET なので Cookie が付く。切り抜きの背後に白を敷かない
 - 陳列の寸法・棚板トークン・シルエット形状は画面設計「陳列の写真」が正（4-04）
+- 種類内の任意並びは `bottle-type-grid`（3.1b）。種類セクション自体は並べ替えない
+
+### 3.1b `bottle-type-grid` 種類の棚（ルートなし）
+
+種類ごと表示の見出しから開く全画面オーバーレイ。`photo-edit` と同じく `pushState` 1 段。タブバーと FAB は隠す。画面の正本は [04-cellar.md](../screen-designs/04-cellar.md)。
+
+| # | 項目 | 内容 | データ |
+|---|---|---|---|
+| R1 | 完了 | ヘッダー左。閉じる＝保存。未変更なら通信しない | `PUT /api/bottles/order` |
+| R2 | タイトル | 種類名 + muted「N 本」（その種類の在庫。検索中はヒット数） | `countsByType` / 取得件数 |
+| R3 | 補足 | 検索なしのときだけ「長押しして並べ替え」 | — |
+| R4 | 棚 | 常に 4 列 × n 段。各段にガラス棚板。種類の sealed を全件 | `GET /api/bottles?view=cellar&drinkType=&limit=100` を cursor 完走 |
+| R5 | ボトル | 短いタップ → 詳細。長押し（約 400ms、移動 10px 未満）で持ち上げ、ドラッグでマスを入れ替え。検索中は並べ替え不可 | ローカル順 |
+| R6 | 保存 | 完了 / 端末戻る / シートを閉じる / `pagehide`・`visibilitychange=hidden` で dirty なら 1 回送る。成功トーストなし。失敗は閉じず汎用トースト | `bottleIds` がその種類の sealed 全件 |
+
+- ドラッグ中はサーバーへ送らない。「キャンセルで破棄」は置かない
+- 新規・復元・種類変更で棚に戻る本は、その種類の先頭（左上）
+- iOS 風の揺れ（jiggle）は置かない（無限アニメ禁止）
 
 | 状態 | 表示 |
 |---|---|
@@ -287,7 +305,7 @@ Zod は `src/shared` に置き、クライアントとサーバー（`@hono/zod-
 
 ### 4.2 更新（`PATCH /api/bottles/:id`）
 
-4.1 と同じフィールドを任意で送る（送ったものだけ更新）。`count` は受け取らない。`status` / `consumedAt` / `consumedOn` も受け取らない。空オブジェクトは 400。`photoIds` は **全体の差し替え**（`[表面, 裏面?]`。すでに紐付いている自分の写真 id はそのまま残し、新しい id は未紐付けから紐付け、配列に無い写真は R2 も削除）。残す写真も含めて添字を `sort_order` に書き直す。
+4.1 と同じフィールドを任意で送る（送ったものだけ更新）。`count` は受け取らない。`status` / `consumedAt` / `consumedOn` / `sortOrder` も受け取らない（並びは `PUT /api/bottles/order`）。`drinkType` を変えたら新しい種類の先頭へ置く。空オブジェクトは 400。`photoIds` は **全体の差し替え**（`[表面, 裏面?]`。すでに紐付いている自分の写真 id はそのまま残し、新しい id は未紐付けから紐付け、配列に無い写真は R2 も削除）。残す写真も含めて添字を `sort_order` に書き直す。
 
 ### 4.3 開栓 / 復元
 
@@ -320,9 +338,21 @@ Zod は `src/shared` に置き、クライアントとサーバー（`@hono/zod-
 
 | `view` | 対象 | 順 |
 |---|---|---|
-| `cellar`（既定） | `sealed` | `createdAt` 降順、同値は `id` 降順 |
+| `cellar`（既定）+ `drinkType` あり | `sealed` のその種類 | `sortOrder` 昇順、同値は `id` 昇順 |
+| `cellar`（既定）+ `drinkType` なし | `sealed` | `createdAt` 降順、同値は `id` 降順 |
 | `archive` | `consumed` | `consumedAt` 降順、同値は `id` 降順 |
 | `all` | 両方（ピッカー） | `createdAt` 降順、同値は `id` 降順 |
+
+`PUT /api/bottles/order`（`/:id` より **先に登録**）:
+
+| フィールド | 規則 | エラー文 |
+|---|---|---|
+| `drinkType` | 12 種。必須 | 「種類を選んでください」 |
+| `bottleIds` | UUID 配列。重複不可。1〜1000。そのセラーのその種類の sealed 全件と集合が一致 | 形式は「並び順が正しくありません」。集合不一致は 409 `conflict`。他セラー・他種類・consumed・不明は 404 |
+| `cellarId` | 任意。省略時は個人セラー | 「保存先のセラーが正しくありません」 |
+| `operationKey` | 任意。冪等 | — |
+
+成功: 200 `{ "ok": true }`。各行の `sort_order` を配列順の 0..n-1 にし、`version` とセラー `revision` を進める。活動ログは書かない。
 
 一覧の行は `thumbPhotoId` / `thumbPhotoKind`（`photo` / `cutout` / null。**`sort_order` 最小 = 表面**）。詳細・作成応答は `photos` メタ配列（`sort_order` 昇順。最大 2。`[0]` = 表面、`[1]` = 裏面）。`r2Key` / `userId` は出さない。
 
@@ -418,6 +448,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | 画面・操作 | API | 実装タスク |
 |---|---|---|
 | 棚一覧 | `GET /api/bottles?view=cellar&q=&drinkType=&limit=&cursor=` | 4-02（API）/ 4-04（棚 UI） |
+| 種類内の並び | `PUT /api/bottles/order` | 種類グリッド |
 | 貯蔵庫 | `GET /api/bottles?view=archive&…` | 4-03 |
 | ボトルピッカー | `GET /api/bottles?view=all&q=` | 4-02（`log-new` 行の有効化） |
 | 追加 | `POST /api/bottles`（`count`, `photoIds`） | 4-02 |
@@ -473,6 +504,14 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | E27 | 検索 `%` `_` | ワイルドカードにせずリテラル一致 |
 | E28 | 種類ごとで在庫 0 の種類 | 段を出さない |
 | E29 | 種類ごと + 検索で全種類 0 件 | フィルタ 0 の空状態 |
+| E49 | 種類見出しをタップ | `bottle-type-grid` が開き、その種類の sealed を 4 列で全件出す |
+| E50 | グリッドで長押しして入れ替え、完了 | `PUT /api/bottles/order`。種類ごとの段と、種類フィルタ中の 1 本ずつが同じ順になる |
+| E51 | グリッドを並べ替えたが未変更で閉じる | 通信しない |
+| E52 | 並べ替え保存が失敗 | オーバーレイは閉じない。汎用トースト。ローカル順は残す |
+| E53 | 検索中に見出しを開く | ヒットした本だけ出す。長押し並べ替えは無効。短いタップは詳細 |
+| E54 | 他メンバーが開栓したあと order を送る | 409。グリッドを再取得してやり直す |
+| E55 | 他人のセラーへ order | 404 |
+| E56 | 新規・復元・種類変更 | その種類の先頭（左上）。既存の任意順は後ろへずれる |
 | E30 | `?view=foo` | `one`（または localStorage）にフォールバック |
 | E31 | 不正な `:bottleId` | `not-found` |
 | E32 | 購入日が未来 | B7 無効 + 400 |
@@ -535,6 +574,9 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | 4-03 | 貯蔵庫の「ノートを書く」 | **出す**（着地は `/notes/new?bottleId=`。本体は Phase 5） | 4-03 手順書 / 画面設計 |
 | 4-02 | `log-new` のボトル行 | **4-02 で有効化** | drink-log 3.8 |
 | 4-02 | `view=all` の並び | `createdAt` 降順 | api-design 2.7。ピッカー用 |
+| 種類グリッド | 並び替え DnD | **種類内だけ**。4 列オーバーレイ。閉じる時に 1 回保存。jiggle なし | 2026-09-12 |
+| 種類グリッド | 新規の位置 | その種類の先頭（左上） | 従来の「新しい本が左」を維持 |
+| 種類グリッド | 1 本ずつ | 種類フィルタありだけ `sort_order`。混在棚は `createdAt` 降順 | 種類をまたぐ 1 本の順は持たない |
 | 4-03 | 確認ダイアログ | 開栓・復元に **出さない**。削除と未保存戻るだけ | 誤タップは 5 秒 undo |
 | 4-03 | 状態不一致 | consume / restore とも 404（403 にしない） | 存在を漏らさない |
 | 4-04 | 表示切替の記憶 | URL `?view=one\|type` + `localStorage` `cellar.listView`。既定 1 本ずつ | 04-cellar C4 |
@@ -594,7 +636,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 - [01-requirements.md](../01-requirements.md) 1.3
 - [api-design.md](../api-design.md) 4.5 / 4.7
 - [data-model.md](../data-model.md) 5.3 / 5.4 / 6.3 / 6.5 / 6.6
-- [screens.md](../screens.md)、[screen-designs/04-cellar.md](../screen-designs/04-cellar.md)、[06-settings.md](../screen-designs/06-settings.md) S5、[07-photo-capture.md](../screen-designs/07-photo-capture.md)
+- [screens.md](../screens.md)、[screen-designs/04-cellar.md](../screen-designs/04-cellar.md)（`bottle-type-grid`）、[06-settings.md](../screen-designs/06-settings.md) S5、[07-photo-capture.md](../screen-designs/07-photo-capture.md)
 - [motion-design.md](../motion-design.md) 9 章（開栓）
 - [photos.md](photos.md)、[drink-log.md](drink-log.md) 3.8、[character.md](../character.md)（セラー写真には合成しない）
 - [roadmap/phase-04-cellar/01-spec-cellar.md](../../roadmap/phase-04-cellar/01-spec-cellar.md)

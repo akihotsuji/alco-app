@@ -349,8 +349,12 @@ export function resolveAppRoute(
   return notFoundRoute();
 }
 
-export function hidesTabBar(pathname: string, photoEditOpen = false): boolean {
-  return photoEditOpen || resolveAppRoute(pathname).hideTabBar;
+export function hidesTabBar(
+  pathname: string,
+  photoEditOpen = false,
+  typeGridOpen = false,
+): boolean {
+  return photoEditOpen || typeGridOpen || resolveAppRoute(pathname).hideTabBar;
 }
 
 export function parentTabOf(pathname: string): TabId | null {

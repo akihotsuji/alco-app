@@ -31,6 +31,7 @@ export const CONFLICT_REASONS = [
   "owner_required",
   "capacity",
   "deleted",
+  "set",
 ] as const;
 export type ConflictReason = (typeof CONFLICT_REASONS)[number];
 

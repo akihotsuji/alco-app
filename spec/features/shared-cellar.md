@@ -53,8 +53,8 @@
 | 個人セラー | 各ユーザー 1 つ。名称は「自分のセラー」。既存データはここ |
 | 共有セラー | 招待で参加する在庫。名称は 1〜30 文字 |
 | オーナー | 招待・除名・名称変更・移譲・セラー削除ができる。ボトル操作もできる |
-| メンバー | 全ボトルの追加・編集・削除・開栓・復元ができる。管理操作は不可 |
-| revision | セラーの変更世代。ボトル CRUD・写真・参加者・設定で進む |
+| メンバー | 全ボトルの追加・編集・削除・開栓・復元・種類内の並び替えができる。管理操作は不可 |
+| revision | セラーの変更世代。ボトル CRUD・写真・参加者・設定・種類内の並び替えで進む |
 | version | ボトルの整数世代。更新・写真・開栓・復元・移動・削除の条件 |
 
 ---
@@ -85,7 +85,7 @@
 
 | 操作 | オーナー | メンバー | 非メンバー |
 |---|---|---|---|
-| ボトル閲覧・追加・編集・削除・開栓・復元 | 可 | 可 | 404 |
+| ボトル閲覧・追加・編集・削除・開栓・復元・種類内の並び替え | 可 | 可 | 404 |
 | 写真 GET / 304 / 差し替え（ボトル写真） | 可 | 可 | 404 |
 | 名称変更・招待発行 / 無効化・除名・セラー削除 | 可 | 不可（404） | 404 |
 | 脱退 | 他メンバーがいれば不可（先に移譲または削除） | 可 | 404 |
@@ -135,7 +135,7 @@
 | 招待 | `POST/GET/DELETE /api/cellars/:id/invitations`。確認・参加は `POST /api/cellar-invitations/preview\|accept`（トークンは本文） |
 | 移譲 | `POST /api/cellars/:id/transfers`、`POST .../accept`、`POST .../cancel` |
 | 履歴 | `GET /api/cellars/:id/activity` |
-| ボトル | 既存ルートに `cellarId` / `expectedVersion` / `operationKey`。`scope=accessible` は新クライアントのピッカー |
+| ボトル | 既存ルートに `cellarId` / `expectedVersion` / `operationKey`。`scope=accessible` は新クライアントのピッカー。種類内の並びは `PUT /api/bottles/order` |
 | 移動 | `POST /api/cellars/:id/moves` |
 
 旧クライアント:

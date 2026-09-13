@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import { type CSSProperties, useRef } from "react";
 import { BottleTile, type BottleTileMode } from "@/client/components/cellar/BottleTile.tsx";
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
@@ -16,6 +17,7 @@ type ShelfProps = {
   enterId?: string | null;
   canLoadMore?: boolean;
   onLoadMore?: () => void;
+  onOpenType?: () => void;
 };
 
 export function Shelf({
@@ -28,6 +30,7 @@ export function Shelf({
   enterId,
   canLoadMore = false,
   onLoadMore,
+  onOpenType,
 }: ShelfProps) {
   if (layout === "type") {
     return (
@@ -39,6 +42,7 @@ export function Shelf({
         enterId={enterId}
         canLoadMore={canLoadMore}
         onLoadMore={onLoadMore}
+        onOpenType={onOpenType}
       />
     );
   }
@@ -64,6 +68,23 @@ export function Shelf({
   );
 }
 
+export function TypeShelfHeading({ label, onOpen }: { label: string; onOpen?: () => void }) {
+  if (!onOpen) {
+    return <p className="shelf-ghost">{label}</p>;
+  }
+  return (
+    <button
+      type="button"
+      className="shelf-ghost-open"
+      onClick={onOpen}
+      aria-label={`${label}を開く`}
+    >
+      <span>{label}</span>
+      <ChevronRight aria-hidden size={28} />
+    </button>
+  );
+}
+
 function TypeShelf({
   items,
   mode,
@@ -72,6 +93,7 @@ function TypeShelf({
   enterId,
   canLoadMore,
   onLoadMore,
+  onOpenType,
 }: {
   items: readonly BottleItem[];
   mode: BottleTileMode;
@@ -80,13 +102,14 @@ function TypeShelf({
   enterId?: string | null;
   canLoadMore: boolean;
   onLoadMore?: () => void;
+  onOpenType?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const width = typeShelfWidthPx(items.length);
 
   return (
     <section className="shelf-type" data-highlight={highlight ? "1" : undefined}>
-      {ghostLabel ? <p className="shelf-ghost">{ghostLabel}</p> : null}
+      {ghostLabel ? <TypeShelfHeading label={ghostLabel} onOpen={onOpenType} /> : null}
       <div className="shelf-type-scroll" ref={scrollRef}>
         <div className="shelf-type-inner" style={{ minWidth: width }}>
           <div className="shelf-type-items">

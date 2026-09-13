@@ -3,6 +3,7 @@ import "./zod-config.ts";
 import {
   arrangedToastMessage,
   BOTTLE_MESSAGES,
+  BOTTLE_ORDER_MAX,
   bottlesQuerySchema,
   createBottleSchema,
   emptyCountsByType,
@@ -11,6 +12,7 @@ import {
   formatBottleCount,
   isPurchasedOnAllowed,
   normalizeOptionalText,
+  reorderBottlesSchema,
   updateBottleSchema,
 } from "./bottles.ts";
 
@@ -109,9 +111,10 @@ describe("updateBottleSchema", () => {
     expect(messagesOf(updateBottleSchema, {})[""]).toEqual([BOTTLE_MESSAGES.patchEmpty]);
   });
 
-  it("count / status は受け取らない", () => {
+  it("count / status / sortOrder は受け取らない", () => {
     expect(messagesOf(updateBottleSchema, { count: 2 })[""]).toBeDefined();
     expect(messagesOf(updateBottleSchema, { status: "consumed" })[""]).toBeDefined();
+    expect(messagesOf(updateBottleSchema, { sortOrder: 0 })[""]).toBeDefined();
   });
 
   it("部分更新を受ける", () => {
@@ -148,6 +151,35 @@ describe("bottlesQuerySchema", () => {
   it("drinkType=evil と未知キー status はエラー", () => {
     expect(bottlesQuerySchema.safeParse({ drinkType: "evil" }).success).toBe(false);
     expect(bottlesQuerySchema.safeParse({ status: "evil" }).success).toBe(false);
+  });
+});
+
+describe("reorderBottlesSchema", () => {
+  it("種類と重複のない id 配列を受ける", () => {
+    expect(
+      reorderBottlesSchema.parse({
+        drinkType: "wine_red",
+        bottleIds: [UUID],
+      }),
+    ).toEqual({ drinkType: "wine_red", bottleIds: [UUID] });
+  });
+
+  it("空・重複・上限超え・不正 id はエラー", () => {
+    expect(reorderBottlesSchema.safeParse({ drinkType: "wine_red", bottleIds: [] }).success).toBe(
+      false,
+    );
+    expect(
+      reorderBottlesSchema.safeParse({ drinkType: "wine_red", bottleIds: [UUID, UUID] }).success,
+    ).toBe(false);
+    expect(
+      reorderBottlesSchema.safeParse({
+        drinkType: "wine_red",
+        bottleIds: Array.from({ length: BOTTLE_ORDER_MAX + 1 }, () => UUID),
+      }).success,
+    ).toBe(false);
+    expect(
+      reorderBottlesSchema.safeParse({ drinkType: "wine_red", bottleIds: ["not-uuid"] }).success,
+    ).toBe(false);
   });
 });
 

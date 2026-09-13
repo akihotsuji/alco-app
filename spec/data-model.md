@@ -433,6 +433,7 @@ erDiagram
 | storage | storage | text | YES | ≦100 | 保管場所。新規作成で省略時は「自宅セラー」。既存行の空欄は補完しない |
 | memo | memo | text | YES | ≦2000 | メモ |
 | status | status | text | NO | CHECK enum, default `sealed` | 未開栓（棚） / 開栓（貯蔵庫） |
+| sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。意味があるのは `sealed`。範囲は `(cellar_id, drink_type)`。種類グリッドの任意順。新規・復元・種類変更は先頭 |
 | consumedAt | consumed_at | integer | YES | | 開栓日時（UTC ms）。`consumed` のとき必須、それ以外 NULL |
 | consumedOn | consumed_on | text | YES | `YYYY-MM-DD` | 開栓日（JST）。`consumed_at` からサーバー算出。貯蔵庫の月見出し |
 | createdAt | created_at | integer | NO | | |
@@ -691,6 +692,7 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | `bottles_cellar_status_idx` | bottles | `cellar_id`, `status` | 棚 / 貯蔵庫の切替、状態絞り込み |
 | `bottles_cellar_type_idx` | bottles | `cellar_id`, `drink_type` | 種類絞り込み |
 | `bottles_cellar_consumed_idx` | bottles | `cellar_id`, `consumed_at` | 貯蔵庫の並び（降順） |
+| `bottles_cellar_type_sort_idx` | bottles | `cellar_id`, `drink_type`, `status`, `sort_order` | 種類ごとの棚順 |
 | `cellars_owner_idx` | cellars | `owner_user_id` | 所有確認 |
 | `cellar_members_user_idx` | cellar_members | `user_id` | 参加セラー解決 |
 | `photos_cellar_created_idx` | photos | `cellar_id`, `created_at` | セラー写真 |
