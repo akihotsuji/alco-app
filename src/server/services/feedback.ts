@@ -64,12 +64,12 @@ export async function createFeedback(input: CreateFeedbackInput): Promise<{ ok: 
 
   const now = input.now ?? new Date();
   const dayStart = new Date(tokyoDayStartMs(tokyoToday(now)));
-  const [{ n }] = await input.db
+  const [daily] = await input.db
     .select({ n: count() })
     .from(feedbacks)
     .where(and(eq(feedbacks.userId, input.userId), gte(feedbacks.createdAt, dayStart)));
 
-  if (Number(n) >= FEEDBACK_DAILY_LIMIT) {
+  if (Number(daily?.n ?? 0) >= FEEDBACK_DAILY_LIMIT) {
     throw new ApiError("rate_limited");
   }
 

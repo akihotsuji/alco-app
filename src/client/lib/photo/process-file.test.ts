@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { takeFilesForBatch } from "./process-file.ts";
 
-const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "process-file.ts"), "utf8");
+const source = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "process-file.ts"),
+  "utf8",
+);
 
 function files(count: number): File[] {
   return Array.from({ length: count }, (_, index) => new File([], `p${index}.jpg`));

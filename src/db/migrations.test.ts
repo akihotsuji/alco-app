@@ -602,8 +602,11 @@ describe("制約の挙動", () => {
     expect(row.user_id).toBeNull();
     expect(row.body).toBe("棚が使いにくい");
     expect(
-      (db.prepare("SELECT id FROM feedback_photos WHERE id = 'fp1'").get() as { id: string } | undefined)
-        ?.id,
+      (
+        db.prepare("SELECT id FROM feedback_photos WHERE id = 'fp1'").get() as
+          | { id: string }
+          | undefined
+      )?.id,
     ).toBe("fp1");
   });
 

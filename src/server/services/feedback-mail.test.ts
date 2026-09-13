@@ -3,8 +3,8 @@ import { SERVICE_NAME_JA } from "@/shared/prod-canonical.ts";
 import {
   buildFeedbackEmailText,
   createFeedbackMailer,
-  type FeedbackMail,
   FEEDBACK_TO_KEY,
+  type FeedbackMail,
   feedbackMailSubject,
   readFeedbackTo,
 } from "./feedback-mail.ts";

@@ -3,8 +3,8 @@ import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import { decodeImage } from "@/client/lib/photo/decode-image.ts";
 import { fitToLongEdge, resizeKeepAspect } from "@/client/lib/photo/geometry.ts";
 import { type ProcessedPhoto, processLogPhoto, processPhoto } from "@/client/lib/photo/process.ts";
-import { toJpegBlobWithinLimit } from "@/client/lib/photo/to-jpeg-blob.ts";
 import { supportsBackgroundRemoval } from "@/client/lib/photo/remove-background.ts";
+import { toJpegBlobWithinLimit } from "@/client/lib/photo/to-jpeg-blob.ts";
 import { getComposeMascotPref, getCutoutPref } from "@/client/lib/preferences.ts";
 
 /**
