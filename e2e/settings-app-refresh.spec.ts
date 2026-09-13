@@ -4,9 +4,7 @@ import { PWA_NAME } from "../src/shared/pwa.ts";
 import { mainNav, signUpAsNewUser } from "./helpers/auth.ts";
 
 test.use({
-  video: process.env.WALKTHROUGH_DIR
-    ? { mode: "on", size: { width: 412, height: 915 } }
-    : "off",
+  video: process.env.WALKTHROUGH_DIR ? { mode: "on", size: { width: 412, height: 915 } } : "off",
 });
 
 test("設定に版表記と最新化があり、押すと設定へ戻る", async ({ page }) => {
