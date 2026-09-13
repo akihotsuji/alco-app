@@ -50,7 +50,9 @@ describe("法務文書", () => {
 
   it("見出しにセラー共有があり、公開プロフィールを約束しない", () => {
     expect(TERMS_DOCUMENT.sections.some((section) => section.heading === "セラー共有")).toBe(true);
-    expect(PRIVACY_DOCUMENT.sections.some((section) => section.heading === "セラー共有")).toBe(true);
+    expect(PRIVACY_DOCUMENT.sections.some((section) => section.heading === "セラー共有")).toBe(
+      true,
+    );
     const terms = allTexts(TERMS_DOCUMENT).join("\n");
     const privacy = allTexts(PRIVACY_DOCUMENT).join("\n");
     expect(terms).not.toContain("公開プロフィール");
