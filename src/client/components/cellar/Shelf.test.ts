@@ -20,6 +20,8 @@ describe("Shelf / BottleTile / CellarList", () => {
     expect(tile).toContain("data-enter");
     expect(tile).toContain("ContentPhoto");
     expect(tile).toContain("PHOTO_DISPLAY_SIZE.bottleTile");
+    expect(tile).toContain("suppressNativePress");
+    expect(tile).toContain("onContextMenu");
   });
 
   it("空状態と種類ごと / 1 本ずつの切替がある", () => {

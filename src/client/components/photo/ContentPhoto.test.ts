@@ -13,6 +13,7 @@ describe("ContentPhoto", () => {
   it("既定は lazy と async decode で、寸法を属性に出す", () => {
     expect(source).toContain('loading = "lazy"');
     expect(source).toContain('decoding="async"');
+    expect(source).toContain("draggable={false}");
     expect(source).toContain("width={size.width}");
     expect(source).toContain("height={size.height}");
     expect(source).toContain("logRow: { width: 48, height: 48 }");
