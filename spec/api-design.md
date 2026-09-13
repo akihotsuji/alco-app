@@ -189,7 +189,7 @@ WHERE id = :id AND user_id = :sessionUserId
 |---|---|
 | drink-logs | `drunkAt` 降順、同値は `id` 降順 |
 | my-drinks | `sortOrder` 昇順、同値は `id` 昇順 |
-| bottles | `createdAt` 降順、同値は `id` 降順 |
+| bottles | `view=cellar` かつ `drinkType` ありは `sortOrder` 昇順・同値は `id` 昇順。それ以外は `createdAt` 降順、同値は `id` 降順（`archive` は `consumedAt` 降順） |
 | tasting-notes | `tastedOn` 降順、同値は `id` 降順 |
 
 ### 2.8 日付とタイムゾーン
@@ -270,6 +270,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | POST | `/api/my-drinks/:id/log` | 必須 | 1 タップ記録 |
 | GET | `/api/bottles` | 必須 | 棚 / 貯蔵庫の一覧（`view`、検索・絞り込み） |
 | POST | `/api/bottles` | 必須 | ボトル作成（`count` 本を展開） |
+| PUT | `/api/bottles/order` | 必須 | 種類内の棚順（`drinkType` + `bottleIds`） |
 | GET | `/api/bottles/:id` | 必須 | 詳細（写真メタ含む） |
 | PATCH | `/api/bottles/:id` | 必須 | 部分更新（状態は変えない） |
 | DELETE | `/api/bottles/:id` | 必須 | 削除（写真 CASCADE、ノート・記録は残す） |
@@ -287,7 +288,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | PATCH | `/api/photos/:id` | 必須 | 紐付け・並び |
 | DELETE | `/api/photos/:id` | 必須 | メタと R2 を削除 |
 
-`GET /api/drink-logs/summary` と **`POST /api/drink-logs/recognize`** は `GET /api/drink-logs/:id` より**先に登録**する（`summary` / `recognize` を id と誤認しない）。同様に **`POST /api/bottles/recognize` は `/api/bottles/:id/*` より先**に登録する。`consume` / `restore` は `:id` の配下なので順序の問題はない。
+`GET /api/drink-logs/summary` と **`POST /api/drink-logs/recognize`** は `GET /api/drink-logs/:id` より**先に登録**する（`summary` / `recognize` を id と誤認しない）。同様に **`POST /api/bottles/recognize` と `PUT /api/bottles/order` は `/api/bottles/:id/*` より先**に登録する。`consume` / `restore` は `:id` の配下なので順序の問題はない。
 
 Cron（公開エンドポイントではない）: `scheduled` ハンドラで日次に未紐付け写真 GC を実行する。`wrangler.jsonc` の `triggers.crons`（例 `0 18 * * *` = JST 3:00）。
 
@@ -625,7 +626,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 | クエリ | 説明 |
 |---|---|
-| `view` | `cellar`（既定。`sealed`、`createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用） |
+| `view` | `cellar`（既定。`sealed`。`drinkType` ありは `sortOrder` 昇順、なしは `createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用。`createdAt` 降順） |
 | `q` | 品名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
 | `drinkType` | 12 種のいずれか |
 | `limit`, `cursor` | 2.7 |
@@ -640,11 +641,25 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 任意: `cellarId`（省略時は個人セラー。共有へ暗黙保存しない）、`operationKey`（冪等）。
 
-成功: 201 `{ "items": Bottle[] }`（`createdAt` は同一、`id` は個別）。
+成功: 201 `{ "items": Bottle[] }`（`createdAt` は同一、`id` は個別）。同じ種類の sealed の先頭（`MIN(sort_order) - 1` から N 本）に置く。
+
+#### PUT /api/bottles/order
+
+種類内の棚順。`/:id` より **先に登録**する。ボディは `drinkType`（必須）と `bottleIds`（そのセラーのその種類の sealed 全件。配列順が `sortOrder` 0..n-1）。任意で `cellarId`（省略時は個人セラー）と `operationKey`。
+
+サーバー:
+
+1. 対象セラーの有効メンバーでなければ 404
+2. `bottleIds` の重複・空要素・上限超え（1000）は 400
+3. いずれかが他セラー・他種類・`consumed`・不明なら **404**（同じ本文）
+4. ID 集合が現在の sealed と一致しなければ 409 `conflict`（`reason=set`）
+5. 一致したら `sort_order` を書き、各行の `version` とセラー `revision` を進める。活動ログは書かない
+
+成功: 200 `{ "ok": true }`。
 
 #### GET / PATCH / DELETE /api/bottles/:id
 
-PATCH は部分更新。`status` / `consumedAt` / `consumedOn` は受け取らない（開栓は 4.5.1、戻しは 4.5.2）。`photoIds` は差し替え（配列全体 `[表面, 裏面?]`。紐付け済みの自分の写真は残し、外れた写真は削除、添字を `sortOrder` に書き直す）。共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
+PATCH は部分更新。`status` / `consumedAt` / `consumedOn` / `sortOrder` は受け取らない（開栓は 4.5.1、戻しは 4.5.2、並びは 4.5 の `PUT /order`）。`drinkType` を変えたら新しい種類の先頭へ置く。`photoIds` は差し替え（配列全体 `[表面, 裏面?]`。紐付け済みの自分の写真は残し、外れた写真は削除、添字を `sortOrder` に書き直す）。共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
 
 DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` と記録の `bottleId` は SET NULL。本体は残る。貯蔵庫の本も削除できる。
 
@@ -662,7 +677,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 #### 4.5.2 POST /api/bottles/:id/restore
 
-空オブジェクト可。任意で `expectedVersion` / `operationKey`。メンバーのボトルで `status === "consumed"` のとき、`sealed` に戻し、`consumedAt` / `consumedOn` を null にする。それ以外は 404。**紐付いている記録は消さない**。共有は `expectedVersion` 必須。
+空オブジェクト可。任意で `expectedVersion` / `operationKey`。メンバーのボトルで `status === "consumed"` のとき、`sealed` に戻し、`consumedAt` / `consumedOn` を null にし、その種類の先頭へ置く。それ以外は 404。**紐付いている記録は消さない**。共有は `expectedVersion` 必須。
 
 成功: 200 `Bottle`。
 
@@ -973,7 +988,7 @@ src/server/
 | log-new / log-edit | POST / PATCH `/api/drink-logs`（`photoIds`, `bottleId`）、`POST /api/photos`、`GET /api/bottles?view=all&q=` |
 | mydrink-list / mydrink-new | `/api/my-drinks` |
 | summary-week / summary-month | `GET /api/drink-logs/summary?period=week\|month` |
-| bottle-list（棚） | `GET /api/bottles?view=cellar` |
+| bottle-list（棚） | `GET /api/bottles?view=cellar`、`PUT /api/bottles/order`（`bottle-type-grid`） |
 | bottle-archive（貯蔵庫） | `GET /api/bottles?view=archive` |
 | bottle-new / bottle-edit | `POST /api/bottles`（`count`, `photoIds`）、PATCH、`POST /api/photos`、`POST /api/bottles/recognize`（bottle-new のみ） |
 | bottle-detail | `GET /api/bottles/:id`、`POST /api/bottles/:id/consume`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |

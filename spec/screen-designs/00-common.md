@@ -52,7 +52,7 @@
   - `?camera=1` をアプリ内導線に付けない。ディープリンクでも記録・ノートのフォームは自動起動しない
 - タブ再タップ（通常タブのみ）: そのタブの根へ戻し、スクロールを先頭へ（`scrollTo({ top: 0, behavior: "smooth" })`。reduced motion では `auto`。M-22）
 - タブバー自体・アイコンの跳ね・バッジは動かさない
-- 作成・編集画面（`*-new` / `*-edit`）と `photo-edit` では **タブバーを隠す**
+- 作成・編集画面（`*-new` / `*-edit`）と `photo-edit` / `bottle-type-grid` では **タブバーを隠す**
 - safe-area: 下は `safe-area-inset-bottom`、横向きのノッチは左右 `safe-area-inset-left` / `right`（6-05。トークン `--safe-*`）
 - 320px 幅でラベルが折り返す場合は 11px まで縮める（中央ラベルは 12px 固定）
 
