@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:vars": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/ci/ensure-local-dev-vars.ts",
+    "dev:seed": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/ci/ensure-local-dev-user.ts",
     "build": "vite build",
     "preview": "vite preview",
     "dev:wrangler": "wrangler dev --env dev",

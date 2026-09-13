@@ -80,6 +80,7 @@ describe("secret inventory", () => {
     );
     expect(leaked).toEqual([]);
     expect(tracked).toContain(".dev.vars.example");
+    expect(tracked).not.toContain(".local-dev-user.json");
   });
 
   it("keeps .dev.vars.example as key names with empty local secrets", () => {

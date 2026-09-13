@@ -41,7 +41,7 @@
 | ビューポート | スマートフォン幅（Pixel 相当） |
 | ユーザー | 毎回サインアップ。固定シード・本番ユーザーは使わない。同一 IP の連続登録が Better Auth 既定（10 秒 3 回）に当たらないよう、HTTP の sign-up 上限は緩める（[auth.md](auth.md)） |
 | パスワード | 実行ごとに生成。コード・ログ・spec に本番秘密を書かない |
-| `BETTER_AUTH_SECRET` | CI はジョブ内で使い捨て生成して `.dev.vars` に書く。GitHub Secrets / 本番 wrangler secret は参照しない |
+| `BETTER_AUTH_SECRET` | CI はジョブ内で使い捨て生成して `.dev.vars` に書く。GitHub Secrets / 本番 wrangler secret は参照しない。手元・Cloud Agent は `pnpm dev:vars`（[local-dev.md](local-dev.md)） |
 
 `storageState` とトレースは git にコミットしない（`.gitignore` の `playwright/.auth/` / `test-results/` / `playwright-report/`）。
 

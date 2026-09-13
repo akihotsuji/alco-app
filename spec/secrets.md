@@ -52,6 +52,8 @@
 - 認識プロファイル（`AI_RECOGNITION_PROFILE` 等）は wrangler `vars`。秘密ではない。Google API キーは増やさない。[ai-recognition.md](features/ai-recognition.md)
 - 新規登録の一時停止は `SIGNUPS_CLOSED`（wrangler `vars`。秘密ではない。既定 `"0"`。`"1"` でメール登録と Google 新規を止める。8-06。[usage-monitoring.md](features/usage-monitoring.md)）
 - E2E / CI の `BETTER_AUTH_SECRET` はジョブ内で使い捨て生成する。GitHub Secrets にも本番 wrangler secret にもしない（[e2e.md](features/e2e.md)）
+- Cloud Agent / 手元の `pnpm dev:vars` も同じ。`.dev.vars` が無いか空のときだけ生成し、既存は上書きしない。値は git に出さない（[local-dev.md](features/local-dev.md)）
+- ローカル開発ユーザーのパスワードは `.local-dev-user.json`（gitignore）のみ。固定パスワードをコードに置かない
 - アプリコードは `src/server/env.ts` と `src/server/services/error-alert.ts` のキー名だけで読む。値は `.dev.vars` / wrangler secret から入る
 - `ALERT_WEBHOOK_URL` は `https:` のみ。トピック名や URL をチャット・spec に書かない（[monitoring.md](features/monitoring.md)）
 
@@ -64,8 +66,9 @@
 ### ローカル
 
 ```powershell
-copy .dev.vars.example .dev.vars
-# .dev.vars の BETTER_AUTH_SECRET に生成値を書く（git に含めない）
+pnpm dev:vars
+# または .dev.vars.example をコピーして BETTER_AUTH_SECRET を自分で書く
+# 値は git に含めない。既存の .dev.vars は上書きしない
 ```
 
 ### Workers dev

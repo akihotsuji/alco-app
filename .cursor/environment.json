@@ -2,6 +2,19 @@
   "name": "alco-app",
   "user": "ubuntu",
   "install": "if [ ! -f package.json ]; then echo 'alco-app: package.json がまだ無いためインストールをスキップします (greenfield)'; elif [ -f pnpm-lock.yaml ]; then corepack pnpm install --frozen-lockfile; else corepack pnpm install; fi",
+  "start": "bash scripts/cloud-agent-start.sh",
+  "terminals": [
+    {
+      "name": "Vite dev server",
+      "command": "CLOUDFLARE_VITE_FORCE_LOCAL=true pnpm exec vite --host 0.0.0.0 --port 5173 --strictPort",
+      "description": "アプリ本体。http://127.0.0.1:5173 。死活は GET /api/health。"
+    },
+    {
+      "name": "local-dev-user",
+      "command": "pnpm exec node --experimental-strip-types --disable-warning=ExperimentalWarning src/ci/ensure-local-dev-user.ts --wait",
+      "description": "health 後にローカル D1 へ開発ユーザーを作る。資格情報は .local-dev-user.json（git に出さない。パスワードをログやチャットに書かない）。"
+    }
+  ],
   "ports": [
     {
       "name": "Vite dev server",

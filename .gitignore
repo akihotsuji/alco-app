@@ -32,6 +32,7 @@ dev-dist/
 .mf/
 .dev.vars*
 !.dev.vars.example
+.local-dev-user.json
 .env*
 !.env.example
 !.env.*.example
