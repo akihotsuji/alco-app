@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { BottleItem } from "@/shared/bottles.ts";
 import { emptyCountsByType } from "@/shared/bottles.ts";
 import {
+  advanceTypeGridGesture,
   bottleTileVisual,
+  capturePointerSafe,
   chunkShelfRows,
   edgeScrollDelta,
   groupBottlesByConsumedMonth,
@@ -175,6 +177,57 @@ describe("moveItem / sameIdOrder / hit test", () => {
     expect(edgeScrollDelta(200, 0, 400, 56, 16)).toBe(0);
     expect(pointerMovedBeyond(0, 0, 6, 6)).toBe(false);
     expect(pointerMovedBeyond(0, 0, 10, 0)).toBe(true);
+  });
+
+  it("長押し待ちの移動はスクロールへ、成立後は drag のまま", () => {
+    const press = { kind: "press" as const, pointerId: 1, id: "a", x: 10, y: 40 };
+    const still = advanceTypeGridGesture(press, {
+      type: "move",
+      pointerId: 1,
+      clientX: 12,
+      clientY: 42,
+    });
+    expect(still.gesture).toEqual(press);
+    expect(still.scrollDy).toBe(0);
+
+    const yielded = advanceTypeGridGesture(press, {
+      type: "move",
+      pointerId: 1,
+      clientX: 10,
+      clientY: 0,
+    });
+    expect(yielded.gesture).toEqual({ kind: "scroll", pointerId: 1, lastY: 0 });
+    expect(yielded.scrollDy).toBe(40);
+
+    const scrolling = advanceTypeGridGesture(yielded.gesture, {
+      type: "move",
+      pointerId: 1,
+      clientX: 10,
+      clientY: -8,
+    });
+    expect(scrolling.scrollDy).toBe(8);
+
+    const lifted = advanceTypeGridGesture(press, { type: "longpress", id: "a" });
+    expect(lifted.gesture).toEqual({ kind: "drag", pointerId: 1, id: "a" });
+    expect(
+      advanceTypeGridGesture(yielded.gesture, { type: "longpress", id: "a" }).gesture.kind,
+    ).toBe("scroll");
+    expect(advanceTypeGridGesture(lifted.gesture, { type: "up", pointerId: 1 }).gesture.kind).toBe(
+      "idle",
+    );
+  });
+
+  it("離れたポインタへの capture は投げない", () => {
+    expect(() =>
+      capturePointerSafe(
+        {
+          setPointerCapture: () => {
+            throw new DOMException("InvalidStateError");
+          },
+        },
+        1,
+      ),
+    ).not.toThrow();
   });
 
   it("ボトル詳細だけグリッドを残し、他のセラー経路は閉じる", () => {
