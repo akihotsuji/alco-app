@@ -31,6 +31,7 @@ describe("TypeGridHost", () => {
     expect(overlay).toContain('document.addEventListener("contextmenu"');
     expect(overlay).toContain("advanceTypeGridGesture");
     expect(overlay).toContain("capturePointerSafe");
+    expect(overlay).toContain("shiftRectsForScroll");
   });
 
   it("種類グリッドの棚板は横一杯、タイル名は1行省略", () => {

@@ -215,6 +215,22 @@ export function capturePointerSafe(
   }
 }
 
+/** 持ち上げ開始時のマスをスクロール量だけずらす（入れ替え後の DOM を追わない） */
+export function shiftRectsForScroll(
+  rects: readonly ClientRectLike[],
+  scrollDeltaY: number,
+): ClientRectLike[] {
+  if (scrollDeltaY === 0) {
+    return [...rects];
+  }
+  return rects.map((rect) => ({
+    left: rect.left,
+    top: rect.top - scrollDeltaY,
+    width: rect.width,
+    height: rect.height,
+  }));
+}
+
 const CELLAR_DETAIL_RESERVED = new Set(["new", "archive", "batch", "share"]);
 
 /** `/cellar/:bottleId`（追加・貯蔵庫・共有は除く） */

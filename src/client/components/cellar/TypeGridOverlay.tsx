@@ -26,6 +26,7 @@ import {
   keepsTypeGrid,
   moveItem,
   sameIdOrder,
+  shiftRectsForScroll,
   TYPE_GRID_COLUMNS,
   TYPE_GRID_LONG_PRESS_MS,
   TYPE_GRID_PAGE_LIMIT,
@@ -94,6 +95,7 @@ export function TypeGridOverlay() {
   const savingRef = useRef(false);
   const gestureRef = useRef<TypeGridGesture>({ kind: "idle" });
   const pressTimerRef = useRef<number>(0);
+  const slotsRef = useRef<{ rects: DOMRect[]; scrollTop: number } | null>(null);
   const flipPrev = useRef(new Map<string, DOMRect>());
 
   useFocusTrap(visible, dialogRef);
@@ -270,6 +272,7 @@ export function TypeGridOverlay() {
 
   const endDrag = useCallback(() => {
     gestureRef.current = { kind: "idle" };
+    slotsRef.current = null;
     setLiftedId(null);
     blockClickBriefly();
   }, [blockClickBriefly]);
@@ -319,7 +322,11 @@ export function TypeGridOverlay() {
           scroller.scrollTop += delta;
         }
       }
-      const nextIndex = indexFromClientPoint(event.clientX, event.clientY, readRects());
+      const slots = slotsRef.current;
+      const rects = slots
+        ? shiftRectsForScroll(slots.rects, (scroller?.scrollTop ?? 0) - slots.scrollTop)
+        : readRects();
+      const nextIndex = indexFromClientPoint(event.clientX, event.clientY, rects);
       const currentIndex = itemsRef.current.findIndex((item) => item.id === drag.id);
       if (currentIndex < 0 || nextIndex === currentIndex) {
         return;
@@ -376,6 +383,10 @@ export function TypeGridOverlay() {
         return;
       }
       gestureRef.current = next.gesture;
+      slotsRef.current = {
+        rects: readRects(),
+        scrollTop: scrollerRef.current?.scrollTop ?? 0,
+      };
       setLiftedId(id);
       haptic("light");
     }, TYPE_GRID_LONG_PRESS_MS);

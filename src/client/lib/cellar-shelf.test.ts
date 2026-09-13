@@ -21,6 +21,7 @@ import {
   shelfColumns,
   shelfPageLimit,
   shelfRowIndex,
+  shiftRectsForScroll,
   typeShelfWidthPx,
   visibleDrinkTypes,
 } from "./cellar-shelf.ts";
@@ -215,6 +216,12 @@ describe("moveItem / sameIdOrder / hit test", () => {
     expect(advanceTypeGridGesture(lifted.gesture, { type: "up", pointerId: 1 }).gesture.kind).toBe(
       "idle",
     );
+  });
+
+  it("スクロールしたら持ち上げ時のマスだけ縦にずらす", () => {
+    const rects = [{ left: 10, top: 80, width: 40, height: 40 }];
+    expect(shiftRectsForScroll(rects, 0)[0]?.top).toBe(80);
+    expect(shiftRectsForScroll(rects, 20)[0]?.top).toBe(60);
   });
 
   it("離れたポインタへの capture は投げない", () => {
