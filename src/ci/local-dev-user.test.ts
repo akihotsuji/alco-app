@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AUTH_PASSWORD_MIN_LENGTH } from "@/shared/auth.ts";
+import { AUTH_PASSWORD_MIN_LENGTH } from "../shared/auth.ts";
 import {
   cookieHeaderFrom,
   createLocalDevUser,

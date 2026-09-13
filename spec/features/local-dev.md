@@ -38,7 +38,7 @@ Cloud Agent は `.cursor/environment.json` の `start` で vars + migrate、`ter
 
 ## 3. 開発ユーザー
 
-- メールは `local.dev@localhost`。パスワードは実行時生成。値は `.local-dev-user.json` だけに書く
+- メールは `local.dev@example.com`。パスワードは実行時生成。値は `.local-dev-user.json` だけに書く
 - 年齢確認済み（1990-01-15）。セラーにシルエット 2 本（赤・白）を空なら足す
 - チャット・コミット・ログにパスワードを出さない
 - 初回ガイドはブラウザの `localStorage`。画面では「今はしない」

@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { AUTH_PASSWORD_MIN_LENGTH } from "@/shared/auth.ts";
-import { LEGAL_VERSION } from "@/shared/legal.ts";
+import { AUTH_PASSWORD_MIN_LENGTH } from "../shared/auth.ts";
+import { LEGAL_VERSION } from "../shared/legal.ts";
 
 export const LOCAL_DEV_USER_FILE = ".local-dev-user.json";
-export const LOCAL_DEV_USER_EMAIL = "local.dev@localhost";
+export const LOCAL_DEV_USER_EMAIL = "local.dev@example.com";
 export const LOCAL_DEV_USER_NAME = "ローカル開発";
 export const LOCAL_DEV_ORIGIN = "http://127.0.0.1:5173";
 export const LOCAL_DEV_BIRTH_ON = "1990-01-15";
@@ -126,6 +126,21 @@ export async function waitForHealth(
   return false;
 }
 
+async function readErrorMessage(response: Response): Promise<string> {
+  try {
+    const body: unknown = await response.json();
+    if (typeof body === "object" && body !== null && "message" in body) {
+      const message = body.message;
+      if (typeof message === "string" && message.length > 0) {
+        return message;
+      }
+    }
+  } catch {
+    // 本文は必須ではない
+  }
+  return `HTTP ${response.status}`;
+}
+
 async function signIn(origin: string, user: LocalDevUser): Promise<string | null> {
   const response = await jsonRequest(origin, "/api/auth/sign-in/email", {
     method: "POST",
@@ -138,7 +153,7 @@ async function signIn(origin: string, user: LocalDevUser): Promise<string | null
   return cookie.length > 0 ? cookie : null;
 }
 
-async function signUp(origin: string, user: LocalDevUser): Promise<string | null> {
+async function signUp(origin: string, user: LocalDevUser): Promise<string> {
   const response = await jsonRequest(origin, "/api/auth/sign-up/email", {
     method: "POST",
     body: {
@@ -150,10 +165,15 @@ async function signUp(origin: string, user: LocalDevUser): Promise<string | null
     },
   });
   if (!response.ok) {
-    return null;
+    throw new Error(
+      `ローカル開発ユーザーの登録に失敗しました: ${await readErrorMessage(response)}`,
+    );
   }
   const cookie = cookieHeaderFrom(response);
-  return cookie.length > 0 ? cookie : null;
+  if (!cookie) {
+    throw new Error("ローカル開発ユーザーのセッション Cookie を取得できませんでした");
+  }
+  return cookie;
 }
 
 async function ensureAgeVerified(origin: string, cookie: string): Promise<void> {
@@ -211,19 +231,10 @@ export async function ensureLocalDevUser(
   origin = LOCAL_DEV_ORIGIN,
 ): Promise<{ user: LocalDevUser; created: boolean }> {
   const stored = readLocalDevUserFile(repoRoot);
-  if (stored) {
-    const cookie = await signIn(origin, stored);
-    if (cookie) {
-      await ensureAgeVerified(origin, cookie);
-      await seedBottles(origin, cookie);
-      return { user: stored, created: false };
-    }
-  }
-
   const user = stored ?? createLocalDevUser();
-  const cookie = (await signUp(origin, user)) ?? (await signIn(origin, user));
+  let cookie = stored ? await signIn(origin, user) : null;
   if (!cookie) {
-    throw new Error("ローカル開発ユーザーの登録またはログインに失敗しました");
+    cookie = await signUp(origin, user);
   }
   await ensureAgeVerified(origin, cookie);
   await seedBottles(origin, cookie);
