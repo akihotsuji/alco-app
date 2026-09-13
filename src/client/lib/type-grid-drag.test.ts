@@ -11,6 +11,7 @@ import {
   insertIndexFromPoint,
   invertFlip,
   isCurrentGeneration,
+  isSignificantViewportChange,
   mergeExternalBottleSet,
   moveSelectedId,
   nextSaveAttempt,
@@ -23,6 +24,7 @@ import {
   shouldAcceptServerOrder,
   shouldAnnouncePosition,
   shouldIgnorePointer,
+  shouldTreatLostCaptureAsInterrupt,
   TYPE_GRID_EDGE_SCROLL_MAX_PX_PER_SEC,
   TYPE_GRID_HYSTERESIS_PX,
   typeGridBoardRow,
@@ -264,6 +266,44 @@ describe("assist / a11y / generation", () => {
     expect(shouldIgnorePointer(1, 2, "idle")).toBe(false);
     expect(isCurrentGeneration(3, 2)).toBe(false);
     expect(isCurrentGeneration(3, 3)).toBe(true);
+    expect(
+      shouldTreatLostCaptureAsInterrupt({
+        ending: true,
+        transferringCapture: false,
+        phase: "drag",
+        stillCaptured: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldTreatLostCaptureAsInterrupt({
+        ending: false,
+        transferringCapture: true,
+        phase: "drag",
+        stillCaptured: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldTreatLostCaptureAsInterrupt({
+        ending: false,
+        transferringCapture: false,
+        phase: "drag",
+        stillCaptured: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldTreatLostCaptureAsInterrupt({
+        ending: false,
+        transferringCapture: false,
+        phase: "drag",
+        stillCaptured: false,
+      }),
+    ).toBe(true);
+    expect(
+      isSignificantViewportChange({ width: 412, height: 915 }, { width: 412, height: 900 }),
+    ).toBe(false);
+    expect(
+      isSignificantViewportChange({ width: 412, height: 915 }, { width: 915, height: 412 }),
+    ).toBe(true);
   });
 });
 

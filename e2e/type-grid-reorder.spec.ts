@@ -111,6 +111,7 @@ test("種類グリッドはタッチ長押しで指に追従し、ドロップ�
   const within = { x: from.x + 12, y: from.y + 8 };
   const last = await tileCenter(page, lastName);
   const client = await startTouchDrag(page, from);
+  await expect(dialog).toHaveAttribute("data-phase", "drag", { timeout: 8_000 });
   await moveTouch(client, within);
   const follow = page.locator(".type-grid-follow");
   await expect(follow.locator(".bottle-tile-name")).toHaveText(firstName);
@@ -122,12 +123,12 @@ test("種類グリッドはタッチ長押しで指に追従し、ドロップ�
   await moveTouch(client, { x: last.x, y: last.y });
   await page.waitForTimeout(80);
   await endTouch(client);
+  await expect(dialog).toHaveAttribute("data-phase", "idle", { timeout: 8_000 });
   await expect(page.locator(".type-grid-follow .bottle-tile")).toHaveCount(0);
+  await expect(dialog.locator("[aria-live='polite']")).not.toHaveText("移動を取り消しました");
 
   const namesAfter = await dialog.locator(".type-grid-cell .bottle-tile-name").allTextContents();
-  expect(namesAfter).toHaveLength(5);
-  expect(namesAfter[0]).not.toBe(firstName);
-  expect(namesAfter).toContain(firstName);
+  expect(namesAfter).toEqual([...namesBefore.slice(1), firstName]);
 
   await dialog.getByRole("button", { name: firstName }).click();
   await expect(page.getByRole("heading", { name: firstName })).toBeVisible();

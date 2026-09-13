@@ -27,12 +27,14 @@ import {
   grabOffset,
   invertFlip,
   isCurrentGeneration,
+  isSignificantViewportChange,
   orderFromInsert,
   pickInsertIndex,
   pointInRect,
   readCssDurationMs,
   shouldAnnouncePosition,
   shouldIgnorePointer,
+  shouldTreatLostCaptureAsInterrupt,
   TYPE_GRID_LIFT_PX,
   TYPE_GRID_SETTLE_MS,
   type TypeGridPhase,
@@ -62,6 +64,7 @@ type DragSession = {
   lastFrameAt: number;
   lastAnnounceAt: number;
   captureTarget: Element | null;
+  transferringCapture: boolean;
 };
 
 function emptySession(): DragSession {
@@ -84,6 +87,7 @@ function emptySession(): DragSession {
     lastFrameAt: 0,
     lastAnnounceAt: 0,
     captureTarget: null,
+    transferringCapture: false,
   };
 }
 
@@ -240,6 +244,7 @@ export function useTypeGridDrag(input: {
       session.slots = null;
       session.ending = false;
       session.captureTarget = null;
+      session.transferringCapture = false;
       session.lastFrameAt = 0;
       gestureRef.current = { kind: "idle" };
       setPhase("idle");
@@ -510,6 +515,16 @@ export function useTypeGridDrag(input: {
       scrollTop: inputRef.current.scrollerRef.current?.scrollTop ?? 0,
     };
     session.lastFrameAt = 0;
+    // タイルは挿入プレビューで DOM 順が変わる。capture を動かない親へ移す
+    const grid = inputRef.current.gridRef.current;
+    const host = grid?.closest(".type-grid") ?? grid;
+    if (host && session.pointerId !== null) {
+      session.transferringCapture = true;
+      if (capturePointerSafe(host, session.pointerId)) {
+        session.captureTarget = host;
+      }
+      session.transferringCapture = false;
+    }
     gestureRef.current = {
       kind: "drag",
       pointerId: session.pointerId ?? 0,
@@ -680,15 +695,38 @@ export function useTypeGridDrag(input: {
 
     function onLost(event: PointerEvent) {
       const session = sessionRef.current;
-      if (session.ending || session.pointerId !== event.pointerId) {
+      if (session.pointerId !== event.pointerId) {
         return;
       }
-      if (session.phase === "press" || session.phase === "drag" || session.phase === "scroll") {
-        cancelActiveGesture();
+      const stillCaptured = Boolean(
+        session.captureTarget &&
+          "hasPointerCapture" in session.captureTarget &&
+          session.captureTarget.hasPointerCapture(event.pointerId),
+      );
+      if (
+        !shouldTreatLostCaptureAsInterrupt({
+          ending: session.ending,
+          transferringCapture: session.transferringCapture,
+          phase: session.phase,
+          stillCaptured,
+        })
+      ) {
+        return;
       }
+      if (session.captureTarget && capturePointerSafe(session.captureTarget, event.pointerId)) {
+        return;
+      }
+      cancelActiveGesture();
     }
 
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
     function onViewportChange() {
+      const next = { width: window.innerWidth, height: window.innerHeight };
+      if (!isSignificantViewportChange(viewport, next)) {
+        return;
+      }
+      viewport.width = next.width;
+      viewport.height = next.height;
       const session = sessionRef.current;
       if (session.phase === "press" || session.phase === "drag" || session.phase === "scroll") {
         cancelActiveGesture();

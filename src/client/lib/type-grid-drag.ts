@@ -359,6 +359,27 @@ export function isCurrentGeneration(current: number, expected: number): boolean 
   return current === expected;
 }
 
+export function shouldTreatLostCaptureAsInterrupt(input: {
+  ending: boolean;
+  transferringCapture: boolean;
+  phase: TypeGridPhase;
+  stillCaptured: boolean;
+}): boolean {
+  if (input.ending || input.transferringCapture || input.stillCaptured) {
+    return false;
+  }
+  return input.phase === "press" || input.phase === "drag" || input.phase === "scroll";
+}
+
+export function isSignificantViewportChange(
+  previous: { width: number; height: number },
+  next: { width: number; height: number },
+): boolean {
+  return (
+    Math.abs(next.width - previous.width) >= 48 || Math.abs(next.height - previous.height) >= 96
+  );
+}
+
 export function readCssDurationMs(
   styles: { getPropertyValue: (name: string) => string },
   name: string,

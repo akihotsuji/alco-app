@@ -405,6 +405,7 @@ export function TypeGridOverlay() {
       aria-modal="true"
       aria-labelledby="type-grid-title"
       aria-hidden={visible ? undefined : true}
+      data-phase={drag.phase}
     >
       <header className="type-grid-bar">
         <button
