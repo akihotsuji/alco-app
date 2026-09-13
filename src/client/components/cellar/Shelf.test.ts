@@ -28,6 +28,9 @@ describe("Shelf / BottleTile / CellarList", () => {
     expect(css).toContain(".bottle-tile-press-shield");
     expect(css).toContain(".type-grid-cell img");
     expect(css).toContain("-webkit-touch-callout: none");
+    expect(css).toContain(".type-grid-row .shelf-board");
+    expect(css).toContain("grid-template-columns: repeat(4, minmax(0, 1fr))");
+    expect(css).toContain("text-overflow: ellipsis");
   });
 
   it("空状態と種類ごと / 1 本ずつの切替がある", () => {

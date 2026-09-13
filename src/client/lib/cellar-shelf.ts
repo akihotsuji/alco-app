@@ -157,6 +157,80 @@ export function pointerMovedBeyond(
   return dx * dx + dy * dy >= thresholdPx * thresholdPx;
 }
 
+export type TypeGridGesture =
+  | { kind: "idle" }
+  | { kind: "press"; pointerId: number; id: string; x: number; y: number }
+  | { kind: "scroll"; pointerId: number; lastY: number }
+  | { kind: "drag"; pointerId: number; id: string };
+
+/**
+ * 長押し待ち中にブラウザへポインタを渡すと `pointercancel` で並べ替えが死ぬ。
+ * 閾値を超えた移動はリストの手動スクロールへ切り替え、成立後だけ drag にする。
+ */
+export function advanceTypeGridGesture(
+  gesture: TypeGridGesture,
+  input:
+    | { type: "move"; pointerId: number; clientX: number; clientY: number }
+    | { type: "longpress"; id: string }
+    | { type: "up"; pointerId: number },
+): { gesture: TypeGridGesture; scrollDy: number } {
+  if (input.type === "up") {
+    if (gesture.kind === "idle" || gesture.pointerId !== input.pointerId) {
+      return { gesture, scrollDy: 0 };
+    }
+    return { gesture: { kind: "idle" }, scrollDy: 0 };
+  }
+  if (input.type === "longpress") {
+    if (gesture.kind !== "press" || gesture.id !== input.id) {
+      return { gesture, scrollDy: 0 };
+    }
+    return { gesture: { kind: "drag", pointerId: gesture.pointerId, id: gesture.id }, scrollDy: 0 };
+  }
+  if (gesture.kind === "press" && gesture.pointerId === input.pointerId) {
+    if (pointerMovedBeyond(gesture.x, gesture.y, input.clientX, input.clientY)) {
+      return {
+        gesture: { kind: "scroll", pointerId: input.pointerId, lastY: input.clientY },
+        scrollDy: gesture.y - input.clientY,
+      };
+    }
+    return { gesture, scrollDy: 0 };
+  }
+  if (gesture.kind === "scroll" && gesture.pointerId === input.pointerId) {
+    return {
+      gesture: { kind: "scroll", pointerId: input.pointerId, lastY: input.clientY },
+      scrollDy: gesture.lastY - input.clientY,
+    };
+  }
+  return { gesture, scrollDy: 0 };
+}
+
+export function capturePointerSafe(
+  target: { setPointerCapture: (pointerId: number) => void },
+  pointerId: number,
+): void {
+  try {
+    target.setPointerCapture(pointerId);
+  } catch {
+    // 指が既に離れていると InvalidStateError
+  }
+}
+
+/** 持ち上げ開始時のマスをスクロール量だけずらす（入れ替え後の DOM を追わない） */
+export function shiftRectsForScroll(
+  rects: readonly ClientRectLike[],
+  scrollDeltaY: number,
+): ClientRectLike[] {
+  if (scrollDeltaY === 0) {
+    return [...rects];
+  }
+  return rects.map((rect) => ({
+    left: rect.left,
+    top: rect.top - scrollDeltaY,
+    width: rect.width,
+    height: rect.height,
+  }));
+}
+
 const CELLAR_DETAIL_RESERVED = new Set(["new", "archive", "batch", "share"]);
 
 /** `/cellar/:bottleId`（追加・貯蔵庫・共有は除く） */

@@ -7,6 +7,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const host = readFileSync(join(here, "TypeGridHost.tsx"), "utf8");
 const overlay = readFileSync(join(here, "TypeGridOverlay.tsx"), "utf8");
 const shell = readFileSync(join(here, "../layout/AppShell.tsx"), "utf8");
+const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
 describe("TypeGridHost", () => {
   it("開いているときだけ種類グリッドを dynamic import する", () => {
@@ -28,5 +29,16 @@ describe("TypeGridHost", () => {
     expect(overlay).toContain("suppressNativePress");
     expect(overlay).toContain("onContextMenu");
     expect(overlay).toContain('document.addEventListener("contextmenu"');
+    expect(overlay).toContain("advanceTypeGridGesture");
+    expect(overlay).toContain("capturePointerSafe");
+    expect(overlay).toContain("shiftRectsForScroll");
+  });
+
+  it("種類グリッドの棚板は横一杯、タイル名は1行省略", () => {
+    expect(css).toContain(".type-grid-row .shelf-board");
+    expect(css).toContain(".type-grid-row-items");
+    expect(css).not.toContain(".type-grid {\n  touch-action: pan-y;");
+    expect(css).toMatch(/\.type-grid-cell \{[\s\S]*?touch-action: none;/);
+    expect(css).toMatch(/\.bottle-tile-name,[\s\S]*?text-overflow: ellipsis/);
   });
 });

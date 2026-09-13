@@ -18,16 +18,19 @@ import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { newOperationKey } from "@/client/lib/cellar-share.ts";
 import {
+  advanceTypeGridGesture,
+  capturePointerSafe,
   chunkShelfRows,
   edgeScrollDelta,
   indexFromClientPoint,
   keepsTypeGrid,
   moveItem,
-  pointerMovedBeyond,
   sameIdOrder,
+  shiftRectsForScroll,
   TYPE_GRID_COLUMNS,
   TYPE_GRID_LONG_PRESS_MS,
   TYPE_GRID_PAGE_LIMIT,
+  type TypeGridGesture,
 } from "@/client/lib/cellar-shelf.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
@@ -90,18 +93,9 @@ export function TypeGridOverlay() {
   const searchRef = useRef(searchActive);
   searchRef.current = searchActive;
   const savingRef = useRef(false);
-  const dragRef = useRef<{
-    id: string;
-    pointerId: number;
-  } | null>(null);
-  const pressRef = useRef<{
-    x: number;
-    y: number;
-    index: number;
-    id: string;
-    pointerId: number;
-    timer: number;
-  } | null>(null);
+  const gestureRef = useRef<TypeGridGesture>({ kind: "idle" });
+  const pressTimerRef = useRef<number>(0);
+  const slotsRef = useRef<{ rects: DOMRect[]; scrollTop: number } | null>(null);
   const flipPrev = useRef(new Map<string, DOMRect>());
 
   useFocusTrap(visible, dialogRef);
@@ -264,20 +258,24 @@ export function TypeGridOverlay() {
   const rows = chunkShelfRows(items, TYPE_GRID_COLUMNS);
   const countLabel = formatBottleCount(loadedAll ? items.length : (session?.count ?? items.length));
 
-  const clearPress = useCallback(() => {
-    const press = pressRef.current;
-    if (press) {
-      window.clearTimeout(press.timer);
+  const clearPressTimer = useCallback(() => {
+    if (pressTimerRef.current) {
+      window.clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = 0;
     }
-    pressRef.current = null;
   }, []);
 
-  const endDrag = useCallback(() => {
-    dragRef.current = null;
-    setLiftedId(null);
+  const blockClickBriefly = useCallback(() => {
     setBlockNavigate(true);
     window.setTimeout(() => setBlockNavigate(false), 400);
   }, []);
+
+  const endDrag = useCallback(() => {
+    gestureRef.current = { kind: "idle" };
+    slotsRef.current = null;
+    setLiftedId(null);
+    blockClickBriefly();
+  }, [blockClickBriefly]);
 
   const readRects = useCallback(() => {
     const root = gridRef.current;
@@ -291,14 +289,27 @@ export function TypeGridOverlay() {
 
   const onPointerMove = useCallback(
     (event: PointerEvent) => {
-      const press = pressRef.current;
-      if (press && press.pointerId === event.pointerId) {
-        if (pointerMovedBeyond(press.x, press.y, event.clientX, event.clientY)) {
-          clearPress();
+      const current = gestureRef.current;
+      const next = advanceTypeGridGesture(current, {
+        type: "move",
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      });
+      if (next.gesture.kind === "scroll" && current.kind === "press") {
+        clearPressTimer();
+        blockClickBriefly();
+      }
+      gestureRef.current = next.gesture;
+      if (next.scrollDy !== 0) {
+        event.preventDefault();
+        const scroller = scrollerRef.current;
+        if (scroller) {
+          scroller.scrollTop += next.scrollDy;
         }
         return;
       }
-      const drag = dragRef.current;
+      const drag = next.gesture.kind === "drag" ? next.gesture : null;
       if (!drag || drag.pointerId !== event.pointerId) {
         return;
       }
@@ -311,28 +322,34 @@ export function TypeGridOverlay() {
           scroller.scrollTop += delta;
         }
       }
-      const nextIndex = indexFromClientPoint(event.clientX, event.clientY, readRects());
+      const slots = slotsRef.current;
+      const rects = slots
+        ? shiftRectsForScroll(slots.rects, (scroller?.scrollTop ?? 0) - slots.scrollTop)
+        : readRects();
+      const nextIndex = indexFromClientPoint(event.clientX, event.clientY, rects);
       const currentIndex = itemsRef.current.findIndex((item) => item.id === drag.id);
       if (currentIndex < 0 || nextIndex === currentIndex) {
         return;
       }
-      setItems((current) => moveItem(current, currentIndex, nextIndex));
+      setItems((currentItems) => moveItem(currentItems, currentIndex, nextIndex));
     },
-    [clearPress, readRects],
+    [blockClickBriefly, clearPressTimer, readRects],
   );
 
   const onPointerUp = useCallback(
     (event: PointerEvent) => {
-      const press = pressRef.current;
-      if (press && press.pointerId === event.pointerId) {
-        clearPress();
+      const current = gestureRef.current;
+      const next = advanceTypeGridGesture(current, { type: "up", pointerId: event.pointerId });
+      if (next.gesture.kind === "idle" && current.kind !== "idle") {
+        clearPressTimer();
       }
-      const drag = dragRef.current;
-      if (drag && drag.pointerId === event.pointerId) {
+      if (current.kind === "drag" && current.pointerId === event.pointerId) {
         endDrag();
+        return;
       }
+      gestureRef.current = next.gesture;
     },
-    [clearPress, endDrag],
+    [clearPressTimer, endDrag],
   );
 
   useEffect(() => {
@@ -346,31 +363,33 @@ export function TypeGridOverlay() {
     };
   }, [onPointerMove, onPointerUp]);
 
-  function onCellPointerDown(event: ReactPointerEvent<HTMLElement>, index: number, id: string) {
+  function onCellPointerDown(event: ReactPointerEvent<HTMLElement>, id: string) {
     if (!canReorder || event.button !== 0) {
       return;
     }
-    clearPress();
+    clearPressTimer();
     const pointerId = event.pointerId;
-    const target = event.currentTarget;
-    pressRef.current = {
+    gestureRef.current = {
+      kind: "press",
+      pointerId,
+      id,
       x: event.clientX,
       y: event.clientY,
-      index,
-      id,
-      pointerId,
-      timer: window.setTimeout(() => {
-        const press = pressRef.current;
-        if (!press || press.id !== id) {
-          return;
-        }
-        pressRef.current = null;
-        dragRef.current = { id, pointerId };
-        setLiftedId(id);
-        haptic("light");
-        target.setPointerCapture(pointerId);
-      }, TYPE_GRID_LONG_PRESS_MS),
     };
+    capturePointerSafe(event.currentTarget, pointerId);
+    pressTimerRef.current = window.setTimeout(() => {
+      const next = advanceTypeGridGesture(gestureRef.current, { type: "longpress", id });
+      if (next.gesture.kind !== "drag") {
+        return;
+      }
+      gestureRef.current = next.gesture;
+      slotsRef.current = {
+        rects: readRects(),
+        scrollTop: scrollerRef.current?.scrollTop ?? 0,
+      };
+      setLiftedId(id);
+      haptic("light");
+    }, TYPE_GRID_LONG_PRESS_MS);
   }
 
   if (!open || !session || !drinkType) {
@@ -415,8 +434,7 @@ export function TypeGridOverlay() {
             {rows.map((row, rowIndex) => (
               <div className="type-grid-row" key={row[0]?.id ?? String(rowIndex)}>
                 <div className="type-grid-row-items">
-                  {row.map((item, indexInRow) => {
-                    const index = rowIndex * TYPE_GRID_COLUMNS + indexInRow;
+                  {row.map((item) => {
                     const lifted = liftedId === item.id;
                     return (
                       <div
@@ -431,7 +449,7 @@ export function TypeGridOverlay() {
                           size="type"
                           preventNavigate={blockNavigate || lifted}
                           suppressNativePress
-                          onPointerDown={(event) => onCellPointerDown(event, index, item.id)}
+                          onPointerDown={(event) => onCellPointerDown(event, item.id)}
                         />
                       </div>
                     );

@@ -2600,10 +2600,6 @@ img[data-state="loaded"] {
   overscroll-behavior: none;
 }
 
-.type-grid {
-  touch-action: pan-y;
-}
-
 .type-grid.is-hidden {
   visibility: hidden;
   pointer-events: none;
@@ -2645,6 +2641,7 @@ img[data-state="loaded"] {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 0 calc(var(--page-pad-x) + var(--safe-right)) calc(var(--space-5) + var(--safe-bottom))
     calc(var(--page-pad-x) + var(--safe-left));
 }
@@ -2659,6 +2656,16 @@ img[data-state="loaded"] {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  width: 100%;
+  min-width: 0;
+}
+
+.type-grid-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  min-width: 0;
 }
 
 .type-grid-row-items {
@@ -2666,10 +2673,21 @@ img[data-state="loaded"] {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   align-items: end;
+  width: 100%;
+  min-width: 0;
+}
+
+.type-grid-row .shelf-board {
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
 }
 
 .type-grid-cell {
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -2686,10 +2704,12 @@ img[data-state="loaded"] {
 }
 
 .bottle-tile[data-press-safe="1"] {
+  width: 100%;
+  max-width: 100%;
   -webkit-touch-callout: none;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
 .bottle-tile-press-shield {
@@ -4692,8 +4712,14 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 
 .bottle-tile-name,
 .bottle-tile-sub {
+  display: block;
+  box-sizing: border-box;
   overflow: hidden;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
