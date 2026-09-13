@@ -44,6 +44,7 @@ import { hashRequestBody } from "./cellar-crypto.ts";
 import { idempotencyInsert, readIdempotentResult, recoverIdempotentResult } from "./idempotency.ts";
 import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
+import { deletePhotoR2Objects } from "./r2-delete.ts";
 
 type BottleRow = typeof bottles.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
@@ -322,7 +323,7 @@ async function removeDetachedPhoto(
   photo: PhotoRow,
 ): Promise<void> {
   try {
-    await bucket.delete(photo.r2Key);
+    await deletePhotoR2Objects(bucket, photo.r2Key);
     await db
       .delete(photos)
       .where(and(eq(photos.id, photo.id), eq(photos.userId, userId), isNull(photos.bottleId)));
@@ -480,7 +481,7 @@ export async function createBottles(input: {
       }
     } catch (error) {
       await Promise.all(
-        flatCopies().map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)),
+        flatCopies().map((copy) => deletePhotoR2Objects(bucket, copy.r2Key).catch(() => undefined)),
       );
       throw error;
     }
@@ -606,7 +607,9 @@ export async function createBottles(input: {
     }
     await db.batch([firstStatement, ...rest]);
   } catch (error) {
-    await Promise.all(flatCopies().map((copy) => bucket.delete(copy.r2Key).catch(() => undefined)));
+    await Promise.all(
+      flatCopies().map((copy) => deletePhotoR2Objects(bucket, copy.r2Key).catch(() => undefined)),
+    );
     if (body.operationKey) {
       const recovered = await recoverIdempotentResult<{ items: Bottle[] }>(db, {
         actorUserId: userId,
@@ -1394,7 +1397,7 @@ export async function deleteBottle(input: {
   for (const photo of photoRows) {
     const scope = eq(photos.id, photo.id);
     try {
-      await bucket.delete(photo.r2Key);
+      await deletePhotoR2Objects(bucket, photo.r2Key);
       await db.delete(photos).where(scope);
     } catch {
       await db

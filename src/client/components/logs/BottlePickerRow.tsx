@@ -207,7 +207,7 @@ export function BottlePickerRow({
                   {item.thumbPhotoId ? (
                     <ContentPhoto
                       className="bottle-picker-thumb"
-                      src={photoContentUrl(item.thumbPhotoId)}
+                      src={photoContentUrl(item.thumbPhotoId, "thumb")}
                       size={PHOTO_DISPLAY_SIZE.bottlePicker}
                     />
                   ) : (

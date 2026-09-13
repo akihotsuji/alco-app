@@ -27,15 +27,23 @@ import {
 import { tokyoDayStartMs, tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import {
+  type GeneratedPhotoThumb,
+  generatePhotoThumb,
+  photoThumbContentType,
+  photoThumbR2Key,
+} from "../lib/photo-thumb.ts";
+import {
   type AccessibleBottle,
   bumpCellarRevision,
   recordActivity,
   requireAccessibleBottle,
 } from "./cellar-access.ts";
 import { ImageInspectFailure, inspectImageBytes } from "./image-inspect.ts";
+import { deletePhotoR2Objects } from "./r2-delete.ts";
 
 export type PhotoObject = {
   arrayBuffer(): Promise<ArrayBuffer>;
+  contentType?: string;
 };
 
 export type PhotoBucket = {
@@ -59,7 +67,10 @@ export function wrapR2Bucket(bucket: R2Bucket): PhotoBucket {
       if (!object) {
         return null;
       }
-      return { arrayBuffer: () => object.arrayBuffer() };
+      return {
+        arrayBuffer: () => object.arrayBuffer(),
+        contentType: object.httpMetadata?.contentType,
+      };
     },
     async delete(key) {
       await bucket.delete(key);
@@ -380,12 +391,20 @@ export async function createPhoto(input: {
     ]);
   } catch (error) {
     try {
-      await input.bucket.delete(r2Key);
+      await deletePhotoR2Objects(input.bucket, r2Key);
     } catch {
       // 予約が残れば scheduled が回収する
     }
     throw error;
   }
+
+  await persistPhotoThumb({
+    bucket: input.bucket,
+    r2Key,
+    kind: inspected.kind,
+    contentType: inspected.contentType,
+    bytes: input.bytes,
+  });
 
   if (owners.bottleId && bottle) {
     await touchBottlePhoto(input.db, input.userId, owners.bottleId, now, bottle);
@@ -488,7 +507,7 @@ export async function deletePhoto(input: {
 }): Promise<void> {
   const row = await getOwnPhoto(input.db, input.userId, input.photoId);
   try {
-    await input.bucket.delete(row.r2Key);
+    await deletePhotoR2Objects(input.bucket, row.r2Key);
   } catch {
     throw new ApiError("internal_error");
   }
@@ -528,14 +547,14 @@ async function touchBottlePhoto(
 }
 
 /**
- * アカウント削除後に端末キャッシュから本文を再利用しない。
- * 既存レスポンスへの遡及はしない。
+ * 端末保存は可。表示のたびに認可後再検証する。
+ * 削除後に本文を再検証なしで出さない。1 年 immutable には戻さない。
  */
-export const PHOTO_CONTENT_CACHE_CONTROL = "private, no-store";
+export const PHOTO_CONTENT_CACHE_CONTROL = "private, no-cache";
 
-/** ETag は写真 id だけから作る（R2 の etag を読みに行かない）。userId や r2Key は含めない */
-export function photoContentEtag(photoId: string): string {
-  return `"${photoId}"`;
+/** ETag は写真 id（と派生）だけから作る。userId や r2Key は含めない */
+export function photoContentEtag(photoId: string, variant?: "thumb"): string {
+  return variant === "thumb" ? `"${photoId}:thumb"` : `"${photoId}"`;
 }
 
 /** `If-None-Match` の一覧（`W/` 弱比較・`*` 含む）に ETag が含まれるか */
@@ -552,17 +571,80 @@ export function matchesIfNoneMatch(header: string | undefined, etag: string): bo
   });
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+}
+
+async function persistPhotoThumb(input: {
+  bucket: PhotoBucket;
+  r2Key: string;
+  kind: PhotoKind;
+  contentType: PhotoContentType;
+  bytes: Uint8Array;
+}): Promise<GeneratedPhotoThumb | null> {
+  const thumb = await generatePhotoThumb(input.bytes, input.contentType, input.kind);
+  if (!thumb) {
+    return null;
+  }
+  try {
+    await input.bucket.put(photoThumbR2Key(input.r2Key, input.kind), thumb.bytes, {
+      httpMetadata: { contentType: thumb.contentType },
+    });
+  } catch {
+    // 初回 GET で作り直す
+  }
+  return thumb;
+}
+
 /** `getOwnPhoto` で所有確認した行の本文を R2 から読む。行を渡す側が userId 一致を保証する */
-export async function readOwnedPhotoBody(
+export async function readOwnedPhotoContent(
   bucket: PhotoBucket,
   row: Pick<typeof photos.$inferSelect, "r2Key" | "contentType" | "kind">,
+  variant?: "thumb",
 ): Promise<{ body: ArrayBuffer; contentType: string; kind: PhotoKind }> {
-  const object = await bucket.get(row.r2Key);
-  if (!object) {
+  if (variant !== "thumb") {
+    const object = await bucket.get(row.r2Key);
+    if (!object) {
+      throw new ApiError("not_found");
+    }
+    return {
+      body: await object.arrayBuffer(),
+      contentType: row.contentType,
+      kind: row.kind,
+    };
+  }
+
+  const thumbKey = photoThumbR2Key(row.r2Key, row.kind);
+  const existing = await bucket.get(thumbKey);
+  if (existing) {
+    return {
+      body: await existing.arrayBuffer(),
+      contentType: existing.contentType ?? photoThumbContentType(row.kind),
+      kind: row.kind,
+    };
+  }
+
+  const original = await bucket.get(row.r2Key);
+  if (!original) {
     throw new ApiError("not_found");
   }
+  const bytes = new Uint8Array(await original.arrayBuffer());
+  const thumb = await persistPhotoThumb({
+    bucket,
+    r2Key: row.r2Key,
+    kind: row.kind,
+    contentType: asContentType(row.contentType),
+    bytes,
+  });
+  if (thumb) {
+    return {
+      body: toArrayBuffer(thumb.bytes),
+      contentType: thumb.contentType,
+      kind: row.kind,
+    };
+  }
   return {
-    body: await object.arrayBuffer(),
+    body: toArrayBuffer(bytes),
     contentType: row.contentType,
     kind: row.kind,
   };

@@ -69,7 +69,7 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 | L1 | 検索 | Chip → Input。銘柄（**スナップショット**）の部分一致。300ms デバウンス。最大 100 文字 | `q` |
 | L2 | 種類 | Chip「種類 ▼」→ 12 種ダイアログ。単一選択。選択中は「赤ワイン ×」 | `drinkType` |
 | L3 | 評価 | Chip「★4 以上」。トグル。ON で `ratingX10Min=40`。OFF でクエリを外す。`ratingX10Max` は UI に置かない | `ratingX10Min` |
-| L4 | カード | 横並び。左サムネ、右に銘柄（主）・日付・星・短い感想（`taste`）。`thumbPhotoId` を `<img loading="lazy">`。**写真に文字を重ねない**。モックデータは埋め込まない | `items[]` |
+| L4 | カード | 横並び。左サムネ、右に銘柄（主）・日付・星・短い感想（`taste`）。`thumbPhotoId` を `<img loading="lazy">`（`GET /api/photos/:id/content?variant=thumb`）。**写真に文字を重ねない**。モックデータは埋め込まない | `items[]` |
 | L5 | 写真なし | 同じ枠の inset。中央に種類アイコン 32px muted。レイアウトは崩れない | `drinkType` |
 | L6 | 名前 / 評価 / 日付 / 感想 | 名前 14px/600・最大 2 行省略。日付 + 星。感想は 2 行省略（無ければ行なし）。写真 2 枚以上は `images` + `photoCount` | `drinkName`, `ratingX10`, `tastedOn`, `photoCount`, `taste` |
 | L7 | カードタップ | `/notes/:noteId` | — |

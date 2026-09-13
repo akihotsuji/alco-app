@@ -843,18 +843,22 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 
 認可後、R2 からストリーム。
 
+| クエリ | 必須 | 説明 |
+|---|---|---|
+| `variant` | 任意 | `thumb` のみ。長辺 400px の派生。省略時は保存原本。それ以外は 400 |
+
 | ヘッダ | 値 |
 |---|---|
-| Content-Type | 保存した `contentType` |
-| Cache-Control | `private, max-age=31536000, immutable` |
-| ETag | `"{photoId}"`（写真は差し替え不可。ID が内容を表す） |
+| Content-Type | 原本は保存した `contentType`。`thumb` は `kind=photo` なら `image/jpeg`、`cutout` なら `image/png` |
+| Cache-Control | `private, no-cache` |
+| ETag | 原本 `"{photoId}"`、サムネ `"{photoId}:thumb"` |
 | Content-Disposition | `inline` |
 
 `If-None-Match` が ETag と一致（弱比較 `W/` と `*` も可）すれば、**認可の後に** 304 を返し R2 を読まない。
 
 同一オリジンの `<img src>` に Cookie が付く。公開 CDN には載せない。ログにオブジェクト全量を出さない。
 
-他人・不明は 404（403 にしない）。
+他人・不明は 404（403 にしない）。不正な `variant` は 400。
 
 #### PATCH /api/photos/:id
 
@@ -864,7 +868,7 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 
 #### DELETE /api/photos/:id
 
-メタ削除 + R2 削除。R2 失敗時は日次 GC で再試行。200 `{ "ok": true }`。
+メタ削除 + R2 削除（原本と `{id}.thumb.jpg` / `{id}.thumb.png`）。R2 失敗時は日次 GC で再試行。200 `{ "ok": true }`。
 
 #### 未紐付け GC（`scheduled`）
 

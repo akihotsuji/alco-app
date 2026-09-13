@@ -53,7 +53,7 @@ export function BottleTileFace({
               className={
                 visual === "cutout" ? "bottle-tile-img is-cutout" : "bottle-tile-img is-photo"
               }
-              src={photoContentUrl(item.thumbPhotoId)}
+              src={photoContentUrl(item.thumbPhotoId, "thumb")}
               size={PHOTO_DISPLAY_SIZE.bottleTile}
               loading={photoLoading}
               readySrc={readySrc}

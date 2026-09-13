@@ -30,6 +30,7 @@ export function createMemoryR2(): PhotoBucket & {
       return {
         arrayBuffer: async () =>
           copy.buffer.slice(copy.byteOffset, copy.byteOffset + copy.byteLength),
+        contentType: item.contentType,
       };
     },
     async list(prefix) {

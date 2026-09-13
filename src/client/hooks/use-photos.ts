@@ -1,9 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { photoFileName } from "@/client/lib/photo/photo-file.ts";
+import type { PhotoContentVariant } from "@/shared/photos.ts";
 
-export function photoContentUrl(id: string): string {
-  return `/api/photos/${id}/content`;
+export function photoContentUrl(id: string, variant?: PhotoContentVariant): string {
+  const path = `/api/photos/${id}/content`;
+  return variant ? `${path}?variant=${variant}` : path;
 }
 
 export async function uploadPhoto(

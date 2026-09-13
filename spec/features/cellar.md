@@ -80,7 +80,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | C6 | 種類フィルタ | Chip「種類 ▼」→ 12 種ダイアログ。単一選択。選択中は「赤ワイン ×」。**種類ごと表示では非表示** | `drinkType` |
 | C8 | 棚（1 本ずつ） | 3 列 / 段（480px 以上は 4 列）。種類フィルタなしは `createdAt` 降順（新しい本が左上）。種類フィルタありは `sort_order` 昇順。段ごとにガラス棚板。最後の段が 1〜2 本でも棚板は横一杯 | `items[]` |
 | C9 | 棚（種類ごと） | 種類は 12 種の定義順。在庫 0 の種類は出さない。段は横スクロール（`scroll-snap`）。見出し「種類名 N 本 ›」（N は `countsByType`）はボタン。タップで `bottle-type-grid`。棚板は本数分の幅。段の並びは `sort_order` | 初回は `GET /api/bottles?view=cellar&group=type&limit=12` の `typeShelves`。段の追加取得は種類ごとに `GET /api/bottles?view=cellar&drinkType=&limit=12&cursor=` |
-| C10 | ボトル | 切り抜き 100×150（種類ごとは 72×120）+ 名前 13px 1 行省略。`cutout` は contain・下端揃え。`photo` は cover・角 8px。無ければ種類別シルエット | `GET /api/photos/:id/content`、`thumbPhotoKind` |
+| C10 | ボトル | 切り抜き 100×150（種類ごとは 72×120）+ 名前 13px 1 行省略。`cutout` は contain・下端揃え。`photo` は cover・角 8px。無ければ種類別シルエット | `GET /api/photos/:id/content?variant=thumb`、`thumbPhotoKind` |
 | C11 | サブ行 | 1 本ずつだけ。年があるときだけ出す。無ければ出さない（「NV」と書かない）。種類ごとでは出さない | `vintage` |
 | C12 | タップ | `/cellar/:bottleId` | — |
 | C13 | もっと読む | 1 本ずつ: 下端で `nextCursor`（2 段ずつ。390px は `limit=6`、480px 以上は `limit=8`）。種類ごと: 段の右端でその種類を追加取得 | `cursor` |

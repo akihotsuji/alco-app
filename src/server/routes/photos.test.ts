@@ -1,9 +1,10 @@
 import { eq } from "drizzle-orm";
+import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { photos } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
-import { photoMetaSchema } from "@/shared/photos.ts";
+import { PHOTO_VARIANT_MESSAGE, photoMetaSchema } from "@/shared/photos.ts";
 import {
   makeGif,
   makeHeic,
@@ -13,6 +14,8 @@ import {
   makeSvg,
   makeWebpVp8x,
 } from "../image-fixtures.ts";
+import { photoThumbR2Key } from "../lib/photo-thumb.ts";
+import { inspectImageBytes } from "../services/image-inspect.ts";
 import {
   createTestApp,
   createTestUser,
@@ -230,7 +233,7 @@ describe("GET /api/photos/:id と content", () => {
     });
     expect(content.status).toBe(200);
     expect(content.headers.get("content-type")).toBe("image/jpeg");
-    expect(content.headers.get("cache-control")).toBe("private, no-store");
+    expect(content.headers.get("cache-control")).toBe("private, no-cache");
     expect(content.headers.get("content-disposition")).toBe("inline");
     expect(content.headers.get("etag")).toBe(`"${meta.id}"`);
     expect((await content.arrayBuffer()).byteLength).toBeGreaterThan(0);
@@ -249,7 +252,7 @@ describe("GET /api/photos/:id と content", () => {
     });
     expect(notModified.status).toBe(304);
     expect(notModified.headers.get("etag")).toBe(etag);
-    expect(notModified.headers.get("cache-control")).toBe("private, no-store");
+    expect(notModified.headers.get("cache-control")).toBe("private, no-cache");
     expect((await notModified.arrayBuffer()).byteLength).toBe(0);
 
     const weak = await ctx.app.request(`/api/photos/${meta.id}/content`, {
@@ -266,6 +269,69 @@ describe("GET /api/photos/:id と content", () => {
       headers: { Cookie: b.cookie, "If-None-Match": etag },
     });
     expect(other.status).toBe(404);
+  });
+
+  it("variant=thumb は派生を返し、再検証は 304。他人は ETag を知っていても 404", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "thumb-a@example.com");
+    const b = await session(ctx.app, "thumb-b@example.com");
+    const bytes = new Uint8Array(
+      await sharp({
+        create: { width: 800, height: 600, channels: 3, background: { r: 180, g: 40, b: 40 } },
+      })
+        .jpeg({ quality: 80 })
+        .toBuffer(),
+    );
+    const created = await postPhoto(ctx.app, a.cookie, bytes);
+    const meta = photoMetaSchema.parse(await created.json());
+    const thumbEtag = `"${meta.id}:thumb"`;
+
+    const thumb = await ctx.app.request(`/api/photos/${meta.id}/content?variant=thumb`, {
+      headers: { Cookie: a.cookie },
+    });
+    expect(thumb.status).toBe(200);
+    expect(thumb.headers.get("content-type")).toBe("image/jpeg");
+    expect(thumb.headers.get("cache-control")).toBe("private, no-cache");
+    expect(thumb.headers.get("etag")).toBe(thumbEtag);
+    const thumbBytes = new Uint8Array(await thumb.arrayBuffer());
+    const inspected = inspectImageBytes(thumbBytes);
+    expect(inspected.width).toBe(400);
+    expect(inspected.height).toBe(300);
+    expect(ctx.photos.keys()).toContain(photoThumbR2Key(`${meta.id}.jpg`, "photo"));
+
+    const notModified = await ctx.app.request(`/api/photos/${meta.id}/content?variant=thumb`, {
+      headers: { Cookie: a.cookie, "If-None-Match": thumbEtag },
+    });
+    expect(notModified.status).toBe(304);
+    expect(notModified.headers.get("etag")).toBe(thumbEtag);
+    expect((await notModified.arrayBuffer()).byteLength).toBe(0);
+
+    const other = await ctx.app.request(`/api/photos/${meta.id}/content?variant=thumb`, {
+      headers: { Cookie: b.cookie, "If-None-Match": thumbEtag },
+    });
+    expect(other.status).toBe(404);
+
+    const invalid = await ctx.app.request(`/api/photos/${meta.id}/content?variant=full`, {
+      headers: { Cookie: a.cookie },
+    });
+    expect(invalid.status).toBe(400);
+    const body = apiErrorBodySchema.parse(await invalid.json());
+    expect(body.fields?.variant?.[0]).toBe(PHOTO_VARIANT_MESSAGE);
+
+    const deleted = await ctx.app.request(`/api/photos/${meta.id}`, {
+      method: "DELETE",
+      headers: { Cookie: a.cookie },
+    });
+    expect(deleted.status).toBe(200);
+    expect(ctx.photos.keys()).toEqual([]);
+  });
+
+  it("未認証の thumb は 401", async () => {
+    const { app } = await createTestApp();
+    const res = await app.request(
+      "/api/photos/11111111-1111-4111-8111-111111111111/content?variant=thumb",
+    );
+    expect(res.status).toBe(401);
   });
 
   it("未認証の content は 401", async () => {
@@ -382,6 +448,7 @@ describe("未紐付け GC", () => {
       updatedAt: new Date(now - 25 * 60 * 60 * 1000),
     });
     await ctx.photos.put(`${staleId}.jpg`, new Uint8Array([1, 2, 3]));
+    await ctx.photos.put(`${staleId}.thumb.jpg`, new Uint8Array([4, 5, 6]));
 
     const result = await runDailyGc({
       db: ctx.db,

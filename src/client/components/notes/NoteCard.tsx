@@ -17,7 +17,7 @@ export function NoteCard({ item }: { item: TastingNoteListItem }) {
       {item.thumbPhotoId ? (
         <div className="note-card-photo">
           <ContentPhoto
-            src={photoContentUrl(item.thumbPhotoId)}
+            src={photoContentUrl(item.thumbPhotoId, "thumb")}
             size={PHOTO_DISPLAY_SIZE.noteCard}
           />
         </div>

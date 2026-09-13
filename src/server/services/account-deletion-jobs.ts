@@ -12,7 +12,7 @@ import {
   ACCOUNT_DELETION_TASK_LEASE_MS,
 } from "@/shared/account-deletion.ts";
 import type { PhotoBucket } from "./photos.ts";
-import { classifyR2DeleteError, deleteR2Object } from "./r2-delete.ts";
+import { classifyR2DeleteError, deletePhotoR2Objects, deleteR2Object } from "./r2-delete.ts";
 
 export type AccountDeletionJobResult = {
   photosDeleted: number;
@@ -130,7 +130,7 @@ export async function processAccountDeletionPhotoTasks(input: {
     }
 
     try {
-      await deleteR2Object(input.bucket, task.r2Key);
+      await deletePhotoR2Objects(input.bucket, task.r2Key);
       await input.db
         .delete(accountDeletionPhotoTasks)
         .where(eq(accountDeletionPhotoTasks.r2Key, task.r2Key));

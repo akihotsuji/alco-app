@@ -72,7 +72,7 @@ Phase 3-01 の成果物。飲酒記録機能（記録入力・編集・日別・
 | D1 | 日送り | 前日 / 翌日。**翌日が今日より後なら右を無効**。URL 直打ちの未来日は表示できる（空と同じ見え方） | `/logs/:date` |
 | D2 | 合計 | 「N 杯 ・ X g」。杯数 = `totalCount`、g = `displayAlcoholGrams(totalAlcoholG)`。0 件は「休肝」ピル | `GET /api/drink-logs?date=` |
 | D3〜D5 | （廃止） | 「記録する」「カメラ」「マイドリンク」は日別に置かない。記録は中央タブ。1 タップはホーム H11。番号は欠番のまま残す。過去日への記録は `log-new` の N7 で日時を変える | — |
-| D6 | 記録行 | 1 行目: 名前（`drinkName` があればそれ、無ければ種類の表示名）+ 「量ml」、右端に表示丸めの g。2 行目: 「HH:MM ・ 度数% ・ ボトル名（`bottleId` があれば）・ 場所名（`placeName` があればテキストのみ。行全体が Link なのでマップリンクは置かない）」。左にサムネ 48px（`thumbPhotoId` があれば `GET /api/photos/:id/content`、無ければ種類アイコン） | `items[]` |
+| D6 | 記録行 | 1 行目: 名前（`drinkName` があればそれ、無ければ種類の表示名）+ 「量ml」、右端に表示丸めの g。2 行目: 「HH:MM ・ 度数% ・ ボトル名（`bottleId` があれば）・ 場所名（`placeName` があればテキストのみ。行全体が Link なのでマップリンクは置かない）」。左にサムネ 48px（`thumbPhotoId` があれば `GET /api/photos/:id/content?variant=thumb`、無ければ種類アイコン） | `items[]` |
 | D7 | 行タップ | `log-edit` | — |
 | D8 | ハイライト | `?highlight=<logId>` の行を挿入アニメ（M-14）+ 画面外なら中央へスクロール（M-16）+ 2 秒の枠（最後 600ms でフェード。M-15）。該当 id が一覧に無ければ何もしない。表示後にクエリを `replace` で消す | — |
 | D9 | 保存後トーストの取り消し | `log-new` から到着したときのトースト「記録しました  取り消す」（6 秒 + 「閉じる」）。「取り消す」→ `DELETE /api/drink-logs/:id`。消える行は inset → フェードアウト（X2）、合計は再取得でカウント（M-09）、0 件になれば「休肝」ピル（M-18） | `DELETE /api/drink-logs/:id` |
@@ -299,7 +299,7 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 | `log-new` 保存 | `POST /api/drink-logs`（`photoIds`, `bottleId`, `myDrinkId`） | 3-02 |
 | `log-edit` 初期値 / 保存 / 削除 | `GET` / `PATCH` / `DELETE /api/drink-logs/:id` | `GET` / `DELETE` は 3-02（undo と写真紐付けの確認に必要）、`PATCH` は 3-05 |
 | 写真（撮影 → 使う / 破棄） | `POST /api/photos`（未紐付け）/ `DELETE /api/photos/:id`（2-08 済み） | 3-02（呼び出しのみ） |
-| 行サムネ | `GET /api/photos/:id/content`（2-08 済み） | 3-05 |
+| 行サムネ | `GET /api/photos/:id/content?variant=thumb` | 3-05 |
 | マイドリンク CRUD | `GET` / `POST /api/my-drinks`、`GET` / `PATCH` / `DELETE /api/my-drinks/:id` | 3-03 |
 | 1 タップ記録 | `POST /api/my-drinks/:id/log` | 3-03 |
 | undo（トースト） | `DELETE /api/drink-logs/:id` | 3-02（API と `log-new` 保存後のトースト）/ 3-03（1 タップ） |

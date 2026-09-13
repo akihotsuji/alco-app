@@ -95,7 +95,7 @@
 | C6 | 種類フィルタ | Chip「種類 ▼」→ 12 種のダイアログ | 単一選択。選択中は「赤ワイン ×」。**種類ごと表示では非表示** | `drinkType` |
 | C8 | 棚（1 本ずつ） | 棚（3 列 / 段） | 種類フィルタなしは `createdAt` 降順（新しい本が左上）。種類フィルタありは `sort_order` 昇順。段ごとにガラス棚板。最後の段が 1〜2 本でも棚板は横一杯 | `items[]` |
 | C9 | 棚（種類ごと） | 種類 × 1 段 | 種類は 12 種の定義順（赤ワイン → … → ワイン → ビール → …）。在庫 0 の種類は出さない。段は横スクロール（`scroll-snap`）。見出し「種類名 N 本 ›」（N は `countsByType`）はボタン。タップで `bottle-type-grid`。棚板は本数分の幅（最小 1 本分、最大横一杯）。段の並びは `sort_order` | 初回は `GET /api/bottles?view=cellar&group=type&limit=12` の `typeShelves`。見出しの本数は `countsByType`。段の追加取得は `GET /api/bottles?view=cellar&drinkType=&limit=12&cursor=` |
-| C10 | ボトル | 切り抜き 100×150（種類ごとは 72×120）+ 名前 + サブ | `kind = cutout` は透過画像を `object-fit: contain`・下端を棚板に。`kind = photo` は角 8px の長方形。無ければ種類別シルエット SVG（`--muted` 線、inset-sm 枠） | `GET /api/photos/:id/content`、`thumbPhotoKind` |
+| C10 | ボトル | 切り抜き 100×150（種類ごとは 72×120）+ 名前 + サブ | `kind = cutout` は透過画像を `object-fit: contain`・下端を棚板に。`kind = photo` は角 8px の長方形。無ければ種類別シルエット SVG（`--muted` 線、inset-sm 枠） | `GET /api/photos/:id/content?variant=thumb`、`thumbPhotoKind` |
 | C11 | サブ行 | テキスト 12px | `vintage` があれば年。無ければサブ行を出さない（未入力を「NV」と書かない。既存データは NV と未入力を区別できない）。種類ごと表示ではサブ行を出さず、タップで詳細 | `vintage` |
 | C12 | ボトルタップ | — | `/cellar/:bottleId` | — |
 | C13 | もっと読む | — | 1 本ずつ: 下端到達で `nextCursor` を自動取得（棚 2 段ずつ）。種類ごと: 段の右端到達でその種類を追加取得 | `cursor` |
