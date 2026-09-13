@@ -28,6 +28,8 @@ type ContentPhotoProps = {
   alt?: string;
   /** 到着した瞬間に親がプレースホルダを消すために使う */
   onStateChange?: (state: ContentPhotoState) => void;
+  /** 既に表示済みの同じ src。追従レイヤーへ渡して loading フラッシュを防ぐ */
+  readySrc?: string | null;
 };
 
 /** ブラウザキャッシュ済みの写真は `load` イベントより先に描かれていることがある */
@@ -42,9 +44,12 @@ export function ContentPhoto({
   loading = "lazy",
   alt = "",
   onStateChange,
+  readySrc,
 }: ContentPhotoProps) {
   const ref = useRef<HTMLImageElement>(null);
-  const [settledSrc, setSettledSrc] = useState<string | null>(null);
+  const [settledSrc, setSettledSrc] = useState<string | null>(() =>
+    readySrc === src ? src : null,
+  );
   const state: ContentPhotoState = settledSrc === src ? "loaded" : "loading";
 
   useLayoutEffect(() => {

@@ -207,11 +207,13 @@ export function advanceTypeGridGesture(
 export function capturePointerSafe(
   target: { setPointerCapture: (pointerId: number) => void },
   pointerId: number,
-): void {
+): boolean {
   try {
     target.setPointerCapture(pointerId);
+    return true;
   } catch {
-    // 指が既に離れていると InvalidStateError
+    // 指が既に離れていると InvalidStateError。操作中状態は残さない
+    return false;
   }
 }
 
