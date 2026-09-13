@@ -1,0 +1,15 @@
+---
+description: Cloud Agent でのローカル起動・ログイン確認
+alwaysApply: true
+---
+
+# Cloud Agent での確認
+
+画面や API をブラウザで確認するときは、本番 URL ではなくローカル Vite を使う。手順の正本は `spec/features/local-dev.md`。
+
+- 死活: `GET http://127.0.0.1:5173/api/health` が 200 になるまで待つ
+- 秘密: `.dev.vars` は `pnpm dev:vars` / `scripts/cloud-agent-start.sh` が使い捨て生成する。値をチャット・コミット・ログに出さない
+- ログイン: `.local-dev-user.json` のメールとパスワードを使う。ファイルが無ければ `pnpm dev:seed`（または Vite 起動後に `pnpm exec node --experimental-strip-types --disable-warning=ExperimentalWarning src/ci/ensure-local-dev-user.ts --wait`）。**パスワードを応答に書かない**
+- 初回ガイドが出たら「今はしない」
+- Google ログイン・実メール・リモート D1 は使わない
+- サーバが居なければ `CLOUDFLARE_VITE_FORCE_LOCAL=true pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort`。`.dev.vars` が無ければ先に `pnpm dev:vars` と `pnpm db:migrate:local`

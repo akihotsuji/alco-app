@@ -47,11 +47,14 @@ pnpm dev
 - `/api/health` … `{ "ok": true }`（公開エンドポイント。仕様は [spec/features/health.md](spec/features/health.md)）
 - `/api/config` … `{ "turnstileSiteKey": string | null }`（公開。サイトキーだけ。仕様は [spec/features/rate-limit-abuse.md](spec/features/rate-limit-abuse.md)）
 
-初回は `.dev.vars.example` をコピーして `.dev.vars` を作り、`BETTER_AUTH_SECRET` を入れる（値は git に含めない。置き場は [spec/secrets.md](spec/secrets.md)）。ローカル D1 へ初回マイグレーション（`0000_init`）を適用する:
+初回は `.dev.vars` とローカル D1 が必要（値は git に含めない。置き場は [spec/secrets.md](spec/secrets.md)。Cloud Agent 向けは [spec/features/local-dev.md](spec/features/local-dev.md)）。
 
 ```powershell
+pnpm dev:vars
 pnpm db:migrate:local
 ```
+
+`pnpm dev:vars` は `.dev.vars` が無いか `BETTER_AUTH_SECRET` が空のときだけ生成する。手元で既に置いている値は上書きしない。ブラウザ確認用のユーザーは Vite 起動後に `pnpm dev:seed`（資格情報は `.local-dev-user.json`。パスワードをチャットに出さない）。
 
 Phase 0 DoD の wrangler 単体確認（先にビルドが必要）:
 
