@@ -122,6 +122,8 @@ describe("resolveAppRoute", () => {
   it("photo-edit 中は経路に関わらずタブを隠す", () => {
     expect(hidesTabBar("/logs", true)).toBe(true);
     expect(hidesTabBar("/", false)).toBe(false);
+    expect(hidesTabBar("/cellar", false, true)).toBe(true);
+    expect(hidesTabBar("/cellar", false, false)).toBe(false);
   });
 
   it("日別の見出しは今日なら「今日」、過去日は月日", () => {

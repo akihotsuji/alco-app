@@ -35,6 +35,8 @@ export const BOTTLE_PHOTO_MAX = 2;
 export const BOTTLE_PHOTO_FRONT_INDEX = 0;
 export const BOTTLE_PHOTO_BACK_INDEX = 1;
 export const BOTTLE_SEARCH_MAX_LENGTH = 100;
+/** 種類内の並び替えで一度に送れる本数。在庫の実数を超えなければ足りる。 */
+export const BOTTLE_ORDER_MAX = 1000;
 
 export const BOTTLE_VIEWS = ["cellar", "archive", "all"] as const;
 export type BottleView = (typeof BOTTLE_VIEWS)[number];
@@ -63,6 +65,8 @@ export const BOTTLE_MESSAGES = {
   expectedVersion: "最新の内容を確認してから保存してください",
   cellarId: "保存先のセラーが正しくありません",
   scope: "一覧の範囲が正しくありません",
+  order: "並び順が正しくありません",
+  orderConflict: "棚の内容が変わりました。並べ直してください",
 } as const;
 
 export const BOTTLE_FIELD_LABELS = {
@@ -219,6 +223,26 @@ export const bottlesQuerySchema = z
   .strict();
 
 export type BottlesQuery = z.infer<typeof bottlesQuerySchema>;
+
+export const reorderBottlesSchema = z
+  .object({
+    drinkType: drinkTypeSchema,
+    bottleIds: z
+      .array(z.string().uuid({ error: BOTTLE_MESSAGES.order }), {
+        error: BOTTLE_MESSAGES.order,
+      })
+      .min(1, { error: BOTTLE_MESSAGES.order })
+      .max(BOTTLE_ORDER_MAX, { error: BOTTLE_MESSAGES.order })
+      .refine((ids) => new Set(ids).size === ids.length, { error: BOTTLE_MESSAGES.order }),
+    cellarId: z.string().uuid({ error: BOTTLE_MESSAGES.cellarId }).optional(),
+    operationKey: operationKeySchema.optional(),
+  })
+  .strict();
+
+export type ReorderBottlesInput = z.infer<typeof reorderBottlesSchema>;
+
+export const reorderBottlesResponseSchema = z.object({ ok: z.literal(true) }).strict();
+export type ReorderBottlesResponse = z.infer<typeof reorderBottlesResponseSchema>;
 
 export const bottleIdParamSchema = z
   .object({

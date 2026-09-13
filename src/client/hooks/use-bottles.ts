@@ -13,6 +13,7 @@ import type {
   BottleMutationBody,
   BottleView,
   CreateBottleInput,
+  ReorderBottlesInput,
   UpdateBottleInput,
 } from "@/shared/bottles.ts";
 import type { BottleListScope } from "@/shared/cellars.ts";
@@ -66,6 +67,10 @@ export function consumeBottle(id: string, body: BottleMutationBody = {}, client:
 
 export function restoreBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
   return unwrap(client.api.bottles[":id"].restore.$post({ param: { id }, json: body }));
+}
+
+export function reorderBottles(body: ReorderBottlesInput, client: ApiClient = api) {
+  return unwrap(client.api.bottles.order.$put({ json: body }));
 }
 
 /** 表面は必須、裏面は任意。裏面があれば同じ 1 リクエストの `back` パートに載せる（回数は 1 回） */
@@ -183,6 +188,18 @@ export function useRestoreBottle() {
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) =>
       restoreBottle(id, body),
+    onSuccess: () => {
+      markCellarLocalWrite();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
+    },
+  });
+}
+
+export function useReorderBottles() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ReorderBottlesInput) => reorderBottles(body),
     onSuccess: () => {
       markCellarLocalWrite();
       void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });

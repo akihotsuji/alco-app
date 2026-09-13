@@ -6,6 +6,7 @@ import {
   bottleMutationBodySchema,
   bottlesQuerySchema,
   createBottleSchema,
+  reorderBottlesSchema,
   updateBottleSchema,
 } from "@/shared/bottles.ts";
 import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
@@ -17,6 +18,7 @@ import {
   deleteBottle,
   getOwnBottle,
   listBottles,
+  reorderBottles,
   restoreBottle,
   updateBottle,
 } from "../services/bottles.ts";
@@ -33,7 +35,7 @@ export type BottleRouteDeps = {
 };
 
 /**
- * `recognize` は `/:id` より先。`consume` / `restore` は `/:id` 配下。
+ * `recognize` / `order` は `/:id` より先。`consume` / `restore` は `/:id` 配下。
  */
 export function createBottlesRoute(deps: BottleRouteDeps) {
   return new Hono<AppEnv>()
@@ -109,6 +111,16 @@ export function createBottlesRoute(deps: BottleRouteDeps) {
         backBytes,
         recognizer: deps.getLabelRecognizer(c),
         timeoutMs: deps.recognizeTimeoutMs,
+      });
+      return c.json(result);
+    })
+    .put("/order", validate("json", reorderBottlesSchema), async (c) => {
+      const user = c.get("user");
+      const body = c.req.valid("json");
+      const result = await reorderBottles({
+        db: deps.getDb(c),
+        userId: user.id,
+        body,
       });
       return c.json(result);
     })

@@ -1022,6 +1022,14 @@ input:focus-visible {
   padding-top: calc(var(--space-2) + var(--safe-top));
 }
 
+.app-shell.has-type-grid .app-toast-slot {
+  position: fixed;
+  inset-inline: 0;
+  top: calc(var(--header-h) + var(--safe-top) + var(--space-2));
+  z-index: 35;
+  pointer-events: none;
+}
+
 .app-toast {
   position: relative;
   z-index: 15;
@@ -2580,7 +2588,8 @@ img[data-state="loaded"] {
   }
 }
 
-.photo-edit {
+.photo-edit,
+.type-grid {
   position: fixed;
   inset: 0;
   z-index: 30;
@@ -2589,6 +2598,83 @@ img[data-state="loaded"] {
   flex-direction: column;
   touch-action: none;
   overscroll-behavior: none;
+}
+
+.type-grid {
+  touch-action: pan-y;
+}
+
+.type-grid.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.type-grid-bar {
+  height: calc(var(--header-h) + var(--safe-top));
+  padding: var(--safe-top) calc(var(--space-4) + var(--safe-right)) 0
+    calc(var(--space-4) + var(--safe-left));
+  display: grid;
+  grid-template-columns: var(--tap-min) 1fr var(--tap-min);
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.type-grid-bar .header-text-link {
+  justify-self: start;
+}
+
+.type-grid-title {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.type-grid-bar-end {
+  width: var(--tap-min);
+  height: var(--tap-min);
+}
+
+.type-grid-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 calc(var(--page-pad-x) + var(--safe-right)) calc(var(--space-5) + var(--safe-bottom))
+    calc(var(--page-pad-x) + var(--safe-left));
+}
+
+.type-grid-hint {
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.type-grid-shelf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.type-grid-row-items {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.type-grid-cell {
+  min-width: 0;
+}
+
+.type-grid-cell[data-lifted="1"] {
+  z-index: 2;
+  transform: translateY(-4px);
 }
 
 .photo-edit-bar {
@@ -4527,6 +4613,10 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   height: 120px;
 }
 
+.type-grid .bottle-tile.is-type .bottle-tile-frame {
+  height: 108px;
+}
+
 .bottle-tile-img.is-photo {
   object-fit: cover;
   border-radius: 8px;
@@ -4622,21 +4712,44 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 
 .shelf-type {
   position: relative;
-  margin-top: 18px;
+  margin-top: 44px;
 }
 
-.shelf-ghost {
+.shelf-ghost,
+.shelf-ghost-open {
   position: absolute;
-  top: -18px;
+  top: -44px;
   left: 0;
-  z-index: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   margin: 0;
+  height: 44px;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--shelf-ghost);
   font-size: 44px;
   font-weight: 700;
   line-height: 1;
-  pointer-events: none;
   white-space: nowrap;
+}
+
+.shelf-ghost {
+  pointer-events: none;
+}
+
+.shelf-ghost-open {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.shelf-ghost-open svg {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
 }
 
 .shelf-type-scroll {
@@ -5063,6 +5176,10 @@ html[data-reduce-motion="1"] .shelf-row[data-highlight="1"] .shelf-board::before
 html[data-reduce-motion="1"] .shelf-stage[data-highlight="1"] .shelf-board::before,
 html[data-reduce-motion="1"] .shelf-type[data-highlight="1"] .shelf-board::before {
   animation: none !important;
+}
+
+html[data-reduce-motion="1"] .type-grid-cell[data-lifted="1"] {
+  transform: none !important;
 }
 
 html[data-reduce-motion="1"] .photo-tile-progress::after {

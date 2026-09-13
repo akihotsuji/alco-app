@@ -21,9 +21,10 @@ type BottleTileProps = {
   mode: BottleTileMode;
   size?: BottleTileSize;
   enter?: boolean;
+  preventNavigate?: boolean;
 };
 
-export function BottleTile({ item, mode, size = "one", enter }: BottleTileProps) {
+export function BottleTile({ item, mode, size = "one", enter, preventNavigate }: BottleTileProps) {
   const visual = bottleTileVisual(item.thumbPhotoId, item.thumbPhotoKind);
   const showSub = mode === "cellar" && size === "one";
   const vintage = vintageLabel(item.vintage);
@@ -34,6 +35,11 @@ export function BottleTile({ item, mode, size = "one", enter }: BottleTileProps)
       className={cn("bottle-tile", size === "type" && "is-type")}
       data-enter={enter ? "1" : undefined}
       to={`/cellar/${item.id}`}
+      onClick={(event) => {
+        if (preventNavigate) {
+          event.preventDefault();
+        }
+      }}
     >
       <span className={mode === "archived" ? "bottle-tile-frame is-archived" : "bottle-tile-frame"}>
         {visual === "silhouette" || !item.thumbPhotoId ? (

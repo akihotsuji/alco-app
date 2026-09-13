@@ -13,6 +13,10 @@ describe("Shelf / BottleTile / CellarList", () => {
     expect(shelf).toContain("data-highlight");
     expect(shelf).toContain('layout === "type"');
     expect(shelf).toContain("shelf-ghost");
+    expect(shelf).toContain("shelf-ghost-open");
+    expect(shelf).toContain("onOpenType");
+    expect(list).toContain("openGrid");
+    expect(list).toContain("TypeShelfHeading");
     expect(tile).toContain("data-enter");
     expect(tile).toContain("ContentPhoto");
     expect(tile).toContain("PHOTO_DISPLAY_SIZE.bottleTile");

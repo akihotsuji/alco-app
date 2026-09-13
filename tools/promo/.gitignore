@@ -1,0 +1,13 @@
+node_modules
+dist
+.DS_Store
+.env
+out
+*.mp4
+
+# 撮影スクリプトが出すが、紹介素材では使わない
+public/shots/login.png
+public/shots/home.png
+public/shots/note-new.png
+public/shots/cellar-new.png
+public/shots/bottle-detail.png
