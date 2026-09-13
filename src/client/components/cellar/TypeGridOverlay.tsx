@@ -339,7 +339,7 @@ export function TypeGridOverlay() {
     };
   }, [onPointerMove, onPointerUp]);
 
-  function onCellPointerDown(event: ReactPointerEvent<HTMLDivElement>, index: number, id: string) {
+  function onCellPointerDown(event: ReactPointerEvent<HTMLElement>, index: number, id: string) {
     if (!canReorder || event.button !== 0) {
       return;
     }
@@ -416,13 +416,14 @@ export function TypeGridOverlay() {
                         data-bottle-id={item.id}
                         data-lifted={lifted ? "1" : undefined}
                         key={item.id}
-                        onPointerDown={(event) => onCellPointerDown(event, index, item.id)}
                       >
                         <BottleTile
                           item={item}
                           mode="cellar"
                           size="type"
                           preventNavigate={blockNavigate || lifted}
+                          suppressNativePress
+                          onPointerDown={(event) => onCellPointerDown(event, index, item.id)}
                         />
                       </div>
                     );

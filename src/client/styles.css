@@ -2637,6 +2637,16 @@ img[data-state="loaded"] {
 
 .type-grid-cell {
   min-width: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* 長押しは並べ替えに使う。img / a の保存・コピーメニューを出さない */
+.type-grid-cell img,
+.type-grid-cell svg {
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .type-grid-cell[data-lifted="1"] {
@@ -4539,7 +4549,12 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   flex-direction: column;
   align-items: center;
   min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: inherit;
+  font: inherit;
+  text-align: inherit;
   text-decoration: none;
 }
 
