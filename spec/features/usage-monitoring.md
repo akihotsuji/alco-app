@@ -68,7 +68,7 @@ Workers / D1 / R2 / Workers AI / AI Gateway / Resend / GitHub Actions の使用�
 | R2 Class B | 1000 万/月 | 800 万/月 | 従量 | 同上 | GET（サムネ連打） |
 | Workers AI | 1 万 Neurons/日 | 8000/日 | それ以上は Workers Paid | [Workers AI Pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) | Llama に戻したとき |
 | AI Gateway（Gemini） | 無料枠なし。Unified Billing | ダッシュボードの支出 | 請求。spend limit で 429 | [Spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) | 記録・セラー・ノートの既定認識。**最初に $ が付きやすい** |
-| Resend | 100 通/日・3000 通/月 | 80 / 2400 | 送信失敗 | [password-reset.md](password-reset.md) | リセット爆撃（8-05） |
+| Resend | 100 通/日・3000 通/月 | 80 / 2400 | 送信失敗 | [password-reset.md](password-reset.md)、[feedback.md](feedback.md) | リセット爆撃（8-05）。ご意見通知と合算 |
 | GitHub Actions | **public** の標準 runner は分が無料。artifact 500 MB | artifact 400 MB | private 化すると Free は 2000 分/月 | [Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions) | E2E を毎 PR。リポジトリは public |
 
 Workers Paid に上げた場合の目安（確認日同じ）: 月額 **5 USD** + 超過分（リクエスト 1000 万/月込み、CPU 3000 万 ms 込み）。D1 Paid は読取・書込の月次込み枠が広がる。R2 の 10 GB 無料はプランを問わず残る。

@@ -13,6 +13,7 @@ import { createBottlesRoute } from "./routes/bottles.ts";
 import { createCellarInvitationsRoute, createCellarsRoute } from "./routes/cellars.ts";
 import { createConfigRoute } from "./routes/config.ts";
 import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
+import { createFeedbackRoute } from "./routes/feedback.ts";
 import { healthRoute } from "./routes/health.ts";
 import { createMeRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
@@ -26,6 +27,7 @@ import {
   type DrinkLookupRunner,
 } from "./services/drink-recognizer/lookup-runner.ts";
 import { reportUnexpectedError } from "./services/error-alert.ts";
+import { createFeedbackMailer, type SendFeedbackEmail } from "./services/feedback-mail.ts";
 import { purgeExpiredIdempotency } from "./services/idempotency.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
@@ -44,6 +46,7 @@ export type CreateAppOptions = {
   lookupTimeoutMs?: number;
   turnstileSiteKey?: string | null;
   photoDailyLimit?: number;
+  sendFeedback?: SendFeedbackEmail;
 };
 
 /**
@@ -143,7 +146,14 @@ export function createApp(options: CreateAppOptions = {}) {
     .route("/api/bottles", bottlesRoute)
     .route("/api/tasting-notes", tastingNotesRoute)
     .route("/api/cellars", createCellarsRoute(routeDeps))
-    .route("/api/cellar-invitations", createCellarInvitationsRoute(routeDeps));
+    .route("/api/cellar-invitations", createCellarInvitationsRoute(routeDeps))
+    .route(
+      "/api/feedback",
+      createFeedbackRoute({
+        ...routeDeps,
+        getSendMail: (c) => options.sendFeedback ?? createFeedbackMailer(c.env),
+      }),
+    );
 }
 
 export type AppType = ReturnType<typeof createApp>;

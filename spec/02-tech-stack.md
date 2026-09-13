@@ -227,7 +227,7 @@ alco-app/
 | AI Gateway（Gemini） | 無料枠なし（Unified Billing） | 記録・セラー・ノートの既定。spend limit をオーナーが付ける。最初に $ が付きやすい |
 | D1 | 5 GB（アカウント合計）・読取 500 万行/日・書込 10 万行/日 | テキスト中心。全件スキャンを避ける |
 | R2 | 10 GB-month・Class A 100 万/月・Class B 1000 万/月・転送無料 | 加工済み写真（〜300KB/枚）。バックアップバケットも同じ 10 GB |
-| Resend | 100 通/日・3000 通/月 | パスワード再設定。[password-reset.md](features/password-reset.md) |
+| Resend | 100 通/日・3000 通/月 | パスワード再設定とご意見通知。[password-reset.md](features/password-reset.md)、[feedback.md](features/feedback.md) |
 | GitHub | public の標準 runner は分が無料。artifact 500 MB | リポジトリは public。E2E は毎 PR |
 | 独自ドメイン | 約1,000〜2,000円/年 | 本番は `sake-shiori.com`（[custom-domain.md](features/custom-domain.md)）。dev は `workers.dev` のまま |
 

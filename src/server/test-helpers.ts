@@ -20,6 +20,7 @@ import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
 import { ensurePersonalCellar } from "./services/cellar-access.ts";
 import type { DrinkLookupRunner } from "./services/drink-recognizer/lookup-runner.ts";
+import type { FeedbackMail, SendFeedbackEmail } from "./services/feedback-mail.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import type { ResetPasswordMail, SendResetPasswordEmail } from "./services/reset-password-mail.ts";
 import type { VerifyTurnstile } from "./services/turnstile.ts";
@@ -122,6 +123,7 @@ export async function createTestApp(
     recognizeTimeoutMs?: number;
     lookupTimeoutMs?: number;
     sendResetPassword?: SendResetPasswordEmail;
+    sendFeedback?: SendFeedbackEmail;
     google?: GoogleOAuthConfig;
     verifyTurnstile?: VerifyTurnstile;
     turnstileSiteKey?: string | null;
@@ -134,6 +136,7 @@ export async function createTestApp(
 
   const db = drizzle(client, { schema });
   const mailbox: ResetPasswordMail[] = [];
+  const feedbackMailbox: FeedbackMail[] = [];
   const signupsClosedState = { value: options.signupsClosed === true };
   const auth = createAuth({
     db,
@@ -177,6 +180,11 @@ export async function createTestApp(
     lookupTimeoutMs: options.lookupTimeoutMs,
     turnstileSiteKey: options.turnstileSiteKey,
     photoDailyLimit: options.photoDailyLimit,
+    sendFeedback:
+      options.sendFeedback ??
+      (async (mail) => {
+        feedbackMailbox.push(mail);
+      }),
   });
   appCount += 1;
   clientIpByApp.set(app, `10.0.${Math.floor(appCount / 256)}.${appCount % 256}`);
@@ -186,6 +194,7 @@ export async function createTestApp(
     db,
     photos,
     mailbox,
+    feedbackMailbox,
     setSignupsClosed(value: boolean) {
       signupsClosedState.value = value;
     },

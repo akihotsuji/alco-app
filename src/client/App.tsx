@@ -21,6 +21,7 @@ import {
   BottleEditPage,
   BottleNewPage,
   CellarPage,
+  FeedbackPage,
   ForgotPasswordPage,
   HomePage,
   JoinPage,
@@ -154,6 +155,7 @@ export function App() {
                 <Route path="/notes/new" element={<NoteNewPage />} />
                 <Route path="/notes/:noteId/edit" element={<NoteEditPage />} />
                 <Route path="/notes/:noteId" element={<NoteDetailPage />} />
+                <Route path="/settings/feedback" element={<FeedbackPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>

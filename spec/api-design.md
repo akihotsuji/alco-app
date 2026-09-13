@@ -287,6 +287,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | GET | `/api/photos/:id/content` | 必須 | 画像本体 |
 | PATCH | `/api/photos/:id` | 必須 | 紐付け・並び |
 | DELETE | `/api/photos/:id` | 必須 | メタと R2 を削除 |
+| POST | `/api/feedback` | 必須 | ご意見・ご要望（本文 + 任意画像）。一覧 GET は無い |
 
 `GET /api/drink-logs/summary` と **`POST /api/drink-logs/recognize`** は `GET /api/drink-logs/:id` より**先に登録**する（`summary` / `recognize` を id と誤認しない）。同様に **`POST /api/bottles/recognize` と `PUT /api/bottles/order` は `/api/bottles/:id/*` より先**に登録する。`consume` / `restore` は `:id` の配下なので順序の問題はない。
 
@@ -897,6 +898,17 @@ DELETE: ノート写真は CASCADE（R2 も消す）。
 
 招待トークンは DB にハッシュのみ。ログ・クエリに生値を出さない。未ログインのプレビューはボトル・写真・メンバー名を返さない（SPA が一般説明だけ出す）。
 
+### 4.9 POST /api/feedback
+
+ご意見・ご要望を受け付ける。一覧・詳細・画像配信は無い。正本は [features/feedback.md](features/feedback.md)。
+
+- Content-Type: `multipart/form-data`
+- フィールド: `category`（`improvement` / `bug` / `other`）、`body`（1〜2000、trim）、`photos`（ファイル 0〜3。jpeg / png / webp。magic bytes。1 MiB・長辺 1600）
+- 認証必須。年齢ゲート対象。`userId` はセッションのみ。未知キーは 400
+- 成功: 201 `{ "ok": true }`。`r2Key` / `userId` / 本文は返さない
+- 日次 3 件超（JST）は 429 `rate_limited`。数値はレスポンスに出さない
+- 未認証 401。年齢未確認 403 `age_required`
+
 ---
 
 ## 5. ルート登録順（Hono / RPC）
@@ -919,6 +931,7 @@ src/server/
   routes/bottles.ts
   routes/tasting-notes.ts  # /recognize を /:id より前
   routes/photos.ts
+  routes/feedback.ts
   services/             # 複数ルートで共有する業務ロジック
 ```
 
@@ -994,7 +1007,7 @@ src/server/
 | bottle-detail | `GET /api/bottles/:id`、`POST /api/bottles/:id/consume`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
 | note-list / note-detail / note-new / note-edit | `/api/tasting-notes`（`photoIds`）、`POST /api/tasting-notes/recognize`、`/api/photos`、`GET /api/bottles?view=all&q=` |
 | photo-edit | `POST /api/photos`（未紐付け）、`DELETE /api/photos/:id`（破棄） |
-| settings | `GET /api/me`、Better Auth ログアウト / 表示名、`POST /api/me/account-deletion` |
+| settings | `GET /api/me`、Better Auth ログアウト / 表示名、`POST /api/me/account-deletion`、`POST /api/feedback` |
 
 クライアントのルートガードは UX。認可の正は本 API。
 

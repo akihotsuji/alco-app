@@ -10,7 +10,7 @@
 - シークレット: [secrets.md](secrets.md)
 - リリース当日: [release-checklist.md](release-checklist.md)
 
-連絡先はオーナー自身。24 時間サポートは無い。
+連絡先はオーナー自身。24 時間サポートは無い。アプリ内のご意見は設定から受け、Resend で届く（[feedback.md](features/feedback.md)）。返信は任意。
 
 ---
 

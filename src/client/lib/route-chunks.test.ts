@@ -23,6 +23,7 @@ describe("chunkIdForPath", () => {
     expect(chunkIdForPath("/cellar/archive")).toBe("cellar");
     expect(chunkIdForPath("/notes/new")).toBe("notes");
     expect(chunkIdForPath("/settings")).toBe("settings");
+    expect(chunkIdForPath("/settings/feedback")).toBe("feedback");
     expect(chunkIdForPath("/settings/account/delete")).toBe("accountDeletion");
     expect(chunkIdForPath("/account-deleted")).toBe("accountDeletion");
     expect(chunkIdForPath("/join")).toBe("join");
@@ -41,6 +42,7 @@ describe("initialRouteChunkIds", () => {
     expect(initialRouteChunkIds("/account-deleted")).toEqual(["accountDeletion"]);
     expect(initialRouteChunkIds("/join")).toEqual(["join"]);
     expect(initialRouteChunkIds("/settings/account/delete")).toEqual(["shell", "accountDeletion"]);
+    expect(initialRouteChunkIds("/settings/feedback")).toEqual(["shell", "feedback"]);
     expect(initialRouteChunkIds("/")).toEqual(["shell", "home"]);
     expect(initialRouteChunkIds("/cellar")).toEqual(["shell", "cellar"]);
     expect(initialRouteChunkIds("/logs/new")).toEqual(["shell", "logForm"]);

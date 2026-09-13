@@ -114,6 +114,7 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/notes/new", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/notes/n1/edit", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/settings/account/delete", NOW).hideTabBar).toBe(true);
+    expect(resolveAppRoute("/settings/feedback", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/logs", NOW).hideTabBar).toBe(false);
     expect(resolveAppRoute("/cellar/b1", NOW).hideTabBar).toBe(false);
   });
@@ -160,6 +161,12 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/settings/account/delete", NOW).screenId).toBe(
       "settings-account-delete",
     );
+    expect(resolveAppRoute("/settings/feedback", NOW).screenId).toBe("settings-feedback");
+    expect(resolveAppRoute("/settings/feedback", NOW).header).toEqual({
+      title: "ご意見・ご要望",
+      left: { kind: "back", fallback: "/settings" },
+      right: { kind: "spacer" },
+    });
     expect(resolveAppRoute("/unknown", NOW).screenId).toBe("not-found");
   });
 

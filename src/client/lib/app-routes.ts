@@ -1,4 +1,5 @@
 import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
+import { FEEDBACK_COPY } from "@/shared/feedback.ts";
 import {
   MONTH_TO_WEEK_LABEL,
   monthSummaryTitle,
@@ -339,6 +340,9 @@ export function resolveAppRoute(
   if (segments[0] === "settings") {
     if (segments.length === 1) {
       return found("settings", "settings", { title: "設定", left: SPACER, right: SPACER });
+    }
+    if (segments[1] === "feedback" && segments.length === 2) {
+      return formRoute("settings-feedback", "settings", FEEDBACK_COPY.title, "/settings");
     }
     if (segments[1] === "account" && segments[2] === "delete" && segments.length === 3) {
       return formRoute("settings-account-delete", "settings", "アカウントを削除", "/settings");

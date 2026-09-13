@@ -41,6 +41,7 @@
 | [features/oauth-login.md](features/oauth-login.md) | Google OAuth ログイン | 8-04 |
 | [features/rate-limit-abuse.md](features/rate-limit-abuse.md) | Turnstile・写真日次上限・WAF の置き場 | 8-05 |
 | [features/usage-monitoring.md](features/usage-monitoring.md) | 無料枠の週次確認・超過時プレイブック・`SIGNUPS_CLOSED` | 8-06 |
+| [features/feedback.md](features/feedback.md) | 設定からのご意見・ご要望（画像・退会時匿名化・Resend 通知） | 2026-09-12 |
 | [features/e2e.md](features/e2e.md) | Playwright E2E（記録→サマリー、ボトル→ノート。CI Chromium） | 6-02 |
 | [qa-devices.md](qa-devices.md) | iOS Safari / Android Chrome の実機 QA（セーフエリア・PWA 追加・入力ズーム） | 6-05（オーナー実機確認待ち） |
 | [security-audit-release.md](security-audit-release.md) | リリース前の全体セキュリティ監査（Critical / High ゼロ。R2 ダッシュボード目視はオーナー） | 7-07（2026-09-09） |

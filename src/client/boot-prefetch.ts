@@ -19,6 +19,7 @@ const loaders = {
   cellar: () => import("@/client/pages/cellar/CellarPages.tsx"),
   notes: () => import("@/client/pages/notes/NotePages.tsx"),
   settings: () => import("@/client/pages/SettingsPage.tsx"),
+  feedback: () => import("@/client/pages/FeedbackPage.tsx"),
   accountDeletion: () => import("@/client/pages/AccountDeletionPages.tsx"),
   join: () => import("@/client/pages/JoinPage.tsx"),
 } as const;
@@ -148,6 +149,9 @@ export function initialRouteChunkIds(pathname: string): readonly BootChunkId[] {
   }
   if (pathname === "/settings/account/delete") {
     return ["shell", "accountDeletion"];
+  }
+  if (pathname === "/settings/feedback") {
+    return ["shell", "feedback"];
   }
   if (pathname === "/") {
     return ["shell", "home"];

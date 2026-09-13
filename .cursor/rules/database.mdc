@@ -29,7 +29,7 @@ alwaysApply: false
 ## 所有と外部キー
 
 - アプリ所有テーブルは必ず `user_id` を持つ。FK は Auth の `user.id`、`ON DELETE CASCADE`
-- 例外: アカウント削除の実行用テーブル（`account_deletion_requests` / `account_deletion_records` / `account_deletion_photo_tasks` / `photo_object_reservations`）には user CASCADE を付けない（[data-model.md](../../spec/data-model.md) 6.9〜6.12）
+- 例外: アカウント削除の実行用テーブル（`account_deletion_requests` / `account_deletion_records` / `account_deletion_photo_tasks` / `photo_object_reservations`）には user CASCADE を付けない（[data-model.md](../../spec/data-model.md) 6.9〜6.12）。ご意見は `feedbacks.user_id` が SET NULL、`feedback_photos` は `feedback_id` のみ（6.14）
 - クエリはセッション由来の `userId` でスコープする。ボディや URL の userId を信用しない
 - 更新・削除は `id` だけでなく `id + user_id` を条件にする
 - 削除時の子の扱いは data-model の表に従う（ログの `my_drink_id` / ノートの `bottle_id` は SET NULL、写真は CASCADE）

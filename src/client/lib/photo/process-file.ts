@@ -1,8 +1,10 @@
 import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import { decodeImage } from "@/client/lib/photo/decode-image.ts";
+import { fitToLongEdge, resizeKeepAspect } from "@/client/lib/photo/geometry.ts";
 import { type ProcessedPhoto, processLogPhoto, processPhoto } from "@/client/lib/photo/process.ts";
 import { supportsBackgroundRemoval } from "@/client/lib/photo/remove-background.ts";
+import { toJpegBlobWithinLimit } from "@/client/lib/photo/to-jpeg-blob.ts";
 import { getComposeMascotPref, getCutoutPref } from "@/client/lib/preferences.ts";
 
 /**
@@ -107,6 +109,22 @@ export async function processLogFile(
       capturedAt,
       onRecognizeJpeg,
     });
+  } finally {
+    source.close();
+  }
+}
+
+/** ご意見添付。切り抜き・キャラ合成なし。長辺だけ揃えて JPEG にする */
+export async function processFeedbackFile(file: File): Promise<ProcessedPhoto> {
+  const source = await decodeImage(file);
+  try {
+    const output = fitToLongEdge(source.width, source.height);
+    const canvas = resizeKeepAspect(source, source.width, source.height, output);
+    const blob = await toJpegBlobWithinLimit(canvas);
+    return {
+      blob,
+      previewUrl: URL.createObjectURL(blob),
+    };
   } finally {
     source.close();
   }

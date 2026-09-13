@@ -52,7 +52,8 @@
 | `/account-deleted` | 削除受付後。認証不要 |
 | `/terms` `/privacy` | 認証なしの公開ページ。ログイン済みでも表示（8-01） |
 | `/` | ログイン後の空ホーム（2-05 の認証後シェル。キャラ `rest`）。年齢未確認は `/age` |
-| `/settings` | ログアウト（確認ダイアログ → `endSession`）。アカウント削除は `/settings/account/delete`。`useMe` でメール表示。表示名はインライン編集（`updateUser`）。操作節は触感フィードバック（既定 OFF）と動きを減らす（3-07）。「このアプリ」から規約・PP |
+| `/settings` | ログアウト（確認ダイアログ → `endSession`）。アカウント削除は `/settings/account/delete`。`useMe` でメール表示。表示名はインライン編集（`updateUser`）。操作節は触感フィードバック（既定 OFF）と動きを減らす（3-07）。「このアプリ」からご意見・ご要望・規約・PP |
+| `/settings/feedback` | ご意見・ご要望（認証必須・年齢確認必須） |
 
 ログイン済みで `/login` `/signup` に来たら `/`。`/forgot-password` `/reset-password` はログイン中でも表示する（メールのリンクを踏める）。未ログインで認証後 URL に来たら `/login?redirect=`（`/` のときは `redirect` を付けず `/login`。ログアウト直後の URL を素に保つ）。ログイン／登録の送信中にセッション再取得が走っても、フォームを起動画面に置き換えない（ボタンの「ログイン中」「登録中」のまま）。
 

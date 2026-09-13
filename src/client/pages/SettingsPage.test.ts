@@ -20,10 +20,16 @@ describe("SettingsPage S11 / S12", () => {
     expect(source).not.toContain("健康");
   });
 
-  it("このアプリ節から利用規約とプライバシーポリシーへ辿れる", () => {
+  it("このアプリ節の先頭がご意見・ご要望で、規約とPPへ辿れる", () => {
     expect(source).toContain("このアプリ");
+    expect(source).toContain('to="/settings/feedback"');
+    expect(source).toContain("FEEDBACK_COPY.settingsRow");
     expect(source).toContain('legalHref("/terms", "settings")');
     expect(source).toContain('legalHref("/privacy", "settings")');
+    expect(source.indexOf('to="/settings/feedback"')).toBeGreaterThan(-1);
+    expect(source.indexOf('to="/settings/feedback"')).toBeLessThan(
+      source.indexOf('legalHref("/terms", "settings")'),
+    );
   });
 
   it("版表記は公開名称とバージョンを並べ、仮名 alco-app を出さない", () => {

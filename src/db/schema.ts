@@ -20,6 +20,7 @@ import {
   DRINK_TYPES,
   PHOTO_KINDS,
 } from "../shared/constants.ts";
+import { FEEDBACK_CATEGORIES } from "../shared/feedback.ts";
 import { user } from "./auth-schema.ts";
 
 export * from "./auth-schema.ts";
@@ -423,6 +424,44 @@ export const accountDeletionRecords = sqliteTable("account_deletion_records", {
   deletedAt: integer("deleted_at", { mode: "timestamp_ms" }).notNull(),
   replicatedAt: integer("replicated_at", { mode: "timestamp_ms" }),
 });
+
+/** ご意見。退会後は user_id を外して本文と画像を残す */
+export const feedbacks = sqliteTable(
+  "feedbacks",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    category: text("category", { enum: FEEDBACK_CATEGORIES }).notNull(),
+    body: text("body").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("feedbacks_user_created_idx").on(table.userId, table.createdAt),
+    check("feedbacks_category_check", sql`category IN (${inList(FEEDBACK_CATEGORIES)})`),
+  ],
+);
+
+/** photos とは別。退会時の R2 回収に載せない */
+export const feedbackPhotos = sqliteTable(
+  "feedback_photos",
+  {
+    id: text("id").primaryKey(),
+    feedbackId: text("feedback_id")
+      .notNull()
+      .references(() => feedbacks.id, { onDelete: "cascade" }),
+    r2Key: text("r2_key").notNull(),
+    contentType: text("content_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width"),
+    height: integer("height"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("feedback_photos_r2_key_uidx").on(table.r2Key),
+    index("feedback_photos_feedback_idx").on(table.feedbackId),
+  ],
+);
 
 export const accountDeletionPhotoTasks = sqliteTable(
   "account_deletion_photo_tasks",

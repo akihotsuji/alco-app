@@ -28,6 +28,11 @@ describe("ルート分割", () => {
     expect(app).toContain("RequireAgeVerified");
     expect(app).toContain('path="/age"');
     expect(app).toContain('path="/settings/account/delete"');
+    expect(app).toContain('path="/settings/feedback"');
+    expect(app.indexOf('path="/settings/feedback"')).toBeLessThan(
+      app.indexOf('path="/settings" element={<SettingsPage />}'),
+    );
+    expect(lazyPages).toContain('import("@/client/pages/FeedbackPage.tsx")');
     expect(app).toContain('path="/account-deleted"');
     expect(lazyPages).toContain('import("@/client/pages/AccountDeletionPages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/cellar/CellarPages.tsx")');

@@ -153,7 +153,8 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 
 | ID | 画面 | パス | 親タブ | 備考 |
 |---|---|---|---|---|
-| settings | 設定 | `/settings` | settings | ログアウト必須。表示名は任意（インライン編集）。メールは表示のみ。アカウント削除は `/settings/account/delete`。写真の既定 2 スイッチ、記録（現在地を記録する）、操作（触感・動きを減らす・使い方を見る→扇で記録/セラー/ノート）は端末保存。「このアプリ」から利用規約・PP。テーマ切替・招待コードは置かない |
+| settings | 設定 | `/settings` | settings | ログアウト必須。表示名は任意（インライン編集）。メールは表示のみ。アカウント削除は `/settings/account/delete`。写真の既定 2 スイッチ、記録（現在地を記録する）、操作（触感・動きを減らす・使い方を見る→扇で記録/セラー/ノート）は端末保存。「このアプリ」からご意見・ご要望・利用規約・PP。テーマ切替・招待コードは置かない |
+| settings-feedback | ご意見・ご要望 | `/settings/feedback` | settings | タブバーなし。種類・本文・任意画像。成功後は設定へ |
 | settings-account-delete | アカウントを削除 | `/settings/account/delete` | settings（確認済み） / なし | タブバーなし。年齢確認不要。本人確認のうえ削除を受け付ける |
 
 ### 共通
@@ -198,6 +199,7 @@ API が 404 を返した詳細（他ユーザーのボトル、存在しない I
 | photo-edit | 作成・編集画面の写真タイル、`?camera=1` | 呼び出し元（フォーム状態を保持） | 呼び出し元にサムネ + `photoId` |
 | bottle-type-grid | 種類ごと表示の見出し | 棚（dirty なら保存してから） | — |
 | settings | 設定タブ | — | 表示名保存後は設定に留まる |
+| settings-feedback | 設定 S17 | 設定 | 送信成功は設定 |
 | settings-account-delete | 設定 S16、年齢確認 A9 | 設定または `/age` | 受付成功は `/account-deleted` |
 | account-deleted | 削除受付後 | — | 「ログインへ」で `/login` |
 | not-found | 不明 URL、API 404 | ホーム（認証後）またはログイン | — |
@@ -235,6 +237,7 @@ API が 404 を返した詳細（他ユーザーのボトル、存在しない I
 | note-detail | 品名または「ノート」 |
 | note-edit | ノートを編集 |
 | settings | 設定 |
+| settings-feedback | ご意見・ご要望 |
 | not-found | 見つかりません |
 | auth-login | ログイン |
 | auth-signup | アカウント作成 |
