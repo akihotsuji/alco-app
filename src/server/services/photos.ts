@@ -399,6 +399,8 @@ export async function createPhoto(input: {
   }
 
   await persistPhotoThumb({
+    db: input.db,
+    photoId: id,
     bucket: input.bucket,
     r2Key,
     kind: inspected.kind,
@@ -578,6 +580,8 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 }
 
 async function persistPhotoThumb(input: {
+  db?: AppSqliteDb | AppBatchDb;
+  photoId?: string;
   bucket: PhotoBucket;
   r2Key: string;
   kind: PhotoKind;
@@ -587,6 +591,15 @@ async function persistPhotoThumb(input: {
   const thumb = await generatePhotoThumb(input.bytes, input.contentType, input.kind);
   if (!thumb) {
     return null;
+  }
+  if (input.db && input.photoId) {
+    const [row] = await input.db
+      .select({ id: photos.id })
+      .from(photos)
+      .where(eq(photos.id, input.photoId));
+    if (!row) {
+      return null;
+    }
   }
   try {
     await input.bucket.put(photoThumbR2Key(input.r2Key, input.kind), thumb.bytes, {
