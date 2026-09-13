@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
-import { mainNav, signUpAsNewUser } from "./helpers/auth.ts";
+import { dismissFirstRunGuide, signUpAsNewUser } from "./helpers/auth.ts";
 
 const drinkJpeg = join(dirname(fileURLToPath(import.meta.url)), "fixtures/drink.jpg");
 const NAMES = ["追従ア", "追従イ", "追従ウ", "追従エ", "追従オ"] as const;
@@ -42,7 +42,10 @@ async function attachPhoto(page: Page, bottleId: string): Promise<void> {
 }
 
 async function openTypeGrid(page: Page): Promise<void> {
-  await mainNav(page).getByRole("button", { name: "セラー" }).click();
+  // API で足したボトルは mutation の invalidate を通らない。
+  // タブ先読みの空一覧は staleTime 30s のあいだ残るので、フル遷移で取り直す。
+  await page.goto("/cellar");
+  await dismissFirstRunGuide(page);
   await expect(page.getByRole("heading", { name: "セラー" })).toBeVisible();
   await page.getByRole("button", { name: "種類ごと" }).click();
   await page.getByRole("button", { name: "赤ワイン 5 本を開く" }).click();
