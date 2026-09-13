@@ -112,9 +112,11 @@ URL は [dev-deploy.md](dev-deploy.md) の workers.dev（ドキュメントに�
 
 エージェント検証（2026-09-13）:
 
-- 対象 main: 実装 PR の tip。調査時の origin/main は `bf7afcf534b2a9036fe0509fd8f4b1f1b4d18fcf`
-- 自動テスト: Vitest（ジェスチャー・挿入・端スクロール・保存調停）と Chromium E2E（タッチ長押し）。実 iOS / Android PWA は未実施
-- 実機未検証: 上表の全環境。OS 強制終了時の保存は保証しない
+- 対象 origin/main: `bf7afcf534b2a9036fe0509fd8f4b1f1b4d18fcf`
+- 自動テスト: Vitest 1378、Playwright Chromium Pixel 7（CDP `Input.dispatchTouchEvent` 長押し）。`pnpm lint` / `typecheck` / `test` / `build` は通過
+- ローカル Vite（`127.0.0.1:5173`、Pixel 7 相当 412×915）: 40 本の赤ワインで長押し → 同一マス内追従 → 横移動 → 段またぎ → 下端で静止して `scrollTop` 0→約 495 → ドロップ。着地後に追従レイヤーは消える
+- 実機未検証: 上表の全環境（iPhone / Android PWA・通常ブラウザ）。OS 強制終了時の保存は保証しない
+- ビルド ID: ローカル Vite 開発サーバ。本番デプロイ版ではない
 
 ### 4.5 記録欄
 

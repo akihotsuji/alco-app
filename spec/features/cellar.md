@@ -111,7 +111,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 操作:
 
 - 状態は `idle / press / scroll / drag / settling`
-- 400ms かつ移動 10px 未満で drag。成立前に 10px 以上動いたら手動縦スクロールへ（慣性なし）。並べ替えタイルは押下前から `touch-action: none`。余白・検索中はネイティブ縦スクロール
+- 400ms かつ移動 10px 未満で drag。成立前に 10px 以上動いたら手動縦スクロールへ（慣性なし）。並べ替えタイルは押下前から `touch-action: none`。余白・検索中はネイティブ縦スクロール。長押し成立時に pointer capture をタイルから動かない親（`.type-grid`）へ移し、挿入でタイルの DOM 順が変わっても `pointercancel` しない
 - 追従レイヤーは `.type-grid` 直下（`.type-grid-body` の兄弟）、`position: fixed`、`pointer-events: none`。つかんだ位置の相対（`grab`）を保ち、CSS transition は掛けない。reduced motion でも追従は残す
 - 挿入は交換ではなく挿入（`A B C D E` の B を D の後へ → `A C D B E`）。スロット矩形＋スクロール差。候補切替は 8px ヒステリシス。最終段の余白は末尾
 - 端スクロールは `.type-grid-body` のみ。可視領域の上下 56px、最大 480px/秒、経過時間比例（dt 上限 32ms）。指が止まっても進む
