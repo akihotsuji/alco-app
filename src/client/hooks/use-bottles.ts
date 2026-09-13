@@ -1,4 +1,5 @@
 import {
+  type InfiniteData,
   infiniteQueryOptions,
   queryOptions,
   useInfiniteQuery,
@@ -10,7 +11,9 @@ import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { markCellarLocalWrite } from "@/client/lib/cellar-share.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type {
+  BottleGroup,
   BottleMutationBody,
+  BottlesResponse,
   BottleView,
   CreateBottleInput,
   ReorderBottlesInput,
@@ -23,16 +26,18 @@ export type BottlesListQuery = {
   view?: BottleView;
   q?: string;
   drinkType?: DrinkType;
+  group?: BottleGroup;
   limit?: number;
   cursor?: string;
   cellarId?: string;
   scope?: BottleListScope;
 };
 
-function listQuery(query: BottlesListQuery) {
+export function bottlesListQuery(query: BottlesListQuery) {
   return {
     view: query.view ?? "cellar",
     limit: String(query.limit ?? 50),
+    ...(query.group ? { group: query.group } : {}),
     ...(query.q ? { q: query.q } : {}),
     ...(query.drinkType ? { drinkType: query.drinkType } : {}),
     ...(query.cursor ? { cursor: query.cursor } : {}),
@@ -42,7 +47,7 @@ function listQuery(query: BottlesListQuery) {
 }
 
 export function getBottles(query: BottlesListQuery = {}, client: ApiClient = api) {
-  return unwrap(client.api.bottles.$get({ query: listQuery(query) }));
+  return unwrap(client.api.bottles.$get({ query: bottlesListQuery(query) }));
 }
 
 export function getBottle(id: string, client: ApiClient = api) {
@@ -92,6 +97,7 @@ export function bottlesQueryOptions(query: BottlesListQuery = {}) {
       view: query.view,
       q: query.q,
       drinkType: query.drinkType,
+      group: query.group,
       cellarId: query.cellarId,
       scope: query.scope,
       ...(query.limit !== undefined ? { limit: query.limit } : {}),
@@ -107,6 +113,7 @@ export function bottlesInfiniteQueryOptions(query: BottlesListQuery = {}) {
       view: query.view,
       q: query.q,
       drinkType: query.drinkType,
+      group: query.group,
       limit: query.limit,
       cellarId: query.cellarId,
       scope: query.scope,
@@ -121,8 +128,15 @@ export function useBottles(query: BottlesListQuery = {}, enabled = true) {
   return useQuery({ ...bottlesQueryOptions(query), enabled });
 }
 
-export function useInfiniteBottles(query: BottlesListQuery = {}, enabled = true) {
-  return useInfiniteQuery({ ...bottlesInfiniteQueryOptions(query), enabled });
+export function useInfiniteBottles(
+  query: BottlesListQuery = {},
+  enabled = true,
+  extras?: {
+    initialData?: InfiniteData<BottlesResponse, string | undefined>;
+    initialDataUpdatedAt?: number;
+  },
+) {
+  return useInfiniteQuery({ ...bottlesInfiniteQueryOptions(query), enabled, ...extras });
 }
 
 export function useBottle(id: string | undefined) {

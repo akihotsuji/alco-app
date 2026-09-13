@@ -23,7 +23,7 @@ import {
 } from "@/shared/bottles.ts";
 import { CELLAR_COPY } from "@/shared/cellars.ts";
 import type { BottleStatus, DrinkType, PhotoContentType, PhotoKind } from "@/shared/constants.ts";
-import { DEFAULT_BOTTLE_STATUS, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
+import { DEFAULT_BOTTLE_STATUS, DRINK_TYPES, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
@@ -158,6 +158,16 @@ function cursorError(): ApiError {
 
 function usesTypeSort(query: Pick<BottlesQuery, "view" | "drinkType">): boolean {
   return query.view === "cellar" && Boolean(query.drinkType);
+}
+
+function listOrderBy(query: Pick<BottlesQuery, "view" | "drinkType">) {
+  if (query.view === "archive") {
+    return [desc(sql`coalesce(${bottles.consumedAt}, 0)`), desc(bottles.id)] as const;
+  }
+  if (usesTypeSort(query)) {
+    return [asc(bottles.sortOrder), asc(bottles.id)] as const;
+  }
+  return [desc(bottles.createdAt), desc(bottles.id)] as const;
 }
 
 function listCursorAt(
@@ -767,28 +777,82 @@ export async function listBottles(input: {
     }
   }
 
+  const countQuery = db
+    .select({ n: count() })
+    .from(bottles)
+    .where(and(...viewConditions))
+    .then((rows) => rows[0]);
+  const typeCountQuery = db
+    .select({ drinkType: bottles.drinkType, n: count() })
+    .from(bottles)
+    .where(and(...viewConditions))
+    .groupBy(bottles.drinkType);
+
+  if (query.group === "type") {
+    const [totalRow, typeRows] = await Promise.all([countQuery, typeCountQuery]);
+    const countsByType: CountsByType = emptyCountsByType();
+    for (const row of typeRows) {
+      countsByType[row.drinkType] += Number(row.n);
+    }
+    const typesToFetch = DRINK_TYPES.filter((drinkType) => countsByType[drinkType] > 0);
+    const fetchedByType = await Promise.all(
+      typesToFetch.map(async (drinkType) => {
+        const typeQuery = { view: query.view, drinkType };
+        const rows = await db
+          .select()
+          .from(bottles)
+          .where(and(...itemConditions, eq(bottles.drinkType, drinkType)))
+          .orderBy(...listOrderBy(typeQuery))
+          .limit(query.limit + 1);
+        return { drinkType, rows, typeQuery };
+      }),
+    );
+    const pages = fetchedByType.map(({ drinkType, rows, typeQuery }) => {
+      const { page, hasMore } = takeLimitPlusOne(rows, query.limit);
+      const last = page.at(-1);
+      return {
+        drinkType,
+        page,
+        nextCursor: hasMore && last ? encodeCursor(last, typeQuery) : null,
+      };
+    });
+    const previewRows = pages.flatMap((shelf) => shelf.page);
+    const [photoMap, nameMap] = await Promise.all([
+      photosForBottles(
+        db,
+        previewRows.map((row) => row.id),
+      ),
+      displayNamesById(
+        db,
+        previewRows.flatMap((row) => [row.createdBy, row.updatedBy]),
+      ),
+    ]);
+    const typeShelves = pages
+      .map((shelf) => ({
+        drinkType: shelf.drinkType,
+        items: shelf.page.map((row) =>
+          toBottleItem(row, photoMap.get(row.id) ?? [], namesFromMap(row, nameMap)),
+        ),
+        nextCursor: shelf.nextCursor,
+      }))
+      .filter((shelf) => shelf.items.length > 0);
+    return {
+      items: typeShelves.flatMap((shelf) => shelf.items),
+      nextCursor: null,
+      totalCount: Number(totalRow?.n ?? 0),
+      countsByType,
+      typeShelves,
+    };
+  }
+
   const [totalRow, typeRows, fetched] = await Promise.all([
-    db
-      .select({ n: count() })
-      .from(bottles)
-      .where(and(...viewConditions))
-      .then((rows) => rows[0]),
-    db
-      .select({ drinkType: bottles.drinkType, n: count() })
-      .from(bottles)
-      .where(and(...viewConditions))
-      .groupBy(bottles.drinkType),
+    countQuery,
+    typeCountQuery,
     db
       .select()
       .from(bottles)
       .where(and(...itemConditions))
-      .orderBy(
-        ...(query.view === "archive"
-          ? [desc(sql`coalesce(${bottles.consumedAt}, 0)`), desc(bottles.id)]
-          : usesTypeSort(query)
-            ? [asc(bottles.sortOrder), asc(bottles.id)]
-            : [desc(bottles.createdAt), desc(bottles.id)]),
-      )
+      .orderBy(...listOrderBy(query))
       .limit(query.limit + 1),
   ]);
 

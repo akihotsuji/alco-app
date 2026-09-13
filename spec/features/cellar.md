@@ -79,7 +79,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | C5 | 検索 | Chip → Input。品名・生産者・品種の部分一致。300ms デバウンス。最大 100 文字 | `q` |
 | C6 | 種類フィルタ | Chip「種類 ▼」→ 12 種ダイアログ。単一選択。選択中は「赤ワイン ×」。**種類ごと表示では非表示** | `drinkType` |
 | C8 | 棚（1 本ずつ） | 3 列 / 段（480px 以上は 4 列）。種類フィルタなしは `createdAt` 降順（新しい本が左上）。種類フィルタありは `sort_order` 昇順。段ごとにガラス棚板。最後の段が 1〜2 本でも棚板は横一杯 | `items[]` |
-| C9 | 棚（種類ごと） | 種類は 12 種の定義順。在庫 0 の種類は出さない。段は横スクロール（`scroll-snap`）。見出し「種類名 N 本 ›」（N は `countsByType`）はボタン。タップで `bottle-type-grid`。棚板は本数分の幅。段の並びは `sort_order` | 種類ごとに `GET /api/bottles?view=cellar&drinkType=&limit=12` |
+| C9 | 棚（種類ごと） | 種類は 12 種の定義順。在庫 0 の種類は出さない。段は横スクロール（`scroll-snap`）。見出し「種類名 N 本 ›」（N は `countsByType`）はボタン。タップで `bottle-type-grid`。棚板は本数分の幅。段の並びは `sort_order` | 初回は `GET /api/bottles?view=cellar&group=type&limit=12` の `typeShelves`。段の追加取得は種類ごとに `GET /api/bottles?view=cellar&drinkType=&limit=12&cursor=` |
 | C10 | ボトル | 切り抜き 100×150（種類ごとは 72×120）+ 名前 13px 1 行省略。`cutout` は contain・下端揃え。`photo` は cover・角 8px。無ければ種類別シルエット | `GET /api/photos/:id/content`、`thumbPhotoKind` |
 | C11 | サブ行 | 1 本ずつだけ。年があるときだけ出す。無ければ出さない（「NV」と書かない）。種類ごとでは出さない | `vintage` |
 | C12 | タップ | `/cellar/:bottleId` | — |
@@ -344,6 +344,7 @@ Zod は `src/shared` に置き、クライアントとサーバー（`@hono/zod-
 | `view` | `cellar` \| `archive` \| `all`。省略時 `cellar` | 「一覧の種類が正しくありません」 |
 | `q` | 最大 100 文字。空は未指定。品名・生産者・品種の部分一致（OR） | 「100文字以内で入力してください」 |
 | `drinkType` | 12 種 | 「種類を選んでください」 |
+| `group` | `type` のみ。`view=cellar` 専用。`drinkType` / `cursor` と同時指定不可 | 「一覧のまとめ方が正しくありません」 |
 | `limit` | 整数 1〜100（既定 50） | 「件数は1以上100以下で指定してください」 |
 | `cursor` | サーバー発行値のみ。改ざんは 400 | 「ページ情報が正しくありません」 |
 
@@ -355,11 +356,20 @@ Zod は `src/shared` に置き、クライアントとサーバー（`@hono/zod-
 
 `totalCount` / `countsByType` は **`view` 内の総数**（`q` / `drinkType` を掛けない）。`countsByType` は 12 種すべてのキーを返し、0 を含む。クライアントが 0 の種類を隠す。件数は SQL の `COUNT` / `GROUP BY`。本体は `limit+1` の keyset（日時 + id）。全件取得して slice しない。不正 cursor は 400 `validation_error`。
 
+`group=type`（種類ごと表示の初回）:
+
+- 在庫がある種類（検索中はヒットがある種類）ごとに、その種類の先頭 `limit` 本を `typeShelves[]` に載せる。種類順は 12 種の定義順
+- 各棚の `nextCursor` はその種類の続き。トップレベルの `nextCursor` は `null`
+- `items` は全棚プレビューの連結（空判定・ハイライト用）
+- `group` なしの応答に `typeShelves` は付けない
+- 段の追加取得は従来どおり `drinkType` + `cursor`（`group` なし）
+
 並び:
 
 | `view` | 対象 | 順 |
 |---|---|---|
 | `cellar`（既定）+ `drinkType` あり | `sealed` のその種類 | `sortOrder` 昇順、同値は `id` 昇順 |
+| `cellar`（既定）+ `group=type` | `sealed` を種類ごとに | 各棚は `sortOrder` 昇順、同値は `id` 昇順 |
 | `cellar`（既定）+ `drinkType` なし | `sealed` | `createdAt` 降順、同値は `id` 降順 |
 | `archive` | `consumed` | `consumedAt` 降順、同値は `id` 降順 |
 | `all` | 両方（ピッカー） | `createdAt` 降順、同値は `id` 降順 |
@@ -468,7 +478,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 
 | 画面・操作 | API | 実装タスク |
 |---|---|---|
-| 棚一覧 | `GET /api/bottles?view=cellar&q=&drinkType=&limit=&cursor=` | 4-02（API）/ 4-04（棚 UI） |
+| 棚一覧 | `GET /api/bottles?view=cellar&q=&drinkType=&limit=&cursor=`。種類ごとの初回は `group=type` | 4-02（API）/ 4-04（棚 UI） |
 | 種類内の並び | `PUT /api/bottles/order` | 種類グリッド |
 | 貯蔵庫 | `GET /api/bottles?view=archive&…` | 4-03 |
 | ボトルピッカー | `GET /api/bottles?view=all&q=` | 4-02（`log-new` 行の有効化） |

@@ -41,6 +41,9 @@ export const BOTTLE_ORDER_MAX = 1000;
 export const BOTTLE_VIEWS = ["cellar", "archive", "all"] as const;
 export type BottleView = (typeof BOTTLE_VIEWS)[number];
 
+export const BOTTLE_GROUPS = ["type"] as const;
+export type BottleGroup = (typeof BOTTLE_GROUPS)[number];
+
 export const DEFAULT_BOTTLE_STORAGE = "自宅セラー";
 
 export const BOTTLE_MESSAGES = {
@@ -59,6 +62,7 @@ export const BOTTLE_MESSAGES = {
   photoNotFound: "写真をもう一度撮ってください",
   patchEmpty: "変更する項目を指定してください",
   view: "一覧の種類が正しくありません",
+  group: "一覧のまとめ方が正しくありません",
   q: `${BOTTLE_SEARCH_MAX_LENGTH}文字以内で入力してください`,
   limit: "件数は1以上100以下で指定してください",
   cursor: "ページ情報が正しくありません",
@@ -206,6 +210,7 @@ export const bottlesQuerySchema = z
       .max(BOTTLE_SEARCH_MAX_LENGTH, { error: BOTTLE_MESSAGES.q })
       .optional(),
     drinkType: drinkTypeSchema.optional(),
+    group: z.enum(BOTTLE_GROUPS, { error: BOTTLE_MESSAGES.group }).optional(),
     limit: z.coerce
       .number({ error: BOTTLE_MESSAGES.limit })
       .int({ error: BOTTLE_MESSAGES.limit })
@@ -220,7 +225,12 @@ export const bottlesQuerySchema = z
     cellarId: z.string().uuid({ error: BOTTLE_MESSAGES.cellarId }).optional(),
     scope: z.enum(BOTTLE_LIST_SCOPES, { error: BOTTLE_MESSAGES.scope }).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (query) =>
+      query.group !== "type" || (!query.drinkType && !query.cursor && query.view === "cellar"),
+    { path: ["group"], error: BOTTLE_MESSAGES.group },
+  );
 
 export type BottlesQuery = z.infer<typeof bottlesQuerySchema>;
 
@@ -307,12 +317,23 @@ const countsByTypeShape = Object.fromEntries(
 export const countsByTypeSchema = z.object(countsByTypeShape).strict();
 export type CountsByType = z.infer<typeof countsByTypeSchema>;
 
+export const bottleTypeShelfSchema = z
+  .object({
+    drinkType: drinkTypeSchema,
+    items: z.array(bottleItemSchema),
+    nextCursor: z.string().nullable(),
+  })
+  .strict();
+
+export type BottleTypeShelf = z.infer<typeof bottleTypeShelfSchema>;
+
 export const bottlesResponseSchema = z
   .object({
     items: z.array(bottleItemSchema),
     nextCursor: z.string().nullable(),
     totalCount: z.number().int().min(0),
     countsByType: countsByTypeSchema,
+    typeShelves: z.array(bottleTypeShelfSchema).optional(),
   })
   .strict();
 

@@ -170,7 +170,7 @@ OSの写真選択キャンセルは、現行どおり入力を維持する（`pi
 
 `CellarList.tsx`:
 
-- 種類別はまず `limit: 1` のメタ取得、その後 `TypeShelfRow` ごとに同じ一覧API。各呼び出しで全体集計が繰り返される。
+- 種類別の初回は `group=type&limit=12` の 1 本（`typeShelves`）。段の追加取得だけ種類ごとの infinite query。
 
 サムネ:
 

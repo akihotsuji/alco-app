@@ -44,10 +44,14 @@ export const GUEST_ONLY_PATHS: readonly string[] = [
 
 /* 以下は src/shared/constants.ts・cellar-shelf.ts・各 hooks の値の写し。boot-prefetch.test.ts が一致を検証する */
 const CELLAR_LIST_VIEW_PREF_KEY = "cellar.listView";
+const CELLAR_SELECTED_ID_PREF_KEY = "cellar.selectedId";
+const CELLARS_PATH = "/api/cellars";
 const DEFAULT_CELLAR_LIST_VIEW = "one";
 const SHELF_WIDE_MIN_PX = 480;
 const SHELF_COLUMNS_NARROW = 3;
 const SHELF_COLUMNS_WIDE = 4;
+const SHELF_TYPE_PAGE_LIMIT = 12;
+const CELLAR_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TASTING_NOTES_LIST_LIMIT = 50;
 
 export function homeDataPaths(today: string): readonly string[] {
@@ -62,13 +66,37 @@ export type CellarBootInput = {
   search: string;
   storedView: string | null;
   viewportWidth: number;
+  storedCellarId?: string | null;
 };
 
-/** セラー一覧（`/cellar`）が最初に投げる GET。絞り込み中は先読みしない（hooks の debounce と食い違う） */
+function bootCellarId(raw: string | null | undefined): string | undefined {
+  if (raw && CELLAR_ID_RE.test(raw)) {
+    return raw;
+  }
+  return undefined;
+}
+
+function cellarBottlesPath(view: "one" | "type", viewportWidth: number, cellarId?: string): string {
+  const query = new URLSearchParams({ view: "cellar" });
+  if (view === "type") {
+    query.set("limit", String(SHELF_TYPE_PAGE_LIMIT));
+    query.set("group", "type");
+  } else {
+    const columns = viewportWidth >= SHELF_WIDE_MIN_PX ? SHELF_COLUMNS_WIDE : SHELF_COLUMNS_NARROW;
+    query.set("limit", String(columns * 2));
+  }
+  if (cellarId) {
+    query.set("cellarId", cellarId);
+  }
+  return `/api/bottles?${query}`;
+}
+
+/** セラー一覧（`/cellar`）が最初に投げる GET。絞り込み中はボトルを先読みしない（hooks の debounce と食い違う） */
 export function cellarDataPaths(input: CellarBootInput): readonly string[] {
+  const cellarId = bootCellarId(input.storedCellarId);
   const params = new URLSearchParams(input.search);
   if (params.has("q") || params.has("drinkType")) {
-    return [];
+    return [CELLARS_PATH];
   }
   const urlView = params.get("view");
   const view =
@@ -77,12 +105,7 @@ export function cellarDataPaths(input: CellarBootInput): readonly string[] {
       : input.storedView === "one" || input.storedView === "type"
         ? input.storedView
         : DEFAULT_CELLAR_LIST_VIEW;
-  if (view === "type") {
-    return ["/api/bottles?view=cellar&limit=1"];
-  }
-  const columns =
-    input.viewportWidth >= SHELF_WIDE_MIN_PX ? SHELF_COLUMNS_WIDE : SHELF_COLUMNS_NARROW;
-  return [`/api/bottles?view=cellar&limit=${columns * 2}`];
+  return [CELLARS_PATH, cellarBottlesPath(view, input.viewportWidth, cellarId)];
 }
 
 /** ノート一覧（`/notes`）が最初に投げる GET。絞り込み・ボトル別は先読みしない */
@@ -107,11 +130,19 @@ function readStoredCellarView(): string | null {
   }
 }
 
+function readStoredCellarId(): string | null {
+  try {
+    return localStorage.getItem(CELLAR_SELECTED_ID_PREF_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function initialDataPaths(
   pathname: string,
   search: string,
   today: string,
-  cellar: Pick<CellarBootInput, "storedView" | "viewportWidth">,
+  cellar: Pick<CellarBootInput, "storedView" | "viewportWidth" | "storedCellarId">,
 ): readonly string[] {
   if (pathname === "/") {
     return homeDataPaths(today);
@@ -232,6 +263,7 @@ export function prefetchEarlyGets(
   startEarlyFetch(ME_PATH);
   const paths = initialDataPaths(pathname, search, tokyoToday(), {
     storedView: readStoredCellarView(),
+    storedCellarId: readStoredCellarId(),
     viewportWidth: window.innerWidth,
   });
   for (const path of paths) {

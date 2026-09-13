@@ -621,7 +621,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 **共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。代わりに `cellarId` / `version` / `createdByName` / `updatedByName`。日付は `purchasedOn` / `storedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`storedOn` は保管日で `purchasedOn` とは別項目。`priceJpy` は整数円または null。`status` は `sealed` \| `consumed`。`quantity` は無い（1 行 = 1 本）。`openedOn` は持たない。認可は対象セラーの有効メンバー。
 
-詳細・作成応答に `photos`（4.7 のメタ配列、最大 2。`sortOrder` 昇順で `[0]` = 表面、`[1]` = 裏面）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。
+詳細・作成応答に `photos`（4.7 のメタ配列、最大 2。`sortOrder` 昇順で `[0]` = 表面、`[1]` = 裏面）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。`group=type` のときだけ任意フィールド `typeShelves`（種類ごとの先頭 `limit` 本と各棚の `nextCursor`）を付ける。
 
 #### GET /api/bottles
 
@@ -630,6 +630,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 | `view` | `cellar`（既定。`sealed`。`drinkType` ありは `sortOrder` 昇順、なしは `createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用。`createdAt` 降順） |
 | `q` | 品名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
 | `drinkType` | 12 種のいずれか |
+| `group` | `type` のみ。`view=cellar` 専用。`drinkType` / `cursor` と同時指定不可。種類ごとの先頭 `limit` 本を `typeShelves` に載せる。トップレベル `nextCursor` は `null`。`items` は全棚プレビューの連結 |
 | `limit`, `cursor` | 2.7 |
 | `cellarId` | 指定したらそのセラー。省略かつ `scope` なしは **個人セラーのみ**（旧クライアント互換。共有ボトルは返さない） |
 | `scope` | `personal`（個人のみ）\| `accessible`（個人 + 参加中の共有。ピッカー用） |

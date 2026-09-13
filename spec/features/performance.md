@@ -59,8 +59,8 @@
 先読み:
 
 - 起動直後: `boot-prefetch.ts` を **別エントリ**（本番は main より前の `<script type="module">`）として読む。メイン JS の解析を待たず、**開いたパス**の chunk を `import()` する（`/login` なら login だけ。`/` なら shell + home）。セッション Cookie は httpOnly なので JS からは見ない
-- 同じ script が `GET /api/auth/get-session` と、ゲスト専用画面（`/login` `/signup` `/forgot-password` `/reset-password`）以外では `GET /api/me` を **並行して**先に飛ばす。`/` ではホームが待つ summary（day/week）と my-drinks、`/cellar` では棚の 1 ページ目（保存済みの表示形式と画面幅から limit を決める。種類ごとなら `limit=1` の meta）、`/notes` では一覧の 1 ページ目も先に飛ばし、Hono RPC / Better Auth が応答を使い切る（楽観的更新ではない）。検索・種類・評価のフィルタが URL にあるときは一覧を先読みしない
-- 認証後シェル（`AppShellFrame`）は描画が落ち着いた **300 ms 後の idle** に、下部タブの初期一覧（ホームの summary / my-drinks、セラーの 1 ページ目、ノートの 1 ページ目）を `prefetchQuery` / `prefetchInfiniteQuery` で先読みする（`use-tab-data-prefetch.ts`）。各画面の hook と同じ `queryOptions` を使うのでキーが一致し、タブを開いた瞬間にキャッシュが当たる。すでにキャッシュ（取得中を含む）がある query は触らない
+- 同じ script が `GET /api/auth/get-session` と、ゲスト専用画面（`/login` `/signup` `/forgot-password` `/reset-password`）以外では `GET /api/me` を **並行して**先に飛ばす。`/` ではホームが待つ summary（day/week）と my-drinks、`/cellar` では `GET /api/cellars` と棚の 1 ページ目を並行して飛ばす（保存済みの表示形式と画面幅から limit を決める。`localStorage` の選択セラー ID があれば `cellarId` を付ける。種類ごとなら `group=type&limit=12` の 1 本。1 本ずつなら `limit=6|8`）、`/notes` では一覧の 1 ページ目も先に飛ばし、Hono RPC / Better Auth が応答を使い切る（楽観的更新ではない）。検索・種類・評価のフィルタが URL にあるときはボトル一覧を先読みしない（`GET /api/cellars` は飛ばす）
+- 認証後シェル（`AppShellFrame`）は描画が落ち着いた **300 ms 後の idle** に、下部タブの初期一覧（ホームの summary / my-drinks、`GET /api/cellars`、セラーの 1 ページ目、ノートの 1 ページ目）を `prefetchQuery` / `prefetchInfiniteQuery` で先読みする（`use-tab-data-prefetch.ts`）。各画面の hook と同じ `queryOptions` を使うのでキーが一致し、タブを開いた瞬間にキャッシュが当たる。すでにキャッシュ（取得中を含む）がある query は触らない。セラーのボトル先読みも保存済み `cellarId` を付け、画面の query と URL を揃える
 - 先読み GET は 10 秒で打ち切る。失敗した Promise を本バンドルが待たず、通常の `fetch` にフォールバックする。画面 `import()` の失敗は握りつぶして未処理拒否にしない（本体の Error Boundary / `vite:preloadError` が復旧する）
 - タブ / FAB / ヘッダー / ホームの導線: `pointerenter` と `focus` で行き先の chunk を先読み
 - 中央タブ「記録」は `logForm` と `photoEdit`

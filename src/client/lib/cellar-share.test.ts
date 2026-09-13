@@ -3,11 +3,13 @@ import type { Bottle } from "@/shared/bottles.ts";
 import type { CellarSummary } from "@/shared/cellars.ts";
 import { CELLAR_PERSONAL_NAME } from "@/shared/constants.ts";
 import {
+  bottlesQueryCellarId,
   cellarDisplayName,
   cellarPeopleLabel,
   conflictFields,
   parseJoinHash,
   resolveSelectedCellar,
+  usableStoredCellarId,
 } from "./cellar-share.ts";
 
 const personal: CellarSummary = {
@@ -76,6 +78,30 @@ describe("resolveSelectedCellar", () => {
     expect(resolveSelectedCellar([personal, shared], shared.id)?.id).toBe(shared.id);
     expect(resolveSelectedCellar([personal, shared], "missing")?.id).toBe(personal.id);
     expect(resolveSelectedCellar([shared], null)?.id).toBe(shared.id);
+  });
+});
+
+describe("bottlesQueryCellarId", () => {
+  it("未解決かつ未保存なら cellarId を付けない（個人の既定）", () => {
+    expect(bottlesQueryCellarId(undefined, null)).toBeUndefined();
+    expect(usableStoredCellarId("not-a-uuid")).toBeUndefined();
+    expect(usableStoredCellarId(personal.id)).toBe(personal.id);
+  });
+
+  it("未解決なら保存済み UUID をそのまま使う", () => {
+    expect(bottlesQueryCellarId(undefined, shared.id)).toBe(shared.id);
+    expect(bottlesQueryCellarId(undefined, "bogus")).toBeUndefined();
+  });
+
+  it("個人を明示選択していなければ cellarId を省略する", () => {
+    expect(bottlesQueryCellarId(personal, null)).toBeUndefined();
+    expect(bottlesQueryCellarId(personal, personal.id)).toBe(personal.id);
+  });
+
+  it("共有または解決後の選択を優先する", () => {
+    expect(bottlesQueryCellarId(shared, null)).toBe(shared.id);
+    expect(bottlesQueryCellarId(shared, shared.id)).toBe(shared.id);
+    expect(bottlesQueryCellarId(personal, shared.id)).toBe(personal.id);
   });
 });
 

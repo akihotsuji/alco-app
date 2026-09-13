@@ -9,6 +9,7 @@ import {
   createBottlesResponseSchema,
   DEFAULT_BOTTLE_STORAGE,
 } from "@/shared/bottles.ts";
+import { cellarsResponseSchema } from "@/shared/cellars.ts";
 import { drinkLogSchema } from "@/shared/drink-logs.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
@@ -559,6 +560,98 @@ describe("GET /api/bottles", () => {
     const ids = [...first.items, ...second.items].map((item) => item.id);
     expect(new Set(ids).size).toBe(3);
     expect(ids.sort()).toEqual(created.items.map((item) => item.id).sort());
+  });
+
+  it("group=type は種類ごとの先頭 limit 本を 1 応答に載せる", async () => {
+    const ctx = await createTestApp();
+    const [a, b] = await createTestUserPair(ctx.app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+    await postBottle(ctx.app, a.cookie, { name: "赤1", drinkType: "wine_red", count: 12 });
+    await postBottle(ctx.app, a.cookie, { name: "赤2", drinkType: "wine_red" });
+    await postBottle(ctx.app, a.cookie, { name: "ビール", drinkType: "beer" });
+    await postBottle(ctx.app, b.cookie, { name: "他人の赤", drinkType: "wine_red" });
+    await seedConsumed(
+      ctx,
+      "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      a.id,
+      "開栓ビール",
+      new Date("2026-09-01T00:00:00.000Z"),
+      "2026-09-01",
+    );
+
+    const grouped = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=cellar&group=type&limit=12")).json(),
+    );
+    expect(grouped.typeShelves?.map((shelf) => shelf.drinkType)).toEqual(["wine_red", "beer"]);
+    expect(grouped.typeShelves?.[0]?.items).toHaveLength(12);
+    expect(grouped.typeShelves?.[0]?.nextCursor).toBeTruthy();
+    expect(grouped.typeShelves?.[1]?.items.map((item) => item.name)).toEqual(["ビール"]);
+    expect(grouped.typeShelves?.[1]?.nextCursor).toBeNull();
+    expect(grouped.items).toHaveLength(13);
+    expect(grouped.nextCursor).toBeNull();
+    expect(grouped.totalCount).toBe(14);
+    expect(grouped.countsByType.wine_red).toBe(13);
+    expect(grouped.countsByType.beer).toBe(1);
+    expect(grouped.items.some((item) => item.name === "他人の赤")).toBe(false);
+
+    const more = bottlesResponseSchema.parse(
+      await (
+        await getBottles(
+          ctx.app,
+          a.cookie,
+          `view=cellar&drinkType=wine_red&limit=12&cursor=${grouped.typeShelves?.[0]?.nextCursor}`,
+        )
+      ).json(),
+    );
+    expect(more.items).toHaveLength(1);
+    expect(more.nextCursor).toBeNull();
+
+    const searched = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "group=type&limit=12&q=ビール")).json(),
+    );
+    expect(searched.totalCount).toBe(14);
+    expect(searched.typeShelves?.map((shelf) => shelf.drinkType)).toEqual(["beer"]);
+    expect(searched.items.map((item) => item.name)).toEqual(["ビール"]);
+
+    const plain = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
+    expect(plain.typeShelves).toBeUndefined();
+  });
+
+  it("group=type の不正な組み合わせは 400。未認証は 401。他人の cellarId は 404", async () => {
+    const ctx = await createTestApp();
+    const [a, b] = await createTestUserPair(ctx.app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+    await postBottle(ctx.app, b.cookie, { name: "他人", drinkType: "wine" });
+    const otherCellars = cellarsResponseSchema.parse(
+      await (await ctx.app.request("/api/cellars", { headers: { Cookie: b.cookie } })).json(),
+    );
+    const otherId = otherCellars.items[0]?.id;
+    expect(otherId).toBeDefined();
+
+    const unauth = await getBottles(ctx.app, "", "group=type&limit=12");
+    expect(unauth.status).toBe(401);
+
+    const withDrinkType = await getBottles(ctx.app, a.cookie, "group=type&drinkType=wine");
+    expect(withDrinkType.status).toBe(400);
+    expect((await fields(withDrinkType)).group).toEqual([BOTTLE_MESSAGES.group]);
+
+    const withCursor = await getBottles(ctx.app, a.cookie, "group=type&cursor=abc");
+    expect(withCursor.status).toBe(400);
+    expect((await fields(withCursor)).group).toEqual([BOTTLE_MESSAGES.group]);
+
+    const archive = await getBottles(ctx.app, a.cookie, "view=archive&group=type");
+    expect(archive.status).toBe(400);
+    expect((await fields(archive)).group).toEqual([BOTTLE_MESSAGES.group]);
+
+    const other = await getBottles(ctx.app, a.cookie, `group=type&limit=12&cellarId=${otherId}`);
+    const missing = await getBottles(ctx.app, a.cookie, `group=type&limit=12&cellarId=${MISSING}`);
+    expect(other.status).toBe(404);
+    expect(missing.status).toBe(404);
+    expect(await other.json()).toEqual(await missing.json());
   });
 });
 
