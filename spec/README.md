@@ -34,7 +34,7 @@
 | [features/deploy-prod.md](features/deploy-prod.md) | タグ / 承認で `env.production` へデプロイ（未適用 migrate 前に D1 バックアップ） | 7-02（2026-09-09。事前バックアップは 2026-09-12） |
 | [features/d1-backup.md](features/d1-backup.md) | D1 Time Travel 確認と日次 export（非公開 R2。14 日。Deploy prod の pre-migrate も含む） | 7-04（2026-09-09） |
 | [features/monitoring.md](features/monitoring.md) | Workers Logs とエラー通知（ウェブフック + Actions メール） | 7-05（2026-09-09） |
-| [legal.md](legal.md) | 利用規約・PP の草案とデータマップ | 8-01（2026-09-09。承認待ち） |
+| [legal.md](legal.md) | 利用規約・PP の草案とデータマップ | 8-01（2026-09-13。承認待ち。共有セラー等を反映） |
 | [features/legal.md](features/legal.md) | 公開ページ・サインアップ同意・`legal_consents` | 8-01 |
 | [features/age-verification.md](features/age-verification.md) | 満 20 歳の生年月日確認・`age_verifications`・機能 API の 403 | 8-02 |
 | [features/password-reset.md](features/password-reset.md) | 公開登録の確認・パスワードリセットメール（Resend） | 8-03 |
