@@ -54,6 +54,10 @@ export const pwaOptions = {
         handler: "NetworkOnly" as const,
       },
       {
+        urlPattern: ({ url }: { url: URL }) => url.pathname === "/version.json",
+        handler: "NetworkOnly" as const,
+      },
+      {
         urlPattern: ({ request, url }: { request: Request; url: URL }) => {
           const pathname = url.pathname;
           if (pathname === "/api" || pathname.startsWith("/api/")) {

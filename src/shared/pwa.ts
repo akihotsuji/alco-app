@@ -54,11 +54,12 @@ export const PWA_ICON_MANIFEST = [
 
 export const PWA_PRECACHE_GLOB = ["**/*.{js,css,html,ico,png,svg,webp,webmanifest}"] as const;
 /** 切り抜きモデルは既存の Cache API。SW precache に載せない */
-export const PWA_PRECACHE_IGNORE = ["**/models/**"] as const;
+export const PWA_PRECACHE_IGNORE = ["**/models/**", "**/version.json"] as const;
 export const PWA_NAVIGATE_FALLBACK = "index.html";
 export const PWA_NAVIGATE_FALLBACK_DENYLIST = [
   /^\/api(?:\/|$)/,
   /^\/assets(?:\/|$)/,
+  /^\/version\.json$/,
   /\.(?:js|css)$/,
 ];
 

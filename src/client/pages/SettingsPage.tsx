@@ -7,6 +7,7 @@ import { ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
 import { GuideFanMenu } from "@/client/components/guide/GuideFanMenu.tsx";
+import { AppRefreshRow } from "@/client/components/settings/AppRefreshRow.tsx";
 import { DisplayNameRow } from "@/client/components/settings/DisplayNameRow.tsx";
 import { HapticPrefRow } from "@/client/components/settings/HapticPrefRow.tsx";
 import { RecordLocationPrefRow } from "@/client/components/settings/RecordLocationPrefRow.tsx";
@@ -15,6 +16,7 @@ import { ThemePrefRow } from "@/client/components/settings/ThemePrefRow.tsx";
 import { Switch } from "@/client/components/ui/switch.tsx";
 import { useMe } from "@/client/hooks/use-me.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { readClientBuildId } from "@/client/lib/app-version.ts";
 import { needsGuideFanReveal } from "@/client/lib/guide-spotlight-layout.ts";
 import {
   getCellarRecognizePref,
@@ -22,6 +24,7 @@ import {
   setCellarRecognizePref,
   setComposeMascotPref,
 } from "@/client/lib/preferences.ts";
+import { formatAppVersionLabel } from "@/shared/app-version.ts";
 import { APP_VERSION } from "@/shared/constants.ts";
 import { FEEDBACK_COPY } from "@/shared/feedback.ts";
 import { legalHref } from "@/shared/legal.ts";
@@ -176,11 +179,12 @@ export function SettingsPage() {
             <span>プライバシーポリシー</span>
             <ChevronRight size={20} className="settings-chevron" aria-hidden />
           </Link>
+          <AppRefreshRow />
         </div>
       </section>
 
       <p className="settings-note">
-        {PWA_NAME} {APP_VERSION}
+        {formatAppVersionLabel(PWA_NAME, APP_VERSION, readClientBuildId())}
       </p>
 
       <Dialog

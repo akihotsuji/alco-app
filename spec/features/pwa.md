@@ -90,11 +90,13 @@
 | `/models/**` | precache **しない** | 4.5MB の ONNX。既存の Cache API が担う |
 | 存在しない `/assets/*`（古いハッシュの JS / CSS） | **404**（HTML にしない） | Workers の SPA fallback が `index.html` を返すと、`nosniff` でスクリプト実行が拒否され空画面になる |
 
-- `navigateFallback` は `index.html`（SPA）。denylist は `/api/` と `/assets/` と `*.js` / `*.css`
+- `navigateFallback` は `index.html`（SPA）。denylist は `/api/` と `/assets/` と `*.js` / `*.css` と `/version.json`
 - `registerType: autoUpdate` + `skipWaiting` + `clientsClaim`。デプロイ後は新 SW がすぐ有効
 - **初回インストール**（この文書読み込み時点で `controller` が無い）では `controllerchange` で再読み込みしない
 - **既存バージョンからの更新**では再読み込みを `app-reload` に一元化する。短時間の重複・画面再起動をまたぐループはしない
-- 未保存フォームがあるときは再読み込みせず、既存の離脱保護（破棄確認）を通す更新トーストを出す
+- 未保存フォームがあるとき、および再読み込みループ回避のときは再読み込みせず、既存の離脱保護（破棄確認）を通す更新トーストを出す
+- フォアグラウンドに戻ったとき `registration.update()` を呼ぶ。SPA の画面遷移やスタンドアロン起動の再開だけでは、ブラウザが `sw.js` を取りに行かないことがある
+- 配信中の版（`/version.json`）と表示中のビルド ID が違うときも、同じ更新トーストを出す。iOS スタンドアロンなど SW の `controllerchange` が弱い環境の補完
 - SW 登録失敗はアプリ本体の表示を止めない
 - `urlPattern` は SW に閉じた関数にする（ビルド時に外部 import 名だけが残ると NetworkOnly が死ぬ）
 - precache に無い JS / CSS が `text/html` で返ったときは 404 として扱う（古い HTML が消えたチャンクを指す場合）
@@ -108,7 +110,7 @@ Workers Static Assets の `_headers` で次を付ける。
 |---|---|---|
 | `/*`（HTML / SPA fallback） | `no-cache` | デプロイ後に古い `index.html` が新しいハッシュ付き JS/CSS を指すと、ラベルやボタン名が消える |
 | `/assets/*` | `! Cache-Control` のあと `public, max-age=31536000, immutable` | ファイル名にハッシュがある。中身が変わったら URL が変わる。`/*` と両方当たると値がカンマ結合されるため先に外す |
-| `/sw.js` / `/boot-guard.js` / `/boot.css` | `no-cache` | 古い SW や起動 CSS が残るとデプロイ後に壊れる |
+| `/sw.js` / `/boot-guard.js` / `/boot.css` / `/version.json` | `no-cache` | 古い SW・起動 CSS・版情報が残るとデプロイ後に壊れる／古いと判定できない |
 
 SW 登録は `updateViaCache: "none"`（ブラウザが `sw.js` を HTTP キャッシュから使わない）。
 
@@ -119,6 +121,30 @@ SW 登録は `updateViaCache: "none"`（ブラウザが `sw.js` を HTTP キャ�
 起動・失敗時の画面は [screen-designs/00-common.md](../screen-designs/00-common.md) 2.10。認証の通信失敗は [auth.md](auth.md)。
 
 引っ張り更新のあとに地色だけになる現象と、再起動後に中身は見えるが縦スクロールできない現象は別経路。後者は `.app-content` がスクロール容器になっていないレイアウト（または document 側の overflow lock）を疑う。`overscroll-behavior-y: none` の削除や `overflow: auto !important` の一括適用では直さない。
+
+---
+
+## 6.1 版表記と最新化
+
+ホーム追加した端末は、デプロイ後も古い Precache のまま動き続けることがある。設定で「今どの版か」と「今すぐ揃える」を見えるようにする。
+
+| 項目 | 値 |
+|---|---|
+| 設定 S7 | `酒のしおり 0.1.0 (abcdef1)`。製品版は `APP_VERSION`。括弧内はデプロイしたコミットの短い SHA（7 桁。ローカルで取れないときは `dev`） |
+| 埋め込み | ビルド時に `VITE_APP_BUILD_ID` / `GITHUB_SHA` / `git rev-parse` の順。CI の deploy はチェックアウトした SHA を明示する |
+| `/version.json` | `{ "version": "0.1.0", "buildId": "abcdef1" }` だけ。シークレット・内部パスなし。公開 API ではない（`/api/*` を増やさない） |
+| 配信 | SW precache しない。runtime は NetworkOnly。`Cache-Control: no-cache`。無いときは SPA の HTML を版情報として使わない |
+| 設定 S18 | 「最新の状態にする」。副文「表示している版を、配信中の最新に揃えます」 |
+
+S18 の手順:
+
+1. オフラインなら再読み込みしない（共通のオフライン文）
+2. 登録済み SW の `update()`（最大 8 秒で打ち切る）
+3. Workbox の precache だけ消す（切り抜きモデルの Cache API は残す）
+4. Cookie / localStorage / IndexedDB / セッションは消さない
+5. 未保存があれば既存の離脱保護を通し、`requestAppReload("user")`
+
+トースト「新しいバージョンがあります」+「更新」は、未保存時の SW 更新に加え、`/version.json` の不一致でも出す。押したあとの再読み込みは S18 と同じ経路。
 
 ---
 
@@ -163,6 +189,9 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 - [ ] `boot.css` が `data-theme` 付きの html/body に色を残さない。SW 登録は `updateViaCache: "none"`
 - [ ] 起動中に「読み込み中」が見え、失敗時に説明と再試行がある
 - [ ] 初回インストールで不要な再読み込みをしない。更新再読み込みはループしない
+- [ ] 設定の版表記に短いビルド ID が付き、デプロイごとに変わる
+- [ ] `/version.json` が JSON で、HTML の SPA fallback にならない
+- [ ] 設定「最新の状態にする」で再読み込みできる。オフラインでは再読み込みしない
 - [ ] 表示名は 酒のしおり。アイコン地はライトの地色。キャラのワイン色は変えない
 - [ ] lint / typecheck / test がパスする
 - [ ] 監査: SW が秘密・認可レスポンスをキャッシュしない

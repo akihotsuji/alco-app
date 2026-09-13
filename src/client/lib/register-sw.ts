@@ -13,6 +13,7 @@ export function installServiceWorker(
     hasServiceWorker?: boolean;
     register?: (url: string, options?: RegistrationOptions) => Promise<unknown>;
     addControllerChangeListener?: (listener: () => void) => void;
+    addVisibleListener?: (listener: () => void) => void;
     hadControllerAtStart?: boolean;
     onRegisterError?: (error: unknown) => void;
   } = {},
@@ -47,7 +48,32 @@ export function installServiceWorker(
     deps.register ??
     ((url: string, options?: RegistrationOptions) =>
       navigator.serviceWorker.register(url, options));
-  void register(`/${PWA_SW_FILENAME}`, { updateViaCache: "none" }).catch((error: unknown) => {
-    deps.onRegisterError?.(error);
-  });
+  void register(`/${PWA_SW_FILENAME}`, { updateViaCache: "none" })
+    .then((registration) => {
+      const update = () => {
+        if (
+          registration &&
+          typeof registration === "object" &&
+          "update" in registration &&
+          typeof registration.update === "function"
+        ) {
+          void registration.update();
+        }
+      };
+      if (deps.addVisibleListener) {
+        deps.addVisibleListener(update);
+        return;
+      }
+      if (typeof document === "undefined") {
+        return;
+      }
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          update();
+        }
+      });
+    })
+    .catch((error: unknown) => {
+      deps.onRegisterError?.(error);
+    });
 }

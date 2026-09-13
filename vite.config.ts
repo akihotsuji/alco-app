@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { srcAlias } from "./vite.alias.ts";
+import { alcoAppVersion } from "./vite.app-version.ts";
 import { alcoBootPrefetch } from "./vite.boot-prefetch.ts";
 import { cutoutAssets } from "./vite.cutout-assets.ts";
 import { alcoPwa } from "./vite.pwa.ts";
@@ -20,6 +21,7 @@ export default defineConfig(() => {
       tailwindcss(),
       cutoutAssets(),
       pwaIcons(),
+      alcoAppVersion(),
       alcoPwa(),
       ...alcoBootPrefetch(),
       cloudflare(forceLocal ? { remoteBindings: false } : {}),

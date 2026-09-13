@@ -5,6 +5,7 @@ import { installAssetRecovery } from "@/client/lib/asset-recovery.ts";
 import { installKeyboardInset } from "@/client/lib/keyboard-inset.ts";
 import { installServiceWorker } from "@/client/lib/register-sw.ts";
 import { installTheme } from "@/client/lib/theme.ts";
+import { installVersionWatch } from "@/client/lib/version-watch.ts";
 import { App } from "./App";
 import { AppErrorBoundary } from "./components/feedback/AppErrorBoundary.tsx";
 import "./styles.css";
@@ -13,6 +14,7 @@ import "./styles.css";
 installTheme();
 installAssetRecovery();
 installServiceWorker();
+installVersionWatch();
 window.__alcoMarkBootReady?.();
 
 const root = document.getElementById("root");

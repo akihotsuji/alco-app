@@ -53,7 +53,9 @@ describe("pwa 契約", () => {
     expect(isPwaNetworkOnlyPath("/apifake")).toBe(false);
     expect(isPwaNetworkOnlyPath("/")).toBe(false);
     expect(PWA_PRECACHE_IGNORE).toContain("**/models/**");
+    expect(PWA_PRECACHE_IGNORE).toContain("**/version.json");
     expect(PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) => rule.test("/api/drink-logs"))).toBe(true);
+    expect(PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) => rule.test("/version.json"))).toBe(true);
     expect(PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) => rule.test("/logs"))).toBe(false);
   });
 });

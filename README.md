@@ -133,7 +133,7 @@ Chrome（デスクトップ）:
 2. Application → Service Workers。`sw.js` が登録され、Network で `/api/*` が `(ServiceWorker)` 経由でも **from ServiceWorker cache に API JSON が残らない**（NetworkOnly）
 3. Install できること。インストール後はブラウザのタブバーが消え、アプリの下部タブだけになる（二重にならない）
 
-更新: `registerType: autoUpdate` + `skipWaiting`。デプロイ後は次の起動で新 SW が有効。壊れた古い SW が残るときは、そのオリジンの Application → Service Workers で Unregister し、ハード再読み込みする。
+更新: `registerType: autoUpdate` + `skipWaiting`。フォアグラウンド復帰で `sw.js` と `/version.json` を確認する。未保存が無ければ SW の制御交代で再読み込みする。版の確認と手動の最新化は設定（`酒のしおり 0.1.0 (abcdef1)` / 「最新の状態にする」）。壊れた古い SW が残るときは、そのオリジンの Application → Service Workers で Unregister し、ハード再読み込みする。
 
 実機の確認項目は [spec/qa-devices.md](spec/qa-devices.md)。
 

@@ -42,7 +42,7 @@
 
 1. 対象 commit を checkout
 2. `pnpm install --frozen-lockfile`
-3. `pnpm build`（`wrangler deploy` は `dist/` を上げる）
+3. `pnpm build`（`wrangler deploy` は `dist/` を上げる。設定の版表記用に `VITE_APP_BUILD_ID` へ対象 commit の SHA を渡す）
 4. `pnpm exec wrangler d1 migrations apply alco-app-dev --remote --env dev`（差分が無ければ no-op。失敗したらデプロイしない）
 5. `pnpm exec wrangler deploy --env dev`
 

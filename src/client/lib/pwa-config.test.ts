@@ -31,11 +31,15 @@ describe("PWA 設定ファイル", () => {
     expect(pwaOptions.workbox.runtimeCaching).toEqual([
       expect.objectContaining({ handler: "NetworkOnly" }),
       expect.objectContaining({ handler: "NetworkOnly" }),
+      expect.objectContaining({ handler: "NetworkOnly" }),
     ]);
     const apiPattern = pwaOptions.workbox.runtimeCaching[0]?.urlPattern as
       | ((ctx: { url: URL }) => boolean)
       | undefined;
-    const assetPattern = pwaOptions.workbox.runtimeCaching[1]?.urlPattern as
+    const versionPattern = pwaOptions.workbox.runtimeCaching[1]?.urlPattern as
+      | ((ctx: { url: URL }) => boolean)
+      | undefined;
+    const assetPattern = pwaOptions.workbox.runtimeCaching[2]?.urlPattern as
       | ((ctx: { request: { destination: string }; url: URL }) => boolean)
       | undefined;
     expect(apiPattern?.toString()).not.toContain("isPwaNetworkOnlyPath");
@@ -44,6 +48,8 @@ describe("PWA 設定ファイル", () => {
     expect(apiPattern?.({ url: apiUrl })).toBe(true);
     const pageUrl = new URL("https://example.test/logs");
     expect(apiPattern?.({ url: pageUrl })).toBe(false);
+    expect(versionPattern?.({ url: new URL("https://example.test/version.json") })).toBe(true);
+    expect(versionPattern?.({ url: new URL("https://example.test/logs") })).toBe(false);
     const scriptReq = { destination: "script" };
     expect(
       assetPattern?.({ request: scriptReq, url: new URL("https://example.test/assets/old.js") }),
@@ -74,11 +80,13 @@ describe("PWA 設定ファイル", () => {
     expect(headers).toContain("/sw.js");
     expect(headers).toContain("/boot-guard.js");
     expect(headers).toContain("/boot.css");
+    expect(headers).toContain("/version.json");
     expect(headers).toContain("Cache-Control: no-cache");
     expect(headers).toMatch(/\/\*\n {2}Cache-Control: no-cache/);
     expect(headers).toMatch(
       /\/assets\/\*\n {2}! Cache-Control\n {2}Cache-Control: public, max-age=31536000, immutable/,
     );
+    expect(readFileSync(join(root, "vite.config.ts"), "utf8")).toContain("alcoAppVersion");
     expect(headers).toContain("manifest-src 'self'");
     const csp = headers.split("\n").find((line) => line.includes("Content-Security-Policy:"));
     expect(csp).toBeTruthy();
