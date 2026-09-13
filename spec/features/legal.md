@@ -2,7 +2,7 @@
 
 実装: Phase 8-01。画面は [screen-designs/09-legal.md](../screen-designs/09-legal.md) / [01-auth.md](../screen-designs/01-auth.md) / [06-settings.md](../screen-designs/06-settings.md)。文面の正本は [legal.md](../legal.md)。データマップは同ファイル 2 章。手順は [roadmap/phase-08-public-launch/01-terms-privacy.md](../../roadmap/phase-08-public-launch/01-terms-privacy.md)。
 
-- 状態: **草案**（2026-09-09）。法的効力の確定と事業者表示（氏名・住所・連絡先）はオーナー承認。エージェントは構成・実装フック・個人情報の棚卸しまで
+- 状態: **草案**（2026-09-13。共有セラー・退会・ご意見・AI 照合・PWA を文面へ反映。再同意ゲートは作らない）。法的効力の確定と事業者表示（氏名・住所・連絡先）はオーナー承認。エージェントは構成・実装フック・個人情報の棚卸しまで
 - 対象地域: **日本**（EU Cookie バナーは対象外）
 
 ---
@@ -17,7 +17,7 @@
 
 **対象**
 
-- データマップと草案（酒類・20 歳、免責、Cloudflare への国外移転、写真の権利、飲酒記録の扱い）
+- データマップと草案（酒類・20 歳、免責、Cloudflare への国外移転、写真の権利、飲酒記録の扱い、共有セラー、退会、ご意見、AI 照合、PWA）
 - 公開ページ `/terms` `/privacy`（認証なし。SPA ルート。新しい `/api/*` は増やさない）
 - サインアップの同意 UI とサーバー検証（メール登録と Google 新規。8-04）
 - 設定からの閲覧導線
@@ -44,7 +44,7 @@
 | 公開 API | 8-01 では増やさない。死活確認は `GET /api/health`。公開設定は 8-05 の `GET /api/config` | [api-design.md](../api-design.md) 2.3 |
 | 同意の保存 | Better Auth の `user` は触らない。アプリテーブル `legal_consents`（`user_id` UNIQUE、版、`accepted_at`） | Auth CLI 生成物を手で ALTER しない。[data-model.md](../data-model.md) 6.7 |
 | サーバー強制 | `POST /api/auth/sign-up/email` の before hook。`acceptedLegal === true` かつ `legalVersion` が現行版と一致しなければ拒否 | チェックをクライアントだけで迂回できない |
-| 再同意 | 8-01 では作らない。版と施行日を公開ページに出す。重大変更時の再同意は将来 | 要確認のまま実装しない |
+| 再同意 | 作らない。版と施行日を公開ページに出す。2026-09-13 の共有セラー反映でも既存ユーザーはロックしない。重大変更時の再同意は将来 | 要確認のまま実装しない |
 | 既存ユーザー | 同意行が無くてもアプリは使える（個人利用で既に登録済みの移行） | 既存アカウントをロックしない |
 | Cookie バナー | 置かない | セッション Cookie のみ。日本向け第一歩 |
 | 飲酒記録 | 医療記録ではなく、利用者が任意に入れる生活記録。診断・治療には使わない | 健康隣接。専門家確認は残る |
@@ -106,8 +106,13 @@
 
 ## 8. 関連
 
-- [legal.md](../legal.md) — データマップと草案
+- [legal.md](../legal.md) — データマップと草案（版 `2026-09-13`）
 - [auth.md](auth.md)
+- [shared-cellar.md](shared-cellar.md)
+- [account-deletion.md](account-deletion.md)
+- [ai-recognition.md](ai-recognition.md)
+- [feedback.md](feedback.md)
+- [pwa.md](pwa.md)
 - [data-model.md](../data-model.md) 6.7
 - [screens.md](../screens.md)
 - [02-age-verification.md](../../roadmap/phase-08-public-launch/02-age-verification.md)

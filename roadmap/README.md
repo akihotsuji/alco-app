@@ -231,7 +231,7 @@ Cloudflare 開発リソース。詳細は [spec/02-tech-stack.md](../spec/02-tec
 
 | # | ロードマップ原文 | ファイル | 状態 |
 |---|---|---|---|
-| 8-01 | 利用規約・プライバシーポリシー | [01-terms-privacy.md](phase-08-public-launch/01-terms-privacy.md) | 実装済み（2026-09-09。文面は草案） |
+| 8-01 | 利用規約・プライバシーポリシー | [01-terms-privacy.md](phase-08-public-launch/01-terms-privacy.md) | 実装済み（2026-09-13。文面は草案。共有セラー等を反映） |
 | 8-02 | 年齢確認（20歳以上） | [02-age-verification.md](phase-08-public-launch/02-age-verification.md) | 完了（2026-09-10） |
 | 8-03 | 公開登録確認・パスワードリセット | [03-open-signup-password-reset.md](phase-08-public-launch/03-open-signup-password-reset.md) | 完了（2026-09-10。Resend 投入はオーナー） |
 | 8-04 | OAuthログイン | [04-oauth-login.md](phase-08-public-launch/04-oauth-login.md) | 完了（2026-09-10。Google 投入はオーナー） |

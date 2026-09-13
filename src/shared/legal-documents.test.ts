@@ -31,7 +31,31 @@ describe("法務文書", () => {
     expect(terms).toContain("Googleアカウント");
     expect(terms).toContain("再設定");
     expect(terms).toContain("年齢確認画面");
+    expect(terms).toContain("共有セラー");
+    expect(terms).toContain("飲酒記録、テイスティングノート");
+    expect(terms).toContain("招待リンク");
+    expect(terms).toContain("アカウントの削除");
+    expect(terms).toContain("オフにするスイッチはありません");
     expect(terms).not.toContain("もう一杯");
+    expect(terms).not.toContain("spec/");
+    expect(privacy).toContain("共有セラー");
+    expect(privacy).toContain("参加者にも配信");
+    expect(privacy).toContain("Google検索");
+    expect(privacy).toContain("退会したメンバー");
+    expect(privacy).toContain("サービスワーカー");
+    expect(privacy).not.toContain("他ユーザーには見せない");
     expect(privacy).not.toContain("<script");
+    expect(privacy).not.toContain("spec/");
+  });
+
+  it("見出しにセラー共有があり、公開プロフィールを約束しない", () => {
+    expect(TERMS_DOCUMENT.sections.some((section) => section.heading === "セラー共有")).toBe(true);
+    expect(PRIVACY_DOCUMENT.sections.some((section) => section.heading === "セラー共有")).toBe(
+      true,
+    );
+    const terms = allTexts(TERMS_DOCUMENT).join("\n");
+    const privacy = allTexts(PRIVACY_DOCUMENT).join("\n");
+    expect(terms).not.toContain("公開プロフィール");
+    expect(privacy).toContain("不特定多数への公開には使いません");
   });
 });

@@ -270,7 +270,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 
 個人利用で安定運用できてから着手する。
 
-- [x] 利用規約・プライバシーポリシー作成 → [legal.md](legal.md) / [features/legal.md](features/legal.md)（8-01。2026-09-09。文面は草案。オーナー承認待ち）
+- [x] 利用規約・プライバシーポリシー作成 → [legal.md](legal.md) / [features/legal.md](features/legal.md)（8-01。2026-09-13 に共有セラー等を文面へ反映。草案。オーナー承認待ち）
 - [x] 年齢確認（20歳以上）フローの実装 → [features/age-verification.md](features/age-verification.md)（8-02。2026-09-10）
 - [x] 公開時の新規登録フロー確認、パスワードリセットメール（メール送信基盤の導入）。招待制は採用していないため「解除」作業は不要 → [features/password-reset.md](features/password-reset.md)（8-03。2026-09-10。Resend キー投入はオーナー）
 - [x] OAuthログイン（Google等）→ [features/oauth-login.md](features/oauth-login.md)（8-04。2026-09-10。Google クライアント投入はオーナー）
