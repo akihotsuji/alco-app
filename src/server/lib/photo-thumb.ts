@@ -98,9 +98,10 @@ async function decodeWebpToRgba(bytes: Uint8Array): Promise<RgbaImage> {
     })();
   }
   const decode = await webpReady;
-  const copy = bytes.slice();
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
   const decoded = await decode(copy.buffer);
-  return toRgbaImage(decoded.width, decoded.height, decoded.data);
+  return toRgbaImage(decoded.width, decoded.height, new Uint8Array(decoded.data));
 }
 
 async function decodeToRgba(bytes: Uint8Array, contentType: PhotoContentType): Promise<RgbaImage> {

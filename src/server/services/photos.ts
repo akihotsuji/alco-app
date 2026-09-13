@@ -572,7 +572,9 @@ export function matchesIfNoneMatch(header: string | undefined, etag: string): bo
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
 }
 
 async function persistPhotoThumb(input: {

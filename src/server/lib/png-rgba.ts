@@ -14,10 +14,16 @@ const CRC_TABLE = (() => {
   return table;
 })();
 
+function asBlobPart(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy;
+}
+
 function crc32(bytes: Uint8Array): number {
   let value = 0xffffffff;
   for (const byte of bytes) {
-    const tableValue = CRC_TABLE[(value ^ byte) & 0xff];
+    const tableValue = CRC_TABLE[(value ^ byte) & 0xff] ?? 0;
     value = (tableValue ^ (value >>> 8)) >>> 0;
   }
   return (value ^ 0xffffffff) >>> 0;
@@ -35,12 +41,16 @@ function concatBytes(chunks: readonly Uint8Array[]): Uint8Array {
 }
 
 async function inflateZlib(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"));
+  const stream = new Blob([asBlobPart(bytes)])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 async function deflateZlib(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate"));
+  const stream = new Blob([asBlobPart(bytes)])
+    .stream()
+    .pipeThrough(new CompressionStream("deflate"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
