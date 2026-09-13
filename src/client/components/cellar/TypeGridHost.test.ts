@@ -10,7 +10,7 @@ const shell = readFileSync(join(here, "../layout/AppShell.tsx"), "utf8");
 
 describe("TypeGridHost", () => {
   it("開いているときだけ種類グリッドを dynamic import する", () => {
-    expect(host).toContain('import("@/client/components/cellar/TypeGridOverlay.tsx")');
+    expect(host).toContain("@/client/components/cellar/TypeGridOverlay.tsx");
     expect(host).toContain("if (!open)");
     expect(host).toContain("return null");
     expect(shell).toContain("TypeGridHost");

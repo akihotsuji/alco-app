@@ -871,13 +871,14 @@ export async function updateBottle(input: {
   const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
   const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const updatedAt = input.now ?? new Date();
-  const typeChanged =
+  let nextSortOrder: number | undefined;
+  if (
     body.drinkType !== undefined &&
     body.drinkType !== current.drinkType &&
-    current.status === "sealed";
-  const nextSortOrder = typeChanged
-    ? ((await frontSortOrders(db, current.cellarId, body.drinkType, 1))[0] ?? 0)
-    : undefined;
+    current.status === "sealed"
+  ) {
+    nextSortOrder = (await frontSortOrders(db, current.cellarId, body.drinkType, 1))[0] ?? 0;
+  }
   const patch = {
     ...attributesFromBody({ ...body, origin: undefined }),
     ...(body.origin === undefined ? {} : { origin: writtenOrigin(body.origin, current.origin) }),
