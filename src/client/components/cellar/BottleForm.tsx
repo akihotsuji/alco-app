@@ -21,12 +21,12 @@ import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import {
   BOTTLE_DETAILS_ERROR_FIELDS,
-  bottleSaveDisabledHint,
   BOTTLE_SAVE_LABELS,
   type BottleFormErrors,
   type BottleFormField,
   type BottleFormState,
   bottlePhotoIds,
+  bottleSaveDisabledHint,
   canSubmitBottleForm,
   createEmptyBottleForm,
   firstBottleDetailsErrorField,
@@ -745,7 +745,11 @@ export function BottleFormFields({
         onSave={submit}
       />
       {mode === "edit" && onDelete ? (
-        <button type="button" className="log-delete form-delete-spaced" onClick={() => setDeleteOpen(true)}>
+        <button
+          type="button"
+          className="log-delete form-delete-spaced"
+          onClick={() => setDeleteOpen(true)}
+        >
           このボトルを削除
         </button>
       ) : null}

@@ -4241,9 +4241,9 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
 }
 
 .cellar-search-field {
-  flex: 1 1 140px;
+  flex: 1 1 100%;
   min-width: 0;
-  max-width: 16rem;
+  max-width: none;
 }
 
 .note-toolbar .cellar-search-field {
@@ -4254,6 +4254,7 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
 .cellar-view-toggle {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
   margin: 0;
   padding: 4px;
   border: none;
@@ -6086,8 +6087,8 @@ html[data-reduce-motion="1"] .guide-fan-item {
   height: 72px;
 }
 
-.bottle-manage-thumb .bottle-tile-img,
-.bottle-manage-thumb .bottle-tile-silhouette {
+.bottle-manage-row .bottle-manage-thumb .bottle-tile-img,
+.bottle-manage-row .bottle-manage-thumb .bottle-tile-silhouette {
   width: 48px;
   height: 72px;
   object-fit: contain;
@@ -6220,13 +6221,4 @@ html[data-reduce-motion="1"] .guide-fan-item {
   color: var(--foreground);
   font: inherit;
   font-weight: 600;
-}
-
-.cellar-view-toggle {
-  flex-wrap: wrap;
-}
-
-.cellar-search-field {
-  flex: 1 1 100%;
-  max-width: none;
 }

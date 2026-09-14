@@ -28,7 +28,6 @@ export type BottleTileFaceProps = {
 export function BottleTileFace({
   item,
   mode,
-  size = "one",
   readySrc,
   photoLoading = "lazy",
   showPressShield,

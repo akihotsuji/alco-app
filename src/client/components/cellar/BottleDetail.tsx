@@ -66,8 +66,8 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const statusPill = bottleStatusPill(bottle);
   const pending = consume.isPending || restore.isPending;
   const vintage = vintageLabel(bottle.vintage);
-  const summary = [DRINK_TYPE_LABELS[bottle.drinkType], vintage].filter(
-    (value): value is string => Boolean(value),
+  const summary = [DRINK_TYPE_LABELS[bottle.drinkType], vintage].filter((value): value is string =>
+    Boolean(value),
   );
   const rows: { label: string; value: string }[] = [
     { label: BOTTLE_FIELD_LABELS.variety, value: bottle.variety || UNKNOWN_PROP_VALUE },
@@ -95,7 +95,10 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           },
         ]
       : []),
-    { label: shared ? CELLAR_COPY.sharedMemoLabel : "メモ", value: bottle.memo || UNKNOWN_PROP_VALUE },
+    {
+      label: shared ? CELLAR_COPY.sharedMemoLabel : "メモ",
+      value: bottle.memo || UNKNOWN_PROP_VALUE,
+    },
   ];
 
   function failureMessage(): string {

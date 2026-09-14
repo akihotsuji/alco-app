@@ -19,7 +19,11 @@ export function useListScrollRestore(
       el.scrollTop = saved;
     }
     function persist() {
-      writeListScroll(key, el.scrollTop);
+      const node = contentRef.current;
+      if (!node) {
+        return;
+      }
+      writeListScroll(key, node.scrollTop);
     }
     el.addEventListener("scroll", persist, { passive: true });
     return () => {

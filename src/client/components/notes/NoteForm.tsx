@@ -15,7 +15,11 @@ import {
   usePhotoFormSession,
 } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
-import { BottlePickerRow, TargetBottleChip } from "@/client/components/logs/BottlePickerRow.tsx";
+import {
+  BottlePickerRow,
+  type PickedBottle,
+  TargetBottleChip,
+} from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { NotePhotoStrip } from "@/client/components/notes/NotePhotoStrip.tsx";
 import { NoteTextFields } from "@/client/components/notes/NoteTextFields.tsx";
@@ -456,7 +460,11 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
           pendingLeave.current = null;
         }}
       />
-      <button type="button" className="log-delete form-delete-spaced" onClick={() => setDeleteOpen(true)}>
+      <button
+        type="button"
+        className="log-delete form-delete-spaced"
+        onClick={() => setDeleteOpen(true)}
+      >
         このノートを削除
       </button>
       <Dialog
@@ -620,8 +628,9 @@ function NoteFormFields({
     onUpdate({ [field]: value }, field);
   }
 
-  const identityError =
-    Boolean(errors.vintage || errors.variety || errors.producer || errors.origin);
+  const identityError = Boolean(
+    errors.vintage || errors.variety || errors.producer || errors.origin,
+  );
   const [source, setSource] = useState<"cellar" | "manual">(() =>
     state.bottleId ? "cellar" : "manual",
   );
@@ -629,7 +638,7 @@ function NoteFormFields({
   const identityId = useId();
   const identityExpanded = identityOpen || identityError;
 
-  function selectBottle(bottle: Parameters<typeof applySelectedBottle>[1] | null) {
+  function selectBottle(bottle: PickedBottle | null) {
     if (bottle) {
       onUpdate(applySelectedBottle(state, bottle, { preserveEdits: true }));
       const userAdded = photos.items.some((item) => !item.key.startsWith("inherit-"));
@@ -809,7 +818,9 @@ function NoteFormFields({
         aroma={state.aroma}
         finish={state.finish}
         errors={errors}
-        defaultOpen={noteDetailOpen(state) || Boolean(errors.appearance || errors.aroma || errors.finish)}
+        defaultOpen={
+          noteDetailOpen(state) || Boolean(errors.appearance || errors.aroma || errors.finish)
+        }
         onChange={(field, value) => onUpdate({ [field]: value }, field)}
       />
       <SaveBar
@@ -846,7 +857,9 @@ function NoteSourceToggle({
       <div className="cellar-view-toggle">
         <button
           type="button"
-          className={source === "cellar" ? "cellar-view-toggle-option is-on" : "cellar-view-toggle-option"}
+          className={
+            source === "cellar" ? "cellar-view-toggle-option is-on" : "cellar-view-toggle-option"
+          }
           aria-pressed={source === "cellar"}
           onClick={() => onChange("cellar")}
         >
@@ -854,7 +867,9 @@ function NoteSourceToggle({
         </button>
         <button
           type="button"
-          className={source === "manual" ? "cellar-view-toggle-option is-on" : "cellar-view-toggle-option"}
+          className={
+            source === "manual" ? "cellar-view-toggle-option is-on" : "cellar-view-toggle-option"
+          }
           aria-pressed={source === "manual"}
           onClick={() => onChange("manual")}
         >
@@ -865,13 +880,7 @@ function NoteSourceToggle({
   );
 }
 
-function NoteEditSummary({
-  state,
-  photoUrl,
-}: {
-  state: NoteFormState;
-  photoUrl?: string;
-}) {
+function NoteEditSummary({ state, photoUrl }: { state: NoteFormState; photoUrl?: string }) {
   const vintage = vintageLabel(state.vintage.trim() ? Number(state.vintage) : null);
   const type = state.drinkType ? DRINK_TYPE_LABELS[state.drinkType] : null;
   return (

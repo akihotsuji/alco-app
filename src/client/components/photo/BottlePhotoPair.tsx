@@ -1,7 +1,10 @@
 import { type RefObject, useRef, useState } from "react";
 import type { PhotoAttachment } from "@/client/components/layout/photo-edit-context.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
-import { PhotoActionPanel, type PhotoActionItem } from "@/client/components/photo/PhotoActionPanel.tsx";
+import {
+  type PhotoActionItem,
+  PhotoActionPanel,
+} from "@/client/components/photo/PhotoActionPanel.tsx";
 import type { BackPhotoState } from "@/client/lib/bottle-back-photo.ts";
 import { BOTTLE_PHOTO_ACTION_LABELS } from "@/client/lib/bottle-photo-actions.ts";
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
