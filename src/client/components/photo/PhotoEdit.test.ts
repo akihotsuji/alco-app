@@ -101,6 +101,7 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
 
   it("切り抜き成功後に角度調整があり、推論完了で自動角へ戻さない", () => {
     expect(source).toContain("PhotoEditAngleControls");
+    expect(source).toContain("is-angle-open");
     expect(angleSource).toContain("角度を調整");
     expect(angleSource).toContain("自動補正を取り消す");
     expect(source).toContain("userRotationRef.current");

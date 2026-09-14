@@ -374,7 +374,7 @@ export function PhotoEdit() {
   return (
     <div
       ref={dialogRef}
-      className="photo-edit"
+      className={`photo-edit${angleOpen ? " is-angle-open" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label="写真を編集"

@@ -2670,7 +2670,8 @@ img[data-state="loaded"] {
 }
 
 .photo-edit {
-  touch-action: none;
+  touch-action: pan-y;
+  overflow-y: auto;
 }
 
 .type-grid.is-hidden {
@@ -2923,6 +2924,10 @@ img[data-state="loaded"] {
   background-size: 16px 16px;
 }
 
+.photo-edit.is-angle-open .photo-edit-frame {
+  width: min(100%, 220px);
+}
+
 .photo-edit-cutout-status {
   position: absolute;
   inset: 0;
@@ -3051,6 +3056,7 @@ img[data-state="loaded"] {
   justify-content: center;
   gap: var(--space-2);
   margin-top: var(--space-2);
+  padding-bottom: var(--space-2);
 }
 
 .chip {
