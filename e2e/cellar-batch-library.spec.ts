@@ -75,6 +75,8 @@ test("21 枚は上限を説明し 20 行を超えない", async ({ page }) => {
   await expect(page.getByText("20枚を受け付けました。1枚は上限のため追加できません")).toBeVisible();
   await expect(page.getByText(/20枚中/)).toBeVisible();
   await expect(page.getByText("一度に 20 本までです")).toBeVisible();
-  await page.getByText("20枚を受け付けました。1枚は上限のため追加できません").scrollIntoViewIfNeeded();
+  await page
+    .getByText("20枚を受け付けました。1枚は上限のため追加できません")
+    .scrollIntoViewIfNeeded();
   await shot(page, "cellar_batch_overflow_twenty");
 });
