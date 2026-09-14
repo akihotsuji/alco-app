@@ -58,7 +58,7 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
 
   it("棚ヘッダー右は「まとめて追加」だけ（C3b）。追加は右下 FAB", () => {
     expect(header).toContain('case "batch":');
-    expect(header).toContain('label="まとめて追加"');
+    expect(header).toContain("まとめて追加");
     expect(header).not.toContain("app-header-wide");
     expect(header).not.toContain("cellar-add");
   });

@@ -144,9 +144,10 @@ font-family: system-ui, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
 | `--radius-card` | 24px | スコアカード、ログインカード |
 | `--radius-pill` | 999px | チップ、休肝 |
 | `--header-h` | 56px | ヘッダー |
-| `--tab-h` | 72px | 下部タブ＋余白（2026-09-05: 中央タブが浮くため 64 → 72） |
-| `--tab-center-size` | 60px | 中央「記録」タブの円 |
-| `--tab-center-lift` | 12px | 中央タブの円がタブバー上端から浮く量。ラベルは円の下 12px（2026-09-07 Issue #58） |
+| `--tab-h` | 76px | 下部タブ＋余白（2026-09-14: 中央ラベル「飲酒を記録」の折り返し分） |
+| `--tab-center-size` | 52px | 中央「飲酒を記録」タブの円 |
+| `--tab-center-lift` | 8px | 中央タブの円がタブバー上端から浮く量。ラベルは円の下で折り返してよい（2026-09-14） |
+| `--page-pad-x` | 16px | 画面左右余白 |
 | `--radius-photo` | 20px | 写真・写真タイル |
 
 影（値をそのまま `box-shadow` に入れる）。**部品の高さで 2 段階に分ける**（2026-09-05 改訂。小さい部品に大きい影を使うとハイライトが隣に被り、シールを重ねたように見える）:
@@ -218,18 +219,18 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | Card | 地色 + `--shadow-outset`、角 `--radius-card`。色帯ヘッダーは置かない |
 | Tabs | 下部。アクティブは inset-sm + primary 色のアイコン |
 | Chip | 地色 + `--shadow-outset-sm`、高さ 40px、間隔 横 12px / 縦 10px。選択は inset-sm + primary 文字 |
-| 2 択セグメント（表示切替） | inset-sm の溝の中に、選択側だけ outset-sm の玉。高さ 40px |
+| 2 択／3 択セグメント（表示切替） | inset-sm の溝の中に、選択側だけ outset-sm の玉。高さ 40px。3 択は折り返してよい |
 | スイッチ（設定） | 48×28。OFF = `--switch-track-off` の溝 + inset-sm、ON = `--primary` べた塗り（影なし）。つまみ 22px は常に `--switch-knob` の単色 + `--shadow-knob`（地色と同じ色のつまみや outset にしない。2026-09-07 Issue #57 / #61） |
 | 週マス | 28px。記録あり = `--primary` べた塗り（影なし）、今日 = 外側リング 2px、空 = inset-sm、未来 = 45% |
 | Dialog | 地色カード。タイトルはテキストのみ |
 | Sheet | 使わない |
 | Toast | 地色 + outset。ヘッダー直下の通常フロー（fixed にしない）。undo は primary テキスト + 「閉じる」。保存成功時は左端に `cheer` 32px |
 | 行 | 地色 + outset。左 48px サムネ、高さ 64px 以上 |
-| 中央タブ（記録） | 直径 `--tab-center-size` の円。`--primary` 塗り + `--shadow-primary`、タブバー上端から 12px 浮く。アイコンはグラス。他 4 タブは従来どおり |
+| 中央タブ（飲酒を記録） | 直径 `--tab-center-size` の円。`--primary` 塗り + `--shadow-primary`、タブバー上端から 8px 浮く。アイコンは Plus。他 4 タブは従来どおり |
 | 写真タイル（撮影前） | 地色 + inset、角 `--radius-photo`、中央にカメラアイコン + 「写真を撮る」。右下に `surprised` 48px（セラーでは出さない） |
 | 写真（撮影後） | 角 `--radius-photo`、inset 枠。比率は文脈で固定（記録・ノート 4:5、セラー 2:3） |
 | 棚（セラー） | **地色の上にガラス風の棚板**（2026-09-05 決定）。棚板は横一杯、高さ `--shelf-h` 10px、塗り `--shelf-glass`、上辺 1px `--shelf-glass-edge`、下に `--shelf-glass-shadow`。**切り抜いたボトル**（背景除去済み、透過）が棚板の上に立つ。3 本／段（390px）。段の間隔 24px |
-| 棚（種類ごと表示） | 種類ごとに 1 段。段の左上に種類名の **ゴースト見出し**（44px / 700、`--shelf-ghost`、ボトルの背後）+ 本数。段は横スクロール。棚板は本数分の幅 |
+| 棚（種類ごと表示） | 種類ごとに 1 段。見出しは濃くコンパクトな「種類名 N本」+ 右「すべて見る」。段は横スクロール。棚板は本数分の幅 |
 | 切り抜けなかったボトル | 2:3 の長方形写真（角 8px、`cellar` プリセット済み）を棚板に載せる。写真なしは種類別シルエット（線 `--muted`、inset-sm の枠） |
 | 貯蔵庫（アーカイブ）のボトル | 同じ棚。切り抜きに `filter: saturate(0.5) brightness(0.9)`。右上に消費日ピル |
 | AI 読み取りの印 | フィールド右端に `pill.ai`（20px、`sparkles` アイコン + 「AI」、primary 文字）。ユーザーが編集したら消す |
@@ -288,11 +289,11 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 | `--radius-photo` | 20px | 20px | 写真の角 |
 | `--photo-ratio-log` | 4 / 5 | 同じ | 記録・ノート写真 |
 | `--photo-ratio-bottle` | 2 / 3 | 同じ | セラー写真 |
-| `--tab-center-size` | 60px | 同じ | 中央タブ円 |
-| `--tab-center-lift` | 12px | 同じ | 中央タブ円がバー上端から浮く量 |
+| `--tab-center-size` | 52px | 同じ | 中央タブ円 |
+| `--tab-center-lift` | 8px | 同じ | 中央タブ円がバー上端から浮く量 |
 | `--switch-track-off` | `#BFB7AA` | `#1C1A18` | スイッチ OFF の溝 |
 | `--switch-knob` | `#FFFDFA` | `#D9CFC4` | スイッチのつまみ |
-| `--tab-h` | **72px**（64 → 72 に改訂） | 同じ | 中央タブが浮く余白を確保 |
+| `--tab-h` | **76px**（72 → 76 に改訂） | 同じ | 中央ラベルの折り返し分 |
 
 写真の色補正プリセットは **廃止**した。向き補正・リサイズ・キャラ合成・セラーの切り抜きと落ち影は残す。
 

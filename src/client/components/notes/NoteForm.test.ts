@@ -27,9 +27,14 @@ describe("NoteForm 写真先頭と AI / 識別", () => {
     expect(source).toContain("inheritFrom");
   });
 
-  it("関連付けは種類の次。後選択は手入力を残す", () => {
-    expect(source.indexOf("<BottlePickerRow")).toBeGreaterThan(source.indexOf("<DrinkTypeSelect"));
-    expect(source.indexOf("<IdentityFields")).toBeGreaterThan(source.indexOf("<BottlePickerRow"));
+  it("関連付けと商品情報は入口のあと。後選択は手入力を残す", () => {
+    expect(source).toContain("セラーから選ぶ");
+    expect(source).toContain("新しく入力");
+    expect(source).toContain("お酒の情報を編集");
+    expect(source).toContain("お酒の情報（任意）");
+    expect(source).toContain("NoteEditSummary");
+    expect(source).toContain("useState(() => identityError)");
+    expect(source.indexOf("<TastedOnRow")).toBeGreaterThan(source.indexOf("<NoteSourceToggle"));
     expect(source.indexOf("<NoteTextFields")).toBeGreaterThan(source.indexOf("<IdentityFields"));
     expect(source).toContain("TargetBottleChip");
     expect(source).toContain("preserveEdits: true");

@@ -65,6 +65,7 @@ export const NOTE_SAVE_LABELS = {
 } as const;
 
 export const NOTE_SAVE_DISABLED_HINT = "必須項目を入力してください";
+export const NOTE_SAVE_UNCHANGED_HINT = "変更はありません";
 
 export const NOTE_FORM_ERROR_MESSAGES = {
   generic: "保存できませんでした。もう一度試してください",
@@ -263,12 +264,16 @@ export function noteSaveDisabledHint(
   state: NoteFormState,
   errors: NoteFormErrors,
   photoStatus: PhotoSaveStatus,
+  options: { dirty?: boolean } = {},
 ): string | null {
   if (photoStatus === "uploading") {
     return "写真の保存が終わるまでお待ちください";
   }
   if (photoStatus === "error") {
     return "写真を再試行するか削除してください";
+  }
+  if (options.dirty === false) {
+    return NOTE_SAVE_UNCHANGED_HINT;
   }
   if (!canSubmitNoteForm(state, errors, photoStatus)) {
     return NOTE_SAVE_DISABLED_HINT;

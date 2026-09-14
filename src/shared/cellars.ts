@@ -318,4 +318,6 @@ export const CELLAR_COPY = {
   conflictDeleted: "このボトルは削除されたか、利用できなくなりました",
   alreadyConsumed: "すでに開栓されています",
   saveDestinationShared: "参加者全員に表示されます",
+  archiveLead:
+    "開栓したボトルが日付順に並びます。未開栓のボトルはセラーで管理します。開栓と飲み終わりは同じ状態です。",
 } as const;

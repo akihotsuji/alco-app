@@ -70,7 +70,7 @@ describe("device chrome CSS / HTML / README", () => {
     expect(css).toContain("--safe-right: env(safe-area-inset-right, 0px)");
     expect(css).toContain("--safe-bottom: env(safe-area-inset-bottom, 0px)");
     expect(css).toContain("--safe-left: env(safe-area-inset-left, 0px)");
-    expect(css).toContain("--page-pad-x: 20px");
+    expect(css).toContain("--page-pad-x: 16px");
   });
 
   it("ヘッダー・タブ・コンテンツ・FAB・トーストが四辺のセーフエリアを使う", () => {

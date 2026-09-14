@@ -10,7 +10,7 @@ const list = readFileSync(join(here, "CellarList.tsx"), "utf8");
 
 describe("CellarToolbar", () => {
   it("検索入力と種類チップで絞り、種類ごと表示では種類フィルタを隠す", () => {
-    expect(toolbar).toContain('aria-label="検索"');
+    expect(toolbar).toContain('aria-label="品名・生産者・品種で検索"');
     expect(toolbar).toContain("setQInput(event.target.value)");
     expect(toolbar).toContain("selectDrinkType(type)");
     expect(toolbar).toContain("clearDrinkType");
@@ -22,10 +22,9 @@ describe("CellarToolbar", () => {
     }
   });
 
-  it("選択中の種類は「ワイン ×」になり、表示切替は 2 択", () => {
+  it("選択中の種類は「ワイン ×」になり、表示切替は棚 / 1本ずつ / 管理一覧", () => {
     expect(toolbar).toContain("DRINK_TYPE_LABELS[drinkType]} ×");
-    expect(toolbar).toContain("種類ごと");
-    expect(toolbar).toContain("1 本ずつ");
+    expect(toolbar).toContain("CELLAR_LIST_VIEW_LABELS[view]");
     expect(toolbar).toContain("aria-pressed={listView === view}");
   });
 });

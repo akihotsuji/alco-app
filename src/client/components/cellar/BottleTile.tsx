@@ -11,7 +11,7 @@ import { vintageLabel } from "@/client/lib/bottle-form.ts";
 import { bottleTileVisual } from "@/client/lib/cellar-shelf.ts";
 import { cn } from "@/client/lib/utils.ts";
 import type { BottleItem } from "@/shared/bottles.ts";
-import { formatShortMonthDay } from "@/shared/tokyo-date.ts";
+import { formatConsumedEventBadge } from "@/shared/tokyo-date.ts";
 
 export type BottleTileMode = "cellar" | "archived";
 export type BottleTileSize = "one" | "type";
@@ -28,13 +28,11 @@ export type BottleTileFaceProps = {
 export function BottleTileFace({
   item,
   mode,
-  size = "one",
   readySrc,
   photoLoading = "lazy",
   showPressShield,
 }: BottleTileFaceProps) {
   const visual = bottleTileVisual(item.thumbPhotoId, item.thumbPhotoKind);
-  const showSub = mode === "cellar" && size === "one";
   const vintage = vintageLabel(item.vintage);
   const [photoState, setPhotoState] = useState<ContentPhotoState>(readySrc ? "loaded" : "loading");
 
@@ -62,12 +60,14 @@ export function BottleTileFace({
           </>
         )}
         {mode === "archived" && item.consumedOn ? (
-          <span className="bottle-tile-date">{formatShortMonthDay(item.consumedOn)}</span>
+          <span className="bottle-tile-date">{formatConsumedEventBadge(item.consumedOn)}</span>
         ) : null}
         {showPressShield ? <span className="bottle-tile-press-shield" aria-hidden /> : null}
       </span>
       <span className="bottle-tile-name">{item.name}</span>
-      {showSub && vintage ? <span className="bottle-tile-sub">{vintage}</span> : null}
+      <span className={vintage ? "bottle-tile-sub" : "bottle-tile-sub is-empty"}>
+        {vintage ?? "\u00a0"}
+      </span>
     </>
   );
 }

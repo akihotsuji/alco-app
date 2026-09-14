@@ -37,6 +37,7 @@ test("OSダーク×アプリライトでも設定ラベルと作成画面の入�
 
   await mainNav(page).getByRole("button", { name: "ノート" }).click();
   await page.getByRole("link", { name: "ノートを作成" }).click();
+  await page.getByRole("button", { name: "お酒の情報（任意）" }).click();
 
   const variety = page.getByLabel("品種");
   await variety.evaluate((el) => {

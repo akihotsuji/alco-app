@@ -6,10 +6,7 @@ import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/Cont
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import type { TastingNoteListItem } from "@/shared/tasting-notes.ts";
 import { formatRatingX10 } from "@/shared/tasting-notes.ts";
-
-function formatNoteDate(date: string): string {
-  return date.replaceAll("-", "/");
-}
+import { formatTastedOnLabel } from "@/shared/tokyo-date.ts";
 
 export function NoteCard({ item }: { item: TastingNoteListItem }) {
   return (
@@ -29,7 +26,7 @@ export function NoteCard({ item }: { item: TastingNoteListItem }) {
       <div className="note-card-body">
         <p className="note-card-name">{item.drinkName}</p>
         <p className="note-card-meta">
-          <time dateTime={item.tastedOn}>{formatNoteDate(item.tastedOn)}</time>
+          <time dateTime={item.tastedOn}>{formatTastedOnLabel(item.tastedOn)}</time>
           <RatingStars ratingX10={item.ratingX10} size={14} />
           <span>{formatRatingX10(item.ratingX10)}</span>
           {item.photoCount >= 2 ? (

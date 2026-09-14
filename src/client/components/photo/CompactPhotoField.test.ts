@@ -15,9 +15,8 @@ describe("CompactPhotoField 撮影と選択", () => {
     expect(field).toContain("photo-action-row");
     expect(logNew).toContain("CompactPhotoField");
     expect(logNew).toContain('startCapture("log", { source: "library" })');
-    expect(bottle).toContain("CompactPhotoField");
+    expect(bottle).toContain("BottlePhotoPair");
     expect(bottle).toContain('startCapture("cellar", { source: "library" })');
-    expect(bottle).toContain('ratio="bottle"');
     expect(bottle).not.toContain("PhotoTile");
   });
 

@@ -12,9 +12,8 @@ import {
   usePhotoFormSession,
 } from "@/client/components/layout/photo-edit-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
-import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
-import { BackPhotoField } from "@/client/components/photo/BackPhotoField.tsx";
-import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
+import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
+import { BottlePhotoPair } from "@/client/components/photo/BottlePhotoPair.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBackPhoto } from "@/client/hooks/use-back-photo.ts";
 import { useCaptureOnCameraQuery } from "@/client/hooks/use-capture-on-camera-query.ts";
@@ -27,6 +26,7 @@ import {
   type BottleFormField,
   type BottleFormState,
   bottlePhotoIds,
+  bottleSaveDisabledHint,
   canSubmitBottleForm,
   createEmptyBottleForm,
   firstBottleDetailsErrorField,
@@ -67,6 +67,9 @@ import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { CountStepper } from "./CountStepper.tsx";
 
 const DETAIL_FIELD_IDS: Record<(typeof BOTTLE_DETAILS_ERROR_FIELDS)[number], string> = {
+  variety: "bottle-variety",
+  producer: "bottle-producer",
+  origin: "bottle-origin",
   storedOn: "bottle-stored-on",
   storage: "bottle-storage",
   purchasedOn: "bottle-purchased-on",
@@ -527,29 +530,26 @@ export function BottleFormFields({
         </p>
       ) : null}
       {header}
-      <CompactPhotoField
-        ratio="bottle"
-        onCapture={() => void startCapture("cellar")}
-        onLibrary={() => void startCapture("cellar", { source: "library" })}
-        attachment={attachment}
-        existingPreviewUrl={keptPhotoId ? photoContentUrl(keptPhotoId) : null}
-        onEdit={() => void editFrontPhoto()}
-        onRetry={() => void retryUpload("cellar")}
-        onClear={attachment || keptPhotoId ? () => removeFrontPhoto() : undefined}
+      <BottlePhotoPair
+        frontAttachment={attachment}
+        frontPreviewUrl={keptPhotoId ? photoContentUrl(keptPhotoId) : null}
+        frontStatus={frontStatus}
+        backAttachment={backPhoto.attachment}
+        backPreviewUrl={backPhoto.keptPhotoId ? photoContentUrl(backPhoto.keptPhotoId) : null}
+        backStatus={backStatus}
+        backProcessing={backPhoto.processing}
+        disabled={backPhoto.deleting || pending}
         error={errors.photoIds}
+        onFrontCapture={() => void startCapture("cellar")}
+        onFrontLibrary={() => void startCapture("cellar", { source: "library" })}
+        onFrontEdit={() => void editFrontPhoto()}
+        onFrontRetry={() => void retryUpload("cellar")}
+        onFrontClear={() => removeFrontPhoto()}
+        onBackCapture={() => void backPhoto.pick("camera")}
+        onBackLibrary={() => void backPhoto.pick("library")}
+        onBackRetry={() => void backPhoto.retry()}
+        onBackClear={() => void backPhoto.clear()}
       />
-      {hasFront ? (
-        <BackPhotoField
-          attachment={backPhoto.attachment}
-          existingPreviewUrl={backPhoto.keptPhotoId ? photoContentUrl(backPhoto.keptPhotoId) : null}
-          processing={backPhoto.processing}
-          disabled={backPhoto.deleting || pending}
-          onCapture={() => void backPhoto.pick("camera")}
-          onLibrary={() => void backPhoto.pick("library")}
-          onRetry={() => void backPhoto.retry()}
-          onClear={() => void backPhoto.clear()}
-        />
-      ) : null}
       {recognizeStatus || canOfferBackRecognize ? (
         <RecognizeBanner
           status={recognizeStatus ?? "offer"}
@@ -580,7 +580,7 @@ export function BottleFormFields({
           </p>
         ) : null}
       </div>
-      <DrinkTypeChips
+      <DrinkTypeSelect
         value={state.drinkType}
         onChange={(drinkType) => {
           setDrinkTypeTouched(true);
@@ -588,45 +588,21 @@ export function BottleFormFields({
         }}
       />
       {mode === "new" ? (
-        <CountStepper value={state.count} onChange={(count) => update({ count })} />
+        <CountStepper
+          value={state.count}
+          error={errors.count}
+          onChange={(count) => update({ count })}
+        />
       ) : null}
-      <div className="bottle-details-pair">
-        <DetailField
-          id="bottle-vintage"
-          label={BOTTLE_FIELD_LABELS.vintage}
-          value={state.vintage}
-          inputMode="numeric"
-          placeholder="未登録"
-          error={errors.vintage}
-          aiMarked={aiMarks.has("vintage")}
-          onChange={(vintage) => update({ vintage })}
-        />
-        <DetailField
-          id="bottle-variety"
-          label={BOTTLE_FIELD_LABELS.variety}
-          value={state.variety}
-          maxLength={BOTTLE_TEXT_MAX_LENGTH}
-          placeholder="例：カベルネ"
-          error={errors.variety}
-          aiMarked={aiMarks.has("variety")}
-          onChange={(variety) => update({ variety })}
-        />
-      </div>
       <DetailField
-        id="bottle-producer"
-        label="生産者"
-        value={state.producer}
-        maxLength={BOTTLE_TEXT_MAX_LENGTH}
-        error={errors.producer}
-        aiMarked={aiMarks.has("producer")}
-        onChange={(producer) => update({ producer })}
-      />
-      <OriginCountryField
-        id="bottle-origin"
-        value={state.origin}
-        error={errors.origin}
-        aiMarked={aiMarks.has("origin")}
-        onChange={(origin) => update({ origin })}
+        id="bottle-vintage"
+        label={BOTTLE_FIELD_LABELS.vintage}
+        value={state.vintage}
+        inputMode="numeric"
+        placeholder="未登録"
+        error={errors.vintage}
+        aiMarked={aiMarks.has("vintage")}
+        onChange={(vintage) => update({ vintage })}
       />
       <section className="log-form-section">
         <button
@@ -636,12 +612,40 @@ export function BottleFormFields({
           aria-controls={detailsId}
           onClick={() => setDetailsOpen((current) => !current)}
         >
-          <span className="form-row-label">詳細</span>
+          <span className="form-row-label">お酒の詳細（任意）</span>
           <span className="form-row-value" />
           <ChevronDown size={20} className="form-row-chevron" aria-hidden />
         </button>
         {detailsOpen ? (
           <div id={detailsId} className="bottle-details">
+            <DetailsSection title="銘柄情報" optional>
+              <DetailField
+                id="bottle-variety"
+                label={BOTTLE_FIELD_LABELS.variety}
+                value={state.variety}
+                maxLength={BOTTLE_TEXT_MAX_LENGTH}
+                placeholder="例：カベルネ"
+                error={errors.variety}
+                aiMarked={aiMarks.has("variety")}
+                onChange={(variety) => update({ variety })}
+              />
+              <DetailField
+                id="bottle-producer"
+                label="生産者"
+                value={state.producer}
+                maxLength={BOTTLE_TEXT_MAX_LENGTH}
+                error={errors.producer}
+                aiMarked={aiMarks.has("producer")}
+                onChange={(producer) => update({ producer })}
+              />
+              <OriginCountryField
+                id="bottle-origin"
+                value={state.origin}
+                error={errors.origin}
+                aiMarked={aiMarks.has("origin")}
+                onChange={(origin) => update({ origin })}
+              />
+            </DetailsSection>
             <DetailsSection title="保管情報">
               <DetailField
                 id="bottle-stored-on"
@@ -730,11 +734,22 @@ export function BottleFormFields({
         label={mode === "new" ? BOTTLE_SAVE_LABELS.arrange(state.count) : BOTTLE_SAVE_LABELS.save}
         pending={pending}
         disabled={!canSubmit}
+        hint={bottleSaveDisabledHint({
+          mode,
+          dirty,
+          name: state.name,
+          photo: photoStatus,
+          canSubmit,
+        })}
         state={pending ? "loading" : saveState}
         onSave={submit}
       />
       {mode === "edit" && onDelete ? (
-        <button type="button" className="log-delete" onClick={() => setDeleteOpen(true)}>
+        <button
+          type="button"
+          className="log-delete form-delete-spaced"
+          onClick={() => setDeleteOpen(true)}
+        >
           このボトルを削除
         </button>
       ) : null}

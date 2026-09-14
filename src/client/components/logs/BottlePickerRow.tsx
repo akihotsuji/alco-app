@@ -100,8 +100,8 @@ export function BottlePickerRow({
       {optional ? null : <FieldLabel>{label}</FieldLabel>}
       {optional || !hint ? null : <p className="field-hint">{hint}</p>}
       {optional && !bottleId ? (
-        <button type="button" className="bottle-link-row" onClick={() => setOpen(true)}>
-          セラーのボトルと関連付ける（任意）
+        <button type="button" className="bottle-link-button" onClick={() => setOpen(true)}>
+          セラーのボトルと関連付ける
         </button>
       ) : null}
       {optional && bottleId ? (

@@ -223,10 +223,16 @@ export const PHOTO_PREF_KEYS = {
 } as const;
 
 /** 棚の表示切替（04-cellar C4）。API の `view=cellar|archive|all` とは別 */
-/** 画面上の並びは種類ごと → 1 本ずつ（spec/screen-designs/04-cellar.md bottle-list） */
-export const CELLAR_LIST_VIEWS = ["type", "one"] as const;
+/** 画面上の並びは棚（種類ごと）→ 1 本ずつ → 管理一覧。1 本ずつは棚陳列のままなので「一覧」と呼ばない */
+export const CELLAR_LIST_VIEWS = ["type", "one", "list"] as const;
 
 export type CellarListView = (typeof CELLAR_LIST_VIEWS)[number];
+
+export const CELLAR_LIST_VIEW_LABELS: Record<CellarListView, string> = {
+  type: "棚",
+  one: "1本ずつ",
+  list: "管理一覧",
+};
 
 export const DEFAULT_CELLAR_LIST_VIEW: CellarListView = "one";
 

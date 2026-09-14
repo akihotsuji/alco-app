@@ -10,12 +10,12 @@ const shell = readFileSync(join(here, "AppShell.tsx"), "utf8");
 
 describe("AddFab（00-common 1.4）", () => {
   it("セラー一覧とノート一覧に FAB", () => {
-    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new", label: "追加" });
-    expect(addFabForRoute("/notes")).toEqual({ to: "/notes/new", label: "作成" });
+    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new", label: "＋ ボトル追加" });
+    expect(addFabForRoute("/notes")).toEqual({ to: "/notes/new", label: "＋ ノート作成" });
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     expect(addFabForRoute("/notes", `?bottleId=${id}`)).toEqual({
       to: `/notes/new?bottleId=${id}`,
-      label: "作成",
+      label: "＋ ノート作成",
     });
   });
 
@@ -30,9 +30,9 @@ describe("AddFab（00-common 1.4）", () => {
     expect(addFabForRoute("/logs/my-drinks")).toBeNull();
   });
 
-  it("円 52px の副ボタンで、primary 塗りにしない", () => {
-    expect(source).toContain('size="icon-lg"');
+  it("ピル＋文言の副ボタンで、primary 塗りにしない", () => {
     expect(source).toContain('className="add-fab"');
+    expect(source).toContain("{fab.label}");
     expect(source).not.toContain("btn-primary");
     expect(source).not.toContain('variant="default"');
     expect(shell).toContain("<AddFab");

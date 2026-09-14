@@ -17,6 +17,8 @@ describe("NoteToolbar 一覧フィルタ", () => {
     expect(toolbar).toContain("clearDrinkType");
     expect(toolbar).toContain("toggleRatingMin");
     expect(toolbar).toContain("★4 以上");
+    expect(toolbar).toContain("評価4以上で絞り込む");
+    expect(toolbar).toContain("評価4以上の絞り込みを解除");
     expect(toolbar).toContain("DRINK_TYPE_LABELS[drinkType]} ×");
     expect(list).toContain("<NoteToolbar");
     expect(list).toContain("filters.q");

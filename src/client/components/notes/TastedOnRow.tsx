@@ -1,7 +1,7 @@
 import { Calendar, ChevronRight } from "lucide-react";
 import { FieldError, fieldDescribedBy } from "@/client/components/form/FieldError.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
-import { formatMonthDay, isTokyoToday, tokyoToday } from "@/shared/tokyo-date.ts";
+import { formatTastedOnLabel, tokyoToday } from "@/shared/tokyo-date.ts";
 
 type TastedOnRowProps = {
   value: string;
@@ -12,7 +12,7 @@ type TastedOnRowProps = {
 
 export function TastedOnRow({ value, now, error, onChange }: TastedOnRowProps) {
   const today = tokyoToday(now);
-  const label = isTokyoToday(value, now) ? "今日" : formatMonthDay(value);
+  const label = formatTastedOnLabel(value, now);
 
   return (
     <section className="log-form-section">

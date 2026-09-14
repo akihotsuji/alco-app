@@ -1,4 +1,3 @@
-import { Search } from "lucide-react";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import {
   DialogContent,
@@ -9,6 +8,7 @@ import {
 import { Input } from "@/client/components/ui/input.tsx";
 import type { CellarListView } from "@/shared/constants.ts";
 import {
+  CELLAR_LIST_VIEW_LABELS,
   CELLAR_LIST_VIEWS,
   DRINK_TYPE_LABELS,
   DRINK_TYPES,
@@ -31,11 +31,6 @@ type CellarToolbarProps = {
   selectDrinkType: (type: DrinkType) => void;
 };
 
-const VIEW_LABELS: Record<CellarListView, string> = {
-  type: "種類ごと",
-  one: "1 本ずつ",
-};
-
 export function CellarToolbar({
   listView,
   onListViewChange,
@@ -43,7 +38,6 @@ export function CellarToolbar({
   hideTypeFilter = false,
   qInput,
   setQInput,
-  searchOpen,
   setSearchOpen,
   typeOpen,
   setTypeOpen,
@@ -69,26 +63,22 @@ export function CellarToolbar({
                 }
                 onClick={() => onListViewChange(view)}
               >
-                {VIEW_LABELS[view]}
+                {CELLAR_LIST_VIEW_LABELS[view]}
               </button>
             ))}
           </fieldset>
         )}
-        {searchOpen ? (
-          <Input
-            className="cellar-search-field"
-            aria-label="検索"
-            value={qInput}
-            maxLength={100}
-            placeholder="品名・生産者・品種"
-            onChange={(event) => setQInput(event.target.value)}
-          />
-        ) : (
-          <Chip selected={false} className="chip-with-icon" onSelect={() => setSearchOpen(true)}>
-            <Search size={16} aria-hidden />
-            検索
-          </Chip>
-        )}
+        <Input
+          className="cellar-search-field"
+          aria-label="品名・生産者・品種で検索"
+          value={qInput}
+          maxLength={100}
+          placeholder="品名・生産者・品種"
+          onChange={(event) => {
+            setSearchOpen(true);
+            setQInput(event.target.value);
+          }}
+        />
         {hideTypeFilter ? null : drinkType ? (
           <Chip selected onSelect={clearDrinkType}>
             {DRINK_TYPE_LABELS[drinkType]} ×

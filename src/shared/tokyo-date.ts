@@ -141,6 +141,24 @@ export function formatShortMonthDay(date: string): string {
   return `${parsed.month}/${parsed.day}`;
 }
 
+/** 貯蔵庫バッジ。consumedOn は開栓日。飲み終わり日とは別状態を作らない */
+export function formatConsumedEventBadge(date: string): string {
+  return `開栓 ${formatShortMonthDay(date)}`;
+}
+
+/** 今日は「今日」、同年は月日、過去年は年月日 */
+export function formatTastedOnLabel(date: string, now: Date = new Date()): string {
+  if (isTokyoToday(date, now)) {
+    return "今日";
+  }
+  const parsed = requireCalendarDate(date);
+  const today = requireCalendarDate(tokyoToday(now));
+  if (parsed.year === today.year) {
+    return formatMonthDay(date);
+  }
+  return formatLongJapaneseDate(date);
+}
+
 /** 例: 土 */
 export function formatWeekdayShort(date: string): string {
   const label = WEEKDAY_JA[weekdayIndex(date)];
