@@ -71,7 +71,10 @@ test("開栓から飲酒記録を付けると一覧と詳細にボトル写真�
   const listThumb = page.getByRole("button", { name: "写真を拡大" });
   await expect(listThumb).toBeVisible();
   await expect(page.locator(".log-row-icon")).toHaveCount(0);
-  await shot(page, "log_day_thumb_after_uncork_save");
+  await expect(page.locator(".log-row-thumb")).toBeVisible();
+  await expect(page.locator(".log-row")).toHaveCSS("opacity", "1");
+  await expect(page.locator(".log-row.is-highlight")).toHaveCount(0);
+  await shot(page, "log_day_row_shows_bottle_photo");
 
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Tokyo" });
   const listed = await page.request.get(`/api/drink-logs?date=${today}`);
