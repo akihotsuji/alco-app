@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  claimAppReload,
   decideAppReload,
   parseReloadRecord,
   requestAppReload,
@@ -50,6 +51,27 @@ describe("decideAppReload", () => {
         leaveGuardActive: false,
       }),
     ).toBe("reload");
+  });
+});
+
+describe("claimAppReload", () => {
+  it("記録だけ書いて reload しない", () => {
+    const storage = new Map<string, string>();
+    const decision = claimAppReload("user", {
+      now: () => 5_000,
+      storage: {
+        getItem: (key) => storage.get(key) ?? null,
+        setItem: (key, value) => {
+          storage.set(key, value);
+        },
+      },
+      leaveGuardActive: () => false,
+    });
+    expect(decision).toBe("reload");
+    expect(parseReloadRecord([...storage.values()][0] ?? null)).toEqual({
+      reason: "user",
+      at: 5_000,
+    });
   });
 });
 

@@ -3,7 +3,6 @@ import {
   APP_BUILD_ID_DEV,
   createAppVersionManifest,
   formatAppVersionLabel,
-  isForceRefreshCacheKey,
   parseAppVersionManifest,
   resolveAppBuildId,
   resolveAppBuildIdFromEnv,
@@ -11,7 +10,7 @@ import {
   shouldNotifyPublishedUpdate,
   shouldRunVersionCheck,
 } from "./app-version.ts";
-import { APP_VERSION, PHOTO_CUTOUT_CACHE } from "./constants.ts";
+import { APP_VERSION } from "./constants.ts";
 
 describe("sanitizeAppBuildId", () => {
   it("長い SHA を 7 桁の小文字にする", () => {
@@ -87,14 +86,5 @@ describe("shouldRunVersionCheck", () => {
     expect(shouldRunVersionCheck(null, 1_000, 30_000)).toBe(true);
     expect(shouldRunVersionCheck(1_000, 20_000, 30_000)).toBe(false);
     expect(shouldRunVersionCheck(1_000, 31_000, 30_000)).toBe(true);
-  });
-});
-
-describe("isForceRefreshCacheKey", () => {
-  it("Workbox だけ消し、切り抜きモデルは残す", () => {
-    expect(isForceRefreshCacheKey("workbox-precache-v2-https://example.test/")).toBe(true);
-    expect(isForceRefreshCacheKey("alco-precache-v1")).toBe(true);
-    expect(isForceRefreshCacheKey(PHOTO_CUTOUT_CACHE)).toBe(false);
-    expect(isForceRefreshCacheKey("random-cache")).toBe(false);
   });
 });

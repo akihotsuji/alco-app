@@ -1,5 +1,5 @@
-import { type ReloadDecision, requestAppReload } from "@/client/lib/app-reload.ts";
-import { APP_REFRESH_UPDATE_TIMEOUT_MS, isForceRefreshCacheKey } from "@/shared/app-version.ts";
+import { claimAppReload, type ReloadDecision, type ReloadReason } from "@/client/lib/app-reload.ts";
+import { APP_REFRESH_UPDATE_TIMEOUT_MS } from "@/shared/app-version.ts";
 
 export type AppRefreshResult = "reload" | "offline";
 
@@ -33,21 +33,52 @@ export async function updateServiceWorkerRegistrations(
   );
 }
 
-export async function clearWorkboxPrecaches(
-  listKeys: () => Promise<string[]> = () =>
-    typeof caches === "undefined" ? Promise.resolve([]) : caches.keys(),
-  deleteKey: (key: string) => Promise<boolean> = (key) => caches.delete(key),
+export async function waitForActivatedServiceWorker(
+  deps: { hasController?: boolean; getReady?: () => Promise<unknown> } = {},
 ): Promise<void> {
-  const keys = await listKeys();
-  await Promise.all(keys.filter(isForceRefreshCacheKey).map((key) => deleteKey(key)));
+  const hasController =
+    deps.hasController ??
+    (typeof navigator !== "undefined" &&
+      "serviceWorker" in navigator &&
+      Boolean(navigator.serviceWorker.controller));
+  if (!hasController) {
+    return;
+  }
+  const getReady = deps.getReady ?? (() => navigator.serviceWorker.ready);
+  try {
+    await getReady();
+  } catch {
+    // 有効化待ちの失敗では再読み込み自体は続ける
+  }
+}
+
+export function currentDocumentUrl(
+  location: Pick<Location, "pathname" | "search" | "hash">,
+): string {
+  const pathname = location.pathname.startsWith("/") ? location.pathname : "/";
+  const search = location.search.startsWith("?") || location.search === "" ? location.search : "";
+  const hash = location.hash.startsWith("#") || location.hash === "" ? location.hash : "";
+  return `${pathname}${search}${hash}`;
+}
+
+export function replaceCurrentDocument(
+  deps: {
+    location?: Pick<Location, "pathname" | "search" | "hash">;
+    replace?: (url: string) => void;
+  } = {},
+): void {
+  const location = deps.location ?? window.location;
+  const replace = deps.replace ?? ((url) => window.location.replace(url));
+  replace(currentDocumentUrl(location));
 }
 
 export async function refreshAppToLatest(
   deps: {
     online?: boolean;
+    claimReload?: (reason: ReloadReason) => ReloadDecision;
     updateRegistrations?: () => Promise<void>;
-    clearStalePrecaches?: () => Promise<void>;
-    reload?: () => ReloadDecision;
+    waitForActivated?: () => Promise<void>;
+    reload?: () => void;
     timeoutMs?: number;
   } = {},
 ): Promise<AppRefreshResult> {
@@ -55,12 +86,18 @@ export async function refreshAppToLatest(
   if (!online) {
     return "offline";
   }
+  const claimReload = deps.claimReload ?? ((reason) => claimAppReload(reason));
+  if (claimReload("user") !== "reload") {
+    return "reload";
+  }
   const timeoutMs = deps.timeoutMs ?? APP_REFRESH_UPDATE_TIMEOUT_MS;
   await waitWithTimeout(
-    (deps.updateRegistrations ?? updateServiceWorkerRegistrations)(),
+    (async () => {
+      await (deps.updateRegistrations ?? updateServiceWorkerRegistrations)();
+      await (deps.waitForActivated ?? waitForActivatedServiceWorker)();
+    })(),
     timeoutMs,
   );
-  await (deps.clearStalePrecaches ?? clearWorkboxPrecaches)();
-  (deps.reload ?? (() => requestAppReload("user")))();
+  (deps.reload ?? replaceCurrentDocument)();
   return "reload";
 }

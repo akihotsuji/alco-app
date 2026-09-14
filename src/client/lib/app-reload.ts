@@ -61,16 +61,20 @@ export function clearReloadGuard(storage: Pick<Storage, "removeItem"> = sessionS
   storage.removeItem(APP_RELOAD_STORAGE_KEY);
 }
 
-type ReloadDeps = {
+type ClaimReloadDeps = {
   now?: () => number;
   storage?: Pick<Storage, "getItem" | "setItem">;
   leaveGuardActive?: () => boolean;
-  reload?: () => void;
   notifyDirty?: () => void;
   cooldownMs?: number;
 };
 
-export function requestAppReload(reason: ReloadReason, deps: ReloadDeps = {}): ReloadDecision {
+type ReloadDeps = ClaimReloadDeps & {
+  reload?: () => void;
+};
+
+/** 記録だけ書いてナビはしない。SW `update` の controllerchange と手動最新化の二重 reload を避ける */
+export function claimAppReload(reason: ReloadReason, deps: ClaimReloadDeps = {}): ReloadDecision {
   const now = deps.now?.() ?? Date.now();
   const storage = deps.storage ?? sessionStorage;
   const decision = decideAppReload({
@@ -88,6 +92,13 @@ export function requestAppReload(reason: ReloadReason, deps: ReloadDeps = {}): R
     return decision;
   }
   writeReloadRecord(storage, { reason, at: now });
-  (deps.reload ?? (() => window.location.reload()))();
+  return decision;
+}
+
+export function requestAppReload(reason: ReloadReason, deps: ReloadDeps = {}): ReloadDecision {
+  const decision = claimAppReload(reason, deps);
+  if (decision === "reload") {
+    (deps.reload ?? (() => window.location.reload()))();
+  }
   return decision;
 }
