@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { photoFileName } from "@/client/lib/photo/photo-file.ts";
+import { assertUploadableBlob } from "@/client/lib/photo/to-jpeg-blob.ts";
 import type { PhotoContentVariant } from "@/shared/photos.ts";
 
 export function photoContentUrl(id: string, variant?: PhotoContentVariant): string {
@@ -17,7 +18,9 @@ export async function uploadPhoto(
     sortOrder?: number;
   } = {},
   client: ApiClient = api,
+  signal?: AbortSignal,
 ) {
+  assertUploadableBlob(file);
   const form: {
     file: File;
     bottleId?: string;
@@ -41,7 +44,7 @@ export async function uploadPhoto(
   if (extras.sortOrder !== undefined) {
     form.sortOrder = String(extras.sortOrder);
   }
-  return unwrap(client.api.photos.$post({ form }));
+  return unwrap(client.api.photos.$post({ form }, signal ? { init: { signal } } : undefined));
 }
 
 export async function deletePhoto(id: string, client: ApiClient = api) {

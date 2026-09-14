@@ -27,6 +27,11 @@ describe("imagePickAttributes", () => {
     expect(imagePickAttributes("camera", { multiple: true }).multiple).toBe(false);
   });
 
+  it("複数選択にアプリ側の 5 枚カットは無い", () => {
+    const files = Array.from({ length: 12 }, (_, index) => new File([], `${index}.jpg`));
+    expect(filesFromList(files as unknown as FileList)).toHaveLength(12);
+  });
+
   it("ライブラリの文言は「ライブラリから」とノートの「選ぶ」", () => {
     expect(IMAGE_PICK_LABELS.library).toBe("ライブラリから");
     expect(IMAGE_PICK_LABELS.libraryMultiple).toBe("ライブラリから（複数枚）");

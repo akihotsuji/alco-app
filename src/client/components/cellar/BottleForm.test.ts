@@ -69,6 +69,8 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain("runRecognition(jpeg, null, false)");
     expect(source).not.toContain("runRecognition(jpeg, backRecognizeJpeg, false)");
     expect(source).not.toContain("recognizeLabel(");
+    expect(source).not.toContain("acceptFilesForBatch");
+    expect(source).not.toContain("runBatchPhotoJobs");
     expect(source).toContain("offerMatchesSession(pendingRecognize, session)");
     expect(source).toContain('mode !== "new" && !attachment?.recognizeJpeg');
   });

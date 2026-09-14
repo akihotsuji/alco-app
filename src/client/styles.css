@@ -2301,6 +2301,40 @@ img[data-state="loaded"] {
   text-align: center;
 }
 
+.bottle-batch-progress {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.bottle-batch-row.is-error {
+  box-shadow: var(--shadow-outset);
+}
+
+.bottle-batch-phase {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.bottle-batch-phase.is-error {
+  color: var(--danger);
+}
+
+.bottle-batch-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.bottle-batch-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
 .bottle-batch-rows {
   display: flex;
   flex-direction: column;

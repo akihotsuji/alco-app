@@ -7,19 +7,25 @@ import {
   BOTTLE_BATCH_MAX_ROWS,
   BOTTLE_BATCH_MESSAGES,
   type BottleBatchRow,
+  batchIngestProgress,
   batchRowBody,
   batchRowPhotoStatus,
+  batchSavableCount,
   batchTotalCount,
   batchUnlinkedPhotoIds,
   canAddBatchRow,
   canReserveBatchRow,
   canSubmitBatch,
+  isBatchRowSavable,
   newBatchRow,
+  newQueuedBatchRow,
   patchBatchRowForm,
   remainingBatchRows,
   removeBatchRow,
+  savableBatchRows,
   setBatchBackPhoto,
   updateBatchRow,
+  updateExistingBatchPhoto,
   upsertBatchPhoto,
 } from "./bottle-batch.ts";
 
@@ -67,7 +73,7 @@ describe("行の追加・置き換え", () => {
     rows = upsertBatchPhoto(rows, "a", uploaded);
     expect(rows).toHaveLength(1);
     expect(rows[0]?.form.name).toBe("モルト");
-    expect(rows[0]?.photo.status).toBe("ready");
+    expect(rows[0]?.photo?.status).toBe("ready");
     expect(revoke).not.toHaveBeenCalled();
 
     rows = upsertBatchPhoto(rows, "a", photo({ previewUrl: "blob:new" }));
@@ -91,6 +97,25 @@ describe("行の追加・置き換え", () => {
     expect(canReserveBatchRow(BOTTLE_BATCH_MAX_ROWS)).toBe(false);
     expect(BOTTLE_BATCH_MESSAGES.burstProcessing(3)).toBe("3 本を裏で処理しています");
     expect(BOTTLE_BATCH_MESSAGES.libraryProgress(2, 8)).toBe("2 / 8 枚を変換しています");
+    expect(BOTTLE_BATCH_MESSAGES.overflow(20, 3)).toBe(
+      "20枚を受け付けました。3枚は上限のため追加できません",
+    );
+    expect(BOTTLE_BATCH_MESSAGES.progress({ total: 20, done: 12, failed: 2, processing: 6 })).toBe(
+      "20枚中12枚完了・2枚失敗・6枚処理中",
+    );
+  });
+
+  it("削除済みの行は遅延写真で復活しない", () => {
+    const next = updateExistingBatchPhoto([], "gone", photo({ previewUrl: "blob:late" }));
+    expect(next).toEqual([]);
+    expect(revoke).toHaveBeenCalledWith("blob:late");
+  });
+
+  it("待機行は選択順の枠として上限に含める", () => {
+    const queued = newQueuedBatchRow("q1", "ing-1");
+    expect(queued.phase).toBe("queued");
+    expect(queued.photo).toBeNull();
+    expect(remainingBatchRows([queued])).toBe(BOTTLE_BATCH_MAX_ROWS - 1);
   });
 
   it("行を外すとプレビューを解放する", () => {
@@ -138,16 +163,51 @@ describe("保存可否と本数", () => {
     expect(batchTotalCount([])).toBe(0);
   });
 
-  it("銘柄名が空の行があると無効", () => {
+  it("銘柄名が空の行は保存対象外。他の完了行は保存できる", () => {
     const rows = [readyRow("a"), readyRow("b", "")];
-    expect(canSubmitBatch(rows)).toBe(false);
+    expect(savableBatchRows(rows).map((row) => row.key)).toEqual(["a"]);
+    expect(canSubmitBatch(rows)).toBe(true);
+    expect(batchSavableCount(rows)).toBe(1);
   });
 
-  it("アップロード中・失敗の行があると無効", () => {
-    const uploading = { ...readyRow("a"), photo: photo({ photoId: null, status: "uploading" }) };
-    const failed = { ...readyRow("b"), photo: photo({ photoId: null, status: "error" }) };
+  it("AI 失敗でも写真と手入力が残り、その行は保存できる", () => {
+    const row = {
+      ...readyRow("a"),
+      recognize: "failure" as const,
+      failure: {
+        code: "ai_empty" as const,
+        message: "ラベルから項目を取れませんでした",
+        stage: "recognize" as const,
+      },
+    };
+    expect(isBatchRowSavable(row)).toBe(true);
+    expect(canSubmitBatch([row])).toBe(true);
+    expect(row.form.name).toBe("サンプル赤");
+    expect(row.photo?.photoId).toBe("photo-a");
+  });
+
+  it("処理中・失敗の行は保存対象外。完了行だけ保存できる", () => {
+    const uploading = {
+      ...readyRow("a"),
+      photo: photo({ photoId: null, status: "uploading" }),
+      phase: "uploading" as const,
+    };
+    const failed = {
+      ...readyRow("b"),
+      photo: photo({ photoId: null, status: "error" }),
+      phase: "error" as const,
+    };
+    const ready = readyRow("c");
     expect(canSubmitBatch([uploading])).toBe(false);
     expect(canSubmitBatch([failed])).toBe(false);
+    expect(canSubmitBatch([uploading, failed, ready])).toBe(true);
+    expect(savableBatchRows([uploading, failed, ready]).map((row) => row.key)).toEqual(["c"]);
+    expect(batchIngestProgress([uploading, failed, ready])).toEqual({
+      total: 3,
+      done: 1,
+      failed: 1,
+      processing: 1,
+    });
   });
 
   it("N は全行の本数の合計", () => {
@@ -243,5 +303,18 @@ describe("送信結果の反映", () => {
     expect(BOTTLE_BATCH_MESSAGES.partialFailure(1)).toBe(
       "1 行を並べられませんでした。もう一度お試しください",
     );
+  });
+
+  it("失敗行の operationKey は残り、成功行は再送対象にならない", () => {
+    const rows = [
+      { ...readyRow("a"), saveOperationKey: "op-a" },
+      { ...readyRow("b"), saveOperationKey: "op-b" },
+    ];
+    const next = applyBatchOutcome(rows, {
+      succeeded: ["a"],
+      failed: [{ key: "b", message: "保存できませんでした" }],
+    });
+    expect(next.map((row) => row.key)).toEqual(["b"]);
+    expect(next[0]?.saveOperationKey).toBe("op-b");
   });
 });

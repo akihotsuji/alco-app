@@ -27,6 +27,7 @@ export async function processCellarFile(
       offsetY: 0,
       mascotOn: false,
       cutoutOn: getCutoutPref() && supportsBackgroundRemoval(),
+      cutoutQueue: "fifo",
       onRecognizeJpeg,
     });
     return { ...processed, capturedAt };

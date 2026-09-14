@@ -10,7 +10,6 @@ import { useSetHeaderOverride } from "@/client/components/layout/header-override
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
-import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
@@ -20,7 +19,10 @@ import { BACK_PHOTO_LABELS } from "@/client/lib/bottle-back-photo.ts";
 import {
   BOTTLE_BATCH_MESSAGES,
   type BottleBatchRow,
+  batchIngestProgress,
   batchRowErrors,
+  batchRowStageLabel,
+  batchSavableCount,
   batchTotalCount,
   canSubmitBatch,
   remainingBatchRows,
@@ -63,8 +65,9 @@ export function BottleBatchForm() {
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const total = batchTotalCount(batch.rows);
-  const libraryBusy = batch.libraryProgress !== null;
-  const formBusy = batch.submitting || libraryBusy;
+  const savableCount = batchSavableCount(batch.rows);
+  const progress = batchIngestProgress(batch.rows);
+  const formBusy = batch.submitting;
   const canSubmit = canSubmitBatch(batch.rows) && !formBusy;
   useEffect(() => {
     if (!destinationId && selected?.id) {
@@ -110,11 +113,18 @@ export function BottleBatchForm() {
       return;
     }
     const result = await batch.submit(destination.id);
-    if (result.failedCount > 0) {
-      setSaveState("error");
-      setFormError(BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount));
+    if (result.failedCount > 0 || result.leftoverCount > 0) {
+      if (result.failedCount > 0) {
+        setSaveState("error");
+        setFormError(BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount));
+      } else {
+        setSaveState("idle");
+      }
       if (result.created.length > 0) {
-        showToast({ message: arrangedToastMessage(result.created.length), cheer: false });
+        showToast({
+          message: arrangedToastMessage(result.created.length),
+          cheer: result.failedCount === 0,
+        });
       }
       return;
     }
@@ -166,6 +176,7 @@ export function BottleBatchForm() {
             onToggleDetails={() => batch.toggleDetails(row.key)}
             onEditPhoto={() => void batch.editPhoto(row.key)}
             onRetryPhoto={() => void batch.retryPhoto(row.key)}
+            onReplacePhoto={() => void batch.replacePhoto(row.key)}
             onRemove={() => void batch.removeRow(row.key)}
             onRecognizeRetry={() => batch.recognizeRow(row.key)}
             onAddBackPhoto={() => void batch.addBackPhoto(row.key, "camera")}
@@ -174,13 +185,14 @@ export function BottleBatchForm() {
           />
         ))}
       </ol>
-      {batch.libraryProgress ? (
-        <p className="bottle-batch-recognize" role="status">
-          <Mascot pose="surprised" size={32} aria-hidden />
-          {BOTTLE_BATCH_MESSAGES.libraryProgress(
-            batch.libraryProgress.current,
-            batch.libraryProgress.total,
-          )}
+      {progress.total > 0 ? (
+        <p className="bottle-batch-progress" role="status">
+          {BOTTLE_BATCH_MESSAGES.progress(progress)}
+        </p>
+      ) : null}
+      {batch.notice ? (
+        <p className="field-hint" role="status">
+          {batch.notice}
         </p>
       ) : null}
       <div className="photo-action-row bottle-batch-add">
@@ -205,7 +217,7 @@ export function BottleBatchForm() {
       </div>
       {!batch.canAdd ? <p className="field-hint">{BOTTLE_BATCH_MESSAGES.rowLimit}</p> : null}
       <SaveBar
-        label={BOTTLE_SAVE_LABELS.arrange(total)}
+        label={BOTTLE_SAVE_LABELS.arrange(savableCount)}
         pending={batch.submitting}
         disabled={!canSubmit}
         state={batch.submitting ? "loading" : saveState}
@@ -235,6 +247,7 @@ function BatchRowCard({
   onToggleDetails,
   onEditPhoto,
   onRetryPhoto,
+  onReplacePhoto,
   onRemove,
   onRecognizeRetry,
   onAddBackPhoto,
@@ -248,6 +261,7 @@ function BatchRowCard({
   onToggleDetails: () => void;
   onEditPhoto: () => void;
   onRetryPhoto: () => void;
+  onReplacePhoto: () => void;
   onRemove: () => void;
   onRecognizeRetry: () => void;
   onAddBackPhoto: () => void;
@@ -259,10 +273,18 @@ function BatchRowCard({
   const marks = new Set<RecognizeMarkField>(row.aiMarks);
   const nameId = `${id}-name`;
   const detailsId = `${id}-details`;
-  const cutout = isCutoutBlobType(row.photo.blob.type);
+  const cutout = row.photo ? isCutoutBlobType(row.photo.blob.type) : false;
+  const stageLabel = batchRowStageLabel(row);
+  const hasPreview = Boolean(row.photo?.previewUrl);
+  const processing =
+    row.phase === "queued" || row.phase === "converting" || row.phase === "uploading";
+  const failed = row.phase === "error";
 
   return (
-    <li className="bottle-batch-row" aria-label={`${index + 1} 本目`}>
+    <li
+      className={failed ? "bottle-batch-row is-error" : "bottle-batch-row"}
+      aria-label={`${index + 1} 本目`}
+    >
       <div className="bottle-batch-row-main">
         <div className="bottle-batch-photos">
           <div
@@ -270,26 +292,32 @@ function BatchRowCard({
               cutout ? "photo-thumb bottle-batch-thumb is-cutout" : "photo-thumb bottle-batch-thumb"
             }
           >
-            <button
-              type="button"
-              className="bottle-batch-thumb-button"
-              aria-label="写真を編集"
-              disabled={disabled}
-              onClick={onEditPhoto}
-            >
-              <ContentPhoto
-                src={row.photo.previewUrl}
-                className="photo-thumb-img"
-                size={PHOTO_DISPLAY_SIZE.bottleTile}
-                loading="eager"
-              />
-            </button>
-            {row.photo.status === "uploading" ? (
+            {hasPreview ? (
+              <button
+                type="button"
+                className="bottle-batch-thumb-button"
+                aria-label="写真を編集"
+                disabled={disabled || !row.photo?.blob.size}
+                onClick={onEditPhoto}
+              >
+                <ContentPhoto
+                  src={row.photo?.previewUrl ?? ""}
+                  className="photo-thumb-img"
+                  size={PHOTO_DISPLAY_SIZE.bottleTile}
+                  loading="eager"
+                />
+              </button>
+            ) : (
+              <span className="bottle-batch-thumb-placeholder" aria-hidden>
+                {processing ? <span className="recognize-spinner" /> : null}
+              </span>
+            )}
+            {processing ? (
               <span className="photo-tile-progress" role="status">
-                アップロード中
+                {stageLabel ?? BOTTLE_BATCH_MESSAGES.stageUploading}
               </span>
             ) : null}
-            {row.photo.status === "error" ? (
+            {failed ? (
               <button type="button" className="photo-tile-retry" onClick={onRetryPhoto}>
                 <span aria-hidden>!</span>
                 <span>再試行</span>
@@ -420,6 +448,34 @@ function BatchRowCard({
             aiMarked={marks.has("variety")}
             onChange={(variety) => onPatch({ variety })}
           />
+        </div>
+      ) : null}
+      {stageLabel && (failed || row.cutoutFallback) ? (
+        <p
+          className={failed ? "field-error bottle-batch-phase is-error" : "bottle-batch-phase"}
+          role={failed ? "alert" : "status"}
+        >
+          {stageLabel}
+        </p>
+      ) : null}
+      {failed ? (
+        <div className="bottle-batch-row-actions">
+          <button
+            type="button"
+            className="header-text-link"
+            disabled={disabled}
+            onClick={onRetryPhoto}
+          >
+            再試行
+          </button>
+          <button
+            type="button"
+            className="header-text-link"
+            disabled={disabled}
+            onClick={onReplacePhoto}
+          >
+            {BOTTLE_BATCH_MESSAGES.pickAgain}
+          </button>
         </div>
       ) : null}
       {row.recognize === "loading" || row.recognize === "failure" ? (

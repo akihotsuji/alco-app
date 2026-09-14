@@ -10,12 +10,19 @@ export type ScheduleContext = {
   hold: (promise: Promise<unknown>) => void;
 };
 
+export type CutoutQueuePolicy = "latest" | "fifo";
+
 export type ScheduleOptions = {
   /** 中断されたら pending のうちは取り消す（実行中なら結果を捨てるだけ） */
   signal?: AbortSignal;
+  /**
+   * `latest`: 編集プレビュー。pending は最新 1 件。
+   * `fifo`: 保存・バッチの別写真。superseded で捨てない。
+   */
+  policy?: CutoutQueuePolicy;
 };
 
-export type LatestOnlyScheduler = {
+export type CutoutScheduler = {
   schedule<T>(
     work: (context: ScheduleContext) => Promise<T>,
     options?: ScheduleOptions,
@@ -24,6 +31,8 @@ export type LatestOnlyScheduler = {
   readonly busy: boolean;
   readonly hasPending: boolean;
 };
+
+export type LatestOnlyScheduler = CutoutScheduler;
 
 type Entry = {
   run: (context: ScheduleContext) => Promise<unknown>;
@@ -34,20 +43,29 @@ type Entry = {
 };
 
 /**
- * 実行中 1 件 + pending 最新 1 件。古い pending は `superseded` で置き換える。
- * 「10 回操作したら 10 回推論する」FIFO をなくす（Issue #48 A-2 / 8）。
+ * 推論は 1 本ずつ。プレビューは pending 最新 1 件、保存・バッチは FIFO。
+ * ONNX の `session.run()` は途中で止められないので、hold 中は次を始めない。
  */
-export function createLatestOnlyScheduler(
-  now: () => number = () => Date.now(),
-): LatestOnlyScheduler {
+export function createCutoutScheduler(now: () => number = () => Date.now()): CutoutScheduler {
   let running = false;
-  let pending: Entry | null = null;
+  let latestPending: Entry | null = null;
+  const fifoPending: Entry[] = [];
   const stats = { started: 0, superseded: 0 };
 
   function supersede(entry: Entry): void {
     entry.detachAbort();
     stats.superseded += 1;
     entry.reject(new CutoutError("superseded"));
+  }
+
+  function takeNext(): Entry | null {
+    const fifo = fifoPending.shift();
+    if (fifo) {
+      return fifo;
+    }
+    const latest = latestPending;
+    latestPending = null;
+    return latest;
   }
 
   function start(entry: Entry): void {
@@ -72,8 +90,7 @@ export function createLatestOnlyScheduler(
       .then(() => Promise.all(holds))
       .then(() => {
         running = false;
-        const next = pending;
-        pending = null;
+        const next = takeNext();
         if (next) {
           start(next);
         }
@@ -84,6 +101,7 @@ export function createLatestOnlyScheduler(
     schedule<T>(work: (context: ScheduleContext) => Promise<T>, options?: ScheduleOptions) {
       return new Promise<T>((resolve, reject) => {
         const signal = options?.signal;
+        const policy = options?.policy ?? "latest";
         if (signal?.aborted) {
           reject(new CutoutError("superseded"));
           return;
@@ -99,14 +117,24 @@ export function createLatestOnlyScheduler(
           start(entry);
           return;
         }
-        if (pending) {
-          supersede(pending);
+        if (policy === "fifo") {
+          fifoPending.push(entry);
+        } else {
+          if (latestPending) {
+            supersede(latestPending);
+          }
+          latestPending = entry;
         }
-        pending = entry;
         if (signal) {
           const onAbort = () => {
-            if (pending === entry) {
-              pending = null;
+            if (latestPending === entry) {
+              latestPending = null;
+              supersede(entry);
+              return;
+            }
+            const index = fifoPending.indexOf(entry);
+            if (index >= 0) {
+              fifoPending.splice(index, 1);
               supersede(entry);
             }
           };
@@ -122,7 +150,30 @@ export function createLatestOnlyScheduler(
       return running;
     },
     get hasPending() {
-      return pending !== null;
+      return latestPending !== null || fifoPending.length > 0;
+    },
+  };
+}
+
+/**
+ * 編集プレビュー用。実行中 1 件 + pending 最新 1 件。古い pending は `superseded`。
+ */
+export function createLatestOnlyScheduler(
+  now: () => number = () => Date.now(),
+): LatestOnlyScheduler {
+  const inner = createCutoutScheduler(now);
+  return {
+    schedule(work, options) {
+      return inner.schedule(work, { ...options, policy: "latest" });
+    },
+    get stats() {
+      return inner.stats;
+    },
+    get busy() {
+      return inner.busy;
+    },
+    get hasPending() {
+      return inner.hasPending;
     },
   };
 }

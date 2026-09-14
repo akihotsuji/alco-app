@@ -14,16 +14,16 @@
 | 関数 | 役割 |
 |---|---|
 | `pickImage` / `pickImages` | `source: "camera" \| "library"`。撮影は `capture=environment`、ライブラリは `capture` なし。ライブラリは `multiple` 可（まとめて追加）。キャンセルなら overlay を開かない。iOS は復帰後の `change` 遅れを focus ポーリングで待つ |
-| `processCellarFile` | まとめて追加のライブラリ複数選択用。photo-edit を挟まず中央・拡縮 1 でセラー処理する |
+| `processCellarFile` | まとめて追加のライブラリ複数選択用。photo-edit を挟まず中央・拡縮 1 でセラー処理する。受け付けた行は先に一覧へ載せ、変換は 1 件ずつ、アップロードは同時最大 2 件 |
 | `decodeImage` | `createImageBitmap` + EXIF orientation。長辺 2560 超は先に縮小。HEIC とデコード失敗は `<img>` 経路 |
 | `computeCoverCrop` / `cropResize` | 4:5 / 2:3、拡縮 1.0〜3.0、長辺 1280 |
 | `processLogFile` / `processLogPhoto` | 酒記録。全体リサイズ、認識用 JPEG、設定どおりキャラ合成。`photo-edit` を挟まない |
 | `composeMascot` | 右下、短辺 22%、余白 4%、**グローなし**。線色 `#2B261F`。`pickMascotPose()` で 4 ポーズから抽選 |
-| `toJpegBlob` / `toWebpBlob` / `toPngBlob` | JPEG 0.82 / 切り抜き WebP 0.9 / 切り抜き PNG。Canvas 再エンコードで EXIF なし |
-| `encodeCutoutBlob` | 切り抜きキャンバスを保存用にする。WebP を優先。iOS Safari のように `toBlob("image/webp")` が PNG を返す／失敗するときは **切り抜き済み PNG** を使う。切り抜き前 JPEG には落とさない。1MB 超は縮小 |
+| `toJpegBlob` / `toJpegBlobWithinLimit` / `toWebpBlob` / `toPngBlob` | JPEG 0.82 / 切り抜き WebP 0.9 / 切り抜き PNG。Canvas 再エンコードで EXIF なし。保存用 JPEG は品質を下げ、収まらなければ解像度も段階縮小し、**最終 `blob.size` を再検査**して 1MB 超なら送らない（最後の品質で書き出しただけでは上限内としない）。切り抜き OFF・非対応・失敗後の JPEG も同じ |
+| `encodeCutoutBlob` | 切り抜きキャンバスを保存用にする。WebP を優先。iOS Safari のように `toBlob("image/webp")` が PNG を返す／失敗するときは **切り抜き済み PNG** を使う。切り抜き前 JPEG には落とさない。1MB 超は縮小。透過は維持。MIME と拡張子を一致させる |
 | `preparePhoto` / `prepareRecognitionImage` | 比率・位置・拡縮の確定と、切り抜く前の 2:3 JPEG（ラベル読み取り用。色補正なし） |
-| `segmentBottle` / `composeBottleCutout` | セラーのみ。WASM SIMD で U2-Net-P を 1 本ずつ実行（実行中 1 + pending 最新 1）。ORT の `.mjs` / `.wasm` は同一オリジン `/models/ort/` を明示。マスクは cleanup・品質判定を通し、同一条件では再利用。失敗は `CutoutError`（理由付き） |
-| `previewCutout` / `processPhoto` | 編集画面のプレビューと「使う」。同じマスクを共有し、`processPhoto` は `cutout` に成否・理由・工程時間を返す。失敗・未対応は JPEG 長方形。記録・ノートはキャラ合成前の JPEG を `recognizeJpeg` として返す |
+| `segmentBottle` / `composeBottleCutout` | セラーのみ。WASM SIMD で U2-Net-P を 1 本ずつ実行。編集プレビューは実行中 1 + pending 最新 1。保存・バッチの別写真は FIFO（`superseded` で捨てない）。ORT の `.mjs` / `.wasm` は同一オリジン `/models/ort/` を明示。マスクは cleanup・品質判定を通し、同一条件では再利用。失敗は `CutoutError`（理由付き） |
+| `previewCutout` / `processPhoto` | 編集画面のプレビューと「使う」。同じマスクを共有し、`processPhoto` は `cutout` に成否・理由・工程時間を返す。失敗・未対応は JPEG 長方形（容量保証付き）。記録・ノートはキャラ合成前の JPEG を `recognizeJpeg` として返す |
 | `cleanupMask` / `validateBottleMask` | 純粋関数。薄い alpha と小成分の除去、全面 foreground・左右端接触の判定 |
 
 `localStorage`: `photo.mascot` / `photo.cutout` / `cellar.recognize`（設定画面と同じ）。旧 `photo.filter` は読まない。

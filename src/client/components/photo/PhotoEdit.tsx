@@ -239,6 +239,7 @@ export function PhotoEdit() {
         mascotOn: kind !== "cellar" && mascotOn,
         mascotPose,
         cutoutOn: kind === "cellar" && cutoutOn && cutoutSupported,
+        cutoutQueue: kind === "cellar" ? "fifo" : undefined,
         onCutoutProgress: setCutoutProgress,
         // 背景除去を待たずにラベル読み取りを始められるよう、切り抜く前の JPEG を先に渡す
         onRecognizeJpeg: kind === "cellar" || kind === "note" ? offerRecognizeJpeg : undefined,

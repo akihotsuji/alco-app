@@ -1,12 +1,17 @@
 import { recognizeLabel } from "@/client/hooks/use-bottles.ts";
 import { recognizeDrinkPhoto } from "@/client/hooks/use-drink-logs.ts";
 import { recognizeNotePhoto } from "@/client/hooks/use-tasting-notes.ts";
+import { api } from "@/client/lib/api.ts";
 import type { DrinkRecognizeResponse } from "@/shared/drink-recognize.ts";
 import type { RecognizeResponse } from "@/shared/label-recognize.ts";
 import type { NoteRecognizeResponse } from "@/shared/note-recognize.ts";
 import { recordRecognizeMetric } from "./photo/photo-metrics.ts";
 
-export type RecognizeRunner = (jpeg: Blob, back?: Blob | null) => Promise<RecognizeResponse>;
+export type RecognizeRunner = (
+  jpeg: Blob,
+  back?: Blob | null,
+  signal?: AbortSignal,
+) => Promise<RecognizeResponse>;
 export type DrinkRecognizeRunner = (jpeg: Blob) => Promise<DrinkRecognizeResponse>;
 
 export type LabelRecognitionOptions = {
@@ -61,7 +66,7 @@ function releaseLabelSlot(): void {
 
 export function startLabelRecognition(
   jpeg: Blob,
-  run: RecognizeRunner = recognizeLabel,
+  run: RecognizeRunner = (file, back, signal) => recognizeLabel(file, back, api, signal),
   options: LabelRecognitionOptions = {},
 ): Promise<RecognizeResponse> {
   const back = options.back ?? null;
@@ -75,7 +80,7 @@ export function startLabelRecognition(
       if (options.signal?.aborted) {
         throw new RecognitionCancelledError();
       }
-      return run(jpeg, back);
+      return run(jpeg, back, options.signal);
     })
     .then(
       (result) => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CutoutError } from "./cutout-result.ts";
-import { createLatestOnlyScheduler } from "./cutout-scheduler.ts";
+import { createCutoutScheduler, createLatestOnlyScheduler } from "./cutout-scheduler.ts";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -168,5 +168,64 @@ describe("createLatestOnlyScheduler", () => {
     first.reject(new CutoutError("inference"));
     await expect(reasonOf(failing)).resolves.toBe("inference");
     await expect(next).resolves.toBe("next");
+  });
+});
+
+describe("createCutoutScheduler fifo", () => {
+  it("保存・バッチの別写真は superseded せず順番に実行する", async () => {
+    const scheduler = createCutoutScheduler();
+    const first = deferred<string>();
+    const runs: string[] = [];
+    const p1 = scheduler.schedule(() => {
+      runs.push("1");
+      return first.promise;
+    });
+    const rest = ["2", "3", "4"].map((id) =>
+      scheduler.schedule(
+        async () => {
+          runs.push(id);
+          return id;
+        },
+        { policy: "fifo" },
+      ),
+    );
+    await flush();
+    expect(runs).toEqual(["1"]);
+    first.resolve("1");
+    await expect(p1).resolves.toBe("1");
+    await expect(Promise.all(rest)).resolves.toEqual(["2", "3", "4"]);
+    expect(runs).toEqual(["1", "2", "3", "4"]);
+    expect(scheduler.stats.superseded).toBe(0);
+  });
+
+  it("fifo 待ちは latest プレビューの置き換えで捨てない", async () => {
+    const scheduler = createCutoutScheduler();
+    const first = deferred<void>();
+    const runs: string[] = [];
+    void scheduler.schedule(() => {
+      runs.push("run");
+      return first.promise;
+    });
+    const batch = scheduler.schedule(
+      async () => {
+        runs.push("batch");
+        return "batch";
+      },
+      { policy: "fifo" },
+    );
+    const previewA = scheduler.schedule(async () => {
+      runs.push("preview-a");
+      return "a";
+    });
+    const previewB = scheduler.schedule(async () => {
+      runs.push("preview-b");
+      return "b";
+    });
+    await flush();
+    first.resolve();
+    await expect(batch).resolves.toBe("batch");
+    await expect(reasonOf(previewA)).resolves.toBe("superseded");
+    await expect(previewB).resolves.toBe("b");
+    expect(runs).toEqual(["run", "batch", "preview-b"]);
   });
 });
