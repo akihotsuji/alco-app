@@ -29,6 +29,7 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
   it("「使う」は cutout の結果型で判定し、blob の MIME では判定しない", () => {
     expect(source).toContain('processed.cutout?.status === "failed"');
     expect(source).not.toContain('processed.blob.type !== "image/webp"');
+    expect(source).toContain('cutoutQueue: kind === "cellar" ? "fifo" : undefined');
   });
 
   it("セラーの編集は元画像または保存済み写真から photo-edit を開き、カメラを起動しない", () => {

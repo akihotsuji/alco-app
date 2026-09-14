@@ -79,14 +79,22 @@ export function reorderBottles(body: ReorderBottlesInput, client: ApiClient = ap
 }
 
 /** 表面は必須、裏面は任意。裏面があれば同じ 1 リクエストの `back` パートに載せる（回数は 1 回） */
-export function recognizeLabel(file: Blob, back?: Blob | null, client: ApiClient = api) {
+export function recognizeLabel(
+  file: Blob,
+  back?: Blob | null,
+  client: ApiClient = api,
+  signal?: AbortSignal,
+) {
   return unwrap(
-    client.api.bottles.recognize.$post({
-      form: {
-        file: new File([file], "label.jpg", { type: "image/jpeg" }),
-        ...(back ? { back: new File([back], "back.jpg", { type: "image/jpeg" }) } : {}),
+    client.api.bottles.recognize.$post(
+      {
+        form: {
+          file: new File([file], "label.jpg", { type: "image/jpeg" }),
+          ...(back ? { back: new File([back], "back.jpg", { type: "image/jpeg" }) } : {}),
+        },
       },
-    }),
+      signal ? { init: { signal } } : undefined,
+    ),
   );
 }
 

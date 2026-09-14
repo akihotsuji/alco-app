@@ -51,7 +51,7 @@ export async function recognizeNotePhoto(input: {
     });
     const fields = await withRecognitionCache(key, async () => {
       const output = await withTimeout(
-        input.recognizer.recognize(input.bytes),
+        (signal) => input.recognizer.recognize(input.bytes, { signal }),
         timeoutMsForRecognizer(input.recognizer, input.timeoutMs),
       );
       providerMs = Date.now() - started;

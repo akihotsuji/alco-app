@@ -19,7 +19,7 @@ import {
 import { loadCutoutModelBytes } from "./cutout-model-cache.ts";
 import { type BottleMaskFeatures, refineBottleMask } from "./cutout-quality.ts";
 import { CutoutError, type CutoutTiming, emptyCutoutTiming } from "./cutout-result.ts";
-import { createLatestOnlyScheduler } from "./cutout-scheduler.ts";
+import { type CutoutQueuePolicy, createCutoutScheduler } from "./cutout-scheduler.ts";
 import { supportsWasmSimd } from "./filter-support.ts";
 import { alphaBoundingBox, computeCutoutPlacement } from "./geometry.ts";
 
@@ -51,6 +51,8 @@ export type SegmentBottleOptions = {
   onProgress?: (progress: RemoveBackgroundProgress) => void;
   /** pending のうちに不要になったら取り消す（実行中の推論は止められないので結果を捨てる） */
   signal?: AbortSignal;
+  /** 省略時はプレビュー向け latest */
+  queue?: CutoutQueuePolicy;
 };
 
 type SessionTiming = Pick<CutoutTiming, "modelDownloadMs" | "ortLoadMs" | "sessionCreateMs">;
@@ -60,8 +62,8 @@ type LoadedSession = { session: InferenceSession; timing: SessionTiming };
 let sessionPromise: Promise<LoadedSession> | null = null;
 let sessionReady = false;
 
-/** 推論は端末内で 1 本ずつ。pending は最新 1 件（Issue #48 A-2 / A-3 / 8） */
-const scheduler = createLatestOnlyScheduler();
+/** 推論は端末内で 1 本ずつ。プレビューは latest、保存・バッチは fifo */
+const scheduler = createCutoutScheduler();
 
 export function getCutoutSchedulerStats(): { started: number; superseded: number } {
   return scheduler.stats;
@@ -129,7 +131,7 @@ export async function segmentBottle(
         timing.inferenceMs = elapsed(inferenceStart);
       }
     },
-    { signal: options.signal },
+    { signal: options.signal, policy: options.queue ?? "latest" },
   );
 
   const postStart = performance.now();

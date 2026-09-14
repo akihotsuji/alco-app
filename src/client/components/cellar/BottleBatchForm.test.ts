@@ -8,8 +8,9 @@ const source = readFileSync(join(here, "BottleBatchForm.tsx"), "utf8");
 const header = readFileSync(join(here, "../layout/AppHeader.tsx"), "utf8");
 
 describe("BottleBatchForm（04-cellar bottle-batch）", () => {
-  it("保存ラベルは本数合計、行ごとに品名・種類・本数・詳細・読み取り帯・×", () => {
-    expect(source).toContain("BOTTLE_SAVE_LABELS.arrange(total)");
+  it("保存ラベルは保存対象本数、行ごとに品名・種類・本数・詳細・読み取り帯・×", () => {
+    expect(source).toContain("BOTTLE_SAVE_LABELS.arrange(savableCount)");
+    expect(source).toContain("batchSavableCount(batch.rows)");
     expect(source).toContain("batchTotalCount(batch.rows)");
     expect(source).toContain("<DrinkTypeChips");
     expect(source).toContain('label="本数を増やす"');
@@ -31,8 +32,10 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.captureNext(remainingBatchRows(batch.rows))");
     expect(source).toContain("disabled={!batch.canAdd || formBusy}");
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.rowLimit");
-    expect(source).toContain("BOTTLE_BATCH_MESSAGES.libraryProgress");
-    expect(source).toContain('<Mascot pose="surprised" size={32} aria-hidden />');
+    expect(source).toContain("BOTTLE_BATCH_MESSAGES.progress(progress)");
+    expect(source).toContain("BOTTLE_BATCH_MESSAGES.pickAgain");
+    expect(source).not.toContain("BOTTLE_BATCH_MESSAGES.libraryProgress");
+    expect(source).not.toContain("<Mascot");
     expect(source).toContain('batch.addPhoto("camera")');
     expect(source).toContain("batch.addLibraryPhotos()");
     expect(source).toContain("IMAGE_PICK_LABELS.libraryMultiple");

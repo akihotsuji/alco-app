@@ -118,6 +118,18 @@ describe("toApiClientError", () => {
     expect(error.code).toBe("internal_error");
   });
 
+  it("Retry-After 秒数を保持する（本文・認証は出さない）", async () => {
+    const error = await toApiClientError(
+      new Response(JSON.stringify({ error: "rate_limited" }), {
+        status: 429,
+        headers: { "Retry-After": "8" },
+      }),
+    );
+    expect(error.code).toBe("rate_limited");
+    expect(error.retryAfterSec).toBe(8);
+    expect(error.message).not.toContain("rate_limited secret");
+  });
+
   it("メッセージにサーバー本文を含めない", async () => {
     const error = await toApiClientError(
       new Response(JSON.stringify({ error: "internal_error", stack: "at /src/server" }), {

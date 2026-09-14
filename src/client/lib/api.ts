@@ -49,12 +49,14 @@ export class ApiClientError extends Error {
   readonly code: ApiErrorCode;
   readonly fields: ApiErrorFields | undefined;
   readonly conflict: ApiErrorConflict | undefined;
+  readonly retryAfterSec: number | undefined;
 
   constructor(
     status: number,
     code: ApiErrorCode,
     fields?: ApiErrorFields,
     conflict?: ApiErrorConflict,
+    retryAfterSec?: number,
   ) {
     super(`API ${status} ${code}`);
     this.name = "ApiClientError";
@@ -62,6 +64,7 @@ export class ApiClientError extends Error {
     this.code = code;
     this.fields = fields;
     this.conflict = conflict;
+    this.retryAfterSec = retryAfterSec;
   }
 }
 
@@ -78,8 +81,24 @@ function fallbackCode(status: number): ApiErrorCode {
   return status === 401 ? "unauthorized" : "internal_error";
 }
 
+export function parseRetryAfterHeader(value: string | null | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds;
+  }
+  const date = Date.parse(value);
+  if (Number.isFinite(date)) {
+    return Math.max(0, Math.round((date - Date.now()) / 1000));
+  }
+  return undefined;
+}
+
 export async function toApiClientError(response: {
   status: number;
+  headers?: Headers;
   text(): Promise<string>;
 }): Promise<ApiClientError> {
   let body: unknown;
@@ -88,6 +107,7 @@ export async function toApiClientError(response: {
   } catch {
     body = undefined;
   }
+  const retryAfterSec = parseRetryAfterHeader(response.headers?.get("Retry-After"));
   const parsed = apiErrorBodySchema.safeParse(body);
   if (parsed.success) {
     return new ApiClientError(
@@ -95,9 +115,16 @@ export async function toApiClientError(response: {
       parsed.data.error,
       parsed.data.fields,
       parsed.data.conflict,
+      retryAfterSec,
     );
   }
-  return new ApiClientError(response.status, fallbackCode(response.status));
+  return new ApiClientError(
+    response.status,
+    fallbackCode(response.status),
+    undefined,
+    undefined,
+    retryAfterSec,
+  );
 }
 
 /**

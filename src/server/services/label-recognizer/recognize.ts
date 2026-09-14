@@ -69,7 +69,11 @@ export async function recognizeBottleLabel(input: {
     });
     const fields = await withRecognitionCache(key, async () => {
       const output = await withTimeout(
-        input.recognizer.recognize(input.bytes, { backJpegBytes: input.backBytes }),
+        (signal) =>
+          input.recognizer.recognize(input.bytes, {
+            backJpegBytes: input.backBytes,
+            signal,
+          }),
         timeoutMsForRecognizer(input.recognizer, input.timeoutMs),
       );
       providerMs = Date.now() - started;
@@ -98,18 +102,27 @@ export async function recognizeBottleLabel(input: {
   }
 }
 
-export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new RecognizeTimeoutError());
-    }, timeoutMs);
-  });
+export async function withTimeout<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await Promise.race([promise, timeout]);
+    return await withAbort(run(controller.signal), controller.signal);
   } finally {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-    }
+    clearTimeout(timer);
   }
+}
+
+async function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) {
+    throw new RecognizeTimeoutError();
+  }
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      signal.addEventListener("abort", () => reject(new RecognizeTimeoutError()), { once: true });
+    }),
+  ]);
 }

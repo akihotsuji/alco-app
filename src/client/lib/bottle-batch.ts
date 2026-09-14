@@ -1,4 +1,5 @@
 import type { PhotoAttachment } from "@/client/components/layout/photo-edit-context.tsx";
+import type { BatchRowFailure } from "@/client/lib/bottle-batch-failure.ts";
 import {
   type BottleFormErrors,
   type BottleFormState,
@@ -11,6 +12,8 @@ import type { RecognizeBannerStatus, RecognizeMarkField } from "@/client/lib/lab
 import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
 import type { CreateBottleInput } from "@/shared/bottles.ts";
 
+export type BatchPhotoPhase = "queued" | "converting" | "uploading" | "ready" | "error";
+
 /** 一度に積める行数（04-cellar G1） */
 export const BOTTLE_BATCH_MAX_ROWS = 20;
 
@@ -18,6 +21,15 @@ export const BOTTLE_BATCH_MESSAGES = {
   rowLimit: `一度に ${BOTTLE_BATCH_MAX_ROWS} 本までです`,
   empty: "撮った写真がここに並びます",
   partialFailure: (failed: number) => `${failed} 行を並べられませんでした。もう一度お試しください`,
+  overflow: (accepted: number, overflow: number) =>
+    `${accepted}枚を受け付けました。${overflow}枚は上限のため追加できません`,
+  progress: (input: { total: number; done: number; failed: number; processing: number }) =>
+    `${input.total}枚中${input.done}枚完了・${input.failed}枚失敗・${input.processing}枚処理中`,
+  stageQueued: "待機中",
+  stageConverting: "変換中",
+  stageUploading: "アップロード中",
+  pickAgain: "写真を選び直す",
+  cutoutFallback: "切り抜きに失敗したため、通常の写真で登録します",
   captureFirst: "撮る",
   captureNext: (remaining: number) => `次を撮る（あと ${remaining} 本）`,
   libraryProgress: (current: number, total: number) => `${current} / ${total} 枚を変換しています`,
@@ -28,7 +40,8 @@ export const BOTTLE_BATCH_MESSAGES = {
 /** 1 枚の写真 = 1 行 = 1 銘柄（本数 N 可） */
 export type BottleBatchRow = {
   key: string;
-  photo: PhotoAttachment;
+  ingestId: string;
+  photo: PhotoAttachment | null;
   /** 裏面（任意・最大 1。04-cellar G2b）。photo-edit を通さない JPEG */
   backPhoto: PhotoAttachment | null;
   /** 裏面を処理（デコード・トリミング）している間だけ true。アップロード中は `backPhoto.status` */
@@ -41,6 +54,10 @@ export type BottleBatchRow = {
   detailsOpen: boolean;
   /** 直前の保存で失敗した行の汎用文 */
   error: string | null;
+  phase: BatchPhotoPhase;
+  failure: BatchRowFailure | null;
+  cutoutFallback: boolean;
+  saveOperationKey: string | null;
 };
 
 export function newBatchRow(
@@ -54,6 +71,7 @@ export function newBatchRow(
   }
   return {
     key,
+    ingestId: key,
     photo,
     backPhoto: null,
     backProcessing: false,
@@ -63,6 +81,32 @@ export function newBatchRow(
     drinkTypeTouched: false,
     detailsOpen: false,
     error: null,
+    phase: photo.status === "error" ? "error" : photo.status === "ready" ? "ready" : "uploading",
+    failure: null,
+    cutoutFallback: false,
+    saveOperationKey: null,
+  };
+}
+
+export function newQueuedBatchRow(
+  key: string,
+  ingestId: string,
+  now: Date = new Date(),
+): BottleBatchRow {
+  return {
+    ...newBatchRow(
+      key,
+      {
+        previewUrl: "",
+        blob: new Blob(),
+        photoId: null,
+        status: "uploading",
+      },
+      now,
+    ),
+    ingestId,
+    photo: null,
+    phase: "queued",
   };
 }
 
@@ -99,11 +143,35 @@ export function upsertBatchPhoto(
     if (rowIndex !== index) {
       return row;
     }
-    if (row.photo.previewUrl !== photo.previewUrl && row.photo.previewUrl.startsWith("blob:")) {
+    if (
+      row.photo &&
+      row.photo.previewUrl !== photo.previewUrl &&
+      row.photo.previewUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(row.photo.previewUrl);
     }
-    return { ...row, photo };
+    return {
+      ...row,
+      photo,
+      phase: photo.status === "error" ? "error" : photo.status === "ready" ? "ready" : "uploading",
+      failure: photo.status === "error" ? row.failure : null,
+    };
   });
+}
+
+/** 削除済みの行は復活させない（遅延アップロードの完了コールバック用） */
+export function updateExistingBatchPhoto(
+  rows: readonly BottleBatchRow[],
+  key: string,
+  photo: PhotoAttachment,
+): BottleBatchRow[] {
+  if (!rows.some((row) => row.key === key)) {
+    if (photo.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(photo.previewUrl);
+    }
+    return [...rows];
+  }
+  return upsertBatchPhoto(rows, key, photo);
 }
 
 export function updateBatchRow(
@@ -163,7 +231,16 @@ export function setBatchBackPhoto(
 }
 
 /** 行の写真の保存状態。裏面があれば裏面のアップロードも待つ（G9 の無効条件） */
-export function batchRowPhotoStatus(row: BottleBatchRow): PhotoAttachment["status"] {
+export function batchRowPhotoStatus(row: BottleBatchRow): PhotoAttachment["status"] | "none" {
+  if (row.phase === "queued" || row.phase === "converting") {
+    return "uploading";
+  }
+  if (row.phase === "error") {
+    return "error";
+  }
+  if (!row.photo) {
+    return "none";
+  }
   if (row.photo.status !== "ready") {
     return row.photo.status;
   }
@@ -175,7 +252,7 @@ export function batchRowPhotoStatus(row: BottleBatchRow): PhotoAttachment["statu
 
 export function removeBatchRow(rows: readonly BottleBatchRow[], key: string): BottleBatchRow[] {
   const target = rows.find((row) => row.key === key);
-  if (target?.photo.previewUrl.startsWith("blob:")) {
+  if (target?.photo?.previewUrl.startsWith("blob:")) {
     URL.revokeObjectURL(target.photo.previewUrl);
   }
   if (target?.backPhoto?.previewUrl.startsWith("blob:")) {
@@ -193,19 +270,72 @@ export function batchTotalCount(rows: readonly BottleBatchRow[]): number {
   return rows.reduce((sum, row) => sum + row.form.count, 0);
 }
 
-/** 無効: 行 0 / 銘柄名が空・範囲外の行 / アップロード中・失敗の行（04-cellar G9） */
+export function isBatchRowSavable(row: BottleBatchRow): boolean {
+  if (row.phase !== "ready" || !row.photo?.photoId || row.photo.status !== "ready") {
+    return false;
+  }
+  if (row.backProcessing || (row.backPhoto && row.backPhoto.status !== "ready")) {
+    return false;
+  }
+  return canSubmitBottleForm(row.form, batchRowErrors(row), "ready");
+}
+
+export function savableBatchRows(rows: readonly BottleBatchRow[]): BottleBatchRow[] {
+  return rows.filter((row) => isBatchRowSavable(row));
+}
+
+export function batchSavableCount(rows: readonly BottleBatchRow[]): number {
+  return savableBatchRows(rows).reduce((sum, row) => sum + row.form.count, 0);
+}
+
+export function batchRowStageLabel(row: BottleBatchRow): string | null {
+  if (row.phase === "queued") {
+    return BOTTLE_BATCH_MESSAGES.stageQueued;
+  }
+  if (row.phase === "converting") {
+    return BOTTLE_BATCH_MESSAGES.stageConverting;
+  }
+  if (row.phase === "uploading") {
+    return BOTTLE_BATCH_MESSAGES.stageUploading;
+  }
+  if (row.phase === "error") {
+    return row.failure?.message ?? row.error;
+  }
+  if (row.cutoutFallback) {
+    return BOTTLE_BATCH_MESSAGES.cutoutFallback;
+  }
+  return null;
+}
+
+export function batchIngestProgress(rows: readonly BottleBatchRow[]): {
+  total: number;
+  done: number;
+  failed: number;
+  processing: number;
+} {
+  let done = 0;
+  let failed = 0;
+  let processing = 0;
+  for (const row of rows) {
+    if (row.phase === "error") {
+      failed += 1;
+    } else if (row.phase === "ready") {
+      done += 1;
+    } else {
+      processing += 1;
+    }
+  }
+  return { total: rows.length, done, failed, processing };
+}
+
+/** 無効: 保存対象行が 0。失敗・処理中の行は対象外（他の完了行は保存できる） */
 export function canSubmitBatch(rows: readonly BottleBatchRow[]): boolean {
-  return (
-    rows.length > 0 &&
-    rows.every((row) =>
-      canSubmitBottleForm(row.form, batchRowErrors(row), batchRowPhotoStatus(row)),
-    )
-  );
+  return savableBatchRows(rows).length > 0;
 }
 
 export function batchRowBody(row: BottleBatchRow): CreateBottleInput | null {
-  return toCreateBottleBody(row.form, row.photo.photoId, {
-    capturedAt: row.photo.capturedAt,
+  return toCreateBottleBody(row.form, row.photo?.photoId ?? null, {
+    capturedAt: row.photo?.capturedAt,
     backPhotoId: row.backPhoto?.photoId ?? null,
   });
 }
@@ -214,7 +344,7 @@ export function batchRowBody(row: BottleBatchRow): CreateBottleInput | null {
 export function batchUnlinkedPhotoIds(rows: readonly BottleBatchRow[]): string[] {
   const ids: string[] = [];
   for (const row of rows) {
-    if (row.photo.photoId) {
+    if (row.photo?.photoId) {
       ids.push(row.photo.photoId);
     }
     if (row.backPhoto?.photoId) {
@@ -226,7 +356,7 @@ export function batchUnlinkedPhotoIds(rows: readonly BottleBatchRow[]): string[]
 
 export function revokeBatchPreviewUrls(rows: readonly BottleBatchRow[]): void {
   for (const row of rows) {
-    if (row.photo.previewUrl.startsWith("blob:")) {
+    if (row.photo?.previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(row.photo.previewUrl);
     }
     if (row.backPhoto?.previewUrl.startsWith("blob:")) {

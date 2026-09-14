@@ -49,11 +49,13 @@ export type CaptureIntent = {
 
 /** ノートの複数枚ストリップ用。`attachments[kind]` には書かず、呼び出し側の配列へ渡す */
 export type PhotoCollectSession = {
-  onUpdate: (attachment: PhotoAttachment) => void;
+  onUpdate: (attachment: PhotoAttachment, error?: unknown) => void;
   /** 未紐付けの旧 id。再編集で置き換えるときだけ消し、既存の紐付きは送らない */
   previousPhotoId?: string | null;
   /** 再編集では処理済み JPEG から EXIF が消えるので、最初に取った撮影時刻を維持する */
   previousCapturedAt?: string;
+  /** 未指定なら通常の uploadPhoto。まとめて登録は同時 2 件キューを渡す */
+  upload?: (blob: Blob) => Promise<{ id: string }>;
 };
 
 /** セラーまとめて追加。使う直後に次の撮影を開き、処理は裏で進める */
@@ -473,10 +475,12 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       };
       collect.onUpdate(draft);
       try {
-        const meta = await uploadPhoto(processed.blob);
+        const meta = await (collect.upload
+          ? collect.upload(processed.blob)
+          : uploadPhoto(processed.blob));
         collect.onUpdate({ ...draft, photoId: meta.id, status: "ready" });
-      } catch {
-        collect.onUpdate({ ...draft, status: "error" });
+      } catch (error) {
+        collect.onUpdate({ ...draft, status: "error" }, error);
       }
     },
     [],

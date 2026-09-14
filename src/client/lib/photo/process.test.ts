@@ -74,5 +74,8 @@ describe("processCellarPhoto 切り抜きエンコード", () => {
     expect(source).toContain("encodeCutoutBlob(dest)");
     expect(source).not.toContain('if (blob.type !== "image/webp")');
     expect(source).not.toContain("toWebpBlob(dest)");
+    expect(source).toContain("toJpegBlobWithinLimit(prepared.cropped)");
+    expect(source).toContain('cutoutQueue ?? "fifo"');
+    expect(source).toContain('queue: "latest"');
   });
 });

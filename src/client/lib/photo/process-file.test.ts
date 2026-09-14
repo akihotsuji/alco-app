@@ -24,6 +24,13 @@ describe("takeFilesForBatch", () => {
     expect(takeFilesForBatch(files(2), -1)).toEqual([]);
   });
 
+  it("セラーまとめて登録は fifo 切り抜きと容量保証 JPEG", () => {
+    const fn = source.slice(source.indexOf("export async function processCellarFile"));
+    expect(fn).toContain('cutoutQueue: "fifo"');
+    expect(fn).toContain('kind: "cellar"');
+    expect(source).toContain("toJpegBlobWithinLimit");
+  });
+
   it("ご意見は切り抜き・キャラ合成を呼ばない", () => {
     const fn = source.slice(source.indexOf("export async function processFeedbackFile"));
     expect(fn).toContain("fitToLongEdge");

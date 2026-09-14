@@ -58,6 +58,16 @@ describe("encodeCutoutBlob", () => {
     expect(blob).toBe(small);
   });
 
+  it("縮小しても上限を超えれば送らず失敗する", async () => {
+    await expect(
+      encodeCutoutBlob(canvasStub(), {
+        encodeWebp: async () => new Blob([new Uint8Array(20)], { type: "image/webp" }),
+        encodePng: async () => new Blob([new Uint8Array(20)], { type: "image/png" }),
+        maxBytes: 4,
+      }),
+    ).rejects.toBeInstanceOf(CutoutError);
+  });
+
   it("切り抜き形式にできなければ encode エラー", async () => {
     await expect(
       encodeCutoutBlob(canvasStub(), {

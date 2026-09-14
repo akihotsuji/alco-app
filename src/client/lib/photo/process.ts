@@ -14,6 +14,7 @@ import {
   cutoutFailureFields,
   emptyCutoutTiming,
 } from "./cutout-result.ts";
+import type { CutoutQueuePolicy } from "./cutout-scheduler.ts";
 import { decodeImage } from "./decode-image.ts";
 import { encodeCutoutBlob } from "./encode-cutout.ts";
 import {
@@ -57,6 +58,8 @@ export type ProcessPhotoInput = PhotoEditParams & {
    * 背景除去を待たずにラベル読み取りを始めるための口（Issue #48 D-1）
    */
   onRecognizeJpeg?: (jpeg: Blob) => void;
+  /** 保存・バッチは fifo。省略時はプレビュー向け latest */
+  cutoutQueue?: CutoutQueuePolicy;
 };
 
 /**
@@ -164,12 +167,20 @@ export async function prepareRecognitionImage(prepared: PreparedPhoto): Promise<
 }
 
 const segmentation = createSharedSegmentation<
-  { cropped: HTMLCanvasElement; onProgress?: (progress: RemoveBackgroundProgress) => void },
+  {
+    cropped: HTMLCanvasElement;
+    onProgress?: (progress: RemoveBackgroundProgress) => void;
+    queue?: CutoutQueuePolicy;
+  },
   BottleSegmentation
 >({
   limit: PHOTO_CUTOUT_MASK_CACHE_SIZE,
   run: (input, { signal }) =>
-    segmentBottle(input.cropped, { onProgress: input.onProgress, signal }),
+    segmentBottle(input.cropped, {
+      onProgress: input.onProgress,
+      signal,
+      queue: input.queue,
+    }),
 });
 
 /** テスト・デバッグ用。編集画面を閉じても呼ばない（再編集で再利用するため。上限で自然に捨てる） */
@@ -179,11 +190,15 @@ export function clearSegmentationCache(): void {
 
 async function segmentPrepared(
   prepared: PreparedPhoto,
-  options: { onProgress?: (progress: RemoveBackgroundProgress) => void; signal?: AbortSignal },
+  options: {
+    onProgress?: (progress: RemoveBackgroundProgress) => void;
+    signal?: AbortSignal;
+    queue?: CutoutQueuePolicy;
+  },
 ): Promise<{ segmentation: BottleSegmentation; cached: boolean }> {
   const result = await segmentation.request(
     prepared.segmentationKey,
-    { cropped: prepared.cropped, onProgress: options.onProgress },
+    { cropped: prepared.cropped, onProgress: options.onProgress, queue: options.queue },
     { signal: options.signal },
   );
   return { segmentation: result.value, cached: result.cached };
@@ -218,6 +233,7 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
     const { segmentation: seg, cached } = await segmentPrepared(prepared, {
       onProgress: input.onCutoutProgress,
       signal: input.signal,
+      queue: "latest",
     });
     const composeStart = performance.now();
     const canvas = composeBottleCutout({
@@ -301,7 +317,7 @@ export async function processPhoto(input: ProcessPhotoInput): Promise<ProcessedP
   if (input.mascotOn) {
     canvas = await composeMascot(canvas, input.mascotPose);
   }
-  const blob = await toJpegBlob(canvas);
+  const blob = await toJpegBlobWithinLimit(canvas);
   return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg };
 }
 
@@ -314,7 +330,7 @@ async function processCellarPhoto(
   input.onRecognizeJpeg?.(recognizeJpeg);
 
   const fallback = async (cutout: CutoutOutcome): Promise<ProcessedPhoto> => {
-    const blob = await toJpegBlob(prepared.cropped);
+    const blob = await toJpegBlobWithinLimit(prepared.cropped);
     return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg, cutout };
   };
 
@@ -330,7 +346,10 @@ async function processCellarPhoto(
   let composeMs = 0;
   let encodeMs = 0;
   try {
-    const result = await segmentPrepared(prepared, { onProgress: input.onCutoutProgress });
+    const result = await segmentPrepared(prepared, {
+      onProgress: input.onCutoutProgress,
+      queue: input.cutoutQueue ?? "fifo",
+    });
     seg = result.segmentation;
     cached = result.cached;
     const composeStart = performance.now();
