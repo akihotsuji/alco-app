@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { drinkLogs, myDrinks, photos } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
+import { createBottlesResponseSchema } from "@/shared/bottles.ts";
 import {
   DRINK_LOG_MESSAGES,
   DRUNK_AT_FUTURE_TOLERANCE_MS,
@@ -64,6 +65,20 @@ async function uploadPhoto(app: Ctx["app"], cookie: string) {
   });
   expect(res.status).toBe(201);
   return photoMetaSchema.parse(await res.json());
+}
+
+async function createBottleWithPhoto(app: Ctx["app"], cookie: string, name: string) {
+  const photo = await uploadPhoto(app, cookie);
+  const res = await app.request("/api/bottles", {
+    method: "POST",
+    headers: { Cookie: cookie, "Content-Type": "application/json" },
+    body: JSON.stringify({ name, drinkType: "wine_red", photoIds: [photo.id] }),
+  });
+  expect(res.status).toBe(201);
+  const body = createBottlesResponseSchema.parse(await res.json());
+  const bottle = body.items[0];
+  expect(bottle?.photos[0]?.id).toBe(photo.id);
+  return { bottleId: bottle?.id ?? "", photoId: photo.id };
 }
 
 async function seedBottle(
@@ -249,6 +264,57 @@ describe("POST /api/drink-logs", () => {
     expect(await ctx.db.select().from(drinkLogs)).toHaveLength(0);
     const [row] = await ctx.db.select().from(photos).where(eq(photos.id, photoOfB.id));
     expect(row?.drinkLogId).toBeNull();
+  });
+
+  it("ボトル写真 id は複製して記録へ付け、元のボトル写真は残す", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const b = await session(ctx.app, "b@example.com");
+    const own = await createBottleWithPhoto(ctx.app, a.cookie, "セラー赤");
+    const other = await createBottleWithPhoto(ctx.app, b.cookie, "他人の赤");
+
+    const res = await postLog(ctx.app, a.cookie, {
+      ...BASE,
+      bottleId: own.bottleId,
+      photoIds: [own.photoId],
+    });
+    expect(res.status).toBe(201);
+    const created = drinkLogSchema.parse(await res.json());
+    expect(created.thumbPhotoId).not.toBeNull();
+    expect(created.thumbPhotoId).not.toBe(own.photoId);
+    expect(created.photos).toHaveLength(1);
+    expect(created.photos[0]?.id).toBe(created.thumbPhotoId);
+    expect(created.photos[0]?.drinkLogId).toBe(created.id);
+    expect(created.photos[0]?.bottleId).toBeNull();
+
+    const [source] = await ctx.db.select().from(photos).where(eq(photos.id, own.photoId));
+    expect(source?.bottleId).toBe(own.bottleId);
+    expect(source?.drinkLogId).toBeNull();
+    const [copied] = await ctx.db
+      .select()
+      .from(photos)
+      .where(eq(photos.id, created.thumbPhotoId ?? ""));
+    expect(copied?.userId).toBe(a.userId);
+    expect(copied?.cellarId).toBeNull();
+    expect(copied?.r2Key).not.toBe(source?.r2Key);
+
+    const list = drinkLogsResponseSchema.parse(
+      await (await getLogs(ctx.app, a.cookie, `date=${created.drunkOn}`)).json(),
+    );
+    expect(list.items[0]?.thumbPhotoId).toBe(created.thumbPhotoId);
+    const detail = drinkLogSchema.parse(
+      await (
+        await ctx.app.request(`/api/drink-logs/${created.id}`, { headers: { Cookie: a.cookie } })
+      ).json(),
+    );
+    expect(detail.thumbPhotoId).toBe(created.thumbPhotoId);
+    expect(detail.photos[0]?.id).toBe(created.thumbPhotoId);
+
+    const forbidden = await postLog(ctx.app, a.cookie, {
+      ...BASE,
+      photoIds: [other.photoId],
+    });
+    expect(forbidden.status).toBe(404);
   });
 
   it("ボトル紐付きは未指定の品名だけボトル名にし、明示した種類は残す。他人・不明は 404", async () => {
@@ -623,6 +689,26 @@ describe("PATCH /api/drink-logs/:id", () => {
     expect(body.photos.map((photo) => photo.id)).toEqual([replacement.id]);
     expect((await ctx.db.select().from(photos).where(eq(photos.id, oldPhoto.id))).length).toBe(0);
     expect(ctx.photos.keys()).toHaveLength(2);
+  });
+
+  it("PATCH のボトル写真 id も複製して差し替える", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const created = drinkLogSchema.parse(await (await postLog(ctx.app, a.cookie, BASE)).json());
+    const own = await createBottleWithPhoto(ctx.app, a.cookie, "差し替え赤");
+    const patched = drinkLogSchema.parse(
+      await (
+        await patchLog(ctx.app, a.cookie, created.id, {
+          bottleId: own.bottleId,
+          photoIds: [own.photoId],
+        })
+      ).json(),
+    );
+    expect(patched.thumbPhotoId).not.toBe(own.photoId);
+    expect(patched.photos[0]?.drinkLogId).toBe(created.id);
+    const [source] = await ctx.db.select().from(photos).where(eq(photos.id, own.photoId));
+    expect(source?.bottleId).toBe(own.bottleId);
+    expect(source?.drinkLogId).toBeNull();
   });
 });
 

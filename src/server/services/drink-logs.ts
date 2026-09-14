@@ -1,7 +1,20 @@
-import { and, asc, count, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
-import { drinkLogs, myDrinks, photos } from "@/db/schema.ts";
+import { cellarMembers, drinkLogs, myDrinks, photos } from "@/db/schema.ts";
 import { calculateAlcoholGrams, isDryDay, sumAlcoholGrams } from "@/shared/alcohol.ts";
 import type { DrinkType } from "@/shared/constants.ts";
 import {
@@ -29,7 +42,12 @@ import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { requireOwnBottle } from "./bottles.ts";
 import { writtenOrigin } from "./origin-write.ts";
-import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
+import {
+  assertPhotoDailyLimit,
+  duplicatePhotoObject,
+  type PhotoBucket,
+  toPhotoMeta,
+} from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
 
 type DrinkLogRow = typeof drinkLogs.$inferSelect;
@@ -148,39 +166,103 @@ async function resolveBottle(db: AppBatchDb, userId: string, bottleId: string) {
   return requireOwnBottle(db, userId, bottleId);
 }
 
-/** 自分の **未紐付け** 写真だけ紐付けられる。他人・紐付け済み・不明はすべて 404。 */
-async function resolveUnattachedPhotos(
+type ResolvedDrinkLogPhoto = {
+  attach: PhotoRow | null;
+  copy: PhotoRow | null;
+};
+
+/**
+ * 未紐付けの自分の写真、または参照可能なボトル写真。
+ * ボトル写真は所有排他のため複製してから記録へ付ける。他人・ノート等へ紐付け済み・不明は 404。
+ */
+async function resolveDrinkLogPhoto(
   db: AppBatchDb,
   userId: string,
   photoIds: readonly string[],
-): Promise<PhotoRow[]> {
+  currentLogId?: string,
+): Promise<ResolvedDrinkLogPhoto> {
   const unique = [...new Set(photoIds)];
   if (unique.length === 0) {
-    return [];
+    return { attach: null, copy: null };
   }
-  if (unique.length > DRINK_LOG_PHOTO_MAX) {
+  if (unique.length !== photoIds.length || unique.length > DRINK_LOG_PHOTO_MAX) {
     throw new ApiError("not_found");
   }
+  const personalOwner = currentLogId
+    ? or(isNull(photos.drinkLogId), eq(photos.drinkLogId, currentLogId))
+    : isNull(photos.drinkLogId);
   const rows = await db
     .select()
     .from(photos)
     .where(
       and(
         inArray(photos.id, unique),
-        eq(photos.userId, userId),
-        isNull(photos.bottleId),
-        isNull(photos.tastingNoteId),
-        isNull(photos.drinkLogId),
+        or(
+          and(
+            eq(photos.userId, userId),
+            isNull(photos.cellarId),
+            isNull(photos.bottleId),
+            isNull(photos.tastingNoteId),
+            personalOwner,
+          ),
+          and(
+            isNull(photos.userId),
+            isNotNull(photos.bottleId),
+            sql`${photos.cellarId} IN (SELECT ${cellarMembers.cellarId} FROM ${cellarMembers} WHERE ${cellarMembers.userId} = ${userId})`,
+          ),
+        ),
       ),
     );
   if (rows.length !== unique.length) {
     throw new ApiError("not_found");
   }
-  return rows;
+  const row = rows[0];
+  if (!row) {
+    return { attach: null, copy: null };
+  }
+  if (row.bottleId) {
+    return { attach: null, copy: row };
+  }
+  return { attach: row, copy: null };
+}
+
+async function copyBottlePhotoForLog(input: {
+  db: AppBatchDb;
+  bucket: PhotoBucket;
+  userId: string;
+  source: PhotoRow;
+  drinkLogId: string;
+  now: Date;
+}): Promise<PhotoRow> {
+  await assertPhotoDailyLimit({
+    db: input.db,
+    userId: input.userId,
+    now: input.now,
+  });
+  const duplicated = await duplicatePhotoObject(input.bucket, input.source);
+  return {
+    id: duplicated.id,
+    userId: input.userId,
+    cellarId: null,
+    uploadedBy: input.userId,
+    r2Key: duplicated.r2Key,
+    contentType: duplicated.contentType,
+    byteSize: duplicated.byteSize,
+    width: duplicated.width,
+    height: duplicated.height,
+    bottleId: null,
+    tastingNoteId: null,
+    drinkLogId: input.drinkLogId,
+    kind: duplicated.kind,
+    sortOrder: 0,
+    createdAt: input.now,
+    updatedAt: input.now,
+  };
 }
 
 export async function createDrinkLog(input: {
   db: AppBatchDb;
+  bucket?: PhotoBucket;
   userId: string;
   body: CreateDrinkLogInput;
   now?: Date;
@@ -215,7 +297,7 @@ export async function createDrinkLog(input: {
   if (originWrite !== undefined) {
     identity.origin = originWrite;
   }
-  const photoRows = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
+  const resolved = await resolveDrinkLogPhoto(db, userId, body.photoIds ?? []);
 
   const drunkAt = body.drunkAt ? new Date(body.drunkAt) : now;
   const id = crypto.randomUUID();
@@ -244,10 +326,32 @@ export async function createDrinkLog(input: {
   };
 
   const insert = db.insert(drinkLogs).values(row);
-  if (photoRows.length === 0) {
-    await insert;
-  } else {
-    const photoIds = photoRows.map((photo) => photo.id);
+  let resultPhotos: PhotoRow[] = [];
+  let copied: PhotoRow | null = null;
+  if (resolved.copy) {
+    const bucket = input.bucket;
+    if (!bucket) {
+      throw new ApiError("internal_error");
+    }
+    try {
+      copied = await copyBottlePhotoForLog({
+        db,
+        bucket,
+        userId,
+        source: resolved.copy,
+        drinkLogId: id,
+        now,
+      });
+      await db.batch([insert, db.insert(photos).values(copied)]);
+      resultPhotos = [copied];
+    } catch (error) {
+      if (copied) {
+        await deletePhotoR2Objects(bucket, copied.r2Key).catch(() => undefined);
+      }
+      throw error;
+    }
+  } else if (resolved.attach) {
+    const photoIds = [resolved.attach.id];
     await db.batch([
       insert,
       db
@@ -257,12 +361,12 @@ export async function createDrinkLog(input: {
           and(inArray(photos.id, photoIds), eq(photos.userId, userId), isNull(photos.drinkLogId)),
         ),
     ]);
+    resultPhotos = [{ ...resolved.attach, drinkLogId: id, updatedAt: now }];
+  } else {
+    await insert;
   }
 
-  return toDrinkLog(
-    row,
-    photoRows.map((photo) => ({ ...photo, drinkLogId: id, updatedAt: now })),
-  );
+  return toDrinkLog(row, resultPhotos);
 }
 
 export async function getOwnDrinkLog(
@@ -390,28 +494,8 @@ async function resolvePatchPhotos(
   userId: string,
   logId: string,
   photoIds: readonly string[],
-): Promise<PhotoRow[]> {
-  const unique = [...new Set(photoIds)];
-  if (unique.length !== photoIds.length || unique.length > DRINK_LOG_PHOTO_MAX) {
-    throw new ApiError("not_found");
-  }
-  if (unique.length === 0) {
-    return [];
-  }
-  const rows = await db
-    .select()
-    .from(photos)
-    .where(and(inArray(photos.id, unique), eq(photos.userId, userId)));
-  const valid = rows.every(
-    (photo) =>
-      photo.bottleId === null &&
-      photo.tastingNoteId === null &&
-      (photo.drinkLogId === null || photo.drinkLogId === logId),
-  );
-  if (!valid || rows.length !== unique.length) {
-    throw new ApiError("not_found");
-  }
-  return rows;
+): Promise<ResolvedDrinkLogPhoto> {
+  return resolveDrinkLogPhoto(db, userId, photoIds, logId);
 }
 
 async function removeDetachedPhoto(
@@ -480,31 +564,40 @@ export async function updateDrinkLog(input: {
     identity.origin = originWrite;
   }
 
-  const [desiredPhotoRows, currentPhotoRows] =
-    body.photoIds === undefined
-      ? [
-          undefined,
-          await db
-            .select()
-            .from(photos)
-            .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
-            .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
-        ]
-      : await Promise.all([
-          resolvePatchPhotos(db, userId, logId, body.photoIds),
-          db
-            .select()
-            .from(photos)
-            .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
-            .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
-        ]);
-  const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
-  const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
-
+  const currentPhotoRows = await db
+    .select()
+    .from(photos)
+    .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
+    .orderBy(asc(photos.sortOrder), asc(photos.createdAt));
   const drunkAt = body.drunkAt ? new Date(body.drunkAt) : current.drunkAt;
   const volumeMl = body.volumeMl ?? current.volumeMl;
   const abvPercent = body.abvPercent ?? current.abvPercent;
   const updatedAt = input.now ?? new Date();
+  const resolvedPhotos =
+    body.photoIds === undefined
+      ? undefined
+      : await resolvePatchPhotos(db, userId, logId, body.photoIds);
+  let copiedPhoto: PhotoRow | null = null;
+  if (resolvedPhotos?.copy) {
+    copiedPhoto = await copyBottlePhotoForLog({
+      db,
+      bucket,
+      userId,
+      source: resolvedPhotos.copy,
+      drinkLogId: logId,
+      now: updatedAt,
+    });
+  }
+  const desiredPhotoRows =
+    resolvedPhotos === undefined
+      ? undefined
+      : copiedPhoto
+        ? [copiedPhoto]
+        : resolvedPhotos.attach
+          ? [resolvedPhotos.attach]
+          : [];
+  const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
+  const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
   const patch = {
     ...(body.drunkAt === undefined ? {} : { drunkAt, drunkOn: tokyoToday(drunkAt) }),
     ...(body.volumeMl === undefined ? {} : { volumeMl }),
@@ -548,7 +641,7 @@ export async function updateDrinkLog(input: {
           )
       : null;
   const attachStatement =
-    desiredPhotoRows && desiredPhotoRows.length > 0
+    desiredPhotoRows && desiredPhotoRows.length > 0 && !copiedPhoto
       ? db
           .update(photos)
           .set({ drinkLogId: logId, updatedAt })
@@ -564,15 +657,27 @@ export async function updateDrinkLog(input: {
             ),
           )
       : null;
+  const insertCopyStatement = copiedPhoto ? db.insert(photos).values(copiedPhoto) : null;
 
-  if (detachStatement && attachStatement) {
-    await db.batch([updateStatement, detachStatement, attachStatement]);
-  } else if (detachStatement) {
-    await db.batch([updateStatement, detachStatement]);
-  } else if (attachStatement) {
-    await db.batch([updateStatement, attachStatement]);
-  } else {
-    await updateStatement;
+  try {
+    if (detachStatement && insertCopyStatement) {
+      await db.batch([updateStatement, detachStatement, insertCopyStatement]);
+    } else if (insertCopyStatement) {
+      await db.batch([updateStatement, insertCopyStatement]);
+    } else if (detachStatement && attachStatement) {
+      await db.batch([updateStatement, detachStatement, attachStatement]);
+    } else if (detachStatement) {
+      await db.batch([updateStatement, detachStatement]);
+    } else if (attachStatement) {
+      await db.batch([updateStatement, attachStatement]);
+    } else {
+      await updateStatement;
+    }
+  } catch (error) {
+    if (copiedPhoto) {
+      await deletePhotoR2Objects(bucket, copiedPhoto.r2Key).catch(() => undefined);
+    }
+    throw error;
   }
 
   if (desiredPhotoRows !== undefined) {

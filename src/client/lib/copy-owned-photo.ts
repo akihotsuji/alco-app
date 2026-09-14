@@ -46,3 +46,13 @@ export async function copyOwnedPhoto(
 export function firstPhotoId(photos: readonly { id: string }[] | undefined): string | null {
   return photos?.[0]?.id ?? null;
 }
+
+/** 記録保存用。複製済み id を優先し、未完了ならボトル由来の id を送る（サーバーが複製する） */
+export function drinkLogSavePhotoId(
+  attachment: { photoId: string | null; sourcePhotoId?: string } | undefined,
+): string | null {
+  if (!attachment) {
+    return null;
+  }
+  return attachment.photoId ?? attachment.sourcePhotoId ?? null;
+}

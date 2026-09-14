@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PhotoMeta } from "@/shared/photos.ts";
-import { copyOwnedPhoto, firstPhotoId, PHOTO_COPY_FAILED } from "./copy-owned-photo.ts";
+import {
+  copyOwnedPhoto,
+  drinkLogSavePhotoId,
+  firstPhotoId,
+  PHOTO_COPY_FAILED,
+} from "./copy-owned-photo.ts";
 
 function meta(id: string): PhotoMeta {
   return {
@@ -38,6 +43,15 @@ describe("copyOwnedPhoto", () => {
     expect(copied.previewUrl).toBe("blob:preview");
     expect(firstPhotoId([{ id: "a" }, { id: "b" }])).toBe("a");
     expect(firstPhotoId([])).toBeNull();
+  });
+
+  it("保存用 id は複製済みを優先し、無ければボトル由来を使う", () => {
+    expect(drinkLogSavePhotoId(undefined)).toBeNull();
+    expect(drinkLogSavePhotoId({ photoId: null })).toBeNull();
+    expect(drinkLogSavePhotoId({ photoId: null, sourcePhotoId: "source-id" })).toBe("source-id");
+    expect(drinkLogSavePhotoId({ photoId: "copied-id", sourcePhotoId: "source-id" })).toBe(
+      "copied-id",
+    );
   });
 
   it("取得失敗は投げて upload しない", async () => {

@@ -45,6 +45,8 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("TargetBottleChip");
     expect(source).toContain("preserveEdits: true");
     expect(source).toContain("inheritOwnedPhoto");
+    expect(source).toContain("drinkLogSavePhotoId");
+    expect(edit).toContain("drinkLogSavePhotoId");
     expect(source).toContain("PHOTO_COPY_FAILED_MESSAGE");
     expect(source).toContain("firstPhotoId");
     expect(source).toContain('clearAttachment("log")');

@@ -22,8 +22,8 @@ import {
   type UpdateBottleInput,
 } from "@/shared/bottles.ts";
 import { CELLAR_COPY } from "@/shared/cellars.ts";
-import type { BottleStatus, DrinkType, PhotoContentType, PhotoKind } from "@/shared/constants.ts";
-import { DEFAULT_BOTTLE_STATUS, DRINK_TYPES, PHOTO_CONTENT_TYPES } from "@/shared/constants.ts";
+import type { BottleStatus, DrinkType, PhotoKind } from "@/shared/constants.ts";
+import { DEFAULT_BOTTLE_STATUS, DRINK_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
@@ -43,7 +43,7 @@ import {
 import { hashRequestBody } from "./cellar-crypto.ts";
 import { idempotencyInsert, readIdempotentResult, recoverIdempotentResult } from "./idempotency.ts";
 import { writtenOrigin } from "./origin-write.ts";
-import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
+import { duplicatePhotoObject, type PhotoBucket, toPhotoMeta } from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
 
 type BottleRow = typeof bottles.$inferSelect;
@@ -63,20 +63,6 @@ function toIso(value: Date | number | null): string | null {
 
 function requireIso(value: Date | number): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
-}
-
-function asContentType(value: string): PhotoContentType {
-  for (const allowed of PHOTO_CONTENT_TYPES) {
-    if (value === allowed) {
-      return allowed;
-    }
-  }
-  return "image/jpeg";
-}
-
-function extensionFromR2Key(r2Key: string): string {
-  const dot = r2Key.lastIndexOf(".");
-  return dot >= 0 ? r2Key.slice(dot + 1) : "jpg";
 }
 
 function thumbOf(photoRows: readonly PhotoRow[]): {
@@ -344,26 +330,7 @@ type CopiedPhoto = {
 };
 
 async function copyPhotoObject(bucket: PhotoBucket, source: PhotoRow): Promise<CopiedPhoto> {
-  const object = await bucket.get(source.r2Key);
-  if (!object) {
-    throw new ApiError("internal_error");
-  }
-  const bytes = new Uint8Array(await object.arrayBuffer());
-  const id = crypto.randomUUID();
-  const r2Key = `${id}.${extensionFromR2Key(source.r2Key)}`;
-  await bucket.put(r2Key, bytes, {
-    httpMetadata: { contentType: asContentType(source.contentType) },
-  });
-  return {
-    id,
-    r2Key,
-    contentType: source.contentType,
-    byteSize: source.byteSize,
-    width: source.width,
-    height: source.height,
-    kind: source.kind,
-    sortOrder: source.sortOrder,
-  };
+  return duplicatePhotoObject(bucket, source);
 }
 
 function attributesFromBody(body: CreateBottleInput | UpdateBottleInput) {
