@@ -304,7 +304,7 @@ export const tastingNotes = sqliteTable(
     aroma: text("aroma"),
     taste: text("taste"),
     finish: text("finish"),
-    // 1.0〜5.0 の 0.5 刻みを 10〜50 の整数で保存する（float 比較を避ける）
+    // 1.0〜5.0 の 0.1 刻みを 10〜50 の整数で保存する（float 比較を避ける）
     ratingX10: integer("rating_x10").notNull(),
     ...timestampColumns(),
   },

@@ -145,13 +145,15 @@ describe("volume chips", () => {
 });
 
 describe("abv", () => {
-  it("ステッパーは 0.1 刻みで 0〜100 に止まる", () => {
-    expect(stepAbv(12, 1)).toBe(12.1);
-    expect(stepAbv(12.1, -1)).toBe(12);
+  it("ステッパーは 0.5 刻みで 0〜100 に止まる。格子外は次の 0.5 へスナップ", () => {
+    expect(stepAbv(12, 1)).toBe(12.5);
+    expect(stepAbv(12.5, -1)).toBe(12);
+    expect(stepAbv(12.3, 1)).toBe(12.5);
+    expect(stepAbv(12.3, -1)).toBe(12);
     expect(stepAbv(0, -1)).toBe(0);
     expect(stepAbv(100, 1)).toBe(100);
-    expect(stepAbv(null, 1)).toBe(0.1);
-    expect(stepAbv(0.1 + 0.2, 1)).toBe(0.4);
+    expect(stepAbv(null, 1)).toBe(0.5);
+    expect(stepAbv(0.1 + 0.2, 1)).toBe(0.5);
   });
 
   it("表示は第 1 位まで、末尾 .0 は省く", () => {

@@ -52,9 +52,9 @@ describe("validateNoteForm / canSubmitNoteForm", () => {
       drinkType: "wine" as const,
       ratingX10: 51,
     };
-    const invalid12 = { ...invalid51, ratingX10: 12 };
+    const invalid9 = { ...invalid51, ratingX10: 9 };
     expect(validateNoteForm(invalid51, NOW).ratingX10).toBe(TASTING_NOTE_MESSAGES.rating);
-    expect(validateNoteForm(invalid12, NOW).ratingX10).toBe(TASTING_NOTE_MESSAGES.rating);
+    expect(validateNoteForm(invalid9, NOW).ratingX10).toBe(TASTING_NOTE_MESSAGES.rating);
     expect(canSubmitNoteForm(invalid51, validateNoteForm(invalid51, NOW), "none")).toBe(false);
   });
 

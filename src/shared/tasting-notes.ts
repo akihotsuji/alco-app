@@ -13,7 +13,7 @@ import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
 
 export const RATING_X10_MIN = 10;
 export const RATING_X10_MAX = 50;
-export const RATING_X10_STEP = 5;
+export const RATING_X10_STEP = 1;
 export const NOTE_TEXT_MAX_LENGTH = 2000;
 export const NOTE_DRINK_NAME_MAX_LENGTH = 100;
 export const NOTE_SEARCH_MAX_LENGTH = 100;
@@ -53,33 +53,32 @@ export function formatRatingX10(ratingX10: number): string {
   return (ratingX10 / 10).toFixed(1);
 }
 
-export function stepRatingX10(current: number | null, delta: -5 | 5): number {
+export function stepRatingX10(current: number | null, direction: 1 | -1): number {
   if (current === null) {
     return RATING_X10_MIN;
   }
-  return Math.min(RATING_X10_MAX, Math.max(RATING_X10_MIN, current + delta));
+  return Math.min(RATING_X10_MAX, Math.max(RATING_X10_MIN, current + direction * RATING_X10_STEP));
 }
 
 export function ratingX10FromStar(star: number): number {
   return star * 10;
 }
 
-/** 星タップ。同じ星の再タップで +0.5。5.0 は上限 */
-export function ratingX10FromStarTap(current: number | null, star: number): number {
-  const integer = ratingX10FromStar(star);
-  if (current === integer && integer < RATING_X10_MAX) {
-    return integer + RATING_X10_STEP;
-  }
-  return integer;
+/** 星タップ。整数 1〜5 のショートカット。未選択へは戻さない */
+export function ratingX10FromStarTap(_current: number | null, star: number): number {
+  return ratingX10FromStar(star);
 }
 
-/** スライダー（1.0〜5.0、step 0.5）の文字列値を ratingX10 に。範囲外・不正は null */
+/** スライダー（1.0〜5.0、step 0.1）の文字列値を ratingX10 に。範囲外・0.1 未満刻みは null */
 export function ratingX10FromSlider(raw: string): number | null {
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) {
     return null;
   }
   const ratingX10 = Math.round(parsed * 10);
+  if (Math.abs(parsed - ratingX10 / 10) > 1e-9) {
+    return null;
+  }
   return isValidRatingX10(ratingX10) ? ratingX10 : null;
 }
 
@@ -94,10 +93,10 @@ export function ratingSliderFillRatio(ratingX10: number | null): number {
   return (ratingX10 - RATING_X10_MIN) / (RATING_X10_MAX - RATING_X10_MIN);
 }
 
-export function ratingStarFill(ratingX10: number): { full: number; half: boolean } {
+export function ratingStarFill(ratingX10: number): { full: number; fraction: number } {
   return {
     full: Math.floor(ratingX10 / 10),
-    half: ratingX10 % 10 === 5,
+    fraction: (ratingX10 % 10) / 10,
   };
 }
 

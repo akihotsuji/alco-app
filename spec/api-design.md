@@ -722,7 +722,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 ### 4.6 tasting-notes
 
-**共通オブジェクト:** data-model 6.4。API の評価は **`ratingX10`**（10〜50、5 刻み）。UI 表示は `/ 10`。`tastedOn` は JST 日。
+**共通オブジェクト:** data-model 6.4。API の評価は **`ratingX10`**（10〜50、1 刻み）。UI 表示は `/ 10`。`tastedOn` は JST 日。
 
 詳細・作成応答に `photos` メタ配列を含める。一覧は `photoCount` と先頭 1 枚の `thumbPhotoId` に加え、カード用の短い感想 `taste`（無ければ null）。一覧応答にフィルタ前の `totalCount`（`bottleId` 指定時はそのボトルの総数）を含める。詳細・作成・更新応答に `bottle: { id, name, status } | null` を含める（削除済みは null。画面 V3 の「セラーの / 貯蔵庫の」）。行の形は [features/tasting-note.md](features/tasting-note.md) 8 章。
 
@@ -733,7 +733,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | `bottleId` | 指定時、**自分のボトル**でなければ 404（空配列にしない。5-04） |
 | `q` | 品名（スナップショット）の部分一致。最大 100 文字 |
 | `drinkType` | 12 種 |
-| `ratingX10Min`, `ratingX10Max` | 10〜50、5 刻み。`min <= max` |
+| `ratingX10Min`, `ratingX10Max` | 10〜50、1 刻み。`min <= max` |
 | `limit`, `cursor` | 2.7 |
 
 #### POST /api/tasting-notes
@@ -747,7 +747,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 | producer / origin / variety | 任意 | ≦100。ボディがあれば採用、省略時はボトルからコピー（作成時） |
 | tastedOn | 必須 | JST 日。未来は 400 |
 | appearance, aroma, taste, finish | 任意 | 各 ≦2000 |
-| ratingX10 | 必須 | 10〜50、5 刻み |
+| ratingX10 | 必須 | 10〜50、1 刻み |
 | photoIds | 任意 | 自分の未紐付け写真 id、**最大 6**、配列順が `sortOrder` |
 
 スナップショット方針は data-model 6.4。以降のボトル改名はノートに反映しない。

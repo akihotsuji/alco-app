@@ -2044,6 +2044,12 @@ img[data-state="loaded"] {
   color: var(--muted);
 }
 
+.note-rating-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 /* スライダー。塗りはつまみの中心まで（可動域 = 幅 - つまみ）。--rating-fill は 0〜1 */
 .note-rating-slider {
   --rating-fill-end: calc(
@@ -2053,6 +2059,8 @@ img[data-state="loaded"] {
     var(--rating-fill, 0)
   );
   appearance: none;
+  flex: 1;
+  min-width: 0;
   width: 100%;
   height: var(--tap-min);
   margin: 0;
@@ -4464,11 +4472,8 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  width: calc(var(--star-fill, 1) * 100%);
   color: var(--primary);
-}
-
-.note-star-fill.is-half {
-  width: 50%;
 }
 
 .note-star-on {

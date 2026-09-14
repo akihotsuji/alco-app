@@ -74,7 +74,7 @@ export type LogFormField =
 
 export type LogFormErrors = Partial<Record<LogFormField, string>>;
 
-export const ABV_STEP = 0.1;
+export const ABV_STEP = 0.5;
 
 export { DEFAULT_DRINK_TYPE };
 
@@ -224,10 +224,14 @@ export function isManualVolume(drinkType: DrinkType, volumeMl: number | null): b
   return volumeMl === null || !volumeChipValues(drinkType).includes(volumeMl);
 }
 
-/** 度数ステッパー。0.1 刻みで 0〜100 に丸めて止める。空からは種類の既定（無ければ 0）を起点にする */
+/** 度数ステッパー。0.5 刻みで 0〜100 に止める。空からは 0 を起点。格子外は進行方向の次の 0.5 へスナップする */
 export function stepAbv(current: number | null, direction: 1 | -1): number {
   const base = current ?? 0;
-  const next = Math.round((base + direction * ABV_STEP) * 10) / 10;
+  const scaled = base / ABV_STEP;
+  const epsilon = 1e-9;
+  const nextScaled =
+    direction === 1 ? Math.floor(scaled + epsilon) + 1 : Math.ceil(scaled - epsilon) - 1;
+  const next = Math.round(nextScaled * ABV_STEP * 10) / 10;
   return Math.min(100, Math.max(0, next));
 }
 

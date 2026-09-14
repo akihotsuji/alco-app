@@ -681,7 +681,7 @@ describe("5-05 認可とバリデーションのギャップ", () => {
     expect(ratingMin.status).toBe(400);
     expect((await fields(ratingMin)).ratingX10Min).toContain(TASTING_NOTE_MESSAGES.ratingRange);
 
-    const ratingStep = await getNotes(ctx.app, a.cookie, "ratingX10Min=12");
+    const ratingStep = await getNotes(ctx.app, a.cookie, "ratingX10Min=9");
     expect(ratingStep.status).toBe(400);
     expect((await fields(ratingStep)).ratingX10Min).toContain(TASTING_NOTE_MESSAGES.ratingRange);
 
