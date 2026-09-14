@@ -15,7 +15,7 @@ async function shot(page: Page, name: string): Promise<void> {
   if (!walkthroughDir) {
     return;
   }
-  await page.screenshot({ path: `${walkthroughDir}/${name}.png`, fullPage: false });
+  await page.screenshot({ path: `${walkthroughDir}/${name}.png`, fullPage: true });
 }
 
 function jpegCopies(count: number): string[] {
@@ -46,6 +46,7 @@ test("ライブラリ 6 枚は欠落せず、進捗が出て完了行だけ保�
   await expect(page.locator(".bottle-batch-row")).toHaveCount(6);
   await expect(page.getByText(/6枚中/)).toBeVisible();
   await expect(page.getByRole("button", { name: "+ 裏面" })).toHaveCount(6);
+  await page.locator(".bottle-batch-progress").scrollIntoViewIfNeeded();
   await shot(page, "cellar_batch_six_rows_progress");
 
   const names = page.getByLabel("品名");
@@ -74,5 +75,6 @@ test("21 枚は上限を説明し 20 行を超えない", async ({ page }) => {
   await expect(page.getByText("20枚を受け付けました。1枚は上限のため追加できません")).toBeVisible();
   await expect(page.getByText(/20枚中/)).toBeVisible();
   await expect(page.getByText("一度に 20 本までです")).toBeVisible();
+  await page.getByText("20枚を受け付けました。1枚は上限のため追加できません").scrollIntoViewIfNeeded();
   await shot(page, "cellar_batch_overflow_twenty");
 });
