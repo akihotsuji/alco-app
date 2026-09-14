@@ -100,6 +100,8 @@ export function cutoutFailedUserMessage(reason: CutoutFailureReason): string {
   return isCutoutLoadFailure(reason) ? LOAD_FAILED_MESSAGE : SUBJECT_FAILED_MESSAGE;
 }
 
+export type CutoutExecProviderName = "wasm" | "webgpu" | "";
+
 /** 背景除去の工程別時間（ms）。0 は工程を通らなかったことを表す */
 export type CutoutTiming = {
   modelDownloadMs: number;
@@ -111,6 +113,8 @@ export type CutoutTiming = {
   postprocessMs: number;
   encodeMs: number;
   totalMs: number;
+  provider: CutoutExecProviderName;
+  fallback: boolean;
 };
 
 export function emptyCutoutTiming(): CutoutTiming {
@@ -124,6 +128,8 @@ export function emptyCutoutTiming(): CutoutTiming {
     postprocessMs: 0,
     encodeMs: 0,
     totalMs: 0,
+    provider: "",
+    fallback: false,
   };
 }
 
@@ -132,7 +138,13 @@ export function emptyCutoutTiming(): CutoutTiming {
  * `skipped` は切り抜き OFF / 非対応で最初から JPEG。
  */
 export type CutoutOutcome =
-  | { status: "success"; cached: boolean; timing: CutoutTiming }
+  | {
+      status: "success";
+      cached: boolean;
+      timing: CutoutTiming;
+      autoAngle?: number;
+      rotationDegrees?: number;
+    }
   | {
       status: "failed";
       reason: CutoutFailureReason;

@@ -36,7 +36,7 @@ Cloudflare上に「1つのWorker」としてデプロイする構成。HonoがAP
 | 写真取り込み | `<input type="file" accept="image/*">`（撮影は `capture="environment"`、ライブラリは `capture` なし） | 撮影を主導線にする。iOS の `capture` はライブラリを出さず、Android の `capture` なしはカメラを出さない端末があるため 2 ボタンに分ける。`getUserMedia` は使わない |
 | キャラクター | インライン SVG の React コンポーネント（`<Mascot />`） | テーマ追従・拡縮自由・追加依存なし。ラスタ画像は持たない（[character.md](character.md)） |
 | 定期処理 | Workers **Cron Triggers**（`scheduled`） | 未紐付け写真の日次 GC、`ai_usage` の掃除。無料枠に含まれる |
-| 背景除去（切り抜き） | ブラウザ WASM（`onnxruntime-web` MIT + U2-Net-P。同一オリジン `/models/`） | セラーの棚に切り抜きボトルを立てる（2026-09-05 に MVP へ）。`@imgly/background-removal` は AGPL-3.0 のため不採用。端末内処理でサーバー費用ゼロ。初回にモデルを DL（Cache API）。失敗時は長方形にフォールバック |
+| 背景除去（切り抜き） | ブラウザ内 `onnxruntime-web` 1.21.0 + U2-Net-P（同一オリジン `/models/`）。本番既定は WASM。WebGPU は経路として実装し、実機比較が終わるまで既定にしない | セラーの棚に切り抜きボトルを立てる。`@imgly/background-removal` は AGPL-3.0 のため不採用。端末内処理でサーバー費用ゼロ。初回にモデルを DL（Cache API）。失敗時は長方形にフォールバック |
 | ラベル読み取り | **設定可能な認識プロファイル**（binding `AI` + AI Gateway Unified Billing） | 記録・セラー・ノートの既定は `google/gemini-3.7-flash`。Llama は env で戻せる。モデル ID はサーバー設定だけ。日次 10000 回（許容上限 MAX）。詳細は [features/ai-recognition.md](features/ai-recognition.md) |
 | PWA | vite-plugin-pwa | manifest / アイコン（キャラクター由来）/ スタンドアロン表示を宣言的に設定 |
 | Lint / Format | Biome | ESLint+Prettierの2本立てを避け、1ツールで完結。高速で設定が少ない |
@@ -210,7 +210,7 @@ alco-app/
 | Workers AI binding | `wrangler.jsonc` に `"ai": { "binding": "AI" }`。`env.AI.run(model, input)`。dev / production で同じ binding 名。モデルは `@cf/meta/llama-4-scout-17b-16e-instruct`（`WORKERS_AI_VISION_MODEL`） | 4-07 |
 | R2 の利用量 | 記録にも写真が付くため増える。1 枚 ≦300KB × 1 日 2 枚 → 年 220MB。切り抜き WebP は同程度。無料枠 10GB で 40 年分 | — |
 | Workers CPU | 画像はクライアント加工済み。サーバーは magic bytes / 寸法ヘッダ / R2 put と、AI 呼び出しの待ち（CPU 時間には数えられない） | 2-08 / 4-07 |
-| 背景除去モデル | 同一オリジン `/models/u2netp.onnx` と ORT（`/models/ort/ort-wasm-simd-threaded.mjs` + `.wasm`）。`onnxruntime-web` 1.21.0 の `ort.wasm.bundle.min.mjs` は WASM 用 JS を内蔵しないため、`wasmPaths` は `.mjs` と `.wasm` の絶対 URL を両方明示する。ビルド時に配置。実行時は Cache API。CSP の `connect-src` は `'self'` のまま | 4-06 |
+| 背景除去モデル | 同一オリジン `/models/u2netp.onnx` と ORT。WASM は `ort-wasm-simd-threaded.mjs` + `.wasm`、WebGPU は `ort-wasm-simd-threaded.jsep.mjs` + `.jsep.wasm`（どちらも `/models/ort/`）。`onnxruntime-web` 1.21.0 の bundle は glue を内蔵しないため `wasmPaths` は `.mjs` と `.wasm` の絶対 URL を両方明示する。WebGPU 用と WASM 用の Tensor / session は混在させない。ビルド時に配置。実行時は Cache API。CSP の `connect-src` は `'self'` のまま。本番既定の実行経路は WASM | 4-06 |
 | 環境変数 | アプリ定数は `src/shared`。監視の `ALERT_WEBHOOK_URL` は任意の wrangler secret（7-05） | 7-05 |
 | Workers Logs | `wrangler.jsonc` の `observability`（logs / traces。サンプリング 100%） | 7-05 |
 | PWA アイコン | キャラクター SVG をライトの地色に合成し、ビルド時に `sharp` で PNG 一式を生成（`vite-plugin-pwa` の manifest / SW と併用） | 6-01 |

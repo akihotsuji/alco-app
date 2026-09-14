@@ -23,6 +23,18 @@ describe("createLruCache", () => {
     expect(cache.has("a")).toBe(true);
     expect(cache.size).toBe(2);
   });
+
+  it("概算バイト数でも古いエントリを捨てる", () => {
+    const cache = createLruCache<string, Uint8Array>(8, {
+      maxBytes: 8,
+      sizeOf: (value) => value.byteLength,
+    });
+    cache.set("a", new Uint8Array(4));
+    cache.set("b", new Uint8Array(4));
+    cache.set("c", new Uint8Array(4));
+    expect(cache.has("a")).toBe(false);
+    expect(cache.has("c")).toBe(true);
+  });
 });
 
 describe("createSharedSegmentation", () => {

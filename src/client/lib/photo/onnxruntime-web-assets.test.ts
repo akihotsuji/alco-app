@@ -9,4 +9,10 @@ describe("onnxruntime-web 1.21.0 の配布物", () => {
     expect(bundle).toContain("await import(");
     expect(bundle).toMatch(/embeddedWasmModule=false|zt=void 0/);
   });
+
+  it("WebGPU bundle は JSEP 用 wasm を参照する", () => {
+    const webgpu = readFileSync("node_modules/onnxruntime-web/dist/ort.webgpu.mjs", "utf8");
+    expect(webgpu).toContain("ort-wasm-simd-threaded.jsep.mjs");
+    expect(webgpu).toContain("ort-wasm-simd-threaded.jsep.wasm");
+  });
 });

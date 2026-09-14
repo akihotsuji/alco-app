@@ -18,17 +18,25 @@ function params(overrides: Partial<PhotoEditParams> = {}): PhotoEditParams {
 }
 
 describe("segmentationKeyFor", () => {
-  it("同じ画像・同じ編集条件なら同じキー（preview と使うで推論を共有する）", () => {
+  it("同じ画像・同じ推論 ROI なら同じキー（preview と使うで推論を共有する）", () => {
     const source = {} as unknown as CanvasImageSource;
     expect(segmentationKeyFor(params({ source }))).toBe(segmentationKeyFor(params({ source })));
   });
 
-  it("拡縮・位置・画像オブジェクトが変わればキーも変わる", () => {
+  it("scale=1 のパンはキーを変えない（角度・棚配置は推論キーに入れない）", () => {
+    const source = {} as unknown as CanvasImageSource;
+    const base = segmentationKeyFor(params({ source }));
+    expect(segmentationKeyFor(params({ source, offsetX: 0.25 }))).toBe(base);
+    expect(segmentationKeyFor(params({ source, offsetY: -0.5 }))).toBe(base);
+  });
+
+  it("拡大で ROI が変わればキーも変わる。別画像も変わる", () => {
     const source = {} as unknown as CanvasImageSource;
     const base = segmentationKeyFor(params({ source }));
     expect(segmentationKeyFor(params({ source, scale: 1.5 }))).not.toBe(base);
-    expect(segmentationKeyFor(params({ source, offsetX: 0.25 }))).not.toBe(base);
-    expect(segmentationKeyFor(params({ source, offsetY: -0.5 }))).not.toBe(base);
+    expect(segmentationKeyFor(params({ source, scale: 1.5, offsetX: 0.4 }))).not.toBe(
+      segmentationKeyFor(params({ source, scale: 1.5 })),
+    );
     expect(segmentationKeyFor(params())).not.toBe(base);
   });
 });
@@ -77,5 +85,8 @@ describe("processCellarPhoto 切り抜きエンコード", () => {
     expect(source).toContain("toJpegBlobWithinLimit(prepared.cropped)");
     expect(source).toContain('cutoutQueue ?? "fifo"');
     expect(source).toContain('queue: "latest"');
+    expect(source).toContain("rotationDegrees");
+    expect(source).toContain("prepareCutoutWork");
+    expect(source).toContain("composeCutoutPreview");
   });
 });

@@ -95,5 +95,6 @@ describe("PWA 設定ファイル", () => {
     expect(csp).toMatch(/frame-src[^;]*https:\/\/challenges\.cloudflare\.com/);
     expect(csp).toMatch(/connect-src[^;]*https:\/\/challenges\.cloudflare\.com/);
     expect(csp).not.toContain("unsafe-inline");
+    expect(headers).toContain("gpu=(self)");
   });
 });

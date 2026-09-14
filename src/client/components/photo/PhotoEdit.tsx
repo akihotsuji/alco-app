@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
+import { PhotoEditAngleControls } from "@/client/components/photo/PhotoEditAngleControls.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { useFocusTrap } from "@/client/hooks/use-focus-trap.ts";
@@ -23,7 +24,13 @@ import {
   movePhotoEditPointer,
 } from "@/client/lib/photo/photo-edit-gestures.ts";
 import { IMAGE_PICK_LABELS, pickImage } from "@/client/lib/photo/pick-image.ts";
-import { processPhoto, previewCutout as renderCutoutPreview } from "@/client/lib/photo/process.ts";
+import {
+  type CutoutComposeAssets,
+  composeCutoutPreview,
+  processPhoto,
+  previewCutout as renderCutoutPreview,
+  segmentationKeyFor,
+} from "@/client/lib/photo/process.ts";
 import {
   type RemoveBackgroundProgress,
   supportsBackgroundRemoval,
@@ -60,12 +67,22 @@ export function PhotoEdit() {
   const [cutoutMessage, setCutoutMessage] = useState<string | null>(null);
   const [mascotMounted, setMascotMounted] = useState(getComposeMascotPref);
   const [mascotPose, setMascotPose] = useState<PhotoMascotPose>("default");
+  const [userRotation, setUserRotation] = useState<number | null>(null);
+  const [autoAngle, setAutoAngle] = useState(0);
+  const [autoApplied, setAutoApplied] = useState(false);
+  const [angleOpen, setAngleOpen] = useState(false);
   const cutoutSupported = kind === "cellar" && supportsBackgroundRemoval();
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gestures = useRef(createPhotoEditGestureState());
   const previewGen = useRef(0);
+  const composeAssets = useRef<CutoutComposeAssets | null>(null);
+  const angleRaf = useRef(0);
+  const userRotationRef = useRef<number | null>(null);
+  const editParamsRef = useRef({ scale, offsetX, offsetY });
+  userRotationRef.current = userRotation;
+  editParamsRef.current = { scale, offsetX, offsetY };
 
   useEffect(() => {
     if (!open) {
@@ -84,6 +101,11 @@ export function PhotoEdit() {
     setCutoutProgress(null);
     setPreviewCutout(null);
     setCutoutMessage(null);
+    setUserRotation(null);
+    setAutoAngle(0);
+    setAutoApplied(false);
+    setAngleOpen(false);
+    composeAssets.current = null;
   }, [open]);
 
   useEffect(() => {
@@ -105,14 +127,41 @@ export function PhotoEdit() {
     setScale(1);
     setOffsetX(0);
     setOffsetY(0);
+    setUserRotation(null);
+    setAutoAngle(0);
+    setAutoApplied(false);
+    setAngleOpen(false);
+    composeAssets.current = null;
   }, [source]);
 
   const aspect = aspectForKind(kind);
   const output = outputSizeForAspect(aspect);
+  const roiKey =
+    source && kind === "cellar"
+      ? segmentationKeyFor({
+          source,
+          sourceWidth: source.width,
+          sourceHeight: source.height,
+          kind: "cellar",
+          scale,
+          offsetX,
+          offsetY,
+        })
+      : "";
+  const displayRotation = userRotation ?? autoAngle;
+
+  useEffect(() => {
+    void roiKey;
+    setUserRotation(null);
+    setAutoAngle(0);
+    setAutoApplied(false);
+    composeAssets.current = null;
+  }, [roiKey]);
 
   // プレビューの推論は同一条件で 1 回。結果はマスクとして残り「使う」で再利用される。
   // 条件が変わったら pending を取り消し（走っている推論は結果だけ捨てる）、待ち行列を溜めない
   useEffect(() => {
+    void roiKey;
     if (!open || kind !== "cellar" || !cutoutOn || !cutoutSupported || !source) {
       setPreviewCutout(null);
       setCutoutBusy(false);
@@ -124,14 +173,15 @@ export function PhotoEdit() {
       previewGen.current = gen;
       setCutoutBusy(true);
       setCutoutProgress({ firstDownload: false });
+      const crop = editParamsRef.current;
       void renderCutoutPreview({
         source,
         sourceWidth: source.width,
         sourceHeight: source.height,
         kind: "cellar",
-        scale,
-        offsetX,
-        offsetY,
+        scale: crop.scale,
+        offsetX: crop.offsetX,
+        offsetY: crop.offsetY,
         onCutoutProgress: setCutoutProgress,
         signal: controller.signal,
       }).then((preview) => {
@@ -140,15 +190,24 @@ export function PhotoEdit() {
         }
         setCutoutBusy(false);
         if (preview.status === "success") {
-          setPreviewCutout(preview.canvas);
+          composeAssets.current = preview.assets;
+          setAutoAngle(preview.autoAngle);
+          setAutoApplied(preview.autoAngle !== 0);
+          setPreviewCutout(
+            userRotationRef.current === null
+              ? preview.canvas
+              : composeCutoutPreview(preview.assets, userRotationRef.current),
+          );
           return;
         }
         if (preview.reason === "superseded") {
           return;
         }
         // 一時的な失敗は今回の編集画面だけ OFF。`photo.cutout` は変えない（07-photo-capture P5b）
+        composeAssets.current = null;
         setPreviewCutout(null);
         setCutoutOn(false);
+        setAngleOpen(false);
         setCutoutMessage(cutoutFailedUserMessage(preview.reason));
       });
     }, PREVIEW_DEBOUNCE_MS);
@@ -157,7 +216,7 @@ export function PhotoEdit() {
       previewGen.current += 1;
       controller.abort();
     };
-  }, [cutoutOn, cutoutSupported, kind, offsetX, offsetY, open, scale, source]);
+  }, [cutoutOn, cutoutSupported, kind, open, roiKey, source]);
 
   const drawPreview = useCallback(() => {
     const canvas = canvasRef.current;
@@ -211,6 +270,18 @@ export function PhotoEdit() {
     drawPreview();
   }, [drawPreview]);
 
+  useEffect(() => {
+    const assets = composeAssets.current;
+    if (!assets || cutoutBusy || !cutoutOn) {
+      return;
+    }
+    window.cancelAnimationFrame(angleRaf.current);
+    angleRaf.current = window.requestAnimationFrame(() => {
+      setPreviewCutout(composeCutoutPreview(assets, displayRotation));
+    });
+    return () => window.cancelAnimationFrame(angleRaf.current);
+  }, [cutoutBusy, cutoutOn, displayRotation]);
+
   if (!open) {
     return null;
   }
@@ -239,6 +310,7 @@ export function PhotoEdit() {
         mascotOn: kind !== "cellar" && mascotOn,
         mascotPose,
         cutoutOn: kind === "cellar" && cutoutOn && cutoutSupported,
+        rotationDegrees: kind === "cellar" ? displayRotation : undefined,
         cutoutQueue: kind === "cellar" ? "fifo" : undefined,
         onCutoutProgress: setCutoutProgress,
         // 背景除去を待たずにラベル読み取りを始められるよう、切り抜く前の JPEG を先に渡す
@@ -302,7 +374,7 @@ export function PhotoEdit() {
   return (
     <div
       ref={dialogRef}
-      className="photo-edit"
+      className={`photo-edit${angleOpen ? " is-angle-open" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label="写真を編集"
@@ -362,6 +434,11 @@ export function PhotoEdit() {
         </p>
       ) : null}
       {cutoutMessage ? <p className="photo-edit-note">{cutoutMessage}</p> : null}
+      {kind === "cellar" && cutoutOn && cutoutSupported && previewCutout && !cutoutBusy ? (
+        <p className="photo-edit-note">
+          切り抜きは写真全体（拡大時はその範囲）から瓶を探します。2:3 の枠は棚への配置です。
+        </p>
+      ) : null}
       <div className="photo-edit-toggles">
         {kind === "cellar" && cutoutSupported ? (
           <Chip
@@ -373,11 +450,25 @@ export function PhotoEdit() {
               setCutoutMessage(null);
               if (!value) {
                 setPreviewCutout(null);
+                setAngleOpen(false);
+                composeAssets.current = null;
               }
             }}
           />
         ) : null}
       </div>
+      {kind === "cellar" && cutoutOn && cutoutSupported && previewCutout && !cutoutBusy ? (
+        <PhotoEditAngleControls
+          open={angleOpen}
+          onOpenChange={setAngleOpen}
+          degrees={displayRotation}
+          autoApplied={autoApplied && userRotation === null}
+          onChange={(degrees) => {
+            setUserRotation(degrees);
+            setAutoApplied(false);
+          }}
+        />
+      ) : null}
       <div className="save-bar">
         <Button
           type="button"

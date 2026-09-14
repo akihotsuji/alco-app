@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  PHOTO_CUTOUT_ORT_JSEP_MJS_FILE,
+  PHOTO_CUTOUT_ORT_JSEP_WASM_FILE,
   PHOTO_CUTOUT_ORT_MJS_FILE,
   PHOTO_CUTOUT_ORT_WASM_FILE,
   PHOTO_CUTOUT_ORT_WASM_PATH,
 } from "@/shared/constants.ts";
-import { resolveOrtWasmPaths, supportsBackgroundRemoval } from "./remove-background.ts";
+import { resolveOrtWasmPaths } from "./cutout-runtime.ts";
+import { supportsBackgroundRemoval } from "./remove-background.ts";
 
 describe("supportsBackgroundRemoval", () => {
   it("boolean を返し、ライブラリ未ロードでも落ちない", () => {
@@ -34,6 +37,13 @@ describe("resolveOrtWasmPaths", () => {
     expect(resolveOrtWasmPaths()).toEqual({
       mjs: `${PHOTO_CUTOUT_ORT_WASM_PATH}${PHOTO_CUTOUT_ORT_MJS_FILE}`,
       wasm: `${PHOTO_CUTOUT_ORT_WASM_PATH}${PHOTO_CUTOUT_ORT_WASM_FILE}`,
+    });
+  });
+
+  it("WebGPU 用は JSEP の mjs/wasm を同じ /models/ort/ へ指す", () => {
+    expect(resolveOrtWasmPaths("http://127.0.0.1:5173", "jsep")).toEqual({
+      mjs: `http://127.0.0.1:5173${PHOTO_CUTOUT_ORT_WASM_PATH}${PHOTO_CUTOUT_ORT_JSEP_MJS_FILE}`,
+      wasm: `http://127.0.0.1:5173${PHOTO_CUTOUT_ORT_WASM_PATH}${PHOTO_CUTOUT_ORT_JSEP_WASM_FILE}`,
     });
   });
 

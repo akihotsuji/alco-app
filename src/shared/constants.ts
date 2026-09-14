@@ -185,8 +185,33 @@ export const PHOTO_CUTOUT_CACHE = "alco-cutout-v1";
 export const PHOTO_CUTOUT_ORT_WASM_PATH = "/models/ort/";
 export const PHOTO_CUTOUT_ORT_WASM_FILE = "ort-wasm-simd-threaded.wasm";
 export const PHOTO_CUTOUT_ORT_MJS_FILE = "ort-wasm-simd-threaded.mjs";
+/** WebGPU EP（JSEP）用。WASM 専用ファイルと混在させない */
+export const PHOTO_CUTOUT_ORT_JSEP_WASM_FILE = "ort-wasm-simd-threaded.jsep.wasm";
+export const PHOTO_CUTOUT_ORT_JSEP_MJS_FILE = "ort-wasm-simd-threaded.jsep.mjs";
 /** 直近の切り抜き診断。画像・Cookie・トークンは書かない */
 export const PHOTO_CUTOUT_DIAG_KEY = "photo.cutout.diag";
+/**
+ * 開発用の実行経路上書き（sessionStorage）。利用者向け設定画面は置かない。
+ * 既定は wasm。実機比較が終わるまで GPU を本番既定にしない。
+ */
+export const PHOTO_CUTOUT_PROVIDER_KEY = "photo.cutout.provider";
+export const PHOTO_CUTOUT_PROVIDERS = ["wasm", "webgpu", "auto"] as const;
+export type PhotoCutoutProviderPref = (typeof PHOTO_CUTOUT_PROVIDERS)[number];
+export const DEFAULT_PHOTO_CUTOUT_PROVIDER: PhotoCutoutProviderPref = "wasm";
+/** 開発比較用。1 のときキャッシュキーに provider を含め、別経路の結果を使い回さない */
+export const PHOTO_CUTOUT_COMPARE_KEY = "photo.cutout.compare";
+/**
+ * 推論前処理の版。stretch（320 へ縦横比を潰す）を固定。letterbox にはしない。
+ * キャッシュキーに入れ、前処理を変えたら再推論する。
+ */
+export const PHOTO_CUTOUT_PREPROCESS_VERSION = "stretch-v1";
+export const PHOTO_CUTOUT_RESIZE_MODE = "stretch" as const;
+/** 作業画像の長辺。保存長辺より大きく、デコード上限より小さい */
+export const PHOTO_CUTOUT_WORK_MAX_EDGE = 1600;
+/** 作業画像の総画素。両方の辺と画素数を制限する */
+export const PHOTO_CUTOUT_WORK_MAX_PIXELS = 1_280 * 1_280;
+/** 角度推定用にマスクを落とす長辺。正方形モデル空間では推定しない */
+export const PHOTO_CUTOUT_ANGLE_SAMPLE_EDGE = 256;
 export const PHOTO_CUTOUT_MEAN = [0.485, 0.456, 0.406] as const;
 export const PHOTO_CUTOUT_STD = [0.229, 0.224, 0.225] as const;
 /**
@@ -212,8 +237,36 @@ export const PHOTO_CUTOUT_MASK = {
   /** 切り抜き配置の外接矩形を取る alpha 閾値（縮尺後のにじみを除く） */
   bboxAlpha: 32,
 } as const;
-/** 同じ画像・同じ切り抜き条件のマスクを再利用する件数（1 件 ≒ 100KB） */
+/** 同じ画像・同じ切り抜き条件のマスクを再利用する件数（モデル解像度 1 件 ≒ 100KB） */
 export const PHOTO_CUTOUT_MASK_CACHE_SIZE = 4;
+/** マスクキャッシュの概算バイト上限。件数と両方で制限する */
+export const PHOTO_CUTOUT_MASK_CACHE_MAX_BYTES = 512_000;
+/**
+ * 自動直立の判定。20° は設計上の上限であり、検証済み精度の主張ではない。
+ * 採用根拠は合成マスク試験（±5/10/20° が残差 2° 以内、横置き・円・複数・欠けは 0°）。
+ */
+export const PHOTO_CUTOUT_UPRIGHT = {
+  /** これより大きい傾きは自動補正しない（横置きに近づく） */
+  maxAutoDegrees: 20,
+  /** これ未満はほぼ直立として回さない */
+  minAutoDegrees: 2,
+  /** 長軸/短軸。円や正方形に近い対象は角度が不安定 */
+  minElongation: 1.8,
+  /** 最大連結成分 / 被写体。低いと複数物体 */
+  minLargestComponent: 0.82,
+  /** 高さ/幅。1 未満は横置きとして自動補正しない */
+  minBboxAspect: 1.2,
+  /** 1 辺の接触率がこれを超える辺が 2 つ以上なら欠け・背景残り */
+  maxClippedSides: 1,
+  maxBorderContact: 0.28,
+  /** 上下半分の PCA 傾き差（度）。大きいと軸が安定していない */
+  maxAxisDisagreeDegrees: 5,
+  /** 前景が多すぎると背景残りで角度が疑わしい */
+  maxForegroundRatio: 0.55,
+  minSamplePixels: 48,
+} as const;
+export const PHOTO_CUTOUT_ANGLE_MIN = -180;
+export const PHOTO_CUTOUT_ANGLE_MAX = 180;
 
 /** 設定・photo-edit が共有する localStorage キー（spec/screen-designs/07-photo-capture.md） */
 export const PHOTO_PREF_KEYS = {

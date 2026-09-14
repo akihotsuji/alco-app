@@ -7,7 +7,7 @@
 - 取り込みは 2 経路。基本は撮影（`accept="image/*"` + `capture="environment"`）。保存済み写真は別ボタン（`capture` なし）。記録・セラー・ノートのフォームは「写真を撮る / 選ぶ」を同じ大きさで並べ、明示タップだけ。ホームに撮影開始のボタンは置かない。セラー追加のアプリ内導線は `?camera=1` を付けない。記録・ノートは `?camera=1` でも自動起動しない。`getUserMedia` は使わない
 - 切り抜き・キャラ合成・JPEG 化はすべて端末内 Canvas。色補正はしない。サーバーは検証と保存だけ
 - 「使う」直後に **未紐付け** で `POST /api/photos`。フォーム保存時の `photoIds` 紐付けは各機能フェーズ
-- 背景除去の実体は 4-06（`onnxruntime-web` + U2-Net-P。同一オリジン `/models/`。ORT の glue `.mjs` と `.wasm` を同じディレクトリへ明示）。2-08 はトグル差し込み口と、WebP VP8X alpha / PNG IHDR color type 4・6 → `kind=cutout` のサーバー判定
+- 背景除去の実体は 4-06（`onnxruntime-web` 1.21.0 + U2-Net-P。同一オリジン `/models/`。WASM 用 `.mjs` / `.wasm` と WebGPU/JSEP 用 `.jsep.mjs` / `.jsep.wasm` を `/models/ort/` へ明示）。本番既定の実行経路は WASM。WebGPU は経路として実装し、adapter・セッション・probe の成功と開発切替があるときだけ使う。GPU 障害は WASM へ最大 1 回。2-08 はトグル差し込み口と、WebP VP8X alpha / PNG IHDR color type 4・6 → `kind=cutout` のサーバー判定
 
 ## クライアント
 
@@ -21,9 +21,10 @@
 | `composeMascot` | 右下、短辺 22%、余白 4%、**グローなし**。線色 `#2B261F`。`pickMascotPose()` で 4 ポーズから抽選 |
 | `toJpegBlob` / `toJpegBlobWithinLimit` / `toWebpBlob` / `toPngBlob` | JPEG 0.82 / 切り抜き WebP 0.9 / 切り抜き PNG。Canvas 再エンコードで EXIF なし。保存用 JPEG は品質を下げ、収まらなければ解像度も段階縮小し、**最終 `blob.size` を再検査**して 1MB 超なら送らない（最後の品質で書き出しただけでは上限内としない）。切り抜き OFF・非対応・失敗後の JPEG も同じ |
 | `encodeCutoutBlob` | 切り抜きキャンバスを保存用にする。WebP を優先。iOS Safari のように `toBlob("image/webp")` が PNG を返す／失敗するときは **切り抜き済み PNG** を使う。切り抜き前 JPEG には落とさない。1MB 超は縮小。透過は維持。MIME と拡張子を一致させる |
-| `preparePhoto` / `prepareRecognitionImage` | 比率・位置・拡縮の確定と、切り抜く前の 2:3 JPEG（ラベル読み取り用。色補正なし） |
-| `segmentBottle` / `composeBottleCutout` | セラーのみ。WASM SIMD で U2-Net-P を 1 本ずつ実行。編集プレビューは実行中 1 + pending 最新 1。保存・バッチの別写真は FIFO（`superseded` で捨てない）。ORT の `.mjs` / `.wasm` は同一オリジン `/models/ort/` を明示。マスクは cleanup・品質判定を通し、同一条件では再利用。失敗は `CutoutError`（理由付き） |
-| `previewCutout` / `processPhoto` | 編集画面のプレビューと「使う」。同じマスクを共有し、`processPhoto` は `cutout` に成否・理由・工程時間を返す。失敗・未対応は JPEG 長方形（容量保証付き）。記録・ノートはキャラ合成前の JPEG を `recognizeJpeg` として返す |
+| `preparePhoto` / `prepareRecognitionImage` | 比率・位置・拡縮の確定と、切り抜く前の 2:3 JPEG（ラベル読み取り用。色補正なし）。切り抜き ON の推論入力とは分離する |
+| `computeInferenceRoi` / `workImageSize` | セラー切り抜き ON の推論領域。初期は元写真全体。拡大時だけ 2:3 窓を含む元縦横比の窓。作業画像は長辺 1600・総画素制限。stretch で 320×320 へ（letterbox なし） |
+| `segmentBottle` / `composeBottleCutout` | セラーのみ。U2-Net-P を 1 本ずつ実行（WASM 既定、WebGPU は切替）。編集プレビューは実行中 1 + pending 最新 1。保存・バッチの別写真は FIFO（`superseded` で捨てない）。ORT 資産は同一オリジン `/models/ort/`。マスクは cleanup・品質判定を通し、画像・ROI・モデル・前処理版で再利用（角度・棚位置はキーに入れない）。傾きは元縦横比のマスクから推定し、安全なときだけ ±20° 以内を自動補正。失敗は `CutoutError`（理由付き） |
+| `previewCutout` / `processPhoto` | 編集画面のプレビューと「使う」。同じマスクを共有し、角度変更は合成だけ。`processPhoto` は `cutout` に成否・理由・工程時間・provider を返す。失敗・未対応は JPEG 長方形（容量保証付き）。記録・ノートはキャラ合成前の JPEG を `recognizeJpeg` として返す。角度調整では認識 JPEG を作り直して入力を消さない |
 | `cleanupMask` / `validateBottleMask` | 純粋関数。薄い alpha と小成分の除去、全面 foreground・左右端接触の判定 |
 
 `localStorage`: `photo.mascot` / `photo.cutout` / `cellar.recognize`（設定画面と同じ）。旧 `photo.filter` は読まない。

@@ -7,13 +7,20 @@ import type { Plugin } from "vite";
 import {
   PHOTO_CUTOUT_MODEL_BYTES,
   PHOTO_CUTOUT_MODEL_SHA256,
+  PHOTO_CUTOUT_ORT_JSEP_MJS_FILE,
+  PHOTO_CUTOUT_ORT_JSEP_WASM_FILE,
   PHOTO_CUTOUT_ORT_MJS_FILE,
   PHOTO_CUTOUT_ORT_WASM_FILE,
 } from "./src/shared/constants.ts";
 
 const MODEL_FILE = "u2netp.onnx";
 const MODEL_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx";
-const WASM_FILES = [PHOTO_CUTOUT_ORT_WASM_FILE, PHOTO_CUTOUT_ORT_MJS_FILE] as const;
+const WASM_FILES = [
+  PHOTO_CUTOUT_ORT_WASM_FILE,
+  PHOTO_CUTOUT_ORT_MJS_FILE,
+  PHOTO_CUTOUT_ORT_JSEP_WASM_FILE,
+  PHOTO_CUTOUT_ORT_JSEP_MJS_FILE,
+] as const;
 
 export function cutoutAssets(): Plugin {
   return {
@@ -23,6 +30,15 @@ export function cutoutAssets(): Plugin {
     },
     async configureServer() {
       await ensureCutoutAssets();
+    },
+    generateBundle(_options, bundle) {
+      // webgpu bundle の `new URL("*.jsep.wasm", import.meta.url)` が hashed 資産を作る。
+      // 実行時は wasmPaths で /models/ort/ を使うので、24MB の二重配信を落とす。
+      for (const fileName of Object.keys(bundle)) {
+        if (/ort-wasm-simd-threaded\.jsep.*\.wasm$/.test(fileName)) {
+          delete bundle[fileName];
+        }
+      }
     },
   };
 }

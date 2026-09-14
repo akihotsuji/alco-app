@@ -57,5 +57,13 @@ describe("pwa 契約", () => {
     expect(PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) => rule.test("/api/drink-logs"))).toBe(true);
     expect(PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) => rule.test("/version.json"))).toBe(true);
     expect(PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) => rule.test("/logs"))).toBe(false);
+    expect(PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) => rule.test("/models/u2netp.onnx"))).toBe(
+      true,
+    );
+    expect(
+      PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) =>
+        rule.test("/models/ort/ort-wasm-simd-threaded.jsep.mjs"),
+      ),
+    ).toBe(true);
   });
 });
