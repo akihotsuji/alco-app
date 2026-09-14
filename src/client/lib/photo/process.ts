@@ -29,8 +29,8 @@ import { encodeCutoutBlob } from "./encode-cutout.ts";
 import {
   type AspectRatio,
   aspectForKind,
-  computeCoverCrop,
   type CropRect,
+  computeCoverCrop,
   fitToLongEdge,
   type OutputSize,
   outputSizeForAspect,
@@ -352,7 +352,15 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
       autoAngle: rotationDegrees,
       rotationDegrees,
     });
-    return { status: "success", canvas, cached, timing, autoAngle: rotationDegrees, rotationDegrees, assets };
+    return {
+      status: "success",
+      canvas,
+      cached,
+      timing,
+      autoAngle: rotationDegrees,
+      rotationDegrees,
+      assets,
+    };
   } catch (error) {
     const fields = cutoutFailureFields(error);
     if (fields.reason !== "superseded") {

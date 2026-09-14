@@ -42,15 +42,15 @@ describe("shouldFallbackToWasm", () => {
   });
 
   it("取消・superseded・品質失敗では再試行しない", () => {
-    expect(shouldFallbackToWasm({ attempted: "webgpu", reason: "superseded", aborted: false })).toBe(
-      false,
-    );
+    expect(
+      shouldFallbackToWasm({ attempted: "webgpu", reason: "superseded", aborted: false }),
+    ).toBe(false);
     expect(shouldFallbackToWasm({ attempted: "webgpu", reason: "inference", aborted: true })).toBe(
       false,
     );
-    expect(shouldFallbackToWasm({ attempted: "webgpu", reason: "empty_mask", aborted: false })).toBe(
-      false,
-    );
+    expect(
+      shouldFallbackToWasm({ attempted: "webgpu", reason: "empty_mask", aborted: false }),
+    ).toBe(false);
     expect(
       shouldFallbackToWasm({ attempted: "webgpu", reason: "invalid_mask", aborted: false }),
     ).toBe(false);

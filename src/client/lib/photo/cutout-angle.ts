@@ -32,7 +32,8 @@ function clamp(value: number, min: number, max: number): number {
 
 export function wrapAngleDegrees(value: number): number {
   const span = PHOTO_CUTOUT_ANGLE_MAX - PHOTO_CUTOUT_ANGLE_MIN;
-  let wrapped = ((((value - PHOTO_CUTOUT_ANGLE_MIN) % span) + span) % span) + PHOTO_CUTOUT_ANGLE_MIN;
+  let wrapped =
+    ((((value - PHOTO_CUTOUT_ANGLE_MIN) % span) + span) % span) + PHOTO_CUTOUT_ANGLE_MIN;
   if (wrapped === PHOTO_CUTOUT_ANGLE_MIN) {
     wrapped = PHOTO_CUTOUT_ANGLE_MAX;
   }
@@ -133,7 +134,12 @@ export function tiltFromVerticalDegrees(axisFromX: number): number {
   return (tilt * 180) / Math.PI;
 }
 
-function pcaTilt(mask: Uint8Array, width: number, height: number, threshold: number): {
+function pcaTilt(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  threshold: number,
+): {
   tilt: number;
   count: number;
   elongation: number;

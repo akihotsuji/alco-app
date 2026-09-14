@@ -3053,12 +3053,6 @@ img[data-state="loaded"] {
   margin-top: var(--space-2);
 }
 
-.photo-edit-angle-actions .chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 .chip {
   position: relative;
   isolation: isolate;
@@ -3137,6 +3131,12 @@ img[data-state="loaded"] {
 .chip:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+.photo-edit-angle-actions .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 /* 影（3px + ぼかし 6px）が overflow で切れないよう内側に余白を取り、外側で相殺する */

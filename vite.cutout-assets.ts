@@ -31,6 +31,15 @@ export function cutoutAssets(): Plugin {
     async configureServer() {
       await ensureCutoutAssets();
     },
+    generateBundle(_options, bundle) {
+      // webgpu bundle の `new URL("*.jsep.wasm", import.meta.url)` が hashed 資産を作る。
+      // 実行時は wasmPaths で /models/ort/ を使うので、24MB の二重配信を落とす。
+      for (const fileName of Object.keys(bundle)) {
+        if (/ort-wasm-simd-threaded\.jsep.*\.wasm$/.test(fileName)) {
+          delete bundle[fileName];
+        }
+      }
+    },
   };
 }
 

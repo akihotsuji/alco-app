@@ -33,7 +33,7 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(source).toContain('processed.cutout?.status === "failed"');
     expect(source).not.toContain('processed.blob.type !== "image/webp"');
     expect(source).toContain('cutoutQueue: kind === "cellar" ? "fifo" : undefined');
-    expect(source).toContain("rotationDegrees: kind === \"cellar\" ? displayRotation : undefined");
+    expect(source).toContain('rotationDegrees: kind === "cellar" ? displayRotation : undefined');
   });
 
   it("セラーの編集は元画像または保存済み写真から photo-edit を開き、カメラを起動しない", () => {

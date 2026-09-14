@@ -13,23 +13,28 @@ import {
   raceWithTimeout,
 } from "./cutout-mask.ts";
 import {
+  type CutoutExecProvider,
   probeWebGpuAdapter,
   resolveCutoutProviderPreference,
   shouldAttemptWebGpu,
   shouldFallbackToWasm,
-  type CutoutExecProvider,
 } from "./cutout-provider.ts";
 import { type BottleMaskFeatures, measureBottleMask, refineBottleMask } from "./cutout-quality.ts";
-import { CutoutError, type CutoutTiming, emptyCutoutTiming, toCutoutFailureReason } from "./cutout-result.ts";
+import {
+  CutoutError,
+  type CutoutTiming,
+  emptyCutoutTiming,
+  toCutoutFailureReason,
+} from "./cutout-result.ts";
 import { rotateRgbaAndMask, trimTransparent } from "./cutout-rotate.ts";
 import {
   blockGpuThisSession,
   getCutoutRuntime,
   isGpuBlockedThisSession,
+  type LoadedRuntime,
   readTensorFloat32,
   releaseCutoutRuntime,
   resolveOrtWasmPaths,
-  type LoadedRuntime,
 } from "./cutout-runtime.ts";
 import { type CutoutQueuePolicy, createCutoutScheduler } from "./cutout-scheduler.ts";
 import { supportsWasmSimd } from "./filter-support.ts";
@@ -271,7 +276,9 @@ export function composeBottleCutout(input: ComposeCutoutInput): HTMLCanvasElemen
   if (!cutCtx) {
     throw new CutoutError("unsupported", "canvas 2d");
   }
-  cutCtx.putImageData(new ImageData(rotated.rgba, rotated.width, rotated.height), 0, 0);
+  const pixels = cutCtx.createImageData(rotated.width, rotated.height);
+  pixels.data.set(rotated.rgba);
+  cutCtx.putImageData(pixels, 0, 0);
   const dest = document.createElement("canvas");
   dest.width = input.output.width;
   dest.height = input.output.height;
@@ -286,7 +293,12 @@ function paintCutoutOnCanvas(cutout: HTMLCanvasElement, dest: HTMLCanvasElement)
     throw new CutoutError("unsupported", "canvas 2d");
   }
   const image = srcCtx.getImageData(0, 0, cutout.width, cutout.height);
-  const box = alphaBoxFromRgba(image.data, cutout.width, cutout.height, PHOTO_CUTOUT_MASK.bboxAlpha) ?? {
+  const box = alphaBoxFromRgba(
+    image.data,
+    cutout.width,
+    cutout.height,
+    PHOTO_CUTOUT_MASK.bboxAlpha,
+  ) ?? {
     x: 0,
     y: 0,
     width: cutout.width,

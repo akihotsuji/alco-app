@@ -61,7 +61,9 @@ describe("pwa 契約", () => {
       true,
     );
     expect(
-      PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) => rule.test("/models/ort/ort-wasm-simd-threaded.jsep.mjs")),
+      PWA_NAVIGATE_FALLBACK_DENYLIST.some((rule) =>
+        rule.test("/models/ort/ort-wasm-simd-threaded.jsep.mjs"),
+      ),
     ).toBe(true);
   });
 });

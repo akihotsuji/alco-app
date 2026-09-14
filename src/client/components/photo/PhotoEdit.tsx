@@ -80,7 +80,9 @@ export function PhotoEdit() {
   const composeAssets = useRef<CutoutComposeAssets | null>(null);
   const angleRaf = useRef(0);
   const userRotationRef = useRef<number | null>(null);
+  const editParamsRef = useRef({ scale, offsetX, offsetY });
   userRotationRef.current = userRotation;
+  editParamsRef.current = { scale, offsetX, offsetY };
 
   useEffect(() => {
     if (!open) {
@@ -149,6 +151,7 @@ export function PhotoEdit() {
   const displayRotation = userRotation ?? autoAngle;
 
   useEffect(() => {
+    void roiKey;
     setUserRotation(null);
     setAutoAngle(0);
     setAutoApplied(false);
@@ -158,6 +161,7 @@ export function PhotoEdit() {
   // プレビューの推論は同一条件で 1 回。結果はマスクとして残り「使う」で再利用される。
   // 条件が変わったら pending を取り消し（走っている推論は結果だけ捨てる）、待ち行列を溜めない
   useEffect(() => {
+    void roiKey;
     if (!open || kind !== "cellar" || !cutoutOn || !cutoutSupported || !source) {
       setPreviewCutout(null);
       setCutoutBusy(false);
@@ -169,14 +173,15 @@ export function PhotoEdit() {
       previewGen.current = gen;
       setCutoutBusy(true);
       setCutoutProgress({ firstDownload: false });
+      const crop = editParamsRef.current;
       void renderCutoutPreview({
         source,
         sourceWidth: source.width,
         sourceHeight: source.height,
         kind: "cellar",
-        scale,
-        offsetX,
-        offsetY,
+        scale: crop.scale,
+        offsetX: crop.offsetX,
+        offsetY: crop.offsetY,
         onCutoutProgress: setCutoutProgress,
         signal: controller.signal,
       }).then((preview) => {

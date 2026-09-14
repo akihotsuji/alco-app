@@ -6,7 +6,7 @@ import {
   PHOTO_CUTOUT_WORK_MAX_EDGE,
   PHOTO_CUTOUT_WORK_MAX_PIXELS,
 } from "@/shared/constants.ts";
-import { computeCoverCrop, type CropRect, type OutputSize } from "./geometry.ts";
+import { type CropRect, computeCoverCrop, type OutputSize } from "./geometry.ts";
 
 export type NormalizedRoi = {
   x: number;
@@ -112,7 +112,11 @@ export function expandRectToSourceAspect(
   return { sx, sy, sw, sh };
 }
 
-export function normalizeRoi(roi: CropRect, sourceWidth: number, sourceHeight: number): NormalizedRoi {
+export function normalizeRoi(
+  roi: CropRect,
+  sourceWidth: number,
+  sourceHeight: number,
+): NormalizedRoi {
   return {
     x: sourceWidth > 0 ? roi.sx / sourceWidth : 0,
     y: sourceHeight > 0 ? roi.sy / sourceHeight : 0,
@@ -121,11 +125,7 @@ export function normalizeRoi(roi: CropRect, sourceWidth: number, sourceHeight: n
   };
 }
 
-export function roiFromNormalized(
-  roi: NormalizedRoi,
-  width: number,
-  height: number,
-): CropRect {
+export function roiFromNormalized(roi: NormalizedRoi, width: number, height: number): CropRect {
   return {
     sx: roi.x * width,
     sy: roi.y * height,

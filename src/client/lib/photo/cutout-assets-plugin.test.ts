@@ -11,6 +11,11 @@ describe("cutoutAssets プラグイン", () => {
     expect(source).not.toMatch(/if\s*\(\s*!existsSync\(dest\)\s*\)/);
   });
 
+  it("hashed な JSEP wasm はバンドルから除き /models/ort/ だけを使う", () => {
+    expect(source).toContain("generateBundle");
+    expect(source).toContain("ort-wasm-simd-threaded\\.jsep.*\\.wasm");
+  });
+
   it("配置するモデルはサイズとハッシュで検証する", () => {
     expect(source).toContain("PHOTO_CUTOUT_MODEL_SHA256");
     expect(source).toContain("PHOTO_CUTOUT_MODEL_BYTES");

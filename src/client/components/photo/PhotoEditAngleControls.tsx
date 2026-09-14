@@ -1,7 +1,11 @@
 import { Minus, Plus, RotateCw } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
-import { clampAngleDegrees, stepAngleDegrees, wrapAngleDegrees } from "@/client/lib/photo/cutout-angle.ts";
+import {
+  clampAngleDegrees,
+  stepAngleDegrees,
+  wrapAngleDegrees,
+} from "@/client/lib/photo/cutout-angle.ts";
 import { PHOTO_CUTOUT_ANGLE_MAX, PHOTO_CUTOUT_ANGLE_MIN } from "@/shared/constants.ts";
 
 const SLIDER_ID = "photo-cutout-angle";

@@ -116,12 +116,15 @@ describe("estimateBottleUpright", () => {
     expect(Math.abs(decision.correctionDegrees + tilt)).toBeLessThanOrEqual(2);
   });
 
-  it.each([-5, -10, -20] as const)("反時計回り %i 度の合成瓶は残差 2 度以内で逆回転する", (tilt) => {
-    const decision = decide(bottle(tilt));
-    expect(decision.applied).toBe(true);
-    expect(Math.abs(decision.tiltDegrees - tilt)).toBeLessThanOrEqual(2);
-    expect(Math.abs(decision.correctionDegrees + tilt)).toBeLessThanOrEqual(2);
-  });
+  it.each([-5, -10, -20] as const)(
+    "反時計回り %i 度の合成瓶は残差 2 度以内で逆回転する",
+    (tilt) => {
+      const decision = decide(bottle(tilt));
+      expect(decision.applied).toBe(true);
+      expect(Math.abs(decision.tiltDegrees - tilt)).toBeLessThanOrEqual(2);
+      expect(Math.abs(decision.correctionDegrees + tilt)).toBeLessThanOrEqual(2);
+    },
+  );
 
   it("20 度を超える傾きは自動補正しない", () => {
     const decision = decide(bottle(28));

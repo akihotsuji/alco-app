@@ -31,7 +31,13 @@ export function rotatedBounds(
   };
 }
 
-function sampleNearest(mask: Uint8Array, width: number, height: number, x: number, y: number): number {
+function sampleNearest(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+): number {
   if (x < 0 || y < 0 || x >= width || y >= height) {
     return 0;
   }

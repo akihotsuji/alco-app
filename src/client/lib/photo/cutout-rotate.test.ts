@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { PHOTO_ASPECT, PHOTO_CUTOUT_MASK } from "@/shared/constants.ts";
-import { computeCutoutPlacement, outputSizeForAspect } from "./geometry.ts";
 import {
   opaqueBoundingBox,
-  rotateRgbaAndMask,
   rotatedBounds,
+  rotateRgbaAndMask,
   trimTransparent,
 } from "./cutout-rotate.ts";
+import { computeCutoutPlacement, outputSizeForAspect } from "./geometry.ts";
 
 function paintBottle(
   width: number,
@@ -52,7 +52,12 @@ describe("rotateRgbaAndMask", () => {
   it("90 度でも首と底の画素が残る", () => {
     const source = paintBottle(width, height, bottle);
     const rotated = rotateRgbaAndMask({ ...source, width, height, degrees: 90 });
-    const box = opaqueBoundingBox(rotated.mask, rotated.width, rotated.height, PHOTO_CUTOUT_MASK.bboxAlpha);
+    const box = opaqueBoundingBox(
+      rotated.mask,
+      rotated.width,
+      rotated.height,
+      PHOTO_CUTOUT_MASK.bboxAlpha,
+    );
     expect(box).not.toBeNull();
     if (!box) {
       return;
@@ -65,7 +70,12 @@ describe("rotateRgbaAndMask", () => {
   it("180 度でも首底が欠けない", () => {
     const source = paintBottle(width, height, bottle);
     const rotated = rotateRgbaAndMask({ ...source, width, height, degrees: 180 });
-    const box = opaqueBoundingBox(rotated.mask, rotated.width, rotated.height, PHOTO_CUTOUT_MASK.bboxAlpha);
+    const box = opaqueBoundingBox(
+      rotated.mask,
+      rotated.width,
+      rotated.height,
+      PHOTO_CUTOUT_MASK.bboxAlpha,
+    );
     expect(box).not.toBeNull();
     if (!box) {
       return;
@@ -76,10 +86,13 @@ describe("rotateRgbaAndMask", () => {
 
   it("任意角度のあとに余白を除いても画素が残る", () => {
     const source = paintBottle(width, height, bottle);
-    const rotated = trimTransparent(
-      rotateRgbaAndMask({ ...source, width, height, degrees: 17 }),
+    const rotated = trimTransparent(rotateRgbaAndMask({ ...source, width, height, degrees: 17 }));
+    const box = opaqueBoundingBox(
+      rotated.mask,
+      rotated.width,
+      rotated.height,
+      PHOTO_CUTOUT_MASK.bboxAlpha,
     );
-    const box = opaqueBoundingBox(rotated.mask, rotated.width, rotated.height, PHOTO_CUTOUT_MASK.bboxAlpha);
     expect(box).not.toBeNull();
     if (!box) {
       return;

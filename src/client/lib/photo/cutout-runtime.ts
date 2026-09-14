@@ -104,7 +104,12 @@ async function probeGpuSession(ort: OrtModule, session: OrtSession): Promise<voi
   }
   const packed = new Float32Array(3 * PHOTO_CUTOUT_MODEL_SIZE * PHOTO_CUTOUT_MODEL_SIZE);
   const outputs = await session.run({
-    [inputName]: new ort.Tensor("float32", packed, [1, 3, PHOTO_CUTOUT_MODEL_SIZE, PHOTO_CUTOUT_MODEL_SIZE]),
+    [inputName]: new ort.Tensor("float32", packed, [
+      1,
+      3,
+      PHOTO_CUTOUT_MODEL_SIZE,
+      PHOTO_CUTOUT_MODEL_SIZE,
+    ]),
   });
   const output = outputs[outputName];
   if (!output) {
