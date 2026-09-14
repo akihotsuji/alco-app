@@ -1,14 +1,10 @@
-import type { InferenceSession } from "onnxruntime-web";
 import {
-  PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS,
   PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS,
   PHOTO_CUTOUT_MASK,
   PHOTO_CUTOUT_MODEL_SIZE,
-  PHOTO_CUTOUT_ORT_MJS_FILE,
-  PHOTO_CUTOUT_ORT_WASM_FILE,
-  PHOTO_CUTOUT_ORT_WASM_PATH,
   PHOTO_CUTOUT_SHADOW,
 } from "@/shared/constants.ts";
+import { estimateBottleUpright, restoreMaskAspect, type UprightDecision } from "./cutout-angle.ts";
 import {
   applyAlphaMask,
   flattenMaskOutput,
@@ -16,12 +12,28 @@ import {
   packU2NetTensor,
   raceWithTimeout,
 } from "./cutout-mask.ts";
-import { loadCutoutModelBytes } from "./cutout-model-cache.ts";
-import { type BottleMaskFeatures, refineBottleMask } from "./cutout-quality.ts";
-import { CutoutError, type CutoutTiming, emptyCutoutTiming } from "./cutout-result.ts";
+import {
+  probeWebGpuAdapter,
+  resolveCutoutProviderPreference,
+  shouldAttemptWebGpu,
+  shouldFallbackToWasm,
+  type CutoutExecProvider,
+} from "./cutout-provider.ts";
+import { type BottleMaskFeatures, measureBottleMask, refineBottleMask } from "./cutout-quality.ts";
+import { CutoutError, type CutoutTiming, emptyCutoutTiming, toCutoutFailureReason } from "./cutout-result.ts";
+import { rotateRgbaAndMask, trimTransparent } from "./cutout-rotate.ts";
+import {
+  blockGpuThisSession,
+  getCutoutRuntime,
+  isGpuBlockedThisSession,
+  readTensorFloat32,
+  releaseCutoutRuntime,
+  resolveOrtWasmPaths,
+  type LoadedRuntime,
+} from "./cutout-runtime.ts";
 import { type CutoutQueuePolicy, createCutoutScheduler } from "./cutout-scheduler.ts";
 import { supportsWasmSimd } from "./filter-support.ts";
-import { alphaBoundingBox, computeCutoutPlacement } from "./geometry.ts";
+import { type CropRect, computeCutoutPlacement, type OutputSize } from "./geometry.ts";
 
 export type RemoveBackgroundProgress = {
   percent?: number;
@@ -37,6 +49,8 @@ export type SegmentationTiming = Pick<
   | "queueWaitMs"
   | "inferenceMs"
   | "postprocessMs"
+  | "provider"
+  | "fallback"
 >;
 
 export type BottleSegmentation = {
@@ -44,6 +58,9 @@ export type BottleSegmentation = {
   mask: Uint8Array;
   modelSize: number;
   features: BottleMaskFeatures;
+  upright: UprightDecision;
+  provider: CutoutExecProvider;
+  fallback: boolean;
   timing: SegmentationTiming;
 };
 
@@ -55,12 +72,14 @@ export type SegmentBottleOptions = {
   queue?: CutoutQueuePolicy;
 };
 
-type SessionTiming = Pick<CutoutTiming, "modelDownloadMs" | "ortLoadMs" | "sessionCreateMs">;
-
-type LoadedSession = { session: InferenceSession; timing: SessionTiming };
-
-let sessionPromise: Promise<LoadedSession> | null = null;
-let sessionReady = false;
+export type ComposeCutoutInput = {
+  source: HTMLCanvasElement;
+  roi: CropRect;
+  mask: Uint8Array;
+  modelSize: number;
+  output: OutputSize;
+  rotationDegrees: number;
+};
 
 /** 推論は端末内で 1 本ずつ。プレビューは latest、保存・バッチは fifo */
 const scheduler = createCutoutScheduler();
@@ -69,17 +88,19 @@ export function getCutoutSchedulerStats(): { started: number; superseded: number
   return scheduler.stats;
 }
 
-/**
- * SIMD が無い端末ではトグル非表示。モデル本体は使ったときだけ読む。
- * @imgly/background-removal は AGPL-3.0 のため使わない（仕様の Apache-2.0 前提）。
- */
-export function supportsBackgroundRemoval(): boolean {
+export function supportsWasmCutout(): boolean {
   return typeof WebAssembly !== "undefined" && supportsWasmSimd();
 }
 
+export function supportsBackgroundRemoval(): boolean {
+  return supportsWasmCutout() || (typeof navigator !== "undefined" && "gpu" in navigator);
+}
+
+export { resolveOrtWasmPaths };
+
 /**
- * 未補正の 2:3 キャンバスから被写体マスクを求める。失敗はすべて `CutoutError`。
- * 成功時のマスクは cleanup と品質判定を通っている。
+ * 未補正の推論 ROI キャンバスから被写体マスクを求める。失敗はすべて `CutoutError`。
+ * 成功時のマスクは cleanup と品質判定を通っている。角度は元縦横比へ戻してから推定する。
  */
 export async function segmentBottle(
   input: HTMLCanvasElement,
@@ -88,7 +109,41 @@ export async function segmentBottle(
   if (!supportsBackgroundRemoval()) {
     throw new CutoutError("unsupported");
   }
+  const preference = resolveCutoutProviderPreference();
+  const gpuOk =
+    shouldAttemptWebGpu({ preference, gpuBlocked: isGpuBlockedThisSession() }) &&
+    (await probeWebGpuAdapter());
+  const firstProvider: CutoutExecProvider = gpuOk ? "webgpu" : "wasm";
+  if (firstProvider === "wasm" && !supportsWasmCutout()) {
+    throw new CutoutError("unsupported");
+  }
+
+  try {
+    return await segmentBottleWithProvider(input, firstProvider, options, false);
+  } catch (error) {
+    const aborted = options.signal?.aborted === true;
+    const reason = toCutoutFailureReason(error);
+    if (!shouldFallbackToWasm({ attempted: firstProvider, reason, aborted })) {
+      throw error;
+    }
+    if (!supportsWasmCutout()) {
+      throw error;
+    }
+    blockGpuThisSession();
+    await releaseCutoutRuntime();
+    return segmentBottleWithProvider(input, "wasm", options, true);
+  }
+}
+
+async function segmentBottleWithProvider(
+  input: HTMLCanvasElement,
+  provider: CutoutExecProvider,
+  options: SegmentBottleOptions,
+  fallback: boolean,
+): Promise<BottleSegmentation> {
   const timing: SegmentationTiming = emptyCutoutTiming();
+  timing.provider = provider;
+  timing.fallback = fallback;
   const modelSize = PHOTO_CUTOUT_MODEL_SIZE;
 
   const preprocessStart = performance.now();
@@ -100,29 +155,80 @@ export async function segmentBottle(
   const packed = packU2NetTensor(modelCtx.getImageData(0, 0, modelSize, modelSize).data);
   timing.preprocessMs = elapsed(preprocessStart);
 
-  const loaded = await getSession(options.onProgress);
+  const loaded = await getCutoutRuntime({ provider, onProgress: options.onProgress });
   timing.modelDownloadMs = loaded.timing.modelDownloadMs;
   timing.ortLoadMs = loaded.timing.ortLoadMs;
   timing.sessionCreateMs = loaded.timing.sessionCreateMs;
-  const { session } = loaded;
-  const ort = await loadOrt();
+  const output = await runSession(loaded, packed, modelSize, options, timing);
+
+  const postStart = performance.now();
+  let flat: Float32Array;
+  try {
+    flat = flattenMaskOutput(output, modelSize);
+  } catch (error) {
+    throw new CutoutError("invalid_output", "mask shape", { cause: error });
+  }
+  const refined = refineBottleMask(normalizeU2NetMask(flat), modelSize, modelSize);
+  const restored = restoreMaskAspect(refined.mask, modelSize, input.width, input.height);
+  const upright = refined.validation.ok
+    ? estimateBottleUpright({
+        mask: restored,
+        width: input.width,
+        height: input.height,
+        features: measureBottleMask(restored, input.width, input.height),
+      })
+    : {
+        tiltDegrees: 0,
+        correctionDegrees: 0,
+        applied: false,
+        reason: "empty" as const,
+      };
+  timing.postprocessMs = elapsed(postStart);
+  if (!refined.validation.ok) {
+    throw new CutoutError(refined.validation.reason, refined.validation.detail);
+  }
+  return {
+    mask: refined.mask,
+    modelSize,
+    features: refined.validation.features,
+    upright,
+    provider,
+    fallback,
+    timing,
+  };
+}
+
+async function runSession(
+  loaded: LoadedRuntime,
+  packed: Float32Array,
+  modelSize: number,
+  options: SegmentBottleOptions,
+  timing: SegmentationTiming,
+): Promise<Float32Array> {
+  const { session, ort } = loaded;
   const inputName = session.inputNames[0];
   const outputName = session.outputNames[0];
   if (!inputName || !outputName) {
     throw new CutoutError("invalid_output", "model io names");
   }
-
   const results = await scheduler.schedule(
     async (context) => {
       timing.queueWaitMs = context.queueWaitMs;
       const inferenceStart = performance.now();
-      const run = session.run({
-        [inputName]: new ort.Tensor("float32", packed, [1, 3, modelSize, modelSize]),
-      });
-      // タイムアウトで呼び出し元へ返しても `run` は続くので、終わるまで枠を渡さない
+      const tensor = new ort.Tensor("float32", packed, [1, 3, modelSize, modelSize]);
+      const run = session.run({ [inputName]: tensor });
       context.hold(run);
       try {
-        return await raceWithTimeout(run, PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS);
+        const outputs = await raceWithTimeout(run, PHOTO_CUTOUT_INFERENCE_TIMEOUT_MS);
+        const output = outputs[outputName];
+        if (!output) {
+          throw new CutoutError("invalid_output", "output tensor");
+        }
+        try {
+          return await readTensorFloat32(output);
+        } finally {
+          output.dispose?.();
+        }
       } catch (error) {
         throw error instanceof CutoutError
           ? error
@@ -133,48 +239,39 @@ export async function segmentBottle(
     },
     { signal: options.signal, policy: options.queue ?? "latest" },
   );
-
-  const postStart = performance.now();
-  const output = results[outputName];
-  if (!output || !(output.data instanceof Float32Array)) {
-    throw new CutoutError("invalid_output", "output tensor");
-  }
-  let flat: Float32Array;
-  try {
-    flat = flattenMaskOutput(output.data, modelSize);
-  } catch (error) {
-    throw new CutoutError("invalid_output", "mask shape", { cause: error });
-  }
-  const refined = refineBottleMask(normalizeU2NetMask(flat), modelSize, modelSize);
-  timing.postprocessMs = elapsed(postStart);
-  if (!refined.validation.ok) {
-    throw new CutoutError(refined.validation.reason, refined.validation.detail);
-  }
-  return { mask: refined.mask, modelSize, features: refined.validation.features, timing };
+  return results;
 }
 
 /**
- * マスクを元画像へ当て、2:3 キャンバスへ下端揃え + 落ち影で置く。色補正はしない。
- * 推論とは独立なので、キャッシュしたマスクから何度でも作れる。
+ * マスクを作業画像の ROI へ当て、角度補正したあと 2:3 へ下端揃え + 落ち影で置く。
+ * 影は最終キャンバスに描き、瓶と一緒に回さない。
  */
-export function composeBottleCutout(input: {
-  source: HTMLCanvasElement;
-  mask: Uint8Array;
-  modelSize: number;
-  output: { width: number; height: number };
-}): HTMLCanvasElement {
-  const scaled = scaleMask(input.mask, input.modelSize, input.source.width, input.source.height);
+export function composeBottleCutout(input: ComposeCutoutInput): HTMLCanvasElement {
+  const roi = extractRoi(input.source, input.roi);
+  const scaled = scaleMask(input.mask, input.modelSize, roi.width, roi.height);
+  const roiCtx = roi.getContext("2d");
+  if (!roiCtx) {
+    throw new CutoutError("unsupported", "canvas 2d");
+  }
+  const image = roiCtx.getImageData(0, 0, roi.width, roi.height);
+  applyAlphaMask(image.data, scaled);
+  const rotated = trimTransparent(
+    rotateRgbaAndMask({
+      rgba: image.data,
+      mask: scaled,
+      width: roi.width,
+      height: roi.height,
+      degrees: input.rotationDegrees,
+    }),
+  );
   const cut = document.createElement("canvas");
-  cut.width = input.source.width;
-  cut.height = input.source.height;
+  cut.width = rotated.width;
+  cut.height = rotated.height;
   const cutCtx = cut.getContext("2d");
   if (!cutCtx) {
     throw new CutoutError("unsupported", "canvas 2d");
   }
-  cutCtx.drawImage(input.source, 0, 0);
-  const image = cutCtx.getImageData(0, 0, cut.width, cut.height);
-  applyAlphaMask(image.data, scaled);
-  cutCtx.putImageData(image, 0, 0);
+  cutCtx.putImageData(new ImageData(rotated.rgba, rotated.width, rotated.height), 0, 0);
   const dest = document.createElement("canvas");
   dest.width = input.output.width;
   dest.height = input.output.height;
@@ -189,12 +286,7 @@ function paintCutoutOnCanvas(cutout: HTMLCanvasElement, dest: HTMLCanvasElement)
     throw new CutoutError("unsupported", "canvas 2d");
   }
   const image = srcCtx.getImageData(0, 0, cutout.width, cutout.height);
-  const box = alphaBoundingBox(
-    image.data,
-    cutout.width,
-    cutout.height,
-    PHOTO_CUTOUT_MASK.bboxAlpha,
-  ) ?? {
+  const box = alphaBoxFromRgba(image.data, cutout.width, cutout.height, PHOTO_CUTOUT_MASK.bboxAlpha) ?? {
     x: 0,
     y: 0,
     width: cutout.width,
@@ -232,87 +324,47 @@ function paintCutoutOnCanvas(cutout: HTMLCanvasElement, dest: HTMLCanvasElement)
   );
 }
 
-async function getSession(
-  onProgress?: (progress: RemoveBackgroundProgress) => void,
-): Promise<LoadedSession> {
-  if (sessionReady && sessionPromise) {
-    const loaded = await sessionPromise;
-    return {
-      session: loaded.session,
-      timing: { modelDownloadMs: 0, ortLoadMs: 0, sessionCreateMs: 0 },
-    };
+function alphaBoxFromRgba(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  alphaThreshold: number,
+): { x: number; y: number; width: number; height: number } | null {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const alpha = data[(y * width + x) * 4 + 3] ?? 0;
+      if (alpha > alphaThreshold) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
   }
-  if (!sessionPromise) {
-    sessionPromise = createSession(onProgress).then(
-      (loaded) => {
-        sessionReady = true;
-        return loaded;
-      },
-      (error: unknown) => {
-        sessionPromise = null;
-        throw error;
-      },
-    );
+  if (maxX < 0) {
+    return null;
   }
-  return sessionPromise;
+  return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
 }
 
-async function createSession(
-  onProgress?: (progress: RemoveBackgroundProgress) => void,
-): Promise<LoadedSession> {
-  const timing: SessionTiming = emptyCutoutTiming();
-  const ortStart = performance.now();
-  const ort = await loadOrt().catch((error: unknown) => {
-    throw new CutoutError("session_init", "ort load", { cause: error });
-  });
-  timing.ortLoadMs = elapsed(ortStart);
-
-  const downloadStart = performance.now();
-  const bytes = await loadCutoutModelBytes(onProgress).catch((error: unknown) => {
-    throw error instanceof CutoutError
-      ? error
-      : new CutoutError("model_download", undefined, { cause: error });
-  });
-  timing.modelDownloadMs = elapsed(downloadStart);
-
-  const createStart = performance.now();
-  try {
-    const session = await raceWithTimeout(
-      ort.InferenceSession.create(bytes),
-      PHOTO_CUTOUT_DOWNLOAD_TIMEOUT_MS,
-    );
-    timing.sessionCreateMs = elapsed(createStart);
-    return { session, timing };
-  } catch (error) {
-    throw error instanceof CutoutError
-      ? error
-      : new CutoutError("session_init", undefined, { cause: error });
+function extractRoi(source: HTMLCanvasElement, roi: CropRect): HTMLCanvasElement {
+  const width = Math.max(1, Math.round(roi.sw));
+  const height = Math.max(1, Math.round(roi.sh));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new CutoutError("unsupported", "canvas 2d");
   }
-}
-
-/**
- * onnxruntime-web 1.21.0 の `ort.wasm.bundle.min.mjs` は WASM 用 JS を内蔵していない。
- * `importWasmModule` は常に `ort-wasm-simd-threaded.mjs` を dynamic import する。
- * `.wasm` だけ渡すと glue の URL がバンドル JS の隣（`/assets/…mjs`）になり、
- * SPA fallback の HTML を読んで初期化に失敗する。`.mjs` と `.wasm` を同一オリジンへ明示する。
- */
-export function resolveOrtWasmPaths(origin = ""): { mjs: string; wasm: string } {
-  const prefix = origin.replace(/\/$/, "");
-  const directory = `${prefix}${PHOTO_CUTOUT_ORT_WASM_PATH}`;
-  return {
-    mjs: `${directory}${PHOTO_CUTOUT_ORT_MJS_FILE}`,
-    wasm: `${directory}${PHOTO_CUTOUT_ORT_WASM_FILE}`,
-  };
-}
-
-async function loadOrt(): Promise<typeof import("onnxruntime-web")> {
-  const ort = await import("onnxruntime-web/wasm");
-  ort.env.wasm.wasmPaths = resolveOrtWasmPaths(globalThis.location?.origin ?? "");
-  // マルチスレッドは crossOriginIsolated（COOP / COEP）が前提で、現状の配信ヘッダーでは使えない。
-  // 1 固定は意図的。解除は COOP / COEP の影響調査（別 Issue）を通してから
-  ort.env.wasm.numThreads = 1;
-  ort.env.wasm.proxy = false;
-  return ort;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(source, roi.sx, roi.sy, roi.sw, roi.sh, 0, 0, width, height);
+  return canvas;
 }
 
 function resizeToModel(source: HTMLCanvasElement, size: number): HTMLCanvasElement {

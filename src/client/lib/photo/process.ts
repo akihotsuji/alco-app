@@ -1,4 +1,5 @@
 import {
+  PHOTO_CUTOUT_MASK_CACHE_MAX_BYTES,
   PHOTO_CUTOUT_MASK_CACHE_SIZE,
   PHOTO_RECOGNIZE_LONG_EDGE,
   type PhotoMascotPose,
@@ -6,6 +7,7 @@ import {
 import { composeMascot } from "./compose-mascot.ts";
 import { cropResize } from "./crop-resize.ts";
 import { createSharedSegmentation } from "./cutout-cache.ts";
+import { isCutoutCompareMode, resolveCutoutProviderPreference } from "./cutout-provider.ts";
 import {
   CutoutError,
   type CutoutFailureReason,
@@ -14,6 +16,13 @@ import {
   cutoutFailureFields,
   emptyCutoutTiming,
 } from "./cutout-result.ts";
+import {
+  computeInferenceRoi,
+  inferenceKeyParts,
+  normalizeRoi,
+  roiFromNormalized,
+  workImageSize,
+} from "./cutout-roi.ts";
 import type { CutoutQueuePolicy } from "./cutout-scheduler.ts";
 import { decodeImage } from "./decode-image.ts";
 import { encodeCutoutBlob } from "./encode-cutout.ts";
@@ -21,6 +30,7 @@ import {
   type AspectRatio,
   aspectForKind,
   computeCoverCrop,
+  type CropRect,
   fitToLongEdge,
   type OutputSize,
   outputSizeForAspect,
@@ -60,6 +70,8 @@ export type ProcessPhotoInput = PhotoEditParams & {
   onRecognizeJpeg?: (jpeg: Blob) => void;
   /** 保存・バッチは fifo。省略時はプレビュー向け latest */
   cutoutQueue?: CutoutQueuePolicy;
+  /** 手動角度。未指定なら自動補正角。推論は再実行しない */
+  rotationDegrees?: number;
 };
 
 /**
@@ -102,17 +114,39 @@ export type PreviewCutoutInput = PhotoEditParams & {
   signal?: AbortSignal;
 };
 
+export type CutoutComposeAssets = {
+  work: HTMLCanvasElement;
+  roi: CropRect;
+  mask: Uint8Array;
+  modelSize: number;
+  output: OutputSize;
+  autoAngle: number;
+};
+
 export type CutoutPreview =
-  | { status: "success"; canvas: HTMLCanvasElement; cached: boolean; timing: CutoutTiming }
+  | {
+      status: "success";
+      canvas: HTMLCanvasElement;
+      cached: boolean;
+      timing: CutoutTiming;
+      autoAngle: number;
+      rotationDegrees: number;
+      assets: CutoutComposeAssets;
+    }
   | { status: "failed"; reason: CutoutFailureReason; detail?: string };
 
 type PreparedPhoto = {
   aspect: AspectRatio;
   output: OutputSize;
-  /** トリミング・リサイズ済み。色補正はしない */
+  /** 棚用 2:3 またはノート用 4:5。認識 JPEG と切り抜き OFF 用 */
   cropped: HTMLCanvasElement;
-  /** 背景除去の同一性キー（画像・比率・位置・拡縮） */
+  /** 背景除去の同一性キー（画像・ROI・モデル・前処理版。角度は含めない） */
   segmentationKey: string;
+};
+
+type PreparedCutout = PreparedPhoto & {
+  work: HTMLCanvasElement;
+  inferenceRoi: CropRect;
 };
 
 /** 画像オブジェクトの同一性。Blob URL ではなくオブジェクトそのものを使い、GC を妨げない */
@@ -130,15 +164,18 @@ function sourceIdentity(source: CanvasImageSource): number {
 }
 
 export function segmentationKeyFor(params: PhotoEditParams): string {
-  const aspect = aspectForKind(params.kind);
-  return [
-    sourceIdentity(params.source),
-    params.kind,
-    `${aspect.width}:${aspect.height}`,
-    params.scale.toFixed(4),
-    params.offsetX.toFixed(4),
-    params.offsetY.toFixed(4),
-  ].join("|");
+  const roi = computeInferenceRoi({
+    sourceWidth: params.sourceWidth,
+    sourceHeight: params.sourceHeight,
+    scale: params.scale,
+    offsetX: params.offsetX,
+    offsetY: params.offsetY,
+  });
+  return inferenceKeyParts({
+    sourceId: sourceIdentity(params.source),
+    roi: normalizeRoi(roi, params.sourceWidth, params.sourceHeight),
+    compareProvider: isCutoutCompareMode() ? resolveCutoutProviderPreference() : undefined,
+  });
 }
 
 /** 向き補正済みの元画像から、比率・位置・拡縮を確定する */
@@ -161,6 +198,31 @@ export function preparePhoto(params: PhotoEditParams): PreparedPhoto {
   };
 }
 
+function prepareCutoutWork(params: PhotoEditParams, prepared: PreparedPhoto): PreparedCutout {
+  const size = workImageSize(params.sourceWidth, params.sourceHeight);
+  const work = resizeKeepAspect(params.source, params.sourceWidth, params.sourceHeight, size);
+  const sourceRoi = computeInferenceRoi({
+    sourceWidth: params.sourceWidth,
+    sourceHeight: params.sourceHeight,
+    scale: params.scale,
+    offsetX: params.offsetX,
+    offsetY: params.offsetY,
+  });
+  const inferenceRoi = roiFromNormalized(
+    normalizeRoi(sourceRoi, params.sourceWidth, params.sourceHeight),
+    work.width,
+    work.height,
+  );
+  return { ...prepared, work, inferenceRoi };
+}
+
+function roiCanvasFrom(prepared: PreparedCutout): HTMLCanvasElement {
+  return cropResize(prepared.work, prepared.inferenceRoi, {
+    width: Math.max(1, Math.round(prepared.inferenceRoi.sw)),
+    height: Math.max(1, Math.round(prepared.inferenceRoi.sh)),
+  });
+}
+
 /** 切り抜く前の 2:3 JPEG（ラベル読み取り用。保存しない） */
 export async function prepareRecognitionImage(prepared: PreparedPhoto): Promise<Blob> {
   return toJpegBlob(prepared.cropped);
@@ -168,15 +230,17 @@ export async function prepareRecognitionImage(prepared: PreparedPhoto): Promise<
 
 const segmentation = createSharedSegmentation<
   {
-    cropped: HTMLCanvasElement;
+    roiCanvas: HTMLCanvasElement;
     onProgress?: (progress: RemoveBackgroundProgress) => void;
     queue?: CutoutQueuePolicy;
   },
   BottleSegmentation
 >({
   limit: PHOTO_CUTOUT_MASK_CACHE_SIZE,
+  maxBytes: PHOTO_CUTOUT_MASK_CACHE_MAX_BYTES,
+  sizeOf: (value) => value.mask.byteLength,
   run: (input, { signal }) =>
-    segmentBottle(input.cropped, {
+    segmentBottle(input.roiCanvas, {
       onProgress: input.onProgress,
       signal,
       queue: input.queue,
@@ -188,8 +252,23 @@ export function clearSegmentationCache(): void {
   segmentation.clear();
 }
 
+/** 同じ RGB / マスクを角度だけ変えて合成する。推論しない */
+export function composeCutoutPreview(
+  assets: CutoutComposeAssets,
+  rotationDegrees: number,
+): HTMLCanvasElement {
+  return composeBottleCutout({
+    source: assets.work,
+    roi: assets.roi,
+    mask: assets.mask,
+    modelSize: assets.modelSize,
+    output: assets.output,
+    rotationDegrees,
+  });
+}
+
 async function segmentPrepared(
-  prepared: PreparedPhoto,
+  prepared: PreparedCutout,
   options: {
     onProgress?: (progress: RemoveBackgroundProgress) => void;
     signal?: AbortSignal;
@@ -198,7 +277,11 @@ async function segmentPrepared(
 ): Promise<{ segmentation: BottleSegmentation; cached: boolean }> {
   const result = await segmentation.request(
     prepared.segmentationKey,
-    { cropped: prepared.cropped, onProgress: options.onProgress, queue: options.queue },
+    {
+      roiCanvas: roiCanvasFrom(prepared),
+      onProgress: options.onProgress,
+      queue: options.queue,
+    },
     { signal: options.signal },
   );
   return { segmentation: result.value, cached: result.cached };
@@ -212,6 +295,9 @@ function timingFrom(
   const base = emptyCutoutTiming();
   if (seg && !cached) {
     Object.assign(base, seg.timing);
+  } else if (seg) {
+    base.provider = seg.provider;
+    base.fallback = seg.fallback;
   }
   base.postprocessMs += extra.composeMs;
   base.encodeMs = extra.encodeMs;
@@ -228,19 +314,22 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
   if (!supportsBackgroundRemoval()) {
     return { status: "failed", reason: "unsupported" };
   }
-  const prepared = preparePhoto(input);
+  const prepared = prepareCutoutWork(input, preparePhoto(input));
   try {
     const { segmentation: seg, cached } = await segmentPrepared(prepared, {
       onProgress: input.onCutoutProgress,
       signal: input.signal,
       queue: "latest",
     });
+    const rotationDegrees = seg.upright.correctionDegrees;
     const composeStart = performance.now();
     const canvas = composeBottleCutout({
-      source: prepared.cropped,
+      source: prepared.work,
+      roi: prepared.inferenceRoi,
       mask: seg.mask,
       modelSize: seg.modelSize,
       output: prepared.output,
+      rotationDegrees,
     });
     const composeMs = Math.round(performance.now() - composeStart);
     const timing = timingFrom(seg, cached, {
@@ -248,8 +337,22 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
       encodeMs: 0,
       totalMs: Math.round(performance.now() - started),
     });
-    recordCutoutMetric("preview", { status: "success", cached, timing });
-    return { status: "success", canvas, cached, timing };
+    const assets: CutoutComposeAssets = {
+      work: prepared.work,
+      roi: prepared.inferenceRoi,
+      mask: seg.mask,
+      modelSize: seg.modelSize,
+      output: prepared.output,
+      autoAngle: rotationDegrees,
+    };
+    recordCutoutMetric("preview", {
+      status: "success",
+      cached,
+      timing,
+      autoAngle: rotationDegrees,
+      rotationDegrees,
+    });
+    return { status: "success", canvas, cached, timing, autoAngle: rotationDegrees, rotationDegrees, assets };
   } catch (error) {
     const fields = cutoutFailureFields(error);
     if (fields.reason !== "superseded") {
@@ -346,18 +449,22 @@ async function processCellarPhoto(
   let composeMs = 0;
   let encodeMs = 0;
   try {
-    const result = await segmentPrepared(prepared, {
+    const cutoutPrepared = prepareCutoutWork(input, prepared);
+    const result = await segmentPrepared(cutoutPrepared, {
       onProgress: input.onCutoutProgress,
       queue: input.cutoutQueue ?? "fifo",
     });
     seg = result.segmentation;
     cached = result.cached;
+    const rotationDegrees = input.rotationDegrees ?? seg.upright.correctionDegrees;
     const composeStart = performance.now();
     const dest = composeBottleCutout({
-      source: prepared.cropped,
+      source: cutoutPrepared.work,
+      roi: cutoutPrepared.inferenceRoi,
       mask: seg.mask,
       modelSize: seg.modelSize,
       output: prepared.output,
+      rotationDegrees,
     });
     composeMs = Math.round(performance.now() - composeStart);
     const encodeStart = performance.now();
@@ -370,6 +477,8 @@ async function processCellarPhoto(
     const cutout: CutoutOutcome = {
       status: "success",
       cached,
+      autoAngle: seg.upright.correctionDegrees,
+      rotationDegrees,
       timing: timingFrom(seg, cached, {
         composeMs,
         encodeMs,

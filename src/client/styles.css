@@ -3002,6 +3002,63 @@ img[data-state="loaded"] {
   text-align: center;
 }
 
+.photo-edit-angle-undo {
+  display: inline;
+  margin-left: var(--space-2);
+}
+
+.photo-edit-angle-panel {
+  padding: 0 calc(var(--space-4) + var(--safe-right)) var(--space-3)
+    calc(var(--space-4) + var(--safe-left));
+}
+
+.photo-edit-angle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 var(--space-2);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.photo-edit-angle-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-edit-angle-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  touch-action: none;
+}
+
+.photo-edit-angle-slider {
+  flex: 1;
+  min-width: 0;
+  height: var(--tap-min);
+  accent-color: var(--primary);
+}
+
+.photo-edit-angle-slider:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.photo-edit-angle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.photo-edit-angle-actions .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .chip {
   position: relative;
   isolation: isolate;

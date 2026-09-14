@@ -90,7 +90,7 @@
 | `/models/**` | precache **しない** | 4.5MB の ONNX。既存の Cache API が担う |
 | 存在しない `/assets/*`（古いハッシュの JS / CSS） | **404**（HTML にしない） | Workers の SPA fallback が `index.html` を返すと、`nosniff` でスクリプト実行が拒否され空画面になる |
 
-- `navigateFallback` は `index.html`（SPA）。denylist は `/api/` と `/assets/` と `*.js` / `*.css` と `/version.json`
+- `navigateFallback` は `index.html`（SPA）。denylist は `/api/` と `/assets/` と `/models/` と `*.js` / `*.mjs` / `*.css` / `*.wasm` / `*.onnx` と `/version.json`
 - `registerType: autoUpdate` + `skipWaiting` + `clientsClaim`。デプロイ後は新 SW がすぐ有効
 - **初回インストール**（この文書読み込み時点で `controller` が無い）では `controllerchange` で再読み込みしない
 - **既存バージョンからの更新**では再読み込みを `app-reload` に一元化する。短時間の重複・画面再起動をまたぐループはしない

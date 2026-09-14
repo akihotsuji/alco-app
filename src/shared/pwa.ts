@@ -59,8 +59,9 @@ export const PWA_NAVIGATE_FALLBACK = "index.html";
 export const PWA_NAVIGATE_FALLBACK_DENYLIST = [
   /^\/api(?:\/|$)/,
   /^\/assets(?:\/|$)/,
+  /^\/models(?:\/|$)/,
   /^\/version\.json$/,
-  /\.(?:js|css)$/,
+  /\.(?:js|mjs|css|wasm|onnx)$/,
 ];
 
 /** セッション付き JSON / 認可付き写真を SW がキャッシュしない */

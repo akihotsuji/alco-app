@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "PhotoEdit.tsx"), "utf8");
+const angleSource = readFileSync(join(here, "PhotoEditAngleControls.tsx"), "utf8");
 const context = readFileSync(join(here, "../layout/photo-edit-context.tsx"), "utf8");
 
 describe("PhotoEdit 切り抜き（Issue #48）", () => {
@@ -23,6 +24,8 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(source).toContain("new AbortController()");
     expect(source).toContain("signal: controller.signal");
     expect(source).toContain("controller.abort()");
+    expect(source).toContain("segmentationKeyFor");
+    expect(source).toContain("composeCutoutPreview");
     expect(source).not.toContain("URL.revokeObjectURL(processed.previewUrl)");
   });
 
@@ -30,6 +33,7 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(source).toContain('processed.cutout?.status === "failed"');
     expect(source).not.toContain('processed.blob.type !== "image/webp"');
     expect(source).toContain('cutoutQueue: kind === "cellar" ? "fifo" : undefined');
+    expect(source).toContain("rotationDegrees: kind === \"cellar\" ? displayRotation : undefined");
   });
 
   it("セラーの編集は元画像または保存済み写真から photo-edit を開き、カメラを起動しない", () => {
@@ -93,6 +97,16 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(context).toContain("forgetAllRecognition");
     expect(context).toContain("discardRecognize");
     expect(context).toContain("usePhotoFormSession");
+  });
+
+  it("切り抜き成功後に角度調整があり、推論完了で自動角へ戻さない", () => {
+    expect(source).toContain("PhotoEditAngleControls");
+    expect(angleSource).toContain("角度を調整");
+    expect(angleSource).toContain("自動補正を取り消す");
+    expect(source).toContain("userRotationRef.current");
+    expect(source).toContain("requestAnimationFrame");
+    expect(source).toContain("}, [cutoutOn, cutoutSupported, kind, open, roiKey, source]);");
+    expect(source).toContain("}, [cutoutBusy, cutoutOn, displayRotation]);");
   });
 
   it("セラーの処理中はマスコットと『この写真を切り抜いています』で伝える", () => {

@@ -1,8 +1,42 @@
 import { CutoutError } from "./cutout-result.ts";
 
 /** 挿入順の小さな LRU。値は Uint8Array のマスク程度を想定（上限 × 約 100KB） */
-export function createLruCache<K, V>(limit: number) {
+export function createLruCache<K, V>(
+  limit: number,
+  options: { maxBytes?: number; sizeOf?: (value: V) => number } = {},
+) {
   const map = new Map<K, V>();
+  let bytes = 0;
+  const sizeOf = options.sizeOf;
+  const maxBytes = options.maxBytes;
+
+  function valueBytes(value: V): number {
+    return sizeOf ? sizeOf(value) : 0;
+  }
+
+  function evictOldest(): void {
+    const oldest = map.keys().next();
+    if (oldest.done) {
+      return;
+    }
+    const removed = map.get(oldest.value);
+    map.delete(oldest.value);
+    if (removed !== undefined) {
+      bytes -= valueBytes(removed);
+    }
+  }
+
+  function evictIfNeeded(): void {
+    while (map.size > limit) {
+      evictOldest();
+    }
+    if (maxBytes !== undefined && sizeOf) {
+      while (bytes > maxBytes && map.size > 0) {
+        evictOldest();
+      }
+    }
+  }
+
   return {
     get(key: K): V | undefined {
       const value = map.get(key);
@@ -13,21 +47,21 @@ export function createLruCache<K, V>(limit: number) {
       return value;
     },
     set(key: K, value: V): void {
+      const previous = map.get(key);
+      if (previous !== undefined) {
+        bytes -= valueBytes(previous);
+      }
       map.delete(key);
       map.set(key, value);
-      while (map.size > limit) {
-        const oldest = map.keys().next();
-        if (oldest.done) {
-          break;
-        }
-        map.delete(oldest.value);
-      }
+      bytes += valueBytes(value);
+      evictIfNeeded();
     },
     has(key: K): boolean {
       return map.has(key);
     },
     clear(): void {
       map.clear();
+      bytes = 0;
     },
     get size(): number {
       return map.size;
@@ -49,8 +83,16 @@ export type SharedResult<V> = { value: V; cached: boolean };
  * - 実行中: 同じ Promise に相乗りする
  * - 依頼者が全員中断したときだけ実行側へ abort を伝える（1 人が去っても走っている推論の結果は残す）
  */
-export function createSharedSegmentation<I, V>(input: { limit: number; run: SharedRunner<I, V> }) {
-  const cache = createLruCache<string, V>(input.limit);
+export function createSharedSegmentation<I, V>(input: {
+  limit: number;
+  maxBytes?: number;
+  sizeOf?: (value: V) => number;
+  run: SharedRunner<I, V>;
+}) {
+  const cache = createLruCache<string, V>(input.limit, {
+    maxBytes: input.maxBytes,
+    sizeOf: input.sizeOf,
+  });
   const inflight = new Map<
     string,
     { promise: Promise<V>; controller: AbortController; waiters: number }
