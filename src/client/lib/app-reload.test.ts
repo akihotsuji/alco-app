@@ -73,6 +73,33 @@ describe("claimAppReload", () => {
       at: 5_000,
     });
   });
+
+  it("手動最新化の記録がある間は sw-update が二重 reload しない", () => {
+    const storage = new Map<string, string>();
+    const storageApi = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        storage.set(key, value);
+      },
+    };
+    expect(
+      claimAppReload("user", {
+        now: () => 5_000,
+        storage: storageApi,
+        leaveGuardActive: () => false,
+      }),
+    ).toBe("reload");
+    const reload = vi.fn();
+    expect(
+      requestAppReload("sw-update", {
+        now: () => 6_000,
+        storage: storageApi,
+        leaveGuardActive: () => false,
+        reload,
+      }),
+    ).toBe("skip-loop");
+    expect(reload).not.toHaveBeenCalled();
+  });
 });
 
 describe("requestAppReload", () => {
