@@ -64,13 +64,15 @@ function HeaderLeftSlot({
       );
     case "archive":
       return (
-        <IconButton
-          label="貯蔵庫"
+        <button
+          type="button"
+          className="header-text-link header-action"
           onClick={() => navigate("/cellar/archive")}
           {...prefetchPointerProps("/cellar/archive")}
         >
-          <Archive size={20} />
-        </IconButton>
+          <Archive size={18} aria-hidden />
+          貯蔵庫
+        </button>
       );
     case "day-prev":
       return (
@@ -107,13 +109,15 @@ function HeaderRightSlot({
       );
     case "batch":
       return (
-        <IconButton
-          label="まとめて追加"
+        <button
+          type="button"
+          className="header-text-link header-action"
           onClick={() => navigate(right.to)}
           {...prefetchPointerProps(right.to)}
         >
-          <Images size={20} />
-        </IconButton>
+          <Images size={18} aria-hidden />
+          まとめて追加
+        </button>
       );
     case "edit":
       return (

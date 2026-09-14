@@ -22,6 +22,7 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain("BOTTLE_FIELD_LABELS.variety");
     expect(source).toContain("BOTTLE_FIELD_LABELS.purchasedOn");
     expect(source).toContain("BOTTLE_FIELD_LABELS.storedOn");
+    expect(source).toContain("お酒の詳細（任意）");
     expect(source).toContain("保管情報");
     expect(source).toContain("購入情報");
     expect(source).toContain('id="bottle-variety"');
@@ -40,7 +41,7 @@ describe("BottleForm バリデーション表示", () => {
   it("読み取り帯を出し、AI 印は触ると消える欄に付ける", () => {
     expect(source).toContain("onRecognizeWithBack");
     expect(source).toContain("retryRecognition");
-    expect(source).toContain("<BackPhotoField");
+    expect(source).toContain("<BottlePhotoPair");
     expect(source).toContain("removeFrontPhoto()");
     expect(source).toContain("void backPhoto.clear()");
     expect(source).toContain("savedRef.current = true");

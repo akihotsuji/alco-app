@@ -1,0 +1,16 @@
+export const BOTTLE_PHOTO_ACTION_LABELS = {
+  frontHeading: "表面",
+  backHeading: "裏ラベル",
+  editPhoto: "写真を編集",
+  addBack: "＋ 裏ラベル",
+  adjustCrop: "切り抜きを調整",
+  recapture: "撮り直す",
+  reselect: "写真を選び直す",
+  deletePhoto: "写真を削除",
+  captureBack: "裏ラベルを撮る",
+  selectBack: "裏ラベルを選ぶ",
+  addFrontCapture: "写真を撮る",
+  addFrontLibrary: "写真を選ぶ",
+  frontThumbAlt: "表面の写真",
+  backThumbAlt: "裏ラベルの写真",
+} as const;

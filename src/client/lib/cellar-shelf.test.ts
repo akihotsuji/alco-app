@@ -78,6 +78,7 @@ describe("shelfPageLimit / list view / type shelf", () => {
 
   it("?view= が不正なら localStorage、それも無ければ one", () => {
     expect(parseCellarListView("type")).toBe("type");
+    expect(parseCellarListView("list")).toBe("list");
     expect(parseCellarListView("foo")).toBeNull();
     expect(resolveCellarListView("foo", "type")).toBe("type");
     expect(resolveCellarListView(null, null)).toBe("one");

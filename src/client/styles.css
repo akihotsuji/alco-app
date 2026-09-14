@@ -63,11 +63,11 @@
   --radius-pill: 999px;
   --radius-photo: 20px;
   --header-h: 56px;
-  --tab-h: 72px;
-  --tab-center-size: 60px;
-  --tab-center-lift: 12px;
+  --tab-h: 76px;
+  --tab-center-size: 52px;
+  --tab-center-lift: 8px;
   --wordmark-width: 200px;
-  --page-pad-x: 20px;
+  --page-pad-x: 16px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -785,7 +785,7 @@ input:focus-visible {
   padding: var(--safe-top) calc(var(--space-4) + var(--safe-right)) 0
     calc(var(--space-4) + var(--safe-left));
   display: grid;
-  grid-template-columns: var(--tap-min) 1fr var(--tap-min);
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--space-2);
   background: var(--background);
@@ -844,6 +844,19 @@ input:focus-visible {
   white-space: nowrap;
 }
 
+button.header-text-link {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.header-action {
+  gap: var(--space-1);
+  padding-inline: var(--space-1);
+  font-size: 13px;
+}
+
 .app-content {
   flex: 1;
   min-height: 0;
@@ -855,7 +868,7 @@ input:focus-visible {
 }
 
 .app-content.has-add-fab {
-  padding-bottom: calc(var(--tab-h) + 12px + 52px + 16px + var(--safe-bottom));
+  padding-bottom: calc(var(--tab-h) + 12px + 48px + 16px + var(--safe-bottom));
 }
 
 /* 00-common 1.4。タブより上・トーストより下。primary にはしない */
@@ -864,6 +877,18 @@ input:focus-visible {
   right: calc(var(--page-pad-x) + var(--safe-right));
   bottom: calc(var(--tab-h) + 16px + var(--safe-bottom));
   z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: var(--shadow-outset-sm);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
 }
 
 .app-shell-no-tabs .app-content {
@@ -1003,8 +1028,11 @@ input:focus-visible {
 
 /* 中央タブは着地画面を持たない（(c)）ため現在地状態は無い。沈むのは押下中（M-21）だけ */
 .tab-center-label {
-  font-size: 12px;
-  line-height: 1;
+  font-size: 10px;
+  line-height: 1.2;
+  max-width: 4.8em;
+  text-align: center;
+  white-space: normal;
 }
 
 @media (max-width: 360px) {
@@ -4311,7 +4339,7 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
   padding: var(--space-3);
   border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: var(--shadow-outset-sm);
+  box-shadow: var(--shadow-inset-sm);
   color: inherit;
   text-decoration: none;
 }
@@ -4769,7 +4797,8 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 }
 
 .bottle-tile-img.is-photo {
-  object-fit: cover;
+  object-fit: contain;
+  object-position: bottom center;
   border-radius: 8px;
 }
 
@@ -4820,13 +4849,16 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   min-width: 0;
   align-self: stretch;
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .bottle-tile-name {
   margin-top: var(--space-1);
   font-size: 13px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.3;
+  min-height: calc(13px * 1.3 * 2);
 }
 
 .bottle-tile-sub {
@@ -4869,44 +4901,40 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 
 .shelf-type {
   position: relative;
-  margin-top: 44px;
+  margin-top: 0;
 }
 
-.shelf-ghost,
-.shelf-ghost-open {
-  position: absolute;
-  top: -44px;
-  left: 0;
-  z-index: 2;
+.shelf-type-heading {
   display: flex;
-  align-items: center;
-  gap: var(--space-1);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+}
+
+.shelf-type-title {
   margin: 0;
-  height: 44px;
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--shelf-ghost);
-  font-size: 44px;
+  min-width: 0;
+  color: var(--foreground);
+  font-size: 16px;
   font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
-.shelf-ghost {
-  pointer-events: none;
-}
-
-.shelf-ghost-open {
+.shelf-type-all {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
   padding: 0;
   border: 0;
   background: transparent;
-  pointer-events: auto;
-}
-
-.shelf-ghost-open svg {
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
+  color: var(--primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .shelf-type-scroll {
@@ -5945,4 +5973,260 @@ html[data-reduce-motion="1"] .guide-fan-item {
   margin: 0;
   font-size: var(--text-body);
   line-height: 1.6;
+}
+
+.bottle-photo-pair-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.bottle-photo-slot {
+  flex: 1 1 140px;
+  min-width: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bottle-photo-empty {
+  width: 100%;
+  max-width: 100px;
+  height: 150px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inset-sm);
+  background: var(--surface);
+}
+
+.bottle-photo-action {
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+}
+
+.photo-action-panel-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-action-panel-item {
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+
+.photo-action-panel-item.is-danger {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.count-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.count-stepper-input {
+  width: 3.2rem;
+  min-height: var(--tap-min);
+  text-align: center;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  border: 0;
+  background: transparent;
+  box-shadow: var(--shadow-inset-sm);
+  border-radius: var(--radius);
+}
+
+.count-stepper-unit {
+  color: var(--muted);
+}
+
+.bottle-manage-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bottle-manage-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 72px;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-inset-sm);
+  color: inherit;
+  text-decoration: none;
+}
+
+.bottle-manage-thumb {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 72px;
+}
+
+.bottle-manage-thumb .bottle-tile-img,
+.bottle-manage-thumb .bottle-tile-silhouette {
+  width: 48px;
+  height: 72px;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.bottle-manage-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-weight: 600;
+}
+
+.bottle-manage-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.bottle-detail-photos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.bottle-hero.is-compact .bottle-hero-img,
+.bottle-hero.is-compact .bottle-silhouette {
+  height: 180px;
+}
+
+.bottle-hero.is-compact .bottle-hero-img.is-photo {
+  height: 180px;
+  object-fit: contain;
+}
+
+.bottle-detail-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.bottle-status-row {
+  align-items: flex-start;
+}
+
+.bottle-cellar-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-outset-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bottle-summary {
+  text-align: start;
+}
+
+.bottle-prop.is-stack dd,
+.bottle-prop.is-memo dd {
+  text-align: start;
+}
+
+.form-delete-spaced {
+  margin-top: var(--space-8);
+}
+
+.archive-lead {
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.note-source-toggle {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.note-edit-summary {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.note-edit-summary-photo,
+.note-edit-summary-empty {
+  width: 56px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.note-edit-summary-empty {
+  box-shadow: var(--shadow-inset-sm);
+  background: var(--surface);
+}
+
+.note-edit-summary-name {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.note-edit-summary-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.bottle-link-button {
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-outset-sm);
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 600;
+}
+
+.cellar-view-toggle {
+  flex-wrap: wrap;
+}
+
+.cellar-search-field {
+  flex: 1 1 100%;
+  max-width: none;
 }

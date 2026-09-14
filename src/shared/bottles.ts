@@ -355,6 +355,11 @@ export function formatBottleCount(count: number): string {
   return `${count} 本`;
 }
 
+/** 種類見出し「赤ワイン 13本」。ヘッダーの「N 本」とはスペースを変える */
+export function formatCompactBottleCount(count: number): string {
+  return `${count}本`;
+}
+
 export function arrangedToastMessage(count: number): string {
   return count >= 2 ? `棚に ${count} 本並べました` : "棚に並べました";
 }

@@ -13,8 +13,8 @@ describe("Shelf / BottleTile / CellarList", () => {
   it("段の棚板ハイライトとタイル出現を data 属性で発火する", () => {
     expect(shelf).toContain("data-highlight");
     expect(shelf).toContain('layout === "type"');
-    expect(shelf).toContain("shelf-ghost");
-    expect(shelf).toContain("shelf-ghost-open");
+    expect(shelf).toContain("shelf-type-heading");
+    expect(shelf).toContain("すべて見る");
     expect(shelf).toContain("onOpenType");
     expect(list).toContain("openGrid");
     expect(list).toContain("TypeShelfHeading");

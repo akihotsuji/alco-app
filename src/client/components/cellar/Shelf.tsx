@@ -4,6 +4,7 @@ import { BottleTile, type BottleTileMode } from "@/client/components/cellar/Bott
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
 import { chunkShelfRows, typeShelfWidthPx } from "@/client/lib/cellar-shelf.ts";
 import type { BottleItem } from "@/shared/bottles.ts";
+import { formatCompactBottleCount } from "@/shared/bottles.ts";
 
 export type ShelfLayout = "one" | "type";
 
@@ -12,7 +13,8 @@ type ShelfProps = {
   columns: number;
   mode: BottleTileMode;
   layout?: ShelfLayout;
-  ghostLabel?: string;
+  typeLabel?: string;
+  typeCount?: number;
   highlightRow?: number | null;
   enterId?: string | null;
   canLoadMore?: boolean;
@@ -25,7 +27,8 @@ export function Shelf({
   columns,
   mode,
   layout = "one",
-  ghostLabel,
+  typeLabel,
+  typeCount,
   highlightRow,
   enterId,
   canLoadMore = false,
@@ -37,7 +40,8 @@ export function Shelf({
       <TypeShelf
         items={items}
         mode={mode}
-        ghostLabel={ghostLabel}
+        typeLabel={typeLabel}
+        typeCount={typeCount}
         highlight={highlightRow === 0}
         enterId={enterId}
         canLoadMore={canLoadMore}
@@ -68,27 +72,39 @@ export function Shelf({
   );
 }
 
-export function TypeShelfHeading({ label, onOpen }: { label: string; onOpen?: () => void }) {
-  if (!onOpen) {
-    return <p className="shelf-ghost">{label}</p>;
-  }
+export function TypeShelfHeading({
+  typeLabel,
+  count,
+  onOpen,
+}: {
+  typeLabel: string;
+  count: number;
+  onOpen?: () => void;
+}) {
+  const title = `${typeLabel} ${formatCompactBottleCount(count)}`;
   return (
-    <button
-      type="button"
-      className="shelf-ghost-open"
-      onClick={onOpen}
-      aria-label={`${label}を開く`}
-    >
-      <span>{label}</span>
-      <ChevronRight aria-hidden size={28} />
-    </button>
+    <div className="shelf-type-heading">
+      <h2 className="shelf-type-title">{title}</h2>
+      {onOpen ? (
+        <button
+          type="button"
+          className="shelf-type-all"
+          onClick={onOpen}
+          aria-label={`${title}をすべて見る`}
+        >
+          すべて見る
+          <ChevronRight aria-hidden size={18} />
+        </button>
+      ) : null}
+    </div>
   );
 }
 
 function TypeShelf({
   items,
   mode,
-  ghostLabel,
+  typeLabel,
+  typeCount,
   highlight,
   enterId,
   canLoadMore,
@@ -97,7 +113,8 @@ function TypeShelf({
 }: {
   items: readonly BottleItem[];
   mode: BottleTileMode;
-  ghostLabel?: string;
+  typeLabel?: string;
+  typeCount?: number;
   highlight: boolean;
   enterId?: string | null;
   canLoadMore: boolean;
@@ -109,7 +126,9 @@ function TypeShelf({
 
   return (
     <section className="shelf-type" data-highlight={highlight ? "1" : undefined}>
-      {ghostLabel ? <TypeShelfHeading label={ghostLabel} onOpen={onOpenType} /> : null}
+      {typeLabel !== undefined && typeCount !== undefined ? (
+        <TypeShelfHeading typeLabel={typeLabel} count={typeCount} onOpen={onOpenType} />
+      ) : null}
       <div className="shelf-type-scroll" ref={scrollRef}>
         <div className="shelf-type-inner" style={{ minWidth: width }}>
           <div className="shelf-type-items">

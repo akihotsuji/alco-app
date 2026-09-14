@@ -92,6 +92,7 @@ export function ArchivePage() {
       {query.isError ? (
         <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />
       ) : null}
+      <p className="archive-lead">{CELLAR_COPY.archiveLead}</p>
       {emptyInventory ? (
         <EmptyState pose="default" message="開栓したボトルはここに並びます" />
       ) : null}

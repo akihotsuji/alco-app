@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { BottleManageList } from "@/client/components/cellar/BottleManageList.tsx";
 import { CellarSwitcher } from "@/client/components/cellar/CellarSwitcher.tsx";
 import { CellarToolbar } from "@/client/components/cellar/CellarToolbar.tsx";
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
@@ -85,7 +86,7 @@ function TypeShelfRow({
   initialPageUpdatedAt: number;
 }) {
   const typeGrid = useTypeGrid();
-  const label = `${DRINK_TYPE_LABELS[drinkType]} ${formatBottleCount(count)}`;
+  const typeLabel = DRINK_TYPE_LABELS[drinkType];
   const openType = () =>
     typeGrid.openGrid({
       drinkType,
@@ -115,7 +116,7 @@ function TypeShelfRow({
   if (query.isPending) {
     return (
       <section className="shelf-type" aria-busy>
-        <TypeShelfHeading label={label} onOpen={openType} />
+        <TypeShelfHeading typeLabel={typeLabel} count={count} onOpen={openType} />
         <div className="shelf-type-scroll">
           <div className="shelf-board" />
         </div>
@@ -131,7 +132,8 @@ function TypeShelfRow({
       columns={items.length}
       mode="cellar"
       layout="type"
-      ghostLabel={label}
+      typeLabel={typeLabel}
+      typeCount={count}
       highlightRow={highlight ? 0 : null}
       enterId={enterId}
       canLoadMore={Boolean(query.hasNextPage && !query.isFetchingNextPage)}
@@ -183,7 +185,7 @@ export function CellarList() {
       ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
       ...(cellarId ? { cellarId } : {}),
     },
-    view === "one",
+    view === "one" || view === "list",
   );
   const typeMeta = useBottles(
     {
@@ -211,7 +213,7 @@ export function CellarList() {
   const errored = bottlesError && !optimisticCellarPending;
   const refetch = view === "type" ? typeMeta.refetch : oneQuery.refetch;
   const fetching = view === "type" ? typeMeta.isFetching : oneQuery.isFetching;
-  const filteredOut = Boolean(filters.q || (view === "one" && filters.drinkType));
+  const filteredOut = Boolean(filters.q || (view !== "type" && filters.drinkType));
   const emptyInventory = actualCount === 0;
   useEffect(() => {
     if (emptyInventory && !guide.cellarHintSeen) {
@@ -425,6 +427,19 @@ export function CellarList() {
             highlightRow={highlightRow}
             enterId={enterId}
           />
+          {oneQuery.hasNextPage ? (
+            <LoadMoreSentinel
+              enabled={oneQuery.hasNextPage && !oneQuery.isFetchingNextPage}
+              onVisible={() => {
+                void oneQuery.fetchNextPage();
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
+      {view === "list" && oneItems.length > 0 ? (
+        <>
+          <BottleManageList items={oneItems} />
           {oneQuery.hasNextPage ? (
             <LoadMoreSentinel
               enabled={oneQuery.hasNextPage && !oneQuery.isFetchingNextPage}

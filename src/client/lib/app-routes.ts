@@ -22,14 +22,14 @@ export type TabId = (typeof TAB_IDS)[number];
 export type TabDef = {
   id: TabId;
   label: string;
-  /** タブの根。中央タブ「記録」は着地画面を持たない作成動作なので `null`（00-common 1.2） */
+  /** タブの根。中央タブ「飲酒を記録」は着地画面を持たない作成動作なので `null`（00-common 1.2） */
   root: string | null;
 };
 
 export const TABS: readonly TabDef[] = [
   { id: "home", label: "ホーム", root: "/" },
   { id: "cellar", label: "セラー", root: "/cellar" },
-  { id: "log", label: "記録", root: null },
+  { id: "log", label: "飲酒を記録", root: null },
   { id: "notes", label: "ノート", root: "/notes" },
   { id: "settings", label: "設定", root: "/settings" },
 ];
@@ -294,7 +294,7 @@ export function resolveAppRoute(
       return detailRoute(
         "bottle-detail",
         "cellar",
-        "ボトル",
+        "ボトル詳細",
         "/cellar",
         `/cellar/${segments[1]}/edit`,
       );
@@ -449,11 +449,11 @@ export function addFabForRoute(
 ): AddFab | null {
   const route = resolveAppRoute(pathname, now, search);
   if (route.screenId === "bottle-list") {
-    return { to: "/cellar/new", label: "追加" };
+    return { to: "/cellar/new", label: "＋ ボトル追加" };
   }
   if (route.screenId === "note-list") {
     const bottleId = new URLSearchParams(search).get("bottleId");
-    return { to: noteCreateHref(bottleId), label: "作成" };
+    return { to: noteCreateHref(bottleId), label: "＋ ノート作成" };
   }
   return null;
 }

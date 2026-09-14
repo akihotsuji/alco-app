@@ -10,6 +10,7 @@ import {
   emptyJsonBodySchema,
   escapeLike,
   formatBottleCount,
+  formatCompactBottleCount,
   isPurchasedOnAllowed,
   normalizeOptionalText,
   reorderBottlesSchema,
@@ -240,6 +241,7 @@ describe("escapeLike / helpers", () => {
 
   it("本数表示と並べたトースト", () => {
     expect(formatBottleCount(12)).toBe("12 本");
+    expect(formatCompactBottleCount(13)).toBe("13本");
     expect(arrangedToastMessage(1)).toBe("棚に並べました");
     expect(arrangedToastMessage(3)).toBe("棚に 3 本並べました");
     expect(emptyCountsByType().wine).toBe(0);

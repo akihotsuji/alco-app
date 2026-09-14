@@ -11,6 +11,7 @@ import {
   isNoteFormDirty,
   NOTE_SAVE_DISABLED_HINT,
   NOTE_SAVE_LABELS,
+  NOTE_SAVE_UNCHANGED_HINT,
   noteFormStateFromDrinkLog,
   noteSaveDisabledHint,
   toCreateTastingNoteBody,
@@ -255,5 +256,13 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
     );
     expect(NOTE_SAVE_LABELS.idle).toBe("ノートを保存");
     expect(noteSaveDisabledHint(state, errors, "none")).toBe(NOTE_SAVE_DISABLED_HINT);
+    expect(
+      noteSaveDisabledHint(
+        { ...state, drinkName: "赤", drinkType: "wine", ratingX10: 40 },
+        {},
+        "none",
+        { dirty: false },
+      ),
+    ).toBe(NOTE_SAVE_UNCHANGED_HINT);
   });
 });

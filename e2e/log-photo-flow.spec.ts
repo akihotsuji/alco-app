@@ -8,7 +8,7 @@ const drinkJpeg = join(dirname(fileURLToPath(import.meta.url)), "fixtures/drink.
 test("酒記録は写真選択後に詳細入力へ直接進み、拡大できる", async ({ page }) => {
   await signUpAsNewUser(page);
 
-  await mainNav(page).getByRole("button", { name: "お酒を記録" }).click();
+  await mainNav(page).getByRole("button", { name: "飲酒を記録" }).click();
   await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
   await page.getByRole("textbox", { name: /品名/ }).fill("手入力ワイン");
 

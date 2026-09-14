@@ -57,7 +57,11 @@ export function NoteToolbar({
             種類 ▼
           </Chip>
         )}
-        <Chip selected={ratingChipOn} onSelect={toggleRatingMin}>
+        <Chip
+          selected={ratingChipOn}
+          aria-label={ratingChipOn ? "評価4以上の絞り込みを解除" : "評価4以上で絞り込む"}
+          onSelect={toggleRatingMin}
+        >
           ★4 以上
         </Chip>
       </div>

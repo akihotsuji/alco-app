@@ -26,8 +26,9 @@ describe("isValidLogDateParam", () => {
 });
 
 describe("TABS", () => {
-  it("中央タブ「記録」だけ根を持たない（作成ボタン。00-common 1.2）", () => {
+  it("中央タブ「飲酒を記録」だけ根を持たない（作成ボタン。00-common 1.2）", () => {
     expect(TABS.map((tab) => tab.id)).toEqual(["home", "cellar", "log", "notes", "settings"]);
+    expect(TABS.find((tab) => tab.id === "log")?.label).toBe("飲酒を記録");
     expect(TABS.find((tab) => tab.id === "log")?.root).toBeNull();
     for (const tab of TABS.filter((tab) => tab.id !== "log")) {
       expect(tab.root).toMatch(/^\//);
@@ -178,7 +179,7 @@ describe("resolveAppRoute", () => {
       to: "/cellar/batch",
     });
     expect(header.titleMuted).toBe("0 本");
-    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new", label: "追加" });
+    expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new", label: "＋ ボトル追加" });
   });
 
   it("まとめて追加は予約セグメントで、戻る＋タブ隠しのフォーム画面", () => {
@@ -218,6 +219,7 @@ describe("resolveAppRoute", () => {
       kind: "back",
       fallback: "/logs",
     });
+    expect(resolveAppRoute("/cellar/b1", NOW).header.title).toBe("ボトル詳細");
     expect(resolveAppRoute("/cellar/b1", NOW).header.right).toEqual({
       kind: "edit",
       to: "/cellar/b1/edit",
@@ -254,10 +256,10 @@ describe("note hrefs", () => {
     expect(header.right).toEqual({ kind: "spacer" });
     expect(addFabForRoute("/notes", `?bottleId=${id}`)).toEqual({
       to: `/notes/new?bottleId=${id}`,
-      label: "作成",
+      label: "＋ ノート作成",
     });
     expect(resolveAppRoute("/notes", NOW).header.right).toEqual({ kind: "spacer" });
-    expect(addFabForRoute("/notes")).toEqual({ to: "/notes/new", label: "作成" });
+    expect(addFabForRoute("/notes")).toEqual({ to: "/notes/new", label: "＋ ノート作成" });
     expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}`).header.left).toEqual({
       kind: "back",
       fallback: `/notes?bottleId=${id}`,

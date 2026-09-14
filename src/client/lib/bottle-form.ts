@@ -60,6 +60,9 @@ export type BottleFormField =
   | "photoIds";
 
 export const BOTTLE_DETAILS_ERROR_FIELDS = [
+  "variety",
+  "producer",
+  "origin",
   "storedOn",
   "storage",
   "purchasedOn",
@@ -73,6 +76,13 @@ export type BottleFormErrors = Partial<Record<BottleFormField, string>>;
 export const BOTTLE_SAVE_LABELS = {
   arrange: (count: number) => `棚に並べる（${count} 本）`,
   save: "保存する",
+} as const;
+
+export const BOTTLE_SAVE_HINTS = {
+  unchanged: "変更はありません",
+  required: "必須項目を入力してください",
+  photoUploading: "写真の保存が終わるまでお待ちください",
+  photoError: "写真を再試行するか削除してください",
 } as const;
 
 export function createEmptyBottleForm(now: Date = new Date()): BottleFormState {
@@ -207,12 +217,40 @@ export function canSubmitBottleForm(
 export function hasBottleDetails(state: BottleFormState): boolean {
   const storage = state.storage.trim();
   return (
+    state.variety.trim().length > 0 ||
+    state.producer.trim().length > 0 ||
+    state.origin.trim().length > 0 ||
     state.purchasedOn.trim().length > 0 ||
     state.priceJpy.trim().length > 0 ||
     state.shop.trim().length > 0 ||
     (storage.length > 0 && storage !== DEFAULT_BOTTLE_STORAGE) ||
     state.memo.trim().length > 0
   );
+}
+
+export function bottleSaveDisabledHint(input: {
+  mode: "new" | "edit";
+  dirty: boolean;
+  name: string;
+  photo: PhotoSaveStatus;
+  canSubmit: boolean;
+}): string | null {
+  if (input.photo === "uploading") {
+    return BOTTLE_SAVE_HINTS.photoUploading;
+  }
+  if (input.photo === "error") {
+    return BOTTLE_SAVE_HINTS.photoError;
+  }
+  if (input.mode === "edit" && !input.dirty) {
+    return BOTTLE_SAVE_HINTS.unchanged;
+  }
+  if (input.name.trim().length === 0) {
+    return BOTTLE_SAVE_HINTS.required;
+  }
+  if (!input.canSubmit) {
+    return BOTTLE_SAVE_HINTS.required;
+  }
+  return null;
 }
 
 export function firstBottleDetailsErrorField(
@@ -455,9 +493,16 @@ export function vintageLabel(value: number | null): string | null {
 
 export type BottlePropLayout = "inline" | "stack" | "memo";
 
+const STACK_PROP_LABELS = new Set(["生産者", "購入場所", "保管場所", "品種", "生産国"]);
+
 export function bottlePropLayout(label: string): BottlePropLayout {
-  return label === "メモ" ? "memo" : "inline";
+  if (label === "メモ") {
+    return "memo";
+  }
+  return STACK_PROP_LABELS.has(label) ? "stack" : "inline";
 }
+
+export const UNKNOWN_PROP_VALUE = "不明";
 
 export function formatBottleDisplayDate(value: string): string {
   return formatLongJapaneseDate(value);

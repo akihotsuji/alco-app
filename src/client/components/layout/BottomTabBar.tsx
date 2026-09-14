@@ -29,7 +29,7 @@ export function BottomTabBar({ activeTab, onSelect, guideTarget }: BottomTabBarP
               key={tab.id}
               type="button"
               className="tab-center"
-              aria-label="お酒を記録"
+              aria-label={tab.label}
               onClick={() => onSelect(tab)}
               {...prefetchTabPointerProps(tab.id)}
             >

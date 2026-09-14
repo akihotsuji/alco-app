@@ -9,6 +9,7 @@ type ChipProps = {
   /** `loading`（M-07）/ `success`（M-08）。1 タップ記録のチップが使う */
   state?: MotionState;
   className?: string;
+  "aria-label"?: string;
   onSelect: () => void;
 };
 
@@ -22,12 +23,14 @@ export function Chip({
   disabled,
   state,
   className,
+  "aria-label": ariaLabel,
   onSelect,
 }: ChipProps) {
   return (
     <button
       type="button"
       className={cn("chip", selected && "is-on", className)}
+      aria-label={ariaLabel}
       aria-pressed={selected}
       disabled={disabled}
       data-state={state && state !== "idle" ? state : undefined}

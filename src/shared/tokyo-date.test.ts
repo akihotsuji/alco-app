@@ -3,12 +3,14 @@ import {
   addCalendarDays,
   addCalendarMonths,
   addCalendarYears,
+  formatConsumedEventBadge,
   formatHomeDateLabel,
   formatLongJapaneseDate,
   formatMonthDay,
   formatShortMonthDay,
   formatTokyoTime,
   formatWeekdayShort,
+  formatTastedOnLabel,
   formatYearMonth,
   instantToTokyoLocal,
   isoWeekDates,
@@ -92,6 +94,12 @@ describe("format labels", () => {
     expect(formatWeekdayShort("2026-09-05")).toBe("土");
     expect(formatYearMonth("2026-08-01")).toBe("2026年8月");
     expect(formatLongJapaneseDate("2026-08-01")).toBe("2026年8月1日");
+    expect(formatConsumedEventBadge("2026-09-05")).toBe("開栓 9/5");
+    expect(formatTastedOnLabel("2026-09-05", new Date("2026-09-04T15:00:00.000Z"))).toBe("今日");
+    expect(formatTastedOnLabel("2026-08-01", new Date("2026-09-04T15:00:00.000Z"))).toBe("8月1日");
+    expect(formatTastedOnLabel("2025-12-31", new Date("2026-09-04T15:00:00.000Z"))).toBe(
+      "2025年12月31日",
+    );
   });
 
   it("不正な暦日は投げる", () => {

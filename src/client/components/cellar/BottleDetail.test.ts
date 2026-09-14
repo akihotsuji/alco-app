@@ -45,8 +45,9 @@ describe("BottleDetail 状態バッジ", () => {
   });
 
   it("プロパティの年はヴィンテージ、産地は生産国と書く", () => {
-    expect(source).toContain("BOTTLE_FIELD_LABELS.name");
-    expect(source).toContain("BOTTLE_FIELD_LABELS.vintage");
+    expect(source).toContain("bottle-detail-name");
+    expect(source).toContain("UNKNOWN_PROP_VALUE");
+    expect(source).toContain("vintageLabel");
     expect(source).toContain("BOTTLE_FIELD_LABELS.variety");
     expect(source).toContain("BOTTLE_FIELD_LABELS.origin");
     expect(source).not.toContain('label: "年"');

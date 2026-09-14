@@ -9,7 +9,7 @@ const DRINK_NAME = "E2Eスモークビール";
 test("サインアップから記録し、今日と週のサマリー数字が合う", async ({ page }) => {
   await signUpAsNewUser(page);
 
-  await mainNav(page).getByRole("button", { name: "お酒を記録" }).click();
+  await mainNav(page).getByRole("button", { name: "飲酒を記録" }).click();
   await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
 
   await page.getByRole("textbox", { name: /品名/ }).fill(DRINK_NAME);

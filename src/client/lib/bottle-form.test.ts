@@ -6,6 +6,7 @@ import { ApiClientError } from "./api.ts";
 import {
   bottleFormStateFromBottle,
   bottlePropLayout,
+  bottleSaveDisabledHint,
   bottleStatusPill,
   canSubmitBottleForm,
   createEmptyBottleForm,
@@ -169,14 +170,14 @@ describe("dirty / helpers", () => {
     expect(hasBottleDetails(EMPTY)).toBe(false);
     expect(hasBottleDetails({ ...EMPTY, storage: DEFAULT_BOTTLE_STORAGE })).toBe(false);
     expect(hasBottleDetails({ ...EMPTY, vintage: "2020" })).toBe(false);
-    expect(hasBottleDetails({ ...EMPTY, variety: "カベルネ" })).toBe(false);
+    expect(hasBottleDetails({ ...EMPTY, variety: "カベルネ" })).toBe(true);
     expect(hasBottleDetails({ ...EMPTY, storage: "リビング" })).toBe(true);
     expect(vintageLabel(null)).toBeNull();
     expect(vintageLabel(2020)).toBe("2020");
     expect(bottlePropLayout("品名")).toBe("inline");
-    expect(bottlePropLayout("生産者")).toBe("inline");
-    expect(bottlePropLayout("購入場所")).toBe("inline");
-    expect(bottlePropLayout("保管場所")).toBe("inline");
+    expect(bottlePropLayout("生産者")).toBe("stack");
+    expect(bottlePropLayout("購入場所")).toBe("stack");
+    expect(bottlePropLayout("保管場所")).toBe("stack");
     expect(bottlePropLayout("メモ")).toBe("memo");
     expect(bottlePropLayout("価格")).toBe("inline");
     expect(bottlePropLayout("購入日")).toBe("inline");
@@ -237,6 +238,44 @@ describe("dirty / helpers", () => {
       storedOn: "",
       storage: "",
     });
+  });
+});
+
+describe("bottleSaveDisabledHint", () => {
+  it("未変更のときは保存しない理由を返す", () => {
+    expect(
+      bottleSaveDisabledHint({
+        mode: "edit",
+        dirty: false,
+        name: "赤",
+        photo: "none",
+        canSubmit: false,
+      }),
+    ).toBe("変更はありません");
+  });
+
+  it("品名が空のときは必須不足の理由を返す", () => {
+    expect(
+      bottleSaveDisabledHint({
+        mode: "new",
+        dirty: true,
+        name: "",
+        photo: "none",
+        canSubmit: false,
+      }),
+    ).toBe("必須項目を入力してください");
+  });
+
+  it("保存できるときは理由を返さない", () => {
+    expect(
+      bottleSaveDisabledHint({
+        mode: "edit",
+        dirty: true,
+        name: "赤",
+        photo: "ready",
+        canSubmit: true,
+      }),
+    ).toBeNull();
   });
 });
 

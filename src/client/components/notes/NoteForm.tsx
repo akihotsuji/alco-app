@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
@@ -20,6 +21,7 @@ import { NotePhotoStrip } from "@/client/components/notes/NotePhotoStrip.tsx";
 import { NoteTextFields } from "@/client/components/notes/NoteTextFields.tsx";
 import { RatingField } from "@/client/components/notes/RatingField.tsx";
 import { TastedOnRow } from "@/client/components/notes/TastedOnRow.tsx";
+import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useDrinkLog } from "@/client/hooks/use-drink-logs.ts";
@@ -32,7 +34,7 @@ import {
 } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { notesListHref } from "@/client/lib/app-routes.ts";
-import { isUuid } from "@/client/lib/bottle-form.ts";
+import { isUuid, vintageLabel } from "@/client/lib/bottle-form.ts";
 import { firstPhotoId } from "@/client/lib/copy-owned-photo.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
@@ -73,9 +75,9 @@ import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { startNoteRecognition } from "@/client/lib/recognize-session.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
+import { DRINK_TYPE_LABELS } from "@/shared/constants.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
-import type { TastingNote } from "@/shared/tasting-notes.ts";
-import { NOTE_DRINK_NAME_MAX_LENGTH } from "@/shared/tasting-notes.ts";
+import { NOTE_DRINK_NAME_MAX_LENGTH, type TastingNote } from "@/shared/tasting-notes.ts";
 
 const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";
@@ -270,6 +272,7 @@ function NoteNewFields({
     <NoteFormFields
       state={state}
       errors={visibleErrors}
+      mode="new"
       saveHint={noteSaveDisabledHint(state, errors, photoStatus)}
       lead="香りや味わいを残す"
       targetName={formOrigin && state.bottleName ? state.bottleName : null}
@@ -434,7 +437,8 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
       <NoteFormFields
         state={state}
         errors={visibleErrors}
-        saveHint={noteSaveDisabledHint(state, errors, photoStatus)}
+        mode="edit"
+        saveHint={noteSaveDisabledHint(state, errors, photoStatus, { dirty })}
         formError={formError}
         photoStatus={photoStatus}
         canSubmit={canSubmit}
@@ -452,7 +456,7 @@ function LoadedNoteEdit({ note }: { note: TastingNote }) {
           pendingLeave.current = null;
         }}
       />
-      <button type="button" className="log-delete" onClick={() => setDeleteOpen(true)}>
+      <button type="button" className="log-delete form-delete-spaced" onClick={() => setDeleteOpen(true)}>
         このノートを削除
       </button>
       <Dialog
@@ -473,6 +477,7 @@ function NoteFormFields({
   state,
   errors,
   saveHint,
+  mode = "new",
   lead,
   targetName,
   formError,
@@ -492,6 +497,7 @@ function NoteFormFields({
   state: NoteFormState;
   errors: NoteFormErrors;
   saveHint: string | null;
+  mode?: "new" | "edit";
   lead?: string;
   targetName?: string | null;
   formError: string | null;
@@ -614,33 +620,47 @@ function NoteFormFields({
     onUpdate({ [field]: value }, field);
   }
 
-  return (
-    <div className="form-page log-form">
-      {lead ? <p className="form-lead">{lead}</p> : null}
-      {targetName ? <TargetBottleChip name={targetName} /> : null}
-      {formError ? (
-        <p className="form-error" role="alert">
-          {formError}
-        </p>
-      ) : null}
-      <NotePhotoStrip
-        items={photos.items}
-        canAdd={photos.canAdd}
-        error={errors.photoIds}
-        onAdd={() => void photos.addPhoto()}
-        onLibrary={() => void photos.addPhoto("library")}
-        onEdit={(key) => void photos.editPhoto(key)}
-        onRetry={(key) => void photos.retryPhoto(key)}
-        onRemove={(key) => {
-          recognizedJpegRef.current = null;
-          setRecognizeStatus(null);
-          void photos.removePhoto(key);
-        }}
-        onMakeFirst={photos.makeFirst}
-      />
-      {recognizeStatus ? (
-        <RecognizeBanner status={recognizeStatus} messages={NOTE_RECOGNIZE_BANNER} />
-      ) : null}
+  const identityError =
+    Boolean(errors.vintage || errors.variety || errors.producer || errors.origin);
+  const [source, setSource] = useState<"cellar" | "manual">(() =>
+    state.bottleId ? "cellar" : "manual",
+  );
+  const [identityOpen, setIdentityOpen] = useState(() => identityError);
+  const identityId = useId();
+  const identityExpanded = identityOpen || identityError;
+
+  function selectBottle(bottle: Parameters<typeof applySelectedBottle>[1] | null) {
+    if (bottle) {
+      onUpdate(applySelectedBottle(state, bottle, { preserveEdits: true }));
+      const userAdded = photos.items.some((item) => !item.key.startsWith("inherit-"));
+      if (bottle.thumbPhotoId && !userAdded) {
+        void photos.inheritFrom(bottle.thumbPhotoId);
+      }
+      return;
+    }
+    onUpdate(clearSelectedBottle(state));
+  }
+
+  const photoStrip = (
+    <NotePhotoStrip
+      items={photos.items}
+      canAdd={photos.canAdd}
+      error={errors.photoIds}
+      onAdd={() => void photos.addPhoto()}
+      onLibrary={() => void photos.addPhoto("library")}
+      onEdit={(key) => void photos.editPhoto(key)}
+      onRetry={(key) => void photos.retryPhoto(key)}
+      onRemove={(key) => {
+        recognizedJpegRef.current = null;
+        setRecognizeStatus(null);
+        void photos.removePhoto(key);
+      }}
+      onMakeFirst={photos.makeFirst}
+    />
+  );
+
+  const nameAndType = (
+    <>
       <section className="log-form-section">
         <FieldLabel htmlFor="note-drink-name" required>
           {IDENTITY_FIELD_LABELS.drinkName}
@@ -672,43 +692,103 @@ function NoteFormFields({
           onUpdate({ drinkType }, "drinkType");
         }}
       />
-      <BottlePickerRow
-        placement="optional"
-        bottleId={state.bottleId}
-        bottleName={state.bottleName}
-        valueLabel={
-          state.bottleName ? bottleRowLabel(state.bottleName, state.bottleStatus) : undefined
-        }
-        error={errors.bottleId}
-        onSelect={(bottle) => {
-          if (bottle) {
-            onUpdate(applySelectedBottle(state, bottle, { preserveEdits: true }));
-            const userAdded = photos.items.some((item) => !item.key.startsWith("inherit-"));
-            if (bottle.thumbPhotoId && !userAdded) {
-              void photos.inheritFrom(bottle.thumbPhotoId);
+    </>
+  );
+
+  const picker = (
+    <BottlePickerRow
+      placement={mode === "new" && source === "cellar" ? "field" : "optional"}
+      label="セラーのボトル"
+      emptyValue="セラーから選ぶ"
+      bottleId={state.bottleId}
+      bottleName={state.bottleName}
+      valueLabel={
+        state.bottleName ? bottleRowLabel(state.bottleName, state.bottleStatus) : undefined
+      }
+      error={errors.bottleId}
+      onSelect={selectBottle}
+    />
+  );
+
+  const identityFields = (
+    <IdentityFields
+      idPrefix="note"
+      values={{
+        vintage: state.vintage,
+        variety: state.variety,
+        producer: state.producer,
+        origin: state.origin,
+      }}
+      errors={{
+        vintage: errors.vintage,
+        variety: errors.variety,
+        producer: errors.producer,
+        origin: errors.origin,
+      }}
+      aiMarks={aiMarks}
+      onChange={(field, value) => markIdentity(field, value)}
+    />
+  );
+
+  return (
+    <div className="form-page log-form">
+      {lead ? <p className="form-lead">{lead}</p> : null}
+      {targetName ? <TargetBottleChip name={targetName} /> : null}
+      {formError ? (
+        <p className="form-error" role="alert">
+          {formError}
+        </p>
+      ) : null}
+      {mode === "new" ? (
+        <NoteSourceToggle
+          source={source}
+          onChange={(next) => {
+            setSource(next);
+            if (next === "manual" && state.bottleId) {
+              onUpdate(clearSelectedBottle(state));
             }
-          } else {
-            onUpdate(clearSelectedBottle(state));
+          }}
+        />
+      ) : (
+        <NoteEditSummary state={state} photoUrl={photos.items[0]?.previewUrl} />
+      )}
+      {mode === "new" ? photoStrip : null}
+      {recognizeStatus ? (
+        <RecognizeBanner status={recognizeStatus} messages={NOTE_RECOGNIZE_BANNER} />
+      ) : null}
+      {mode === "new" && source === "cellar" ? picker : null}
+      {mode === "new" ? nameAndType : null}
+      <section className="log-form-section">
+        <button
+          type="button"
+          className={
+            identityExpanded ? "form-row form-row-toggle is-open" : "form-row form-row-toggle"
           }
-        }}
-      />
-      <IdentityFields
-        idPrefix="note"
-        values={{
-          vintage: state.vintage,
-          variety: state.variety,
-          producer: state.producer,
-          origin: state.origin,
-        }}
-        errors={{
-          vintage: errors.vintage,
-          variety: errors.variety,
-          producer: errors.producer,
-          origin: errors.origin,
-        }}
-        aiMarks={aiMarks}
-        onChange={(field, value) => markIdentity(field, value)}
-      />
+          aria-expanded={identityExpanded}
+          aria-controls={identityId}
+          onClick={() => setIdentityOpen((current) => !current)}
+        >
+          <span className="form-row-label">
+            {mode === "edit" ? "お酒の情報を編集" : "お酒の情報（任意）"}
+          </span>
+          <span className="form-row-value" />
+          <ChevronDown size={20} className="form-row-chevron" aria-hidden />
+        </button>
+        {identityExpanded ? (
+          <div id={identityId} className="bottle-details">
+            {mode === "edit" ? (
+              <>
+                {photoStrip}
+                {nameAndType}
+                {picker}
+              </>
+            ) : source === "manual" ? (
+              picker
+            ) : null}
+            {identityFields}
+          </div>
+        ) : null}
+      </section>
       <TastedOnRow
         value={state.tastedOn}
         now={new Date()}
@@ -729,7 +809,7 @@ function NoteFormFields({
         aroma={state.aroma}
         finish={state.finish}
         errors={errors}
-        defaultOpen={noteDetailOpen(state)}
+        defaultOpen={noteDetailOpen(state) || Boolean(errors.appearance || errors.aroma || errors.finish)}
         onChange={(field, value) => onUpdate({ [field]: value }, field)}
       />
       <SaveBar
@@ -749,6 +829,68 @@ function NoteFormFields({
         onPrimary={onDiscard}
         onClose={onCloseDiscard}
       />
+    </div>
+  );
+}
+
+function NoteSourceToggle({
+  source,
+  onChange,
+}: {
+  source: "cellar" | "manual";
+  onChange: (source: "cellar" | "manual") => void;
+}) {
+  return (
+    <fieldset className="note-source-toggle">
+      <legend className="field-label">お酒の入力</legend>
+      <div className="cellar-view-toggle">
+        <button
+          type="button"
+          className={source === "cellar" ? "cellar-view-toggle-option is-on" : "cellar-view-toggle-option"}
+          aria-pressed={source === "cellar"}
+          onClick={() => onChange("cellar")}
+        >
+          セラーから選ぶ
+        </button>
+        <button
+          type="button"
+          className={source === "manual" ? "cellar-view-toggle-option is-on" : "cellar-view-toggle-option"}
+          aria-pressed={source === "manual"}
+          onClick={() => onChange("manual")}
+        >
+          新しく入力
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
+function NoteEditSummary({
+  state,
+  photoUrl,
+}: {
+  state: NoteFormState;
+  photoUrl?: string;
+}) {
+  const vintage = vintageLabel(state.vintage.trim() ? Number(state.vintage) : null);
+  const type = state.drinkType ? DRINK_TYPE_LABELS[state.drinkType] : null;
+  return (
+    <div className="note-edit-summary">
+      {photoUrl ? (
+        <ContentPhoto
+          className="note-edit-summary-photo"
+          src={photoUrl}
+          size={PHOTO_DISPLAY_SIZE.noteCard}
+        />
+      ) : (
+        <div className="note-edit-summary-empty" aria-hidden />
+      )}
+      <div className="note-edit-summary-copy">
+        <p className="note-edit-summary-name">{state.drinkName || "（品名未入力）"}</p>
+        <p className="note-edit-summary-meta">
+          {[vintage, type].filter((value): value is string => Boolean(value)).join(" ・ ")}
+        </p>
+      </div>
     </div>
   );
 }

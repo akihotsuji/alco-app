@@ -4,7 +4,6 @@ import { BottleNotesSection } from "@/client/components/cellar/BottleNotesSectio
 import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.tsx";
 import { OpenedFollowupSheet } from "@/client/components/cellar/OpenedFollowupSheet.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
-import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
@@ -19,9 +18,10 @@ import {
   bottleStatusPill,
   formatBottleDisplayDate,
   formatPriceJpy,
+  UNKNOWN_PROP_VALUE,
   vintageLabel,
 } from "@/client/lib/bottle-form.ts";
-import { newOperationKey } from "@/client/lib/cellar-share.ts";
+import { cellarDisplayName, newOperationKey } from "@/client/lib/cellar-share.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { rememberShelfEvent } from "@/client/lib/history-state.ts";
 import { FORM_ERROR_MESSAGES } from "@/client/lib/log-form.ts";
@@ -55,10 +55,10 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const restore = useRestoreBottle();
   const { items } = useCellarSelection();
   useCellarSync(bottle.cellarId);
-  const shared = items.find((item) => item.id === bottle.cellarId)?.kind === "shared";
+  const cellar = items.find((item) => item.id === bottle.cellarId);
+  const shared = cellar?.kind === "shared";
   const navigate = useNavigate();
   const { showToast } = useToast();
-  useSetHeaderOverride({ title: bottle.name });
   const photo = bottle.photos[0];
   const backPhoto = bottle.photos[1];
   const lightboxPhoto = lightbox === "back" ? backPhoto : lightbox === "front" ? photo : undefined;
@@ -66,35 +66,27 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const statusPill = bottleStatusPill(bottle);
   const pending = consume.isPending || restore.isPending;
   const vintage = vintageLabel(bottle.vintage);
-  const summary = [
-    DRINK_TYPE_LABELS[bottle.drinkType],
-    vintage,
-    bottle.variety,
-    bottle.origin,
-  ].filter((value): value is string => Boolean(value));
+  const summary = [DRINK_TYPE_LABELS[bottle.drinkType], vintage].filter(
+    (value): value is string => Boolean(value),
+  );
   const rows: { label: string; value: string }[] = [
-    { label: BOTTLE_FIELD_LABELS.name, value: bottle.name },
-    { label: "種類", value: DRINK_TYPE_LABELS[bottle.drinkType] },
-    ...(vintage ? [{ label: BOTTLE_FIELD_LABELS.vintage, value: vintage }] : []),
-    ...(bottle.variety ? [{ label: BOTTLE_FIELD_LABELS.variety, value: bottle.variety }] : []),
-    ...(bottle.origin ? [{ label: BOTTLE_FIELD_LABELS.origin, value: bottle.origin }] : []),
-    ...(bottle.producer ? [{ label: "生産者", value: bottle.producer }] : []),
-    ...(bottle.purchasedOn
-      ? [
-          {
-            label: BOTTLE_FIELD_LABELS.purchasedOn,
-            value: formatBottleDisplayDate(bottle.purchasedOn),
-          },
-        ]
-      : []),
-    ...(bottle.priceJpy !== null
-      ? [{ label: "価格", value: formatPriceJpy(bottle.priceJpy) }]
-      : []),
-    ...(bottle.shop ? [{ label: "購入場所", value: bottle.shop }] : []),
-    ...(bottle.storedOn
-      ? [{ label: BOTTLE_FIELD_LABELS.storedOn, value: formatBottleDisplayDate(bottle.storedOn) }]
-      : []),
-    ...(bottle.storage ? [{ label: BOTTLE_FIELD_LABELS.storage, value: bottle.storage }] : []),
+    { label: BOTTLE_FIELD_LABELS.variety, value: bottle.variety || UNKNOWN_PROP_VALUE },
+    { label: BOTTLE_FIELD_LABELS.origin, value: bottle.origin || UNKNOWN_PROP_VALUE },
+    { label: "生産者", value: bottle.producer || UNKNOWN_PROP_VALUE },
+    {
+      label: BOTTLE_FIELD_LABELS.purchasedOn,
+      value: bottle.purchasedOn ? formatBottleDisplayDate(bottle.purchasedOn) : UNKNOWN_PROP_VALUE,
+    },
+    {
+      label: "価格",
+      value: bottle.priceJpy !== null ? formatPriceJpy(bottle.priceJpy) : UNKNOWN_PROP_VALUE,
+    },
+    { label: "購入場所", value: bottle.shop || UNKNOWN_PROP_VALUE },
+    {
+      label: BOTTLE_FIELD_LABELS.storedOn,
+      value: bottle.storedOn ? formatBottleDisplayDate(bottle.storedOn) : UNKNOWN_PROP_VALUE,
+    },
+    { label: BOTTLE_FIELD_LABELS.storage, value: bottle.storage || UNKNOWN_PROP_VALUE },
     ...(bottle.updatedByName
       ? [
           {
@@ -103,9 +95,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           },
         ]
       : []),
-    ...(bottle.memo
-      ? [{ label: shared ? CELLAR_COPY.sharedMemoLabel : "メモ", value: bottle.memo }]
-      : []),
+    { label: shared ? CELLAR_COPY.sharedMemoLabel : "メモ", value: bottle.memo || UNKNOWN_PROP_VALUE },
   ];
 
   function failureMessage(): string {
@@ -183,54 +173,62 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
 
   return (
     <div className="bottle-detail skeleton-fade">
-      <button
-        type="button"
-        className={photo?.kind === "cutout" ? "bottle-hero bottle-hero-cutout" : "bottle-hero"}
-        onClick={() => {
-          if (photo) {
-            setLightbox("front");
-          }
-        }}
-        aria-label={photo ? "写真を拡大" : undefined}
-        disabled={!photo}
-      >
-        {photo ? (
-          <ContentPhoto
-            className={
-              photo.kind === "cutout" ? "bottle-hero-img is-cutout" : "bottle-hero-img is-photo"
-            }
-            src={photoContentUrl(photo.id)}
-            size={
-              photo.kind === "cutout"
-                ? PHOTO_DISPLAY_SIZE.bottleHero
-                : PHOTO_DISPLAY_SIZE.bottleHeroPhoto
-            }
-            loading="eager"
-          />
-        ) : (
-          <BottleSilhouette drinkType={bottle.drinkType} />
-        )}
-        <span className="shelf-board bottle-hero-shelf" />
-      </button>
-      {backPhoto ? (
+      <div className="bottle-detail-photos">
         <button
           type="button"
-          className="bottle-back-thumb"
-          onClick={() => setLightbox("back")}
-          aria-label="裏面の写真を拡大"
+          className={
+            photo?.kind === "cutout"
+              ? "bottle-hero bottle-hero-cutout is-compact"
+              : "bottle-hero is-compact"
+          }
+          onClick={() => {
+            if (photo) {
+              setLightbox("front");
+            }
+          }}
+          aria-label={photo ? "写真を拡大" : undefined}
+          disabled={!photo}
         >
-          <span className="photo-thumb bottle-back-thumb-frame">
+          {photo ? (
             <ContentPhoto
-              className="photo-thumb-img"
-              src={photoContentUrl(backPhoto.id)}
-              size={PHOTO_DISPLAY_SIZE.bottleTile}
-              loading="lazy"
+              className={
+                photo.kind === "cutout" ? "bottle-hero-img is-cutout" : "bottle-hero-img is-photo"
+              }
+              src={photoContentUrl(photo.id)}
+              size={
+                photo.kind === "cutout"
+                  ? PHOTO_DISPLAY_SIZE.bottleHero
+                  : PHOTO_DISPLAY_SIZE.bottleHeroPhoto
+              }
+              loading="eager"
             />
-          </span>
-          <span className="bottle-back-thumb-label">裏面</span>
+          ) : (
+            <BottleSilhouette drinkType={bottle.drinkType} />
+          )}
+          <span className="shelf-board bottle-hero-shelf" />
         </button>
-      ) : null}
+        {backPhoto ? (
+          <button
+            type="button"
+            className="bottle-back-thumb"
+            onClick={() => setLightbox("back")}
+            aria-label="裏面の写真を拡大"
+          >
+            <span className="photo-thumb bottle-back-thumb-frame">
+              <ContentPhoto
+                className="photo-thumb-img"
+                src={photoContentUrl(backPhoto.id)}
+                size={PHOTO_DISPLAY_SIZE.bottleTile}
+                loading="lazy"
+              />
+            </span>
+            <span className="bottle-back-thumb-label">裏面</span>
+          </button>
+        ) : null}
+      </div>
+      <h2 className="bottle-detail-name">{bottle.name}</h2>
       <div className="bottle-status-row">
+        {cellar ? <span className="bottle-cellar-chip">{cellarDisplayName(cellar)}</span> : null}
         {statusPill.consumed ? (
           <span className="bottle-status-pill is-consumed">{statusPill.label}</span>
         ) : (
