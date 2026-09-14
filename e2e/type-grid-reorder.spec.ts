@@ -48,9 +48,7 @@ async function openTypeGrid(page: Page): Promise<void> {
   await dismissFirstRunGuide(page);
   await expect(page.getByRole("heading", { name: "セラー" })).toBeVisible();
   await page.getByRole("button", { name: "棚", exact: true }).click();
-  await page
-    .getByRole("button", { name: "赤ワイン 5本をすべて見る" })
-    .click();
+  await page.getByRole("button", { name: "赤ワイン 5本をすべて見る" }).click();
   const dialog = page.getByRole("dialog", { name: /赤ワイン/ });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("長押しして並べ替え")).toBeVisible();
