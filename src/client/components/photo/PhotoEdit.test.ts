@@ -40,7 +40,7 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     const fn = context.slice(context.indexOf("const editAttachment = useCallback("));
     expect(fn).toContain("usableAttachmentBlob");
     expect(fn).toContain("fetchOwnedPhotoBlob");
-    expect(fn).toContain("openWithSource(targetKind, decoded.bitmap, decoded.error)");
+    expect(fn).toContain('openWithSource(targetKind, decoded.bitmap, decoded.error, "processed")');
     expect(fn).not.toContain("startCapture(targetKind)");
     expect(fn).toContain("collectRef.current = null");
   });
@@ -82,7 +82,7 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     // 再編集はこれまでどおりオーバーレイで位置を直す
     expect(context).toContain("const editFromBlob = useCallback(");
     expect(context.slice(context.indexOf("const editFromBlob"))).toContain(
-      "openWithSource(nextKind, decoded.bitmap, decoded.error)",
+      'openWithSource(nextKind, decoded.bitmap, decoded.error, "processed")',
     );
   });
 
@@ -106,8 +106,10 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(angleSource).toContain("自動補正を取り消す");
     expect(source).toContain("userRotationRef.current");
     expect(source).toContain("requestAnimationFrame");
-    expect(source).toContain("}, [cutoutOn, cutoutSupported, kind, open, roiKey, source]);");
-    expect(source).toContain("}, [cutoutBusy, cutoutOn, displayRotation]);");
+    expect(source).toContain(
+      "}, [applyHold, cutoutOn, cutoutSupported, kind, open, roiKey, source, sourceOrigin]);",
+    );
+    expect(source).toContain("}, [cutoutBusy, cutoutOn, displayRotation, maskMode]);");
   });
 
   it("セラーの処理中はマスコットと『この写真を切り抜いています』で伝える", () => {
@@ -127,5 +129,30 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(context).toContain("keepOpen");
     expect(context).toContain("loadBurstFile");
     expect(context).toContain("ingestCollected");
+  });
+
+  it("切り抜き成功後に修正モードがあり、使うは確定マスクを渡す", () => {
+    expect(source).toContain("CUTOUT_MASK_EDIT_MESSAGES.open");
+    expect(source).toContain("PhotoEditMaskControls");
+    expect(source).toContain("PhotoEditMaskView");
+    expect(source).toContain("committedMask: committed");
+    expect(source).toContain("maskSaveBlock");
+    expect(source).toContain("createProcessedCutoutAssets");
+    expect(source).toContain("PHOTO_MASK_EDIT_HISTORY_FLAG");
+    expect(source).toContain("requestCloseMask");
+    expect(angleSource).toContain("角度を調整");
+    expect(angleSource).toContain("extraChip");
+    expect(source).toContain("extraChip=");
+    expect(source).toContain("CUTOUT_MASK_EDIT_MESSAGES.roiChange");
+    expect(context).toContain("sourceOrigin");
+    expect(context).toContain("registerOverlayBackHandler");
+    expect(context).toContain("clearCutoutMaskHoldsForSession");
+  });
+
+  it("ログアウトとアカウント削除で切り抜きマスクの一時保持を捨てる", () => {
+    const requireAuth = readFileSync(join(here, "../../auth/RequireAuth.tsx"), "utf8");
+    expect(requireAuth).toContain("clearAllCutoutMaskHolds()");
+    const discard = readFileSync(join(here, "../../lib/account-deletion-client.ts"), "utf8");
+    expect(discard).toContain("clearAllCutoutMaskHolds()");
   });
 });

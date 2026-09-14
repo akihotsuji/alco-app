@@ -268,6 +268,59 @@ export const PHOTO_CUTOUT_UPRIGHT = {
 export const PHOTO_CUTOUT_ANGLE_MIN = -180;
 export const PHOTO_CUTOUT_ANGLE_MAX = 180;
 
+/**
+ * セラー切り抜きの復元／消去ブラシ（07-photo-capture P5d）。
+ * 作業画像上限は `PHOTO_CUTOUT_WORK_*` のまま。カメラ原寸へは広げない。
+ */
+export const PHOTO_CUTOUT_MASK_EDIT = {
+  sourceOverlayAlpha: 0.25,
+  zoomMin: 1,
+  zoomMax: 8,
+  brushRadiusMin: 6,
+  brushRadiusMid: 18,
+  brushRadiusMax: 40,
+  /** ブラシ縁のアンチエイリアス幅（ROI ピクセルではなく、半径からの内側余白） */
+  brushSoftPx: 1.5,
+  historyMaxStrokes: 50,
+  historyMaxBytes: 32 * 1024 * 1024,
+  holdLimit: 4,
+} as const;
+
+export const PHOTO_MASK_EDIT_HISTORY_FLAG = "alcoPhotoMaskEdit";
+
+export const CUTOUT_MASK_EDIT_MESSAGES = {
+  open: "切り抜きを修正",
+  title: "切り抜きを修正",
+  describe: "残したい部分をなぞって戻せます。背景も一緒に戻るので、輪郭は拡大して調整してください",
+  orientation: "修正中は元写真の向きで表示します",
+  restore: "復元",
+  erase: "消去",
+  pan: "移動",
+  brushSize: "ブラシの太さ",
+  zoomIn: "拡大",
+  zoomOut: "縮小",
+  zoomFit: "全体表示",
+  sourceOverlay: "元写真を薄く表示",
+  processedOverlay: "編集前の画像を薄く表示",
+  undo: "取り消す",
+  redo: "やり直す",
+  reset: "自動切り抜きに戻す",
+  resetConfirmTitle: "自動切り抜きに戻す",
+  resetConfirmBody: "手で直した切り抜きを破棄して、自動切り抜きに戻します。",
+  cancel: "キャンセル",
+  apply: "修正を反映",
+  discardTitle: "修正を破棄しますか？",
+  discardBody: "この画面で直した内容は反映されません。",
+  empty: "残す部分がありません。復元するか、取り消してください",
+  processedHint: "この画像で消えている部分を戻すには、元の写真を選び直してください",
+  roiChange: "切り抜く範囲を変更",
+  roiConfirmTitle: "切り抜く範囲を変更",
+  roiConfirmBody: "範囲を変更すると手動修正がリセットされます",
+  encodeFailed: "切り抜き画像を保存できませんでした。もう一度お試しください",
+  mismatch:
+    "切り抜きの対象が変わったため、修正を保存できません。もう一度切り抜きを修正してください",
+} as const;
+
 /** 設定・photo-edit が共有する localStorage キー（spec/screen-designs/07-photo-capture.md） */
 export const PHOTO_PREF_KEYS = {
   mascot: "photo.mascot",

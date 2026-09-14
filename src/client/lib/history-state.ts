@@ -35,6 +35,14 @@ export function withHistoryFlag(state: unknown, flag: string): Record<string, un
   };
 }
 
+/** 重ねたサブモードを閉じるとき。idx は進めずフラグだけ外す */
+export function withoutHistoryFlag(state: unknown, flag: string): Record<string, unknown> {
+  const base: Record<string, unknown> =
+    typeof state === "object" && state !== null ? { ...state } : {};
+  delete base[flag];
+  return base;
+}
+
 /** `location.state` に載せる写真の受け渡しフラグ（中央タブ / ホームのカメラ → `log-new`） */
 export const PHOTO_HANDOFF_FLAG = "alcoPhotoHandoff";
 

@@ -88,5 +88,22 @@ describe("processCellarPhoto 切り抜きエンコード", () => {
     expect(source).toContain("rotationDegrees");
     expect(source).toContain("prepareCutoutWork");
     expect(source).toContain("composeCutoutPreview");
+    expect(source).toContain("committedMask");
+    expect(source).toContain("inspectCommittedMask");
+    expect(source).toContain("createWorkMaskFromModel");
+    expect(source).toContain("maskSaveBlock");
+    expect(source).toContain("CUTOUT_MASK_EDIT_MESSAGES.empty");
+    expect(source).toContain("CUTOUT_MASK_EDIT_MESSAGES.encodeFailed");
+  });
+
+  it("確定手動マスクがある保存では segmentPrepared を呼ばない", () => {
+    const source = readFileSync(new URL("./process.ts", import.meta.url), "utf8");
+    const fn = source.slice(source.indexOf("async function processCellarPhoto"));
+    expect(fn).toContain("if (committed)");
+    expect(fn).toContain("copyMaskBytes(committed.data)");
+    const autoBranch = fn.slice(fn.indexOf("} else {"));
+    expect(autoBranch).toContain("segmentPrepared");
+    const manualBranch = fn.slice(fn.indexOf("if (committed)"), fn.indexOf("} else {"));
+    expect(manualBranch).not.toContain("segmentPrepared");
   });
 });

@@ -17,6 +17,7 @@ export function PhotoEditAngleControls(input: {
   autoApplied: boolean;
   disabled?: boolean;
   onChange: (degrees: number) => void;
+  extraChip?: ReactNode;
 }): ReactNode {
   useEffect(() => {
     return () => {
@@ -37,6 +38,7 @@ export function PhotoEditAngleControls(input: {
           {input.open ? "✓ " : ""}
           角度を調整
         </button>
+        {input.extraChip}
       </div>
       {input.autoApplied ? (
         <p className="photo-edit-note" role="status">
