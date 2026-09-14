@@ -28,7 +28,11 @@ import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
 import { logDayHref, noteFromLogHref } from "@/client/lib/app-routes.ts";
-import { firstPhotoId, PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
+import {
+  drinkLogSavePhotoId,
+  firstPhotoId,
+  PHOTO_COPY_FAILED_MESSAGE,
+} from "@/client/lib/copy-owned-photo.ts";
 import {
   type DrinkRecognizeTouched,
   drinkRecognizeBannerMessage,
@@ -280,7 +284,7 @@ export function LogNewForm() {
 
   function submit() {
     setSubmitted(true);
-    const body = toCreateDrinkLogBody(state, attachment?.photoId ?? null);
+    const body = toCreateDrinkLogBody(state, drinkLogSavePhotoId(attachment));
     if (!body || !canSubmit || create.isPending) {
       return;
     }

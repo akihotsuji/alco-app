@@ -33,7 +33,7 @@ import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.t
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
-import { PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
+import { drinkLogSavePhotoId, PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
 import {
   type DrinkRecognizeTouched,
   drinkRecognizeBannerMessage,
@@ -183,7 +183,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
 
   function submit() {
     setSubmitted(true);
-    const body = toUpdateDrinkLogBody(state, initial, attachment?.photoId ?? null);
+    const body = toUpdateDrinkLogBody(state, initial, drinkLogSavePhotoId(attachment));
     if (!body || !canSubmit || updateLog.isPending) {
       return;
     }

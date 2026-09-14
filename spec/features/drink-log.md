@@ -225,7 +225,7 @@ Zod は `src/shared` に置き、クライアント（即時表示）とサー�
 | `memo` | 0〜500 文字。trim 後に空なら `null` | 「500文字以内で入力してください」 |
 | `myDrinkId` | UUID。自分のもの以外は **404**（400 ではない） | 画面では「マイドリンクが見つかりません」 |
 | `bottleId` | UUID。参照可能なボトル以外は **404** | 「ボトルが見つかりません」 |
-| `photoIds` | 配列、**最大 1**。自分の未紐付け写真のみ。他人・紐付け済み・不明は 404 | 2 枚以上は「写真は1枚まで添付できます」。404 は「写真をもう一度撮ってください」 |
+| `photoIds` | 配列、**最大 1**。自分の未紐付け写真、または参照可能なボトル写真。ボトル写真はサーバーが複製して記録へ紐付ける（元は残す）。他人・ノート等へ紐付け済み・不明は 404 | 2 枚以上は「写真は1枚まで添付できます」。404 は「写真をもう一度撮ってください」 |
 | `alcoholG` / `drunkOn` / `userId` / `id` | **受け取らない**。含まれていれば未知キーとして 400（`fields[""]`） | — |
 
 PATCH は全フィールド任意（送ったものだけ更新）。空オブジェクトは 400。
@@ -312,8 +312,8 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 - 全エンドポイント認証必須。`c.get("user").id` のみで所有をスコープする。Zod に `userId` を置かない
 - 更新・削除は `id AND user_id`。他人・不在は同じ 404 本文。403 は使わない
 - 参照 ID（`myDrinkId` / `bottleId` / `photoIds`）が他人のものなら 404 で **作成しない**（トランザクション内で確認）
-- `POST /api/drink-logs` は `photoIds` の紐付け（`photos.drink_log_id`）を同一トランザクション（D1 batch）で行う
-- `PATCH` の `photoIds` は差し替え。外れた写真は R2 も削除
+- `POST /api/drink-logs` は `photoIds` の紐付け（`photos.drink_log_id`）を同一トランザクション（D1 batch）で行う。ボトル写真 id は R2 ごと複製してから紐付ける（元は残す）
+- `PATCH` の `photoIds` は差し替え。ボトル写真 id は同様に複製。外れた写真は R2 も削除
 - `DELETE /api/drink-logs/:id` は写真 CASCADE + R2 削除（失敗分は日次 GC が再試行）
 - `GET /api/drink-logs/summary` は `/:id` より **先に登録**
 - 日次フィルタは `drunk_on = :date`（JST 日を保存済み）。期間は `drunk_on BETWEEN :from AND :to`。UTC 日付で切らない

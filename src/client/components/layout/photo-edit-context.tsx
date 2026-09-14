@@ -31,6 +31,8 @@ export type PhotoAttachment = {
   blob: Blob;
   photoId: string | null;
   status: "uploading" | "ready" | "error";
+  /** セラー等から引き継いだ元写真。複製前でも保存できるよう残す */
+  sourcePhotoId?: string;
   recognizeJpeg?: Blob;
   capturedAt?: string;
   sessionId?: string;
@@ -724,8 +726,9 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
           [targetKind]: {
             previewUrl,
             blob: new Blob(),
-            photoId: null,
-            status: "uploading",
+            photoId: sourcePhotoId,
+            status: "ready",
+            sourcePhotoId,
             sessionId: formSessionsRef.current[targetKind]?.sessionId,
           },
         };
@@ -734,7 +737,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
         const copied = await copyOwnedPhoto(sourcePhotoId);
         setAttachments((current) => {
           const existing = current[targetKind];
-          if (!existing || existing.previewUrl !== previewUrl) {
+          if (!existing || existing.sourcePhotoId !== sourcePhotoId) {
             URL.revokeObjectURL(copied.previewUrl);
             return current;
           }
@@ -745,21 +748,13 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
               blob: copied.blob,
               photoId: copied.meta.id,
               status: "ready",
+              sourcePhotoId,
               sessionId: existing.sessionId ?? formSessionsRef.current[targetKind]?.sessionId,
             },
           };
         });
       } catch {
-        setAttachments((current) => {
-          const existing = current[targetKind];
-          if (!existing || existing.previewUrl !== previewUrl) {
-            return current;
-          }
-          const next = { ...current };
-          delete next[targetKind];
-          return next;
-        });
-        throw new Error("photo_copy_failed");
+        // ボトル写真 id のまま保存する。サーバーが複製する
       }
     },
     [],

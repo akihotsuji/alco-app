@@ -108,7 +108,12 @@ export function createDrinkLogsRoute(deps: DrinkLogRouteDeps) {
     .post("/", validate("json", createDrinkLogSchema), async (c) => {
       const user = c.get("user");
       const body = c.req.valid("json");
-      const log = await createDrinkLog({ db: deps.getDb(c), userId: user.id, body });
+      const log = await createDrinkLog({
+        db: deps.getDb(c),
+        bucket: deps.getBucket(c),
+        userId: user.id,
+        body,
+      });
       return c.json(log, 201);
     })
     .get("/", validate("query", drinkLogsQuerySchema), async (c) => {

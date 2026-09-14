@@ -109,6 +109,53 @@ function asContentType(value: string): PhotoContentType {
   return "image/jpeg";
 }
 
+function extensionFromR2Key(r2Key: string): string {
+  const name = r2Key.includes("/") ? r2Key.slice(r2Key.lastIndexOf("/") + 1) : r2Key;
+  const dot = name.lastIndexOf(".");
+  return dot >= 0 ? name.slice(dot + 1) : "jpg";
+}
+
+export type DuplicatedPhotoObject = {
+  id: string;
+  r2Key: string;
+  contentType: string;
+  byteSize: number;
+  width: number | null;
+  height: number | null;
+  kind: PhotoKind;
+  sortOrder: number;
+};
+
+/** R2 オブジェクトを新しいキーへ複製する。DB 行は呼び出し側が挿す（所有排他のため） */
+export async function duplicatePhotoObject(
+  bucket: PhotoBucket,
+  source: Pick<
+    typeof photos.$inferSelect,
+    "r2Key" | "contentType" | "byteSize" | "width" | "height" | "kind" | "sortOrder"
+  >,
+): Promise<DuplicatedPhotoObject> {
+  const object = await bucket.get(source.r2Key);
+  if (!object) {
+    throw new ApiError("internal_error");
+  }
+  const bytes = new Uint8Array(await object.arrayBuffer());
+  const id = crypto.randomUUID();
+  const r2Key = `${id}.${extensionFromR2Key(source.r2Key)}`;
+  await bucket.put(r2Key, bytes, {
+    httpMetadata: { contentType: asContentType(source.contentType) },
+  });
+  return {
+    id,
+    r2Key,
+    contentType: source.contentType,
+    byteSize: source.byteSize,
+    width: source.width,
+    height: source.height,
+    kind: source.kind,
+    sortOrder: source.sortOrder,
+  };
+}
+
 export function toPhotoMeta(row: typeof photos.$inferSelect): PhotoMeta {
   return {
     id: row.id,
