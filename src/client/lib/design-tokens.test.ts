@@ -238,6 +238,16 @@ describe("design tokens", () => {
     expect(loops.every((value) => value?.includes("photo-spin"))).toBe(true);
   });
 
+  it("中央タブラベルは 1 行（飲酒を記 / 録 に切らない）", () => {
+    const match = css.match(/\.tab-center-label\s*\{([^}]+)\}/);
+    expect(match?.[1], ".tab-center-label がありません").toBeTruthy();
+    const block = match?.[1] ?? "";
+    expect(block).toContain("font-size: var(--text-caption)");
+    expect(block).not.toContain("max-width");
+    expect(block).not.toMatch(/white-space:\s*normal/);
+    expect(css).toMatch(/\.tab-label\s*\{[^}]*white-space:\s*nowrap/);
+  });
+
   it("1-07 / 1-08 追補トークンがある", () => {
     const block = rootBlock(css);
     expect(tokenValue(block, "--mascot-line")).toBe("var(--foreground)");

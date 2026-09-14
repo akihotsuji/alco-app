@@ -1027,12 +1027,11 @@ button.header-text-link {
 }
 
 /* 中央タブは着地画面を持たない（(c)）ため現在地状態は無い。沈むのは押下中（M-21）だけ */
+/* 00-common 1.2: 中央ラベルは 12px 固定・1 行。max-width で「飲酒を記」「録」のように切らない */
 .tab-center-label {
-  font-size: 10px;
+  font-size: var(--text-caption);
   line-height: 1.2;
-  max-width: 4.8em;
   text-align: center;
-  white-space: normal;
 }
 
 @media (max-width: 360px) {
