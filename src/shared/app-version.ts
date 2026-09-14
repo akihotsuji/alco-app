@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { APP_VERSION, PHOTO_CUTOUT_CACHE } from "./constants.ts";
+import { APP_VERSION } from "./constants.ts";
 
 /** 設定 S7 / `/version.json`。正本は spec/features/pwa.md 6.1 */
 export const APP_VERSION_FILENAME = "version.json";
@@ -101,13 +101,4 @@ export function shouldRunVersionCheck(
     return true;
   }
   return now - lastAt >= intervalMs;
-}
-
-/** Workbox の precache だけ消す。切り抜きモデルは残す */
-export function isForceRefreshCacheKey(key: string): boolean {
-  if (key === PHOTO_CUTOUT_CACHE) {
-    return false;
-  }
-  const lower = key.toLowerCase();
-  return lower.includes("workbox") || lower.includes("precache");
 }

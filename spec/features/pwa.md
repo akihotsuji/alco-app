@@ -139,10 +139,11 @@ SW 登録は `updateViaCache: "none"`（ブラウザが `sw.js` を HTTP キャ�
 S18 の手順:
 
 1. オフラインなら再読み込みしない（共通のオフライン文）
-2. 登録済み SW の `update()`（最大 8 秒で打ち切る）
-3. Workbox の precache だけ消す（切り抜きモデルの Cache API は残す）
-4. Cookie / localStorage / IndexedDB / セッションは消さない
-5. 未保存があれば既存の離脱保護を通し、`requestAppReload("user")`
+2. 先に再読み込み記録を書く（`claimAppReload("user")`）。`update()` の skipWaiting が `controllerchange` で二重に `reload` しない
+3. 登録済み SW の `update()` と、制御中なら有効化待ち（合計最大 8 秒で打ち切る）。SW が無い開発（Vite）では待たない
+4. **制御中 SW の Workbox precache は消さない。** 空のままナビすると Workbox の `navigateFallback` が失敗し、Chrome（特に Android / スタンドアロン）が `ERR_FAILED`（「このサイトにアクセスできません」）を履歴に積む。戻ると直る、という UX になる
+5. 古い precache は新 SW の `cleanupOutdatedCaches` が消す。切り抜きモデルの Cache API / Cookie / localStorage / IndexedDB / セッションは消さない
+6. 未保存があれば既存の離脱保護を通し、同一パス（`pathname` + `search` + `hash`）を `location.replace` する。`location.reload()` は使わない
 
 トースト「新しいバージョンがあります」+「更新」は、未保存時の SW 更新に加え、`/version.json` の不一致でも出す。押したあとの再読み込みは S18 と同じ経路。
 
@@ -191,7 +192,7 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 - [ ] 初回インストールで不要な再読み込みをしない。更新再読み込みはループしない
 - [ ] 設定の版表記に短いビルド ID が付き、デプロイごとに変わる
 - [ ] `/version.json` が JSON で、HTML の SPA fallback にならない
-- [ ] 設定「最新の状態にする」で再読み込みできる。オフラインでは再読み込みしない
+- [ ] 設定「最新の状態にする」で再読み込みできる。オフラインでは再読み込みしない。接続エラーページ（`ERR_FAILED`）には出ず、設定のまま戻る
 - [ ] 表示名は 酒のしおり。アイコン地はライトの地色。キャラのワイン色は変えない
 - [ ] lint / typecheck / test がパスする
 - [ ] 監査: SW が秘密・認可レスポンスをキャッシュしない

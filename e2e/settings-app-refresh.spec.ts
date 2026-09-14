@@ -25,6 +25,8 @@ test("設定に版表記と最新化があり、押すと設定へ戻る", async
     });
   }
   await refresh.click();
+  await expect(page.getByText("このサイトにアクセスできません")).toHaveCount(0);
+  await expect(page.getByText("ERR_FAILED")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
   await expect(page.getByText(new RegExp(`^${PWA_NAME} ${APP_VERSION} \\(`))).toBeVisible();
   await expect(page.getByRole("button", { name: /最新の状態にする/ })).toBeVisible();
