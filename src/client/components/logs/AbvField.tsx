@@ -67,7 +67,7 @@ export function AbvField({ value, volumeMl = null, error, onChange }: AbvFieldPr
       </legend>
       <div className="abv-cluster">
         <IconButton
-          label="度数を 0.1 減らす"
+          label="度数を 0.5 減らす"
           size="icon-lg"
           disabled={value !== null && value <= ABV_PERCENT_MIN}
           onPointerDown={(event) => {
@@ -105,7 +105,7 @@ export function AbvField({ value, volumeMl = null, error, onChange }: AbvFieldPr
           <span className="unit-field-suffix">%</span>
         </div>
         <IconButton
-          label="度数を 0.1 増やす"
+          label="度数を 0.5 増やす"
           size="icon-lg"
           disabled={value !== null && value >= ABV_PERCENT_MAX}
           onPointerDown={(event) => {

@@ -42,37 +42,41 @@ function createMessages(input: unknown): Record<string, string[]> {
 }
 
 describe("ratingX10 helpers", () => {
-  it("10〜50 の 5 刻みだけを合法とする", () => {
+  it("10〜50 の 1 刻み（0.1）だけを合法とする", () => {
     expect(isValidRatingX10(10)).toBe(true);
+    expect(isValidRatingX10(11)).toBe(true);
+    expect(isValidRatingX10(33)).toBe(true);
     expect(isValidRatingX10(45)).toBe(true);
     expect(isValidRatingX10(50)).toBe(true);
     expect(isValidRatingX10(0)).toBe(false);
-    expect(isValidRatingX10(11)).toBe(false);
-    expect(isValidRatingX10(33)).toBe(false);
+    expect(isValidRatingX10(9)).toBe(false);
     expect(isValidRatingX10(3.3)).toBe(false);
     expect(isValidRatingX10(5.1)).toBe(false);
     expect(isValidRatingX10(1.2)).toBe(false);
     expect(isValidRatingX10(51)).toBe(false);
   });
 
-  it("表示は小数第 1 位、星は整数＋半星", () => {
+  it("表示は小数第 1 位、星は整数＋余り割合", () => {
     expect(formatRatingX10(40)).toBe("4.0");
+    expect(formatRatingX10(42)).toBe("4.2");
     expect(formatRatingX10(45)).toBe("4.5");
-    expect(ratingStarFill(45)).toEqual({ full: 4, half: true });
-    expect(ratingStarFill(40)).toEqual({ full: 4, half: false });
+    expect(ratingStarFill(45)).toEqual({ full: 4, fraction: 0.5 });
+    expect(ratingStarFill(43)).toEqual({ full: 4, fraction: 0.3 });
+    expect(ratingStarFill(40)).toEqual({ full: 4, fraction: 0 });
     expect(ratingX10FromStar(3)).toBe(30);
     expect(ratingX10FromStarTap(null, 4)).toBe(40);
-    expect(ratingX10FromStarTap(40, 4)).toBe(45);
+    expect(ratingX10FromStarTap(40, 4)).toBe(40);
+    expect(ratingX10FromStarTap(41, 4)).toBe(40);
     expect(ratingX10FromStarTap(50, 5)).toBe(50);
   });
 
   it("未選択からの ± は 1.0。下限・上限で止める", () => {
-    expect(stepRatingX10(null, 5)).toBe(RATING_X10_MIN);
-    expect(stepRatingX10(null, -5)).toBe(RATING_X10_MIN);
-    expect(stepRatingX10(10, -5)).toBe(RATING_X10_MIN);
-    expect(stepRatingX10(50, 5)).toBe(RATING_X10_MAX);
-    expect(stepRatingX10(45, 5)).toBe(50);
-    expect(stepRatingX10(15, -5)).toBe(10);
+    expect(stepRatingX10(null, 1)).toBe(RATING_X10_MIN);
+    expect(stepRatingX10(null, -1)).toBe(RATING_X10_MIN);
+    expect(stepRatingX10(10, -1)).toBe(RATING_X10_MIN);
+    expect(stepRatingX10(50, 1)).toBe(RATING_X10_MAX);
+    expect(stepRatingX10(49, 1)).toBe(50);
+    expect(stepRatingX10(11, -1)).toBe(10);
   });
 });
 
@@ -112,7 +116,7 @@ describe("createTastingNoteSchema", () => {
     expect(fields.drinkType).toEqual([TASTING_NOTE_MESSAGES.drinkType]);
   });
 
-  it("評価 3.3 / 5.1 / 1.2 / 0 / 11 は不可", () => {
+  it("評価 5.1 / 1.2 / 0 / 9 は不可。1.1（11）は可", () => {
     expect(createMessages({ ...HAND, ratingX10: 3.3 }).ratingX10).toEqual([
       TASTING_NOTE_MESSAGES.rating,
     ]);
@@ -125,9 +129,11 @@ describe("createTastingNoteSchema", () => {
     expect(createMessages({ ...HAND, ratingX10: 0 }).ratingX10).toEqual([
       TASTING_NOTE_MESSAGES.rating,
     ]);
-    expect(createMessages({ ...HAND, ratingX10: 11 }).ratingX10).toEqual([
+    expect(createMessages({ ...HAND, ratingX10: 9 }).ratingX10).toEqual([
       TASTING_NOTE_MESSAGES.rating,
     ]);
+    expect(createTastingNoteSchema.parse({ ...HAND, ratingX10: 11 }).ratingX10).toBe(11);
+    expect(createTastingNoteSchema.parse({ ...HAND, ratingX10: 42 }).ratingX10).toBe(42);
   });
 
   it("未来日と不正日、7 枚・重複 photoIds、未知キーを拒否する", () => {

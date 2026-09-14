@@ -24,21 +24,23 @@ test("ノートは写真選択後に photo-edit を挟まずサムネが積ま�
   await expect(page.getByRole("heading", { name: "ノートを作成" })).toBeVisible();
   await expect(page.getByText("1 / 6")).toBeVisible();
 
-  const slider = page.getByRole("slider", { name: "評価（1.0〜5.0、0.5刻み）" });
+  const slider = page.getByRole("slider", { name: "評価（1.0〜5.0、0.1刻み）" });
   await expect(slider).toHaveAttribute("aria-valuetext", "未選択");
   await expect(page.getByRole("radio", { name: "評価 4" })).toHaveAttribute(
     "aria-checked",
     "false",
   );
 
-  await slider.focus();
-  for (let i = 0; i < 7; i += 1) {
-    await page.keyboard.press("ArrowRight");
-  }
-  await expect(slider).toHaveAttribute("aria-valuetext", "4.5");
+  await page.getByRole("button", { name: "評価を 0.1 上げる" }).click();
+  await expect(slider).toHaveAttribute("aria-valuetext", "1.0");
+  await page.getByRole("button", { name: "評価を 0.1 上げる" }).click();
+  await expect(slider).toHaveAttribute("aria-valuetext", "1.1");
+
+  await slider.fill("4.2");
+  await expect(slider).toHaveAttribute("aria-valuetext", "4.2");
   await expect(page.getByRole("radio", { name: "評価 4" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByRole("radio", { name: "評価 5" })).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByText("4.5", { exact: true })).toBeVisible();
+  await expect(page.getByText("4.2", { exact: true })).toBeVisible();
 
   await page.getByRole("radio", { name: "評価 3" }).click();
   await expect(slider).toHaveAttribute("aria-valuetext", "3.0");
