@@ -1,15 +1,41 @@
 import { X } from "lucide-react";
 import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { usePhotoEdit } from "@/client/components/layout/photo-edit-context.tsx";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { PhotoEditAngleControls } from "@/client/components/photo/PhotoEditAngleControls.tsx";
+import { PhotoEditMaskControls } from "@/client/components/photo/PhotoEditMaskControls.tsx";
+import {
+  createMaskViewTransform,
+  fitMaskView,
+  PhotoEditMaskView,
+  stepMaskZoom,
+} from "@/client/components/photo/PhotoEditMaskView.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { useFocusTrap } from "@/client/hooks/use-focus-trap.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { BOTTLE_BATCH_MESSAGES } from "@/client/lib/bottle-batch.ts";
+import { historyHasFlag, withHistoryFlag, withoutHistoryFlag } from "@/client/lib/history-state.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
+import { inspectCommittedMask } from "@/client/lib/photo/cutout-mask-buffer.ts";
+import { getCutoutMaskHold, putCutoutMaskHold } from "@/client/lib/photo/cutout-mask-hold.ts";
+import {
+  canRedoMask,
+  canUndoMask,
+  commitDraftToCommitted,
+  createMaskEditSession,
+  hasDraftChanges,
+  hasManualEdits,
+  isDraftEmpty,
+  type MaskEditSession,
+  type MaskEditTool,
+  redoMaskEdit,
+  resetMaskEdit,
+  revertDraftToCommitted,
+  undoMaskEdit,
+} from "@/client/lib/photo/cutout-mask-session.ts";
 import { cutoutFailedUserMessage } from "@/client/lib/photo/cutout-result.ts";
 import {
   aspectForKind,
@@ -25,18 +51,26 @@ import {
 } from "@/client/lib/photo/photo-edit-gestures.ts";
 import { IMAGE_PICK_LABELS, pickImage } from "@/client/lib/photo/pick-image.ts";
 import {
+  assetsIdentity,
   type CutoutComposeAssets,
   composeCutoutPreview,
+  createProcessedCutoutAssets,
   processPhoto,
   previewCutout as renderCutoutPreview,
   segmentationKeyFor,
+  snapshotAssetsMask,
 } from "@/client/lib/photo/process.ts";
 import {
   type RemoveBackgroundProgress,
   supportsBackgroundRemoval,
 } from "@/client/lib/photo/remove-background.ts";
 import { getComposeMascotPref, getCutoutPref, setCutoutPref } from "@/client/lib/preferences.ts";
-import type { PhotoMascotPose } from "@/shared/constants.ts";
+import {
+  CUTOUT_MASK_EDIT_MESSAGES,
+  PHOTO_CUTOUT_MASK_EDIT,
+  PHOTO_MASK_EDIT_HISTORY_FLAG,
+  type PhotoMascotPose,
+} from "@/shared/constants.ts";
 
 const PREVIEW_DEBOUNCE_MS = 500;
 
@@ -45,6 +79,7 @@ export function PhotoEdit() {
     open,
     kind,
     source,
+    sourceOrigin,
     decodeError,
     closePhotoEdit,
     retake,
@@ -54,6 +89,8 @@ export function PhotoEdit() {
     collectedCount,
     canCollectMore,
     loadBurstFile,
+    getFormSessionId,
+    registerOverlayBackHandler,
   } = usePhotoEdit();
   const [scale, setScale] = useState(1);
   const [offsetX, setOffsetX] = useState(0);
@@ -71,6 +108,18 @@ export function PhotoEdit() {
   const [autoAngle, setAutoAngle] = useState(0);
   const [autoApplied, setAutoApplied] = useState(false);
   const [angleOpen, setAngleOpen] = useState(false);
+  const [maskMode, setMaskMode] = useState(false);
+  const [maskTool, setMaskTool] = useState<MaskEditTool>("restore");
+  const [brushRadius, setBrushRadius] = useState<number>(PHOTO_CUTOUT_MASK_EDIT.brushRadiusMid);
+  const [showSourceOverlay, setShowSourceOverlay] = useState(true);
+  const [maskView, setMaskView] = useState(createMaskViewTransform);
+  const [maskRevision, setMaskRevision] = useState(0);
+  const [maskMessage, setMaskMessage] = useState<string | null>(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [roiConfirmOpen, setRoiConfirmOpen] = useState(false);
+  const [roiUnlocked, setRoiUnlocked] = useState(false);
+  const [backDiscard, setBackDiscard] = useState(false);
   const cutoutSupported = kind === "cellar" && supportsBackgroundRemoval();
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -81,8 +130,12 @@ export function PhotoEdit() {
   const angleRaf = useRef(0);
   const userRotationRef = useRef<number | null>(null);
   const editParamsRef = useRef({ scale, offsetX, offsetY });
+  const maskSessionRef = useRef<MaskEditSession | null>(null);
+  const maskModeRef = useRef(false);
+  const pendingBackRef = useRef(false);
   userRotationRef.current = userRotation;
   editParamsRef.current = { scale, offsetX, offsetY };
+  maskModeRef.current = maskMode;
 
   useEffect(() => {
     if (!open) {
@@ -105,6 +158,10 @@ export function PhotoEdit() {
     setAutoAngle(0);
     setAutoApplied(false);
     setAngleOpen(false);
+    setMaskMode(false);
+    maskSessionRef.current = null;
+    setMaskMessage(null);
+    setRoiUnlocked(false);
     composeAssets.current = null;
   }, [open]);
 
@@ -131,6 +188,9 @@ export function PhotoEdit() {
     setAutoAngle(0);
     setAutoApplied(false);
     setAngleOpen(false);
+    setMaskMode(false);
+    maskSessionRef.current = null;
+    setRoiUnlocked(false);
     composeAssets.current = null;
   }, [source]);
 
@@ -156,7 +216,169 @@ export function PhotoEdit() {
     setAutoAngle(0);
     setAutoApplied(false);
     composeAssets.current = null;
+    setRoiUnlocked(false);
   }, [roiKey]);
+
+  const bumpMask = useCallback(() => {
+    setMaskRevision((value) => value + 1);
+  }, []);
+
+  const dropMaskHistory = useCallback(() => {
+    if (historyHasFlag(window.history.state, PHOTO_MASK_EDIT_HISTORY_FLAG)) {
+      window.history.replaceState(
+        withoutHistoryFlag(window.history.state, PHOTO_MASK_EDIT_HISTORY_FLAG),
+        "",
+      );
+    }
+  }, []);
+
+  const persistCommitted = useCallback(
+    (assets: CutoutComposeAssets) => {
+      const sessionId = getFormSessionId();
+      if (!sessionId) {
+        return;
+      }
+      putCutoutMaskHold({
+        formSessionId: sessionId,
+        origin: assets.origin,
+        identity: assetsIdentity(assets),
+        sourceAlpha: assets.sourceAlpha,
+        baseMask: assets.baseMask,
+        committed: snapshotAssetsMask(assets, maskRevision, assets.workMask),
+      });
+    },
+    [getFormSessionId, maskRevision],
+  );
+
+  const applyHold = useCallback(
+    (assets: CutoutComposeAssets): CutoutComposeAssets => {
+      const hold = getCutoutMaskHold(getFormSessionId(), assetsIdentity(assets));
+      if (!hold) {
+        return assets;
+      }
+      assets.workMask = hold.committed.data;
+      assets.baseMask = hold.baseMask;
+      assets.sourceAlpha = hold.sourceAlpha;
+      return assets;
+    },
+    [getFormSessionId],
+  );
+
+  const closeMaskMode = useCallback(
+    (revert: boolean) => {
+      const session = maskSessionRef.current;
+      const assets = composeAssets.current;
+      if (session && revert) {
+        revertDraftToCommitted(session);
+      } else if (session && assets) {
+        if (isDraftEmpty(session)) {
+          setMaskMessage(CUTOUT_MASK_EDIT_MESSAGES.empty);
+          return;
+        }
+        const committed = commitDraftToCommitted(session);
+        assets.workMask = committed.data;
+        composeAssets.current = assets;
+        persistCommitted(assets);
+        setPreviewCutout(composeCutoutPreview(assets, userRotationRef.current ?? assets.autoAngle));
+        setRoiUnlocked(false);
+      }
+      maskSessionRef.current = null;
+      setMaskMode(false);
+      setDiscardOpen(false);
+      setResetOpen(false);
+      setBackDiscard(false);
+      pendingBackRef.current = false;
+      dropMaskHistory();
+    },
+    [dropMaskHistory, persistCommitted],
+  );
+
+  useEffect(() => {
+    registerOverlayBackHandler(() => {
+      if (!maskModeRef.current) {
+        return false;
+      }
+      const session = maskSessionRef.current;
+      if (session && hasDraftChanges(session)) {
+        pendingBackRef.current = true;
+        setBackDiscard(true);
+        setDiscardOpen(true);
+        return true;
+      }
+      maskSessionRef.current = null;
+      setMaskMode(false);
+      return true;
+    });
+    return () => registerOverlayBackHandler(null);
+  }, [registerOverlayBackHandler]);
+
+  useEffect(() => {
+    if (!maskMode) {
+      return;
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        const session = maskSessionRef.current;
+        if (session && hasDraftChanges(session)) {
+          setBackDiscard(false);
+          setDiscardOpen(true);
+          return;
+        }
+        closeMaskMode(true);
+        return;
+      }
+      if (event.key === "1") {
+        setMaskTool("restore");
+      } else if (event.key === "2") {
+        setMaskTool("erase");
+      } else if (event.key === "3") {
+        setMaskTool("pan");
+      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        const session = maskSessionRef.current;
+        if (!session) {
+          return;
+        }
+        if (event.shiftKey) {
+          redoMaskEdit(session);
+        } else {
+          undoMaskEdit(session);
+        }
+        bumpMask();
+      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        const session = maskSessionRef.current;
+        if (session) {
+          redoMaskEdit(session);
+          bumpMask();
+        }
+      } else if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        const session = maskSessionRef.current;
+        if (session) {
+          setMaskView((view) => stepMaskZoom(view, 0.5, session.width, session.height, 280, 360));
+        }
+      } else if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        const session = maskSessionRef.current;
+        if (session) {
+          setMaskView((view) => stepMaskZoom(view, -0.5, session.width, session.height, 280, 360));
+        }
+      } else if (event.key === "0") {
+        event.preventDefault();
+        setMaskView(fitMaskView());
+      } else if (event.key.startsWith("Arrow")) {
+        event.preventDefault();
+        const dx = event.key === "ArrowLeft" ? 24 : event.key === "ArrowRight" ? -24 : 0;
+        const dy = event.key === "ArrowUp" ? 24 : event.key === "ArrowDown" ? -24 : 0;
+        setMaskView((view) => ({ ...view, panX: view.panX + dx, panY: view.panY + dy }));
+      }
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [bumpMask, closeMaskMode, maskMode]);
 
   // プレビューの推論は同一条件で 1 回。結果はマスクとして残り「使う」で再利用される。
   // 条件が変わったら pending を取り消し（走っている推論は結果だけ捨てる）、待ち行列を溜めない
@@ -164,6 +386,33 @@ export function PhotoEdit() {
     void roiKey;
     if (!open || kind !== "cellar" || !cutoutOn || !cutoutSupported || !source) {
       setPreviewCutout(null);
+      setCutoutBusy(false);
+      return;
+    }
+    const existing = composeAssets.current;
+    if (existing && existing.segmentationKey === roiKey) {
+      setPreviewCutout(
+        composeCutoutPreview(existing, userRotationRef.current ?? existing.autoAngle),
+      );
+      setCutoutBusy(false);
+      return;
+    }
+    if (sourceOrigin === "processed") {
+      const assets = applyHold(
+        createProcessedCutoutAssets({
+          source,
+          sourceWidth: source.width,
+          sourceHeight: source.height,
+          kind: "cellar",
+          scale: editParamsRef.current.scale,
+          offsetX: editParamsRef.current.offsetX,
+          offsetY: editParamsRef.current.offsetY,
+        }),
+      );
+      composeAssets.current = assets;
+      setAutoAngle(0);
+      setAutoApplied(false);
+      setPreviewCutout(composeCutoutPreview(assets, userRotationRef.current ?? 0));
       setCutoutBusy(false);
       return;
     }
@@ -190,13 +439,14 @@ export function PhotoEdit() {
         }
         setCutoutBusy(false);
         if (preview.status === "success") {
-          composeAssets.current = preview.assets;
+          const assets = applyHold(preview.assets);
+          composeAssets.current = assets;
           setAutoAngle(preview.autoAngle);
           setAutoApplied(preview.autoAngle !== 0);
           setPreviewCutout(
             userRotationRef.current === null
-              ? preview.canvas
-              : composeCutoutPreview(preview.assets, userRotationRef.current),
+              ? composeCutoutPreview(assets, assets.autoAngle)
+              : composeCutoutPreview(assets, userRotationRef.current),
           );
           return;
         }
@@ -216,7 +466,7 @@ export function PhotoEdit() {
       previewGen.current += 1;
       controller.abort();
     };
-  }, [cutoutOn, cutoutSupported, kind, open, roiKey, source]);
+  }, [applyHold, cutoutOn, cutoutSupported, kind, open, roiKey, source, sourceOrigin]);
 
   const drawPreview = useCallback(() => {
     const canvas = canvasRef.current;
@@ -272,7 +522,7 @@ export function PhotoEdit() {
 
   useEffect(() => {
     const assets = composeAssets.current;
-    if (!assets || cutoutBusy || !cutoutOn) {
+    if (!assets || cutoutBusy || !cutoutOn || maskMode) {
       return;
     }
     window.cancelAnimationFrame(angleRaf.current);
@@ -280,7 +530,7 @@ export function PhotoEdit() {
       setPreviewCutout(composeCutoutPreview(assets, displayRotation));
     });
     return () => window.cancelAnimationFrame(angleRaf.current);
-  }, [cutoutBusy, cutoutOn, displayRotation]);
+  }, [cutoutBusy, cutoutOn, displayRotation, maskMode]);
 
   if (!open) {
     return null;
@@ -288,10 +538,82 @@ export function PhotoEdit() {
 
   const ratioClass = kind === "cellar" ? "photo-edit-frame-bottle" : "photo-edit-frame-log";
   const busy = processing || cutoutBusy;
+  const assets = composeAssets.current;
+  const manualEdits = Boolean(assets && hasManualEdits(assets.workMask, assets.baseMask));
+  const roiLocked = manualEdits && !roiUnlocked && !maskMode;
+  const maskSession = maskSessionRef.current;
+
+  function openMaskMode() {
+    const current = composeAssets.current;
+    if (!current || busy) {
+      return;
+    }
+    setAngleOpen(false);
+    maskSessionRef.current = createMaskEditSession({
+      width: current.workMaskWidth,
+      height: current.workMaskHeight,
+      sourceAlpha: current.sourceAlpha,
+      baseMask: current.baseMask,
+      committedMask: current.workMask,
+    });
+    setMaskView(createMaskViewTransform());
+    setMaskTool("restore");
+    setMaskMessage(null);
+    setMaskMode(true);
+    bumpMask();
+    if (!historyHasFlag(window.history.state, PHOTO_MASK_EDIT_HISTORY_FLAG)) {
+      window.history.pushState(
+        withHistoryFlag(window.history.state, PHOTO_MASK_EDIT_HISTORY_FLAG),
+        "",
+      );
+    }
+  }
+
+  function requestCloseMask() {
+    const session = maskSessionRef.current;
+    if (session && hasDraftChanges(session)) {
+      setBackDiscard(false);
+      setDiscardOpen(true);
+      return;
+    }
+    closeMaskMode(true);
+  }
+
+  function applyMaskEdits() {
+    const session = maskSessionRef.current;
+    if (!session) {
+      return;
+    }
+    if (isDraftEmpty(session)) {
+      setMaskMessage(CUTOUT_MASK_EDIT_MESSAGES.empty);
+      return;
+    }
+    closeMaskMode(false);
+  }
 
   async function onUse() {
-    if (!source || processing) {
+    if (!source || processing || maskMode) {
       return;
+    }
+    const currentAssets = composeAssets.current;
+    if (currentAssets && isSelectionEmpty(currentAssets)) {
+      setMaskMessage(CUTOUT_MASK_EDIT_MESSAGES.empty);
+      return;
+    }
+    const committed =
+      kind === "cellar" && cutoutOn && cutoutSupported && currentAssets
+        ? snapshotAssetsMask(currentAssets, maskRevision, currentAssets.workMask)
+        : undefined;
+    if (committed && currentAssets) {
+      const inspect = inspectCommittedMask(committed, assetsIdentity(currentAssets));
+      if (inspect !== "ok") {
+        setMaskMessage(
+          inspect === "empty"
+            ? CUTOUT_MASK_EDIT_MESSAGES.empty
+            : CUTOUT_MASK_EDIT_MESSAGES.mismatch,
+        );
+        return;
+      }
     }
     // 「使う」の同じタップで次のカメラを開く（切り抜き完了を待たない。G8）
     const nextPickPromise =
@@ -312,10 +634,16 @@ export function PhotoEdit() {
         cutoutOn: kind === "cellar" && cutoutOn && cutoutSupported,
         rotationDegrees: kind === "cellar" ? displayRotation : undefined,
         cutoutQueue: kind === "cellar" ? "fifo" : undefined,
+        committedMask: committed,
+        cutoutOrigin: currentAssets?.origin,
         onCutoutProgress: setCutoutProgress,
         // 背景除去を待たずにラベル読み取りを始められるよう、切り抜く前の JPEG を先に渡す
         onRecognizeJpeg: kind === "cellar" || kind === "note" ? offerRecognizeJpeg : undefined,
       });
+      if (processed.maskSaveBlock) {
+        setMaskMessage(processed.maskSaveBlock.message);
+        return;
+      }
       if (processed.cutout?.status === "failed") {
         // 一時的な失敗。`photo.cutout` はユーザーがトグルを操作したときだけ変える
         setCutoutOn(false);
@@ -334,6 +662,9 @@ export function PhotoEdit() {
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (maskMode || roiLocked) {
+      return;
+    }
     event.preventDefault();
     const next = beginPhotoEditPointer(
       gestures.current,
@@ -349,6 +680,9 @@ export function PhotoEdit() {
   }
 
   function onPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (maskMode || roiLocked) {
+      return;
+    }
     const moved = movePhotoEditPointer(
       gestures.current,
       event.pointerId,
@@ -374,59 +708,97 @@ export function PhotoEdit() {
   return (
     <div
       ref={dialogRef}
-      className={`photo-edit${angleOpen ? " is-angle-open" : ""}`}
+      className={`photo-edit${angleOpen ? " is-angle-open" : ""}${maskMode ? " is-mask-edit" : ""}`}
       role="dialog"
       aria-modal="true"
-      aria-label="写真を編集"
+      aria-label={maskMode ? CUTOUT_MASK_EDIT_MESSAGES.title : "写真を編集"}
     >
       <header className="photo-edit-bar">
-        <IconButton label="閉じる" onClick={closePhotoEdit}>
+        <IconButton
+          label="閉じる"
+          onClick={() => {
+            if (maskMode) {
+              requestCloseMask();
+              return;
+            }
+            closePhotoEdit();
+          }}
+        >
           <X size={20} />
         </IconButton>
+        {maskMode ? (
+          <h2 className="photo-edit-mask-title">{CUTOUT_MASK_EDIT_MESSAGES.title}</h2>
+        ) : null}
         <span className="photo-edit-spacer" />
-        <button type="button" className="header-text-link" onClick={() => void retake("library")}>
-          {IMAGE_PICK_LABELS.library}
-        </button>
-        <button type="button" className="header-text-link" onClick={() => void retake("camera")}>
-          撮り直す
-        </button>
+        {maskMode ? null : (
+          <>
+            <button
+              type="button"
+              className="header-text-link"
+              onClick={() => void retake("library")}
+            >
+              {IMAGE_PICK_LABELS.library}
+            </button>
+            <button
+              type="button"
+              className="header-text-link"
+              onClick={() => void retake("camera")}
+            >
+              撮り直す
+            </button>
+          </>
+        )}
       </header>
       <div className="photo-edit-body">
-        <div
-          className={`photo-edit-frame ${ratioClass}${kind === "cellar" && cutoutOn ? " is-cutout" : ""}`}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-        >
-          {source && !decodeError ? (
-            <canvas ref={canvasRef} className="photo-edit-canvas" />
-          ) : (
-            <p className="photo-edit-placeholder">
-              {decodeError ?? "この写真を読み込めませんでした"}
-            </p>
-          )}
-          {kind !== "cellar" && source && !decodeError && mascotMounted ? (
-            <span
-              className={`photo-edit-mascot${reduceMotion ? " is-instant" : ""}${mascotOn ? "" : " is-off"}`}
-              style={{ opacity: mascotOn ? 1 : 0 }}
-            >
-              <Mascot pose={mascotPose} size={64} aria-hidden />
-            </span>
-          ) : null}
-          {kind === "cellar" && (cutoutBusy || processing) ? (
-            <div className="photo-edit-cutout-status">
-              <Mascot pose="surprised" size={72} aria-hidden />
-              <p>{cutoutOn ? "この写真を切り抜いています" : "この写真を変換しています"}</p>
-              {cutoutProgress?.firstDownload ? (
-                <p>
-                  初回のみ数十 MB を取得します
-                  {cutoutProgress.percent !== undefined ? ` ${cutoutProgress.percent}%` : ""}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+        {maskMode && assets && maskSession ? (
+          <PhotoEditMaskView
+            assets={assets}
+            session={maskSession}
+            tool={maskTool}
+            brushRadius={brushRadius}
+            showSource={showSourceOverlay}
+            view={maskView}
+            onViewChange={setMaskView}
+            onRevision={bumpMask}
+            disabled={busy}
+          />
+        ) : (
+          <div
+            className={`photo-edit-frame ${ratioClass}${kind === "cellar" && cutoutOn ? " is-cutout" : ""}`}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          >
+            {source && !decodeError ? (
+              <canvas ref={canvasRef} className="photo-edit-canvas" />
+            ) : (
+              <p className="photo-edit-placeholder">
+                {decodeError ?? "この写真を読み込めませんでした"}
+              </p>
+            )}
+            {kind !== "cellar" && source && !decodeError && mascotMounted ? (
+              <span
+                className={`photo-edit-mascot${reduceMotion ? " is-instant" : ""}${mascotOn ? "" : " is-off"}`}
+                style={{ opacity: mascotOn ? 1 : 0 }}
+              >
+                <Mascot pose={mascotPose} size={64} aria-hidden />
+              </span>
+            ) : null}
+            {kind === "cellar" && (cutoutBusy || processing) ? (
+              <div className="photo-edit-cutout-status">
+                <Mascot pose="surprised" size={72} aria-hidden />
+                <p>{cutoutOn ? "この写真を切り抜いています" : "この写真を変換しています"}</p>
+                {cutoutProgress?.firstDownload ? (
+                  <p>
+                    初回のみ数十 MB を取得します
+                    {cutoutProgress.percent !== undefined ? ` ${cutoutProgress.percent}%` : ""}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
       {burstActive && collectedCount > 0 ? (
         <p className="photo-edit-note" role="status">
@@ -434,51 +806,194 @@ export function PhotoEdit() {
         </p>
       ) : null}
       {cutoutMessage ? <p className="photo-edit-note">{cutoutMessage}</p> : null}
-      {kind === "cellar" && cutoutOn && cutoutSupported && previewCutout && !cutoutBusy ? (
+      {maskMessage ? (
+        <p className="photo-edit-note" role="status">
+          {maskMessage}
+        </p>
+      ) : null}
+      {kind === "cellar" && sourceOrigin === "processed" && cutoutOn && !maskMode ? (
+        <p className="photo-edit-note">{CUTOUT_MASK_EDIT_MESSAGES.processedHint}</p>
+      ) : null}
+      {kind === "cellar" &&
+      cutoutOn &&
+      cutoutSupported &&
+      previewCutout &&
+      !cutoutBusy &&
+      !maskMode ? (
         <p className="photo-edit-note">
           切り抜きは写真全体（拡大時はその範囲）から瓶を探します。2:3 の枠は棚への配置です。
         </p>
       ) : null}
-      <div className="photo-edit-toggles">
-        {kind === "cellar" && cutoutSupported ? (
-          <Chip
-            label="切り抜く"
-            checked={cutoutOn}
-            onChange={(value) => {
-              setCutoutOn(value);
-              setCutoutPref(value);
-              setCutoutMessage(null);
-              if (!value) {
-                setPreviewCutout(null);
-                setAngleOpen(false);
-                composeAssets.current = null;
-              }
-            }}
-          />
-        ) : null}
-      </div>
-      {kind === "cellar" && cutoutOn && cutoutSupported && previewCutout && !cutoutBusy ? (
-        <PhotoEditAngleControls
-          open={angleOpen}
-          onOpenChange={setAngleOpen}
-          degrees={displayRotation}
-          autoApplied={autoApplied && userRotation === null}
-          onChange={(degrees) => {
-            setUserRotation(degrees);
-            setAutoApplied(false);
+      {maskMode && maskSession ? (
+        <PhotoEditMaskControls
+          tool={maskTool}
+          onToolChange={setMaskTool}
+          brushRadius={brushRadius}
+          onBrushRadiusChange={setBrushRadius}
+          showSource={showSourceOverlay}
+          onShowSourceChange={setShowSourceOverlay}
+          origin={sourceOrigin}
+          zoom={maskView.scale}
+          onZoomIn={() =>
+            setMaskView((view) =>
+              stepMaskZoom(view, 0.5, maskSession.width, maskSession.height, 280, 360),
+            )
+          }
+          onZoomOut={() =>
+            setMaskView((view) =>
+              stepMaskZoom(view, -0.5, maskSession.width, maskSession.height, 280, 360),
+            )
+          }
+          onZoomFit={() => setMaskView(fitMaskView())}
+          canUndo={canUndoMask(maskSession)}
+          canRedo={canRedoMask(maskSession)}
+          canReset={hasManualEdits(maskSession.draftMask, maskSession.baseMask)}
+          disabled={busy}
+          onUndo={() => {
+            undoMaskEdit(maskSession);
+            bumpMask();
           }}
+          onRedo={() => {
+            redoMaskEdit(maskSession);
+            bumpMask();
+          }}
+          onReset={() => setResetOpen(true)}
         />
-      ) : null}
-      <div className="save-bar">
-        <Button
-          type="button"
-          onClick={() => void onUse()}
-          disabled={!source || Boolean(decodeError) || busy}
-        >
-          {busy ? (kind === "cellar" && cutoutOn ? "切り抜き中" : "変換中") : "使う"}
-        </Button>
+      ) : (
+        <>
+          <div className="photo-edit-toggles">
+            {kind === "cellar" && cutoutSupported ? (
+              <Chip
+                label="切り抜く"
+                checked={cutoutOn}
+                onChange={(value) => {
+                  setCutoutOn(value);
+                  setCutoutPref(value);
+                  setCutoutMessage(null);
+                  if (!value) {
+                    setPreviewCutout(null);
+                    setAngleOpen(false);
+                  }
+                }}
+              />
+            ) : null}
+          </div>
+          {roiLocked ? (
+            <div className="photo-edit-toggles">
+              <button type="button" className="chip" onClick={() => setRoiConfirmOpen(true)}>
+                {CUTOUT_MASK_EDIT_MESSAGES.roiChange}
+              </button>
+            </div>
+          ) : null}
+          {kind === "cellar" && cutoutOn && cutoutSupported && previewCutout && !cutoutBusy ? (
+            <>
+              <PhotoEditAngleControls
+                open={angleOpen}
+                onOpenChange={setAngleOpen}
+                degrees={displayRotation}
+                autoApplied={autoApplied && userRotation === null}
+                disabled={busy}
+                onChange={(degrees) => {
+                  setUserRotation(degrees);
+                  setAutoApplied(false);
+                }}
+              />
+              <div className="photo-edit-toggles">
+                <button type="button" className="chip" disabled={busy} onClick={openMaskMode}>
+                  {CUTOUT_MASK_EDIT_MESSAGES.open}
+                </button>
+              </div>
+            </>
+          ) : null}
+        </>
+      )}
+      <div className={`save-bar${maskMode ? " photo-edit-mask-save" : ""}`}>
+        {maskMode ? (
+          <>
+            <Button type="button" variant="secondary" onClick={requestCloseMask}>
+              {CUTOUT_MASK_EDIT_MESSAGES.cancel}
+            </Button>
+            <Button type="button" onClick={applyMaskEdits} disabled={busy}>
+              {CUTOUT_MASK_EDIT_MESSAGES.apply}
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="button"
+            onClick={() => void onUse()}
+            disabled={!source || Boolean(decodeError) || busy}
+          >
+            {busy ? (kind === "cellar" && cutoutOn ? "切り抜き中" : "変換中") : "使う"}
+          </Button>
+        )}
       </div>
+      <Dialog
+        open={discardOpen}
+        title={CUTOUT_MASK_EDIT_MESSAGES.discardTitle}
+        body={CUTOUT_MASK_EDIT_MESSAGES.discardBody}
+        primaryLabel="破棄する"
+        destructive
+        onPrimary={() => {
+          if (pendingBackRef.current) {
+            maskSessionRef.current = null;
+            setMaskMode(false);
+            setDiscardOpen(false);
+            setBackDiscard(false);
+            pendingBackRef.current = false;
+            return;
+          }
+          closeMaskMode(true);
+        }}
+        onClose={() => {
+          setDiscardOpen(false);
+          if (backDiscard || pendingBackRef.current) {
+            pendingBackRef.current = false;
+            setBackDiscard(false);
+            if (!historyHasFlag(window.history.state, PHOTO_MASK_EDIT_HISTORY_FLAG)) {
+              window.history.pushState(
+                withHistoryFlag(window.history.state, PHOTO_MASK_EDIT_HISTORY_FLAG),
+                "",
+              );
+            }
+          }
+        }}
+      />
+      <Dialog
+        open={resetOpen}
+        title={CUTOUT_MASK_EDIT_MESSAGES.resetConfirmTitle}
+        body={CUTOUT_MASK_EDIT_MESSAGES.resetConfirmBody}
+        primaryLabel={CUTOUT_MASK_EDIT_MESSAGES.reset}
+        destructive
+        onPrimary={() => {
+          const session = maskSessionRef.current;
+          if (session) {
+            resetMaskEdit(session);
+            bumpMask();
+          }
+          setResetOpen(false);
+        }}
+        onClose={() => setResetOpen(false)}
+      />
+      <Dialog
+        open={roiConfirmOpen}
+        title={CUTOUT_MASK_EDIT_MESSAGES.roiConfirmTitle}
+        body={CUTOUT_MASK_EDIT_MESSAGES.roiConfirmBody}
+        primaryLabel="変更する"
+        destructive
+        onPrimary={() => {
+          setRoiUnlocked(true);
+          setRoiConfirmOpen(false);
+        }}
+        onClose={() => setRoiConfirmOpen(false)}
+      />
     </div>
+  );
+}
+
+function isSelectionEmpty(assets: CutoutComposeAssets): boolean {
+  return (
+    inspectCommittedMask(snapshotAssetsMask(assets, 0, assets.workMask), assetsIdentity(assets)) ===
+    "empty"
   );
 }
 

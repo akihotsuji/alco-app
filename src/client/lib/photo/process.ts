@@ -1,4 +1,5 @@
 import {
+  CUTOUT_MASK_EDIT_MESSAGES,
   PHOTO_CUTOUT_MASK_CACHE_MAX_BYTES,
   PHOTO_CUTOUT_MASK_CACHE_SIZE,
   PHOTO_RECOGNIZE_LONG_EDGE,
@@ -7,6 +8,14 @@ import {
 import { composeMascot } from "./compose-mascot.ts";
 import { cropResize } from "./crop-resize.ts";
 import { createSharedSegmentation } from "./cutout-cache.ts";
+import {
+  type CommittedCutoutMask,
+  type CutoutMaskIdentity,
+  copyMaskBytes,
+  inspectCommittedMask,
+  snapshotCommittedMask,
+} from "./cutout-mask-buffer.ts";
+import type { PhotoSourceOrigin } from "./cutout-mask-hold.ts";
 import { isCutoutCompareMode, resolveCutoutProviderPreference } from "./cutout-provider.ts";
 import {
   CutoutError,
@@ -40,7 +49,9 @@ import { recordCutoutMetric } from "./photo-metrics.ts";
 import {
   type BottleSegmentation,
   composeBottleCutout,
+  createWorkMaskFromModel,
   type RemoveBackgroundProgress,
+  readRoiSourceAlpha,
   segmentBottle,
   supportsBackgroundRemoval,
 } from "./remove-background.ts";
@@ -72,6 +83,13 @@ export type ProcessPhotoInput = PhotoEditParams & {
   cutoutQueue?: CutoutQueuePolicy;
   /** 手動角度。未指定なら自動補正角。推論は再実行しない */
   rotationDegrees?: number;
+  /**
+   * ROI 作業解像度の確定手動マスク。画像・ROI が一致するときだけ使い、再推論しない。
+   * 不一致・全透明・エンコード失敗では JPEG へ落とさず `maskSaveBlock` を返す。
+   */
+  committedMask?: CommittedCutoutMask;
+  /** 加工済み再編集。棚への再配置を避ける */
+  cutoutOrigin?: PhotoSourceOrigin;
 };
 
 /**
@@ -107,6 +125,11 @@ export type ProcessedPhoto = {
   capturedAt?: string;
   /** セラーのみ。切り抜きの成否と理由・工程時間 */
   cutout?: CutoutOutcome;
+  /** 手動マスクの保存を止めた。blob は使わず修正を残す */
+  maskSaveBlock?: {
+    reason: "mismatch" | "empty" | "encode" | "invalid";
+    message: string;
+  };
 };
 
 export type PreviewCutoutInput = PhotoEditParams & {
@@ -121,6 +144,15 @@ export type CutoutComposeAssets = {
   modelSize: number;
   output: OutputSize;
   autoAngle: number;
+  workMask: Uint8Array;
+  baseMask: Uint8Array;
+  workMaskWidth: number;
+  workMaskHeight: number;
+  sourceAlpha: Uint8Array;
+  origin: PhotoSourceOrigin;
+  segmentationKey: string;
+  sourceId: number;
+  placement: "shelf" | "inplace";
 };
 
 export type CutoutPreview =
@@ -153,7 +185,7 @@ type PreparedCutout = PreparedPhoto & {
 const sourceIds = new WeakMap<object, number>();
 let nextSourceId = 1;
 
-function sourceIdentity(source: CanvasImageSource): number {
+export function sourceIdentity(source: CanvasImageSource): number {
   let id = sourceIds.get(source);
   if (id === undefined) {
     id = nextSourceId;
@@ -252,18 +284,111 @@ export function clearSegmentationCache(): void {
   segmentation.clear();
 }
 
-/** 同じ RGB / マスクを角度だけ変えて合成する。推論しない */
-export function composeCutoutPreview(
+export function composeInputFromAssets(
   assets: CutoutComposeAssets,
   rotationDegrees: number,
-): HTMLCanvasElement {
-  return composeBottleCutout({
+  workMask = assets.workMask,
+): Parameters<typeof composeBottleCutout>[0] {
+  return {
     source: assets.work,
     roi: assets.roi,
     mask: assets.mask,
     modelSize: assets.modelSize,
     output: assets.output,
     rotationDegrees,
+    workMask: {
+      width: assets.workMaskWidth,
+      height: assets.workMaskHeight,
+      data: workMask,
+    },
+    placement: assets.placement,
+  };
+}
+
+/** 同じ RGB / マスクを角度だけ変えて合成する。推論しない */
+export function composeCutoutPreview(
+  assets: CutoutComposeAssets,
+  rotationDegrees: number,
+  workMask = assets.workMask,
+): HTMLCanvasElement {
+  return composeBottleCutout(composeInputFromAssets(assets, rotationDegrees, workMask));
+}
+
+export function assetsIdentity(assets: CutoutComposeAssets): CutoutMaskIdentity {
+  return {
+    sourceId: assets.sourceId,
+    segmentationKey: assets.segmentationKey,
+    width: assets.workMaskWidth,
+    height: assets.workMaskHeight,
+  };
+}
+
+export function snapshotAssetsMask(
+  assets: CutoutComposeAssets,
+  revision: number,
+  workMask = assets.workMask,
+): CommittedCutoutMask {
+  return snapshotCommittedMask(
+    assetsIdentity(assets),
+    {
+      width: assets.workMaskWidth,
+      height: assets.workMaskHeight,
+      data: workMask,
+    },
+    revision,
+  );
+}
+
+function workRoiSize(roi: CropRect): { width: number; height: number } {
+  return {
+    width: Math.max(1, Math.round(roi.sw)),
+    height: Math.max(1, Math.round(roi.sh)),
+  };
+}
+
+function attachWorkMaskAssets(
+  prepared: PreparedCutout,
+  input: PhotoEditParams,
+  extras: {
+    mask: Uint8Array;
+    modelSize: number;
+    autoAngle: number;
+    workMask: Uint8Array;
+    origin: PhotoSourceOrigin;
+    placement: "shelf" | "inplace";
+  },
+): CutoutComposeAssets {
+  const size = workRoiSize(prepared.inferenceRoi);
+  return {
+    work: prepared.work,
+    roi: prepared.inferenceRoi,
+    mask: extras.mask,
+    modelSize: extras.modelSize,
+    output: prepared.output,
+    autoAngle: extras.autoAngle,
+    workMask: extras.workMask,
+    baseMask: copyMaskBytes(extras.workMask),
+    workMaskWidth: size.width,
+    workMaskHeight: size.height,
+    sourceAlpha: readRoiSourceAlpha(prepared.work, prepared.inferenceRoi),
+    origin: extras.origin,
+    segmentationKey: prepared.segmentationKey,
+    sourceId: sourceIdentity(input.source),
+    placement: extras.placement,
+  };
+}
+
+/** 加工済み透過画像。再推論せず既存アルファを選択マスクの基準にする */
+export function createProcessedCutoutAssets(input: PhotoEditParams): CutoutComposeAssets {
+  const prepared = prepareCutoutWork(input, preparePhoto(input));
+  const sourceAlpha = readRoiSourceAlpha(prepared.work, prepared.inferenceRoi);
+  return attachWorkMaskAssets(prepared, input, {
+    mask: new Uint8Array(0),
+    modelSize: 0,
+    autoAngle: 0,
+    workMask: copyMaskBytes(sourceAlpha),
+    origin: "processed",
+    placement: "inplace",
   });
 }
 
@@ -322,29 +447,24 @@ export async function previewCutout(input: PreviewCutoutInput): Promise<CutoutPr
       queue: "latest",
     });
     const rotationDegrees = seg.upright.correctionDegrees;
-    const composeStart = performance.now();
-    const canvas = composeBottleCutout({
-      source: prepared.work,
-      roi: prepared.inferenceRoi,
-      mask: seg.mask,
+    const size = workRoiSize(prepared.inferenceRoi);
+    const workMask = createWorkMaskFromModel(seg.mask, seg.modelSize, size.width, size.height);
+    const assets = attachWorkMaskAssets(prepared, input, {
+      mask: copyMaskBytes(seg.mask),
       modelSize: seg.modelSize,
-      output: prepared.output,
-      rotationDegrees,
+      autoAngle: rotationDegrees,
+      workMask,
+      origin: "original",
+      placement: "shelf",
     });
+    const composeStart = performance.now();
+    const canvas = composeBottleCutout(composeInputFromAssets(assets, rotationDegrees));
     const composeMs = Math.round(performance.now() - composeStart);
     const timing = timingFrom(seg, cached, {
       composeMs,
       encodeMs: 0,
       totalMs: Math.round(performance.now() - started),
     });
-    const assets: CutoutComposeAssets = {
-      work: prepared.work,
-      roi: prepared.inferenceRoi,
-      mask: seg.mask,
-      modelSize: seg.modelSize,
-      output: prepared.output,
-      autoAngle: rotationDegrees,
-    };
     recordCutoutMetric("preview", {
       status: "success",
       cached,
@@ -456,25 +576,72 @@ async function processCellarPhoto(
   let cached = false;
   let composeMs = 0;
   let encodeMs = 0;
+  const committed = input.committedMask;
   try {
     const cutoutPrepared = prepareCutoutWork(input, prepared);
-    const result = await segmentPrepared(cutoutPrepared, {
-      onProgress: input.onCutoutProgress,
-      queue: input.cutoutQueue ?? "fifo",
-    });
-    seg = result.segmentation;
-    cached = result.cached;
-    const rotationDegrees = input.rotationDegrees ?? seg.upright.correctionDegrees;
-    const composeStart = performance.now();
-    const dest = composeBottleCutout({
-      source: cutoutPrepared.work,
-      roi: cutoutPrepared.inferenceRoi,
-      mask: seg.mask,
-      modelSize: seg.modelSize,
-      output: prepared.output,
-      rotationDegrees,
-    });
-    composeMs = Math.round(performance.now() - composeStart);
+    let dest: HTMLCanvasElement;
+    let autoAngle = 0;
+    const rotationDegrees = input.rotationDegrees ?? 0;
+    if (committed) {
+      const current: CutoutMaskIdentity = {
+        sourceId: sourceIdentity(input.source),
+        segmentationKey: prepared.segmentationKey,
+        width: workRoiSize(cutoutPrepared.inferenceRoi).width,
+        height: workRoiSize(cutoutPrepared.inferenceRoi).height,
+      };
+      const inspect = inspectCommittedMask(committed, current);
+      if (inspect !== "ok") {
+        return {
+          blob: new Blob(),
+          previewUrl: "",
+          recognizeJpeg,
+          maskSaveBlock: {
+            reason: inspect,
+            message:
+              inspect === "empty"
+                ? CUTOUT_MASK_EDIT_MESSAGES.empty
+                : inspect === "encode"
+                  ? CUTOUT_MASK_EDIT_MESSAGES.encodeFailed
+                  : CUTOUT_MASK_EDIT_MESSAGES.mismatch,
+          },
+        };
+      }
+      cached = true;
+      const composeStart = performance.now();
+      dest = composeBottleCutout({
+        source: cutoutPrepared.work,
+        roi: cutoutPrepared.inferenceRoi,
+        mask: new Uint8Array(0),
+        modelSize: 0,
+        output: prepared.output,
+        rotationDegrees: input.rotationDegrees ?? 0,
+        workMask: {
+          width: committed.width,
+          height: committed.height,
+          data: copyMaskBytes(committed.data),
+        },
+        placement: input.cutoutOrigin === "processed" ? "inplace" : "shelf",
+      });
+      composeMs = Math.round(performance.now() - composeStart);
+    } else {
+      const result = await segmentPrepared(cutoutPrepared, {
+        onProgress: input.onCutoutProgress,
+        queue: input.cutoutQueue ?? "fifo",
+      });
+      seg = result.segmentation;
+      cached = result.cached;
+      autoAngle = seg.upright.correctionDegrees;
+      const composeStart = performance.now();
+      dest = composeBottleCutout({
+        source: cutoutPrepared.work,
+        roi: cutoutPrepared.inferenceRoi,
+        mask: seg.mask,
+        modelSize: seg.modelSize,
+        output: prepared.output,
+        rotationDegrees: input.rotationDegrees ?? seg.upright.correctionDegrees,
+      });
+      composeMs = Math.round(performance.now() - composeStart);
+    }
     const encodeStart = performance.now();
     const blob = await encodeCutoutBlob(dest).catch((error: unknown) => {
       throw error instanceof CutoutError
@@ -485,8 +652,10 @@ async function processCellarPhoto(
     const cutout: CutoutOutcome = {
       status: "success",
       cached,
-      autoAngle: seg.upright.correctionDegrees,
-      rotationDegrees,
+      autoAngle: committed ? undefined : autoAngle,
+      rotationDegrees: committed
+        ? rotationDegrees
+        : (input.rotationDegrees ?? seg?.upright.correctionDegrees),
       timing: timingFrom(seg, cached, {
         composeMs,
         encodeMs,
@@ -496,9 +665,24 @@ async function processCellarPhoto(
     recordCutoutMetric("save", cutout);
     return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg, cutout };
   } catch (error) {
+    const fields = cutoutFailureFields(error);
+    if (committed && (fields.reason === "encode" || error instanceof CutoutError)) {
+      const encodeFailed = fields.reason === "encode";
+      return {
+        blob: new Blob(),
+        previewUrl: "",
+        recognizeJpeg,
+        maskSaveBlock: {
+          reason: encodeFailed ? "encode" : "invalid",
+          message: encodeFailed
+            ? CUTOUT_MASK_EDIT_MESSAGES.encodeFailed
+            : CUTOUT_MASK_EDIT_MESSAGES.mismatch,
+        },
+      };
+    }
     const cutout: CutoutOutcome = {
       status: "failed",
-      ...cutoutFailureFields(error),
+      ...fields,
       timing: timingFrom(seg, cached, {
         composeMs,
         encodeMs,

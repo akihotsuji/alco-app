@@ -23,6 +23,7 @@ import {
   takeRememberedIntoVisit,
   takeRememberedShelfEvent,
   withHistoryFlag,
+  withoutHistoryFlag,
 } from "./history-state.ts";
 
 describe("historyIdx", () => {
@@ -62,6 +63,17 @@ describe("withHistoryFlag", () => {
       idx: "1",
       alcoPhotoEdit: true,
     });
+  });
+});
+
+describe("withoutHistoryFlag", () => {
+  it("フラグだけ外し、idx は変えない", () => {
+    expect(
+      withoutHistoryFlag(
+        { idx: 3, alcoPhotoEdit: true, alcoPhotoMaskEdit: true },
+        "alcoPhotoMaskEdit",
+      ),
+    ).toEqual({ idx: 3, alcoPhotoEdit: true });
   });
 });
 
