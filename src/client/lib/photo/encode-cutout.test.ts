@@ -63,6 +63,7 @@ describe("encodeCutoutBlob", () => {
       encodeCutoutBlob(canvasStub(), {
         encodeWebp: async () => new Blob([new Uint8Array(20)], { type: "image/webp" }),
         encodePng: async () => new Blob([new Uint8Array(20)], { type: "image/png" }),
+        resize: (source) => source,
         maxBytes: 4,
       }),
     ).rejects.toBeInstanceOf(CutoutError);

@@ -44,6 +44,7 @@ describe("toJpegBlobWithinLimit", () => {
     await expect(
       toJpegBlobWithinLimit(canvasStub(), 4, {
         encodeJpeg: async () => new Blob([new Uint8Array(20)], { type: "image/jpeg" }),
+        resize: (source) => source,
       }),
     ).rejects.toBeInstanceOf(PhotoSizeError);
   });
