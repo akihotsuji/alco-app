@@ -143,6 +143,7 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(angleSource).toContain("角度を調整");
     expect(angleSource).toContain("extraChip");
     expect(source).toContain("extraChip=");
+    expect(source).toContain("CUTOUT_MASK_EDIT_MESSAGES.roiChange");
     expect(context).toContain("sourceOrigin");
     expect(context).toContain("registerOverlayBackHandler");
     expect(context).toContain("clearCutoutMaskHoldsForSession");

@@ -878,13 +878,6 @@ export function PhotoEdit() {
               />
             ) : null}
           </div>
-          {roiLocked ? (
-            <div className="photo-edit-toggles">
-              <button type="button" className="chip" onClick={() => setRoiConfirmOpen(true)}>
-                {CUTOUT_MASK_EDIT_MESSAGES.roiChange}
-              </button>
-            </div>
-          ) : null}
           {kind === "cellar" && cutoutOn && cutoutSupported && previewCutout && !cutoutBusy ? (
             <PhotoEditAngleControls
               open={angleOpen}
@@ -897,11 +890,24 @@ export function PhotoEdit() {
                 setAutoApplied(false);
               }}
               extraChip={
-                <button type="button" className="chip" disabled={busy} onClick={openMaskMode}>
-                  {CUTOUT_MASK_EDIT_MESSAGES.open}
-                </button>
+                <>
+                  <button type="button" className="chip" disabled={busy} onClick={openMaskMode}>
+                    {CUTOUT_MASK_EDIT_MESSAGES.open}
+                  </button>
+                  {roiLocked ? (
+                    <button type="button" className="chip" onClick={() => setRoiConfirmOpen(true)}>
+                      {CUTOUT_MASK_EDIT_MESSAGES.roiChange}
+                    </button>
+                  ) : null}
+                </>
               }
             />
+          ) : roiLocked ? (
+            <div className="photo-edit-toggles">
+              <button type="button" className="chip" onClick={() => setRoiConfirmOpen(true)}>
+                {CUTOUT_MASK_EDIT_MESSAGES.roiChange}
+              </button>
+            </div>
           ) : null}
         </>
       )}
