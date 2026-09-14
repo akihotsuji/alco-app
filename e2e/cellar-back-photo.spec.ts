@@ -42,10 +42,17 @@ async function pickFrontFromLibrary(page: Page, file: string): Promise<void> {
   await confirmCellarPhotoEdit(page);
 }
 
-async function expectPropRightAligned(page: Page, label: string): Promise<void> {
+async function pickBackFromLibrary(page: Page, file: string): Promise<void> {
+  await page.getByRole("button", { name: "＋ 裏ラベル" }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "裏ラベルを選ぶ" }).click();
+  await (await chooserPromise).setFiles(file);
+}
+
+async function expectPropStackedStart(page: Page, label: string): Promise<void> {
   const row = page.locator(".bottle-prop", { has: page.locator("dt", { hasText: label }) });
-  await expect(row).toHaveClass(/is-inline/);
-  await expect(row.locator("dd")).toHaveCSS("text-align", "right");
+  await expect(row).toHaveClass(/is-stack/);
+  await expect(row.locator("dd")).toHaveCSS("text-align", "start");
 }
 
 async function expectBottlePhotos(page: Page, bottleId: string, count: number): Promise<void> {
@@ -72,8 +79,7 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await expect(page.getByText("裏面（任意）")).toHaveCount(0);
 
   await pickFrontFromLibrary(page, frontJpeg);
-  await expect(page.getByText("裏面（任意）")).toBeVisible();
-  await expect(page.getByRole("button", { name: "裏面を選ぶ" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "＋ 裏ラベル" })).toBeVisible();
 
   const retry = page.getByRole("button", { name: "再読み取り" });
   await expect(retry).toBeVisible({ timeout: 30_000 });
@@ -83,11 +89,9 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await expect(retry).toHaveCount(0);
   await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible({ timeout: 30_000 });
 
-  const backChooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "裏面を選ぶ" }).click();
-  await (await backChooser).setFiles(backJpeg);
+  await pickBackFromLibrary(page, backJpeg);
   await expect(page.getByRole("dialog", { name: "写真を編集" })).toHaveCount(0);
-  await expect(page.getByRole("img", { name: "裏面の写真" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "裏ラベルの写真" })).toBeVisible();
   await expect(page.getByText("アップロード中")).toHaveCount(0);
   await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible();
@@ -95,16 +99,18 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await shot(page, "cellar_new_front_and_back");
 
   await page.getByLabel("品名").fill(BOTTLE_NAME);
+  await page.getByRole("button", { name: "お酒の詳細（任意）" }).click();
   await page.getByLabel("生産者").fill(BOTTLE_PRODUCER);
   const arrange = page.getByRole("button", { name: "棚に並べる（1 本）" });
   await expect(arrange).toBeEnabled();
   await arrange.click();
 
+  await expect(page.getByRole("heading", { name: "ボトル詳細" })).toBeVisible();
   await expect(page.getByRole("heading", { name: BOTTLE_NAME })).toBeVisible();
   await expect(page.getByRole("button", { name: "裏面の写真を拡大" })).toBeVisible();
-  await expectPropRightAligned(page, "品名");
-  await expectPropRightAligned(page, "生産者");
-  await expectPropRightAligned(page, "保管場所");
+  await expect(page.locator(".bottle-props dt", { hasText: "品名" })).toHaveCount(0);
+  await expectPropStackedStart(page, "生産者");
+  await expectPropStackedStart(page, "保管場所");
   const props = page.locator(".bottle-props");
   await props.scrollIntoViewIfNeeded();
   await shot(page, "cellar_detail_props_right_align_scrolled");
@@ -187,16 +193,15 @@ test("表面だけのボトルに裏面を足すと案内帯から表と裏で�
   await expect(page.getByRole("button", { name: "裏面も含めて読み取る" })).toHaveCount(0);
   await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
 
-  const backChooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "裏面を選ぶ" }).click();
-  await (await backChooser).setFiles(backJpeg);
-  await expect(page.getByRole("img", { name: "裏面の写真" })).toBeVisible();
+  await pickBackFromLibrary(page, backJpeg);
+  await expect(page.getByRole("img", { name: "裏ラベルの写真" })).toBeVisible();
   await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
   await expect(page.getByText("裏面も使ってラベルを読み取れます")).toBeVisible();
   const withBack = page.getByRole("button", { name: "裏面も含めて読み取る" });
   await expect(withBack).toBeVisible();
   await shot(page, "cellar_edit_back_offer");
 
+  await page.getByRole("button", { name: "お酒の詳細（任意）" }).click();
   await page.getByLabel("生産者").fill("手入力の生産者");
   await withBack.click();
   await expect(page.getByText("ラベルを読み取り中…")).toBeVisible();

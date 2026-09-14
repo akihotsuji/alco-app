@@ -15,6 +15,7 @@ test("ボトルを登録してからノートを作成し、詳細がボトル�
   await expect(arrange).toBeEnabled();
   await arrange.click();
 
+  await expect(page.getByRole("heading", { name: "ボトル詳細" })).toBeVisible();
   await expect(page.getByRole("heading", { name: BOTTLE_NAME })).toBeVisible();
   await expect(page.getByText(BOTTLE_NAME).first()).toBeVisible();
 
@@ -22,7 +23,8 @@ test("ボトルを登録してからノートを作成し、詳細がボトル�
   await expect(page.getByText("テイスティングノートはまだありません")).toBeVisible();
   await page.getByRole("link", { name: "ノートを作成" }).click();
 
-  await page.getByRole("button", { name: "セラーのボトルと関連付ける（任意）" }).click();
+  await page.getByRole("button", { name: "セラーから選ぶ" }).first().click();
+  await page.getByRole("button", { name: "セラーから選ぶ" }).nth(1).click();
   await expect(page.getByRole("heading", { name: "ボトル" })).toBeVisible();
   await page.getByRole("button", { name: new RegExp(BOTTLE_NAME) }).click();
 

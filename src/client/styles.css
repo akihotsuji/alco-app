@@ -868,7 +868,7 @@ button.header-text-link {
 }
 
 .app-content.has-add-fab {
-  padding-bottom: calc(var(--tab-h) + 12px + 48px + 16px + var(--safe-bottom));
+  padding-bottom: calc(var(--tab-h) + 16px + 48px + 16px + 72px + var(--safe-bottom));
 }
 
 /* 00-common 1.4。タブより上・トーストより下。primary にはしない */
