@@ -468,7 +468,7 @@ DB は 2 値のみ（[data-model.md](../data-model.md) 5.4）。`opened` / `fini
 | 比率 | 2:3 |
 | プリセット | `cellar`（既定 ON。設定 S4） |
 | キャラ合成 | **なし**（トグルも出さない） |
-| 切り抜き | セラーのみ。既定 ON（`photo.cutout`）。端末内 U2-Net-P（`onnxruntime-web` 1.21.0。WASM 既定、WebGPU は開発切替。`.mjs` / `.wasm` / JSEP は `/models/ort/`）。推論は 2:3 枠で首・底を切らない。成功時は安全な小角度だけ自動直立し、手動の角度調整と、欠けた底などを直す復元／消去ブラシができる。ブラシと角度では再推論しない。失敗・未対応は JPEG 長方形。読み込み失敗と切り抜けなかったで文言を分ける。処理失敗時の自動 OFF は今回の編集画面だけで、`photo.cutout` はユーザーがトグルを手動操作したときだけ変更する。手動修正の詳細は [photos.md](photos.md) と [07-photo-capture.md](../screen-designs/07-photo-capture.md) |
+| 切り抜き | セラーのみ。既定 ON（`photo.cutout`）。端末内 U2-Net-P（`onnxruntime-web` 1.21.0。WASM 既定、WebGPU は開発切替。`.mjs` / `.wasm` / JSEP は `/models/ort/`）。推論は 2:3 枠で首・底を切らない。成功時は安全な小角度だけ自動直立し、手動の角度調整ができる。失敗・未対応は JPEG 長方形。読み込み失敗と切り抜けなかったで文言を分ける。処理失敗時の自動 OFF は今回の編集画面だけで、`photo.cutout` はユーザーがトグルを手動操作したときだけ変更する |
 | 出力 | cutout: 透過 WebP・長辺 1280・品質 0.9。photo: JPEG・長辺 1280・品質 0.82 |
 | サーバー | magic bytes、1MB、長辺 1600、キーはサーバー生成、配信は認可付き GET |
 | `kind` | サーバー判定（WebP VP8X alpha → `cutout`）。クライアント申告は受け取らない |

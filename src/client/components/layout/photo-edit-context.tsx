@@ -12,8 +12,6 @@ import { deletePhoto, photoContentUrl, uploadPhoto } from "@/client/hooks/use-ph
 import { copyOwnedPhoto, fetchOwnedPhotoBlob } from "@/client/lib/copy-owned-photo.ts";
 import { historyHasFlag, withHistoryFlag } from "@/client/lib/history-state.ts";
 import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
-import type { PhotoSourceOrigin } from "@/client/lib/photo/cutout-mask-hold.ts";
-import { clearCutoutMaskHoldsForSession } from "@/client/lib/photo/cutout-mask-hold.ts";
 import { decodeImage, PhotoDecodeError } from "@/client/lib/photo/decode-image.ts";
 import { photoFileName } from "@/client/lib/photo/photo-file.ts";
 import { type ImagePickSource, pickImage } from "@/client/lib/photo/pick-image.ts";
@@ -26,7 +24,7 @@ import type {
 } from "@/client/lib/photo-recognize-offer.ts";
 import { forgetAllRecognition } from "@/client/lib/recognize-session.ts";
 
-export type { PhotoEditContextKind, PhotoFormSession, PhotoRecognizeOffer, PhotoSourceOrigin };
+export type { PhotoEditContextKind, PhotoFormSession, PhotoRecognizeOffer };
 
 export type PhotoAttachment = {
   previewUrl: string;
@@ -78,10 +76,7 @@ type PhotoEditValue = {
   open: boolean;
   kind: PhotoEditContextKind;
   source: ImageBitmap | null;
-  sourceOrigin: PhotoSourceOrigin;
   decodeError: string | null;
-  getFormSessionId: () => string;
-  registerOverlayBackHandler: (handler: (() => boolean) | null) => void;
   attachments: Partial<Record<PhotoEditContextKind, PhotoAttachment>>;
   /**
    * セラーで「使う」直後、切り抜きを待たずに渡す読み取り用 JPEG。
@@ -140,10 +135,7 @@ const PhotoEditContext = createContext<PhotoEditValue>({
   open: false,
   kind: "log",
   source: null,
-  sourceOrigin: "original",
   decodeError: null,
-  getFormSessionId: () => "",
-  registerOverlayBackHandler: () => {},
   attachments: {},
   pendingRecognizeJpeg: null,
   pendingRecognize: null,
@@ -189,7 +181,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<PhotoEditContextKind>("log");
   const [source, setSource] = useState<ImageBitmap | null>(null);
-  const [sourceOrigin, setSourceOrigin] = useState<PhotoSourceOrigin>("original");
   const [decodeError, setDecodeError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<
     Partial<Record<PhotoEditContextKind, PhotoAttachment>>
@@ -216,7 +207,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     note: 0,
   });
   const pendingRecognizeJpeg = pendingRecognize?.jpeg ?? null;
-  const overlayBackRef = useRef<(() => boolean) | null>(null);
 
   const canCollectMore = useCallback(() => burstRef.current?.canCollectMore() ?? false, []);
 
@@ -241,10 +231,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const registerFormSession = useCallback((session: PhotoFormSession) => {
-    const previous = formSessionsRef.current[session.kind];
-    if (previous && previous.sessionId !== session.sessionId) {
-      clearCutoutMaskHoldsForSession(previous.sessionId);
-    }
     formSessionsRef.current[session.kind] = session;
     setAttachments((current) => {
       const existing = current[session.kind];
@@ -279,7 +265,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       if (current?.sessionId !== sessionId) {
         return;
       }
-      clearCutoutMaskHoldsForSession(sessionId);
       delete formSessionsRef.current[targetKind];
       setPendingRecognize((offer) => {
         if (offer && offer.kind === targetKind && offer.sessionId === sessionId) {
@@ -298,9 +283,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onPop = () => {
-      if (overlayBackRef.current?.()) {
-        return;
-      }
       intentRef.current = null;
       collectRef.current = null;
       burstRef.current = null;
@@ -355,24 +337,9 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     closeOverlay();
   }, [closeOverlay]);
 
-  const getFormSessionId = useCallback(
-    () => formSessionsRef.current[kindRef.current]?.sessionId ?? "",
-    [],
-  );
-
-  const registerOverlayBackHandler = useCallback((handler: (() => boolean) | null) => {
-    overlayBackRef.current = handler;
-  }, []);
-
   const openWithSource = useCallback(
-    (
-      nextKind: PhotoEditContextKind,
-      bitmap: ImageBitmap | null,
-      error: string | null,
-      origin: PhotoSourceOrigin = "original",
-    ) => {
+    (nextKind: PhotoEditContextKind, bitmap: ImageBitmap | null, error: string | null) => {
       setKind(nextKind);
-      setSourceOrigin(origin);
       setSource((prev) => {
         if (prev && prev !== bitmap) {
           prev.close();
@@ -430,7 +397,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
     }
     capturedAtRef.current = (await capturedAtFromFile(file)) ?? undefined;
     const decoded = await decodePickedFile(file);
-    setSourceOrigin("original");
     setSource((prev) => {
       prev?.close();
       return decoded.bitmap;
@@ -563,7 +529,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
   const loadBurstFile = useCallback(async (file: File) => {
     capturedAtRef.current = (await capturedAtFromFile(file)) ?? undefined;
     const decoded = await decodePickedFile(file);
-    setSourceOrigin("original");
     setSource((prev) => {
       if (prev && prev !== decoded.bitmap) {
         prev.close();
@@ -663,10 +628,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
           return next;
         });
       }
-      const sessionId = formSessionsRef.current[targetKind]?.sessionId;
-      if (sessionId) {
-        clearCutoutMaskHoldsForSession(sessionId);
-      }
       if (current?.photoId) {
         void deletePhoto(current.photoId).catch(() => {
           // 残党は 24h GC
@@ -678,10 +639,6 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
 
   const releaseAttachment = useCallback(
     (targetKind: PhotoEditContextKind) => {
-      const sessionId = formSessionsRef.current[targetKind]?.sessionId;
-      if (sessionId) {
-        clearCutoutMaskHoldsForSession(sessionId);
-      }
       discardRecognize(targetKind);
       setSource((prev) => {
         if (!prev || kindRef.current !== targetKind) {
@@ -717,7 +674,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       setBurstActive(false);
       const current = attachmentsRef.current[targetKind];
       if (source && kind === targetKind && current) {
-        openWithSource(targetKind, source, null, sourceOrigin);
+        openWithSource(targetKind, source, null);
         return;
       }
       let blob = options?.blob ?? usableAttachmentBlob(current);
@@ -731,9 +688,9 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
         type: blob.type || "image/jpeg",
       });
       const decoded = await decodePickedFile(file);
-      openWithSource(targetKind, decoded.bitmap, decoded.error, "processed");
+      openWithSource(targetKind, decoded.bitmap, decoded.error);
     },
-    [kind, openWithSource, source, sourceOrigin],
+    [kind, openWithSource, source],
   );
 
   const ingestCollected = useCallback(
@@ -755,7 +712,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
         type: blob.type || "image/jpeg",
       });
       const decoded = await decodePickedFile(file);
-      openWithSource(nextKind, decoded.bitmap, decoded.error, "processed");
+      openWithSource(nextKind, decoded.bitmap, decoded.error);
     },
     [openWithSource],
   );
@@ -827,10 +784,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       open,
       kind,
       source,
-      sourceOrigin,
       decodeError,
-      getFormSessionId,
-      registerOverlayBackHandler,
       attachments,
       pendingRecognizeJpeg,
       pendingRecognize,
@@ -859,10 +813,7 @@ export function PhotoEditProvider({ children }: { children: ReactNode }) {
       open,
       kind,
       source,
-      sourceOrigin,
       decodeError,
-      getFormSessionId,
-      registerOverlayBackHandler,
       attachments,
       pendingRecognizeJpeg,
       pendingRecognize,

@@ -6,17 +6,12 @@ import {
 } from "@/shared/constants.ts";
 import { estimateBottleUpright, restoreMaskAspect, type UprightDecision } from "./cutout-angle.ts";
 import {
+  applyAlphaMask,
   flattenMaskOutput,
   normalizeU2NetMask,
   packU2NetTensor,
   raceWithTimeout,
 } from "./cutout-mask.ts";
-import {
-  applyComposedAlpha,
-  type CutoutWorkMask,
-  composeSelectionWithSourceAlpha,
-  extractAlphaChannel,
-} from "./cutout-mask-buffer.ts";
 import {
   type CutoutExecProvider,
   probeWebGpuAdapter,
@@ -89,13 +84,6 @@ export type ComposeCutoutInput = {
   modelSize: number;
   output: OutputSize;
   rotationDegrees: number;
-  /** ROI 作業解像度の選択マスク。寸法が一致するときだけ使い、320 モデルマスクと混同しない */
-  workMask?: CutoutWorkMask;
-  /**
-   * `inplace` は加工済み 2:3 を再配置しない。角度 0 かつ出力寸法一致ならマスク適用だけ。
-   * 省略時は棚配置（回転 → trim → 2:3 + 影）。
-   */
-  placement?: "shelf" | "inplace";
 };
 
 /** 推論は端末内で 1 本ずつ。プレビューは latest、保存・バッチは fifo */
@@ -265,34 +253,17 @@ async function runSession(
  */
 export function composeBottleCutout(input: ComposeCutoutInput): HTMLCanvasElement {
   const roi = extractRoi(input.source, input.roi);
+  const scaled = scaleMask(input.mask, input.modelSize, roi.width, roi.height);
   const roiCtx = roi.getContext("2d");
   if (!roiCtx) {
     throw new CutoutError("unsupported", "canvas 2d");
   }
   const image = roiCtx.getImageData(0, 0, roi.width, roi.height);
-  const sourceAlpha = extractAlphaChannel(image.data);
-  const selection = resolveComposeSelection(input, roi.width, roi.height);
-  const composed = composeSelectionWithSourceAlpha(selection, sourceAlpha);
-  applyComposedAlpha(image.data, selection, sourceAlpha);
-  if (input.placement === "inplace" && input.rotationDegrees === 0) {
-    roiCtx.putImageData(image, 0, 0);
-    if (roi.width === input.output.width && roi.height === input.output.height) {
-      return roi;
-    }
-    const dest = document.createElement("canvas");
-    dest.width = input.output.width;
-    dest.height = input.output.height;
-    const destCtx = dest.getContext("2d");
-    if (!destCtx) {
-      throw new CutoutError("unsupported", "canvas 2d");
-    }
-    destCtx.drawImage(roi, 0, 0, dest.width, dest.height);
-    return dest;
-  }
+  applyAlphaMask(image.data, scaled);
   const rotated = trimTransparent(
     rotateRgbaAndMask({
       rgba: image.data,
-      mask: composed,
+      mask: scaled,
       width: roi.width,
       height: roi.height,
       degrees: input.rotationDegrees,
@@ -313,38 +284,6 @@ export function composeBottleCutout(input: ComposeCutoutInput): HTMLCanvasElemen
   dest.height = input.output.height;
   paintCutoutOnCanvas(cut, dest);
   return dest;
-}
-
-function resolveComposeSelection(
-  input: ComposeCutoutInput,
-  width: number,
-  height: number,
-): Uint8Array {
-  if (input.workMask && input.workMask.width === width && input.workMask.height === height) {
-    if (input.workMask.data.length !== width * height) {
-      throw new CutoutError("invalid_mask", "work mask size");
-    }
-    return input.workMask.data;
-  }
-  return scaleMask(input.mask, input.modelSize, width, height);
-}
-
-export function createWorkMaskFromModel(
-  modelMask: Uint8Array,
-  modelSize: number,
-  width: number,
-  height: number,
-): Uint8Array {
-  return scaleMask(new Uint8Array(modelMask), modelSize, width, height);
-}
-
-export function readRoiSourceAlpha(source: HTMLCanvasElement, roi: CropRect): Uint8Array {
-  const canvas = extractRoi(source, roi);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new CutoutError("unsupported", "canvas 2d");
-  }
-  return extractAlphaChannel(ctx.getImageData(0, 0, canvas.width, canvas.height).data);
 }
 
 function paintCutoutOnCanvas(cutout: HTMLCanvasElement, dest: HTMLCanvasElement): void {

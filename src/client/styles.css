@@ -2928,43 +2928,6 @@ img[data-state="loaded"] {
   width: min(100%, 220px);
 }
 
-.photo-edit-mask-title {
-  margin: 0;
-  font-size: var(--text-body);
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.photo-edit-frame-mask {
-  width: min(100%, 360px);
-  max-height: min(52vh, 420px);
-  touch-action: none;
-}
-
-.photo-edit-mask-controls {
-  flex-shrink: 0;
-}
-
-.photo-edit-mask-controls fieldset {
-  margin: 0;
-  border: 0;
-  min-inline-size: 0;
-}
-
-.photo-edit-mask-save {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.photo-edit-mask-save .app-btn {
-  width: auto;
-  flex: 1;
-}
-
-.photo-edit.is-mask-edit {
-  touch-action: pan-y;
-}
-
 .photo-edit-cutout-status {
   position: absolute;
   inset: 0;
