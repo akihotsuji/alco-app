@@ -8,6 +8,7 @@ import {
 } from "@/shared/constants.ts";
 import { discardAccountScopedClientData } from "./account-deletion-client.ts";
 import { JOIN_TOKEN_STORAGE_KEY } from "./cellar-share.ts";
+import { cutoutMaskHoldCount, putCutoutMaskHold } from "./photo/cutout-mask-hold.ts";
 
 const store = new Map<string, string>();
 const sessionStore = new Map<string, string>();
@@ -49,8 +50,25 @@ describe("discardAccountScopedClientData", () => {
     sessionStore.set(ACCOUNT_DELETION_PENDING_USER_KEY, "u1");
     sessionStore.set(JOIN_TOKEN_STORAGE_KEY, "token-value");
     sessionStore.set("cellar.revision.abc", "3");
+    putCutoutMaskHold({
+      formSessionId: "form-logout",
+      origin: "original",
+      identity: { sourceId: 1, segmentationKey: "k", width: 1, height: 1 },
+      sourceAlpha: new Uint8Array([255]),
+      baseMask: new Uint8Array([255]),
+      committed: {
+        sourceId: 1,
+        segmentationKey: "k",
+        width: 1,
+        height: 1,
+        revision: 1,
+        data: new Uint8Array([255]),
+      },
+    });
+    expect(cutoutMaskHoldCount()).toBe(1);
 
     discardAccountScopedClientData();
+    expect(cutoutMaskHoldCount()).toBe(0);
 
     expect(store.has(GUIDE_PREF_KEY)).toBe(false);
     expect(store.has(CELLAR_PREF_KEYS.selectedId)).toBe(false);

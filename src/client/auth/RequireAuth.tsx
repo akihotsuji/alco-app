@@ -5,6 +5,7 @@ import { useSessionBoot } from "@/client/hooks/use-session-boot.ts";
 import { clearReloadGuard } from "@/client/lib/app-reload.ts";
 import { clearAssetRecoveryGuard } from "@/client/lib/asset-recovery.ts";
 import { authClient } from "@/client/lib/auth-client.ts";
+import { clearAllCutoutMaskHolds } from "@/client/lib/photo/cutout-mask-hold.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { AuthBoot } from "./AuthBoot.tsx";
 import { loginPathFor } from "./login-path.ts";
@@ -17,6 +18,7 @@ export function RequireAuth() {
   useEffect(() => {
     if (boot.kind === "guest") {
       queryClient.clear();
+      clearAllCutoutMaskHolds();
     }
     if (boot.kind === "authenticated" || boot.kind === "guest") {
       clearReloadGuard();

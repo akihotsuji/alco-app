@@ -141,8 +141,17 @@ describe("PhotoEdit 切り抜き（Issue #48）", () => {
     expect(source).toContain("PHOTO_MASK_EDIT_HISTORY_FLAG");
     expect(source).toContain("requestCloseMask");
     expect(angleSource).toContain("角度を調整");
+    expect(angleSource).toContain("extraChip");
+    expect(source).toContain("extraChip=");
     expect(context).toContain("sourceOrigin");
     expect(context).toContain("registerOverlayBackHandler");
     expect(context).toContain("clearCutoutMaskHoldsForSession");
+  });
+
+  it("ログアウトとアカウント削除で切り抜きマスクの一時保持を捨てる", () => {
+    const requireAuth = readFileSync(join(here, "../../auth/RequireAuth.tsx"), "utf8");
+    expect(requireAuth).toContain("clearAllCutoutMaskHolds()");
+    const discard = readFileSync(join(here, "../../lib/account-deletion-client.ts"), "utf8");
+    expect(discard).toContain("clearAllCutoutMaskHolds()");
   });
 });
