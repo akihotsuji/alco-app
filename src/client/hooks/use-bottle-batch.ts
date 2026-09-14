@@ -63,6 +63,7 @@ import type { Bottle } from "@/shared/bottles.ts";
 export type BatchSubmitResult = {
   created: Bottle[];
   failedCount: number;
+  leftoverCount: number;
 };
 
 function attachmentFromProcessed(
@@ -810,8 +811,11 @@ export function useBottleBatch(autoCapture: boolean) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
         void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
       }
+      const leftoverCount = rowsRef.current.filter(
+        (row) => !outcome.succeeded.includes(row.key),
+      ).length;
       setRows((current) => applyBatchOutcome(current, outcome));
-      return { created, failedCount: outcome.failed.length };
+      return { created, failedCount: outcome.failed.length, leftoverCount };
     },
     [queryClient],
   );

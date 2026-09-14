@@ -31,6 +31,7 @@ describe("useBottleBatch 連続撮影 / 複数選択（04-cellar G8）", () => {
     expect(source).toContain('current.failure?.stage === "convert"');
     expect(source).toContain("runBatchUploadJob");
     expect(source).toContain("if (!isBatchRowSavable(row))");
+    expect(source).toContain("leftoverCount");
     expect(source).toContain("row.saveOperationKey ?? newOperationKey()");
     expect(source).toContain("retryLockRef.current");
     expect(source).toContain("reservedKeysRef.current");

@@ -113,11 +113,18 @@ export function BottleBatchForm() {
       return;
     }
     const result = await batch.submit(destination.id);
-    if (result.failedCount > 0) {
-      setSaveState("error");
-      setFormError(BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount));
+    if (result.failedCount > 0 || result.leftoverCount > 0) {
+      if (result.failedCount > 0) {
+        setSaveState("error");
+        setFormError(BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount));
+      } else {
+        setSaveState("idle");
+      }
       if (result.created.length > 0) {
-        showToast({ message: arrangedToastMessage(result.created.length), cheer: false });
+        showToast({
+          message: arrangedToastMessage(result.created.length),
+          cheer: result.failedCount === 0,
+        });
       }
       return;
     }

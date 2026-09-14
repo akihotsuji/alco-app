@@ -45,6 +45,7 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
 
   it("全成功で /cellar へ replace + トースト + M-32、一部失敗は行を残して上部に汎用文（G9）", () => {
     expect(source).toContain('navigate("/cellar", { replace: true })');
+    expect(source).toContain("result.failedCount > 0 || result.leftoverCount > 0");
     expect(source).toContain("arrangedToastMessage(result.created.length)");
     expect(source).toContain('kind: "placed"');
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount)");
