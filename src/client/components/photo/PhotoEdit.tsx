@@ -886,24 +886,22 @@ export function PhotoEdit() {
             </div>
           ) : null}
           {kind === "cellar" && cutoutOn && cutoutSupported && previewCutout && !cutoutBusy ? (
-            <>
-              <PhotoEditAngleControls
-                open={angleOpen}
-                onOpenChange={setAngleOpen}
-                degrees={displayRotation}
-                autoApplied={autoApplied && userRotation === null}
-                disabled={busy}
-                onChange={(degrees) => {
-                  setUserRotation(degrees);
-                  setAutoApplied(false);
-                }}
-              />
-              <div className="photo-edit-toggles">
+            <PhotoEditAngleControls
+              open={angleOpen}
+              onOpenChange={setAngleOpen}
+              degrees={displayRotation}
+              autoApplied={autoApplied && userRotation === null}
+              disabled={busy}
+              onChange={(degrees) => {
+                setUserRotation(degrees);
+                setAutoApplied(false);
+              }}
+              extraChip={
                 <button type="button" className="chip" disabled={busy} onClick={openMaskMode}>
                   {CUTOUT_MASK_EDIT_MESSAGES.open}
                 </button>
-              </div>
-            </>
+              }
+            />
           ) : null}
         </>
       )}
