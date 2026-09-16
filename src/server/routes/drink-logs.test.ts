@@ -710,6 +710,32 @@ describe("PATCH /api/drink-logs/:id", () => {
     expect(source?.bottleId).toBe(own.bottleId);
     expect(source?.drinkLogId).toBeNull();
   });
+
+  it("PATCH で photoIds を省略したら既存写真は残る", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const photo = await uploadPhoto(ctx.app, a.cookie);
+    const created = drinkLogSchema.parse(
+      await (await postLog(ctx.app, a.cookie, { ...BASE, photoIds: [photo.id] })).json(),
+    );
+
+    const patched = drinkLogSchema.parse(
+      await (await patchLog(ctx.app, a.cookie, created.id, { memo: "改名だけ" })).json(),
+    );
+    expect(patched.photos.map((item) => item.id)).toEqual([photo.id]);
+    expect(patched.thumbPhotoId).toBe(photo.id);
+
+    const fetched = drinkLogSchema.parse(
+      await (
+        await ctx.app.request(`/api/drink-logs/${created.id}`, { headers: { Cookie: a.cookie } })
+      ).json(),
+    );
+    expect(fetched.photos.map((item) => item.id)).toEqual([photo.id]);
+    expect(fetched.thumbPhotoId).toBe(photo.id);
+    expect(
+      await ctx.db.select().from(photos).where(eq(photos.drinkLogId, created.id)),
+    ).toHaveLength(1);
+  });
 });
 
 describe("GET /api/drink-logs/:id", () => {

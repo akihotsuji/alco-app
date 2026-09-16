@@ -19,6 +19,7 @@ import {
 } from "@/shared/tasting-notes.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
+import { photosRemovedByPatch } from "../lib/photo-patch.ts";
 import { requireOwnBottle } from "./bottles.ts";
 import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
@@ -535,8 +536,7 @@ export async function updateTastingNote(input: {
   ]);
   const desiredPhotoRows = photoBundle.desired;
   const currentPhotoRows = photoBundle.current;
-  const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
-  const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
+  const removedPhotoRows = photosRemovedByPatch(currentPhotoRows, desiredPhotoRows);
   const updatedAt = input.now ?? new Date();
   const identity = resolveIdentityFields(
     body,
