@@ -52,6 +52,7 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).toContain("bottle-cellar-meta");
     expect(source).toContain("基本情報");
     expect(source).toContain("bottle-detail-actions");
+    expect(source).toContain("has-back");
     expect(source).toContain("UNKNOWN_PROP_VALUE");
     expect(source).toContain("vintageLabel");
     expect(source).toContain("BOTTLE_FIELD_LABELS.variety");

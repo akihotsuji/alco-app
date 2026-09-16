@@ -208,7 +208,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           </span>
         </div>
       </div>
-      <div className="bottle-detail-photos">
+      <div className={backPhoto ? "bottle-detail-photos has-back" : "bottle-detail-photos"}>
         {photo ? (
           <button
             type="button"

@@ -6306,10 +6306,23 @@ html[data-reduce-motion="1"] .guide-fan-item {
   gap: var(--space-3);
 }
 
+.bottle-detail-photos.has-back .bottle-hero {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 80px);
+}
+
 @media (max-width: 360px) {
-  .bottle-detail-photos {
+  .bottle-detail-photos,
+  .bottle-detail-photos.has-back {
     flex-direction: column;
     align-items: center;
+  }
+
+  .bottle-detail-photos.has-back .bottle-hero {
+    width: 100%;
+    max-width: none;
   }
 }
 
@@ -6377,15 +6390,17 @@ html[data-reduce-motion="1"] .guide-fan-item {
 
 .bottle-detail-actions {
   position: sticky;
-  bottom: calc(var(--tab-h) + 12px + var(--safe-bottom));
+  bottom: var(--keyboard-inset, 0px);
   z-index: 1;
   margin-top: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   padding-top: var(--space-3);
+  padding-bottom: 12px;
   background: var(--background);
   border-top: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+  box-shadow: 0 12px 0 var(--background);
 }
 
 .cellar-destination-shared-copy {
