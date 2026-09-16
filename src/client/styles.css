@@ -5189,7 +5189,7 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 
 .bottle-prop.is-stack dd,
 .bottle-prop.is-memo dd {
-  text-align: left;
+  text-align: start;
   width: 100%;
 }
 
