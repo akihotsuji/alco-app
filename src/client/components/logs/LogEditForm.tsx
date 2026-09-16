@@ -5,6 +5,7 @@ import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
@@ -330,6 +331,12 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
             {visibleErrors.drinkName}
           </p>
         ) : null}
+        <DrinkSearchLink
+          name={state.drinkName}
+          producer={state.producer}
+          vintage={state.vintage}
+          drinkType={state.drinkType}
+        />
       </section>
       <DrinkTypeSelect
         value={state.drinkType}

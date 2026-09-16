@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { OriginCountryField } from "@/client/components/form/OriginCountryField.tsx";
@@ -581,6 +582,12 @@ export function BottleFormFields({
             {errors.name}
           </p>
         ) : null}
+        <DrinkSearchLink
+          name={state.name}
+          producer={state.producer}
+          vintage={state.vintage}
+          drinkType={state.drinkType}
+        />
       </div>
       <DrinkTypeSelect
         required

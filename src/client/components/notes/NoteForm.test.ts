@@ -38,5 +38,9 @@ describe("NoteForm 写真先頭と AI / 識別", () => {
     expect(source.indexOf("<NoteTextFields")).toBeGreaterThan(source.indexOf("<IdentityFields"));
     expect(source).toContain("TargetBottleChip");
     expect(source).toContain("preserveEdits: true");
+    expect(source).toContain("<DrinkSearchLink");
+    expect(source.indexOf("errors.drinkName")).toBeLessThan(source.indexOf("<DrinkSearchLink"));
+    expect(source).toContain("showSearch={!identityExpanded}");
+    expect(source).toContain("name={state.drinkName}");
   });
 });

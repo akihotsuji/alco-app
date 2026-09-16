@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
+import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
@@ -393,6 +394,12 @@ export function LogNewForm() {
             {visibleErrors.drinkName}
           </p>
         ) : null}
+        <DrinkSearchLink
+          name={state.drinkName}
+          producer={state.producer}
+          vintage={state.vintage}
+          drinkType={state.drinkType}
+        />
       </section>
       <DrinkTypeSelect
         value={state.drinkType}

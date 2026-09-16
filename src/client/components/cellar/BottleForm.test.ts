@@ -56,6 +56,9 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain('id="bottle-origin"');
     expect(source).toContain("capturedAtToCalendarDate");
     expect(source).not.toContain("dangerouslySetInnerHTML");
+    expect(source).toContain("<DrinkSearchLink");
+    expect(source.indexOf("errors.name")).toBeLessThan(source.indexOf("<DrinkSearchLink"));
+    expect(source).toContain("name={state.name}");
   });
 
   it("撮影後の編集は photo-edit を開き、保存済み写真もカメラに落とさない", () => {

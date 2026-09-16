@@ -13,6 +13,7 @@
  * | --danger-fg | destructive-foreground | 危険ボタン上の文字 |
  * | --rest / --score | rest / score（独自） | 休肝ピル・スコア |
  * | --ring | ring | フォーカス 2px |
+ * | --search-link | search-link（独自） | お酒の Google 検索リンク |
  * | --radius | --radius-md | ボタン・入力 16px |
  * | --radius-card | --radius-lg | カード 24px |
  * | --shadow-* | @utility shadow-* | 変数経由。ダークは prefers-color-scheme |
@@ -43,6 +44,7 @@ export const LIGHT_COLOR_TOKENS = {
   "--rest": "#2f5d3e",
   "--score": "#7a3538",
   "--ring": "#7a3538",
+  "--search-link": "#315f85",
   "--neu-light": "rgba(255, 255, 255, 0.8)",
   "--neu-dark": "#c9c2b6",
   "--mascot-wine": "#8e2f3c",
@@ -63,6 +65,7 @@ export const DARK_COLOR_TOKENS = {
   "--rest": "#8fcb9e",
   "--score": "#cc8484",
   "--ring": "#cc8484",
+  "--search-link": "#93bce0",
   "--neu-light": "#3a3632",
   "--neu-dark": "#1a1816",
   "--fill-tint-surface": "rgba(0, 0, 0, 0.25)",

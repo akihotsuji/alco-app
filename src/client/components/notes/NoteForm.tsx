@@ -6,6 +6,7 @@ import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
@@ -691,6 +692,12 @@ function NoteFormFields({
             {errors.drinkName}
           </p>
         ) : null}
+        <DrinkSearchLink
+          name={state.drinkName}
+          producer={state.producer}
+          vintage={state.vintage}
+          drinkType={state.drinkType}
+        />
       </section>
       <DrinkTypeSelect
         required
@@ -759,7 +766,11 @@ function NoteFormFields({
           }}
         />
       ) : (
-        <NoteEditSummary state={state} photoUrl={photos.items[0]?.previewUrl} />
+        <NoteEditSummary
+          state={state}
+          photoUrl={photos.items[0]?.previewUrl}
+          showSearch={!identityExpanded}
+        />
       )}
       {mode === "new" ? photoStrip : null}
       {recognizeStatus ? (
@@ -880,7 +891,15 @@ function NoteSourceToggle({
   );
 }
 
-function NoteEditSummary({ state, photoUrl }: { state: NoteFormState; photoUrl?: string }) {
+function NoteEditSummary({
+  state,
+  photoUrl,
+  showSearch,
+}: {
+  state: NoteFormState;
+  photoUrl?: string;
+  showSearch: boolean;
+}) {
   const vintage = vintageLabel(state.vintage.trim() ? Number(state.vintage) : null);
   const type = state.drinkType ? DRINK_TYPE_LABELS[state.drinkType] : null;
   return (
@@ -896,6 +915,14 @@ function NoteEditSummary({ state, photoUrl }: { state: NoteFormState; photoUrl?:
       )}
       <div className="note-edit-summary-copy">
         <p className="note-edit-summary-name">{state.drinkName || "（品名未入力）"}</p>
+        {showSearch ? (
+          <DrinkSearchLink
+            name={state.drinkName}
+            producer={state.producer}
+            vintage={state.vintage}
+            drinkType={state.drinkType}
+          />
+        ) : null}
         <p className="note-edit-summary-meta">
           {[vintage, type].filter((value): value is string => Boolean(value)).join(" ・ ")}
         </p>

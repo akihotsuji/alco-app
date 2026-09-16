@@ -100,6 +100,7 @@ describe("design tokens", () => {
       "--rest",
       "--score",
       "--ring",
+      "--search-link",
       "--neu-light",
       "--neu-dark",
     ] as const) {
@@ -201,11 +202,13 @@ describe("design tokens", () => {
       { fg: LIGHT_COLOR_TOKENS["--primary"], bg: LIGHT_COLOR_TOKENS["--background"] },
       { fg: LIGHT_COLOR_TOKENS["--rest"], bg: LIGHT_COLOR_TOKENS["--background"] },
       { fg: LIGHT_COLOR_TOKENS["--danger-fg"], bg: LIGHT_COLOR_TOKENS["--danger"] },
+      { fg: LIGHT_COLOR_TOKENS["--search-link"], bg: LIGHT_COLOR_TOKENS["--background"] },
       { fg: DARK_COLOR_TOKENS["--foreground"], bg: DARK_COLOR_TOKENS["--background"] },
       { fg: DARK_COLOR_TOKENS["--muted"], bg: DARK_COLOR_TOKENS["--background"] },
       { fg: DARK_COLOR_TOKENS["--primary-fg"], bg: DARK_COLOR_TOKENS["--primary"] },
       { fg: DARK_COLOR_TOKENS["--primary"], bg: DARK_COLOR_TOKENS["--background"] },
       { fg: DARK_COLOR_TOKENS["--danger-fg"], bg: DARK_COLOR_TOKENS["--danger"] },
+      { fg: DARK_COLOR_TOKENS["--search-link"], bg: DARK_COLOR_TOKENS["--background"] },
       { fg: DARK_COLOR_TOKENS["--rest"], bg: DARK_COLOR_TOKENS["--background"] },
     ];
     for (const pair of pairs) {
@@ -264,5 +267,6 @@ describe("design tokens", () => {
     expect(tokenValue(block, "--page-pad-x")).toBe("16px");
     expect(tokenValue(block, "--safe-top")).toBe("env(safe-area-inset-top, 0px)");
     expect(tokenValue(block, "--text-note")).toBe("14px");
+    expect(tokenValue(block, "--search-link")).toBe(LIGHT_COLOR_TOKENS["--search-link"]);
   });
 });

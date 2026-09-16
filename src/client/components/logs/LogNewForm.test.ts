@@ -55,6 +55,13 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).not.toContain("写真はコピーしません");
     expect(edit).toContain("<IdentityFields");
     expect(edit).toContain("<PlaceField");
+    for (const form of [source, edit]) {
+      expect(form).toContain("<DrinkSearchLink");
+      expect(form.indexOf("visibleErrors.drinkName")).toBeLessThan(
+        form.indexOf("<DrinkSearchLink"),
+      );
+      expect(form).toContain("name={state.drinkName}");
+    }
     expect(edit).not.toContain("requestCurrentPosition");
     expect(edit).not.toContain("テイスティングノートをつける？");
   });

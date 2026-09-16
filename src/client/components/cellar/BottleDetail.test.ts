@@ -46,6 +46,9 @@ describe("BottleDetail 状態バッジ", () => {
 
   it("プロパティの年はヴィンテージ、産地は生産国と書く", () => {
     expect(source).toContain("bottle-detail-name");
+    expect(source).toContain("<DrinkSearchLink");
+    expect(source.indexOf("bottle-detail-name")).toBeLessThan(source.indexOf("<DrinkSearchLink"));
+    expect(source.indexOf("<DrinkSearchLink")).toBeLessThan(source.indexOf("bottle-detail-photos"));
     expect(source.indexOf("bottle-detail-name")).toBeLessThan(
       source.indexOf("bottle-detail-photos"),
     );
