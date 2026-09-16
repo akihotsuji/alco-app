@@ -84,7 +84,7 @@ async function setLightTheme(page: Page): Promise<void> {
 
 async function pickLibraryPhoto(page: Page, fileName: string, expectEdit: boolean): Promise<void> {
   const chooserPromise = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "写真を選ぶ" }).click();
+  await page.getByRole("button", { name: /^(写真を選ぶ|ライブラリ)$/ }).click();
   await (await chooserPromise).setFiles({
     name: fileName,
     mimeType: "image/jpeg",

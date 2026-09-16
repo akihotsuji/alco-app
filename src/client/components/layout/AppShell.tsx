@@ -125,6 +125,7 @@ function AppShellFrame() {
         <BottomTabBar
           activeTab={route.parentTab}
           onSelect={onSelectTab}
+          quietCenter={route.quietTabCenter}
           guideTarget={guide.step === "home-record" ? "record" : undefined}
         />
       )}

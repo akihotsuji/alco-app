@@ -224,6 +224,9 @@ describe("resolveAppRoute", () => {
       kind: "edit",
       to: "/cellar/b1/edit",
     });
+    expect(resolveAppRoute("/cellar/b1", NOW).quietTabCenter).toBe(true);
+    expect(resolveAppRoute("/notes/n1", NOW).quietTabCenter).toBe(false);
+    expect(resolveAppRoute("/cellar", NOW).quietTabCenter).toBe(false);
     expect(resolveAppRoute("/unknown", NOW).header).toEqual({
       title: "見つかりません",
       left: { kind: "spacer" },

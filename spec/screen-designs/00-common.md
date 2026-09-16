@@ -43,7 +43,8 @@
 | 5 | settings | 設定 | `settings` | `/settings` |
 
 - 通常タブ: 高さ 48px、アイコン 20px + ラベル 12px。現在地は inset + primary 色。切替は inset-sm と色が `--dur-state` で移る（M-20。アイコンは動かさない）
-- **中央タブ**: 直径 `--tab-center-size`（52px）の円。`--primary` 塗り、アイコン 22px `--primary-fg`、`--shadow-primary`。タブバー上端から 8px 上に出す。ラベル「飲酒を記録」は円の下に **1 行**（`nowrap`。`max-width` で「飲酒を記」「録」のように切らない）。押下は主ボタンと同じ `scale(0.985) translateY(1px)` + pressed inset（M-21）
+- 中央タブ: 直径 `--tab-center-size`（52px）の円。`--primary` 塗り、アイコン 22px `--primary-fg`、`--shadow-primary`。タブバー上端から 8px 上に出す。ラベル「飲酒を記録」は円の下に **1 行**（`nowrap`。`max-width` で「飲酒を記」「録」のように切らない）。押下は主ボタンと同じ `scale(0.985) translateY(1px)` + pressed inset（M-21）
+- **`bottle-detail` だけ** `.tab-bar.is-quiet-center`。中央円の浮きをなくし他タブに近い大きさにする。タップ領域 44px と `/logs/new` への遷移は維持する。他画面のタブは変えない
 - **中央タブは「飲酒を記録」作成ボタンであり着地画面を持たない**（2026-09-14。円内は Plus。下ラベルは「飲酒を記録」。画面見出しは「お酒を記録」のまま。2026-09-06 (c) 撮影開始は撤回）:
   - タップで `/logs/new` を **写真なし**で開く。カメラ・ファイル選択・権限要求は開始しない
   - 現在地ハイライトは付けない（円は常に outset。inset になるのは押下中の M-21 だけ）。`/logs` 配下の画面はホームタブを現在地にする（[../screens.md](../screens.md) 親タブ）

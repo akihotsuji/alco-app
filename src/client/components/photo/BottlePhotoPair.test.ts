@@ -21,4 +21,17 @@ describe("BottlePhotoPair", () => {
     expect(BOTTLE_PHOTO_ACTION_LABELS.deletePhoto).toBe("写真を削除");
     expect(BOTTLE_PHOTO_ACTION_LABELS.deletePhoto).not.toContain("ボトル");
   });
+
+  it("空状態は主写真1枠で、表裏の同じ空枠を並べない", () => {
+    expect(source).toContain("BOTTLE_PHOTO_ACTION_LABELS.addFrontPrompt");
+    expect(source).toContain("BOTTLE_PHOTO_ACTION_LABELS.captureShort");
+    expect(source).toContain("BOTTLE_PHOTO_ACTION_LABELS.libraryShort");
+    expect(source).toContain("bottle-photo-drop");
+    expect(source).not.toContain("bottle-photo-empty");
+    expect(source).toContain("hasFront ? (");
+    expect(source).toContain('onClick={() => setPanel("front")}');
+    expect(BOTTLE_PHOTO_ACTION_LABELS.addBack).toBe("＋ 裏ラベルを追加（任意）");
+    expect(BOTTLE_PHOTO_ACTION_LABELS.captureShort).toBe("撮影");
+    expect(BOTTLE_PHOTO_ACTION_LABELS.libraryShort).toBe("ライブラリ");
+  });
 });

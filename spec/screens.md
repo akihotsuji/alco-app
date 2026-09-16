@@ -125,9 +125,9 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 |---|---|---|---|---|---|
 | bottle-list | セラー（棚） | `/cellar` | cellar | 表示 | 在庫（`sealed`）を棚 / 1本ずつ / 管理一覧で表示。種類・検索はクエリ。棚の見出しから `bottle-type-grid` |
 | bottle-archive | 貯蔵庫 | `/cellar/archive` | cellar | 表示 | 開栓済み（`consumed`）。月ごと。`/cellar/:bottleId` より静的ルートを優先 |
-| bottle-new | ボトルを追加 | `/cellar/new` | cellar | 隠す | 撮影と選択を同じ大きさで並べる。アプリ内導線は `?camera=1` を付けない。ディープリンクの `?camera=1` だけ撮影から。本数 N で N 行 |
+| bottle-new | ボトルを追加 | `/cellar/new` | cellar | 隠す | 保存先の次に主写真 1 枠。「撮影」「ライブラリ」を同じ大きさで並べる。表裏の空枠は並べない。アプリ内導線は `?camera=1` を付けない。ディープリンクの `?camera=1` だけ撮影から。本数 N で N 行 |
 | bottle-batch | まとめて追加 | `/cellar/batch` | cellar | 隠す | 撮影とライブラリ（複数枚）を同じ行で並べる。アプリ内導線は `?camera=1` を付けない。1 本ずつ撮って行に積み、最後に 1 回で棚に並べる（≦20 行）。Phase 5.5 #56 |
-| bottle-detail | ボトル詳細 | `/cellar/:bottleId` | cellar | 表示 | ヘッダーは「ボトル詳細」。品名は本文で全文。主「開栓する」。開栓後は任意の案内シート。詳細に「飲んだ量を記録」「テイスティングノートを書く」。貯蔵庫は「開栓の記録を取り消す」。ノート節は一覧のみ（作成と混同しない） |
+| bottle-detail | ボトル詳細 | `/cellar/:bottleId` | cellar | 表示 | ヘッダーは「ボトル詳細」。品名は写真より上で全文。主「開栓する」はタブ直上。開栓後は任意の案内シート。詳細に「飲んだ量を記録」「テイスティングノートを書く」。貯蔵庫は「開栓の記録を取り消す」。ノート節は一覧のみ（作成と混同しない）。中央タブは控えめ |
 | bottle-edit | ボトル編集 | `/cellar/:bottleId/edit` | cellar | 隠す | 削除もここ。共有時は保存先読み取り専用・競合比較 |
 | cellar-share-new | セラーを共有する | `/cellar/share` | cellar | 隠す | 空の共有セラーを作る。詳細は [11-shared-cellar.md](screen-designs/11-shared-cellar.md) |
 | cellar-share-created | 共有セラー | `/cellar/share/created` | cellar | 隠す | 招待（主）と移動（副） |

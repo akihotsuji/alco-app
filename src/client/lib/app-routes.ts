@@ -68,6 +68,8 @@ export type AppRoute = {
   hideTabBar: boolean;
   /** `home` だけ true。共通ヘッダーと画面内見出しの二重表示を避ける */
   hideHeader: boolean;
+  /** `bottle-detail` など。中央タブの浮きを抑える */
+  quietTabCenter: boolean;
   header: ShellHeader;
   notFound: boolean;
 };
@@ -88,8 +90,9 @@ function found(
   header: ShellHeader,
   hideTabBar = false,
   hideHeader = false,
+  quietTabCenter = false,
 ): AppRoute {
-  return { screenId, parentTab, hideTabBar, hideHeader, header, notFound: false };
+  return { screenId, parentTab, hideTabBar, hideHeader, quietTabCenter, header, notFound: false };
 }
 
 function backHeader(title: string, fallback: string, right: HeaderRight = SPACER): ShellHeader {
@@ -106,8 +109,16 @@ function detailRoute(
   title: string,
   fallback: string,
   editTo: string,
+  quietTabCenter = false,
 ): AppRoute {
-  return found(screenId, parentTab, backHeader(title, fallback, { kind: "edit", to: editTo }));
+  return found(
+    screenId,
+    parentTab,
+    backHeader(title, fallback, { kind: "edit", to: editTo }),
+    false,
+    false,
+    quietTabCenter,
+  );
 }
 
 function notFoundRoute(): AppRoute {
@@ -116,6 +127,7 @@ function notFoundRoute(): AppRoute {
     parentTab: null,
     hideTabBar: false,
     hideHeader: false,
+    quietTabCenter: false,
     header: {
       title: "見つかりません",
       left: SPACER,
@@ -297,6 +309,7 @@ export function resolveAppRoute(
         "ボトル詳細",
         "/cellar",
         `/cellar/${segments[1]}/edit`,
+        true,
       );
     }
     return notFoundRoute();
@@ -332,6 +345,7 @@ export function resolveAppRoute(
       parentTab: null,
       hideTabBar: true,
       hideHeader: true,
+      quietTabCenter: false,
       header: { title: "招待", left: SPACER, right: SPACER },
       notFound: false,
     };

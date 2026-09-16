@@ -48,7 +48,10 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).not.toContain("if (!hasFront && backPhotoHas)");
     expect(source).toContain("<RecognizeBanner");
     expect(source).toContain("FieldWithAiMark");
-    expect(source).toContain("BOTTLE_FIELD_LABELS.name");
+    expect(source).toContain('<FieldLabel htmlFor="bottle-name" required>');
+    expect(source).toContain("例：常山 わせ");
+    expect(source).toContain("<DrinkTypeSelect");
+    expect(source).toContain("required");
     expect(source).toContain("<OriginCountryField");
     expect(source).toContain('id="bottle-origin"');
     expect(source).toContain("capturedAtToCalendarDate");

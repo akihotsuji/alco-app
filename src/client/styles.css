@@ -2581,19 +2581,21 @@ img[data-state="loaded"] {
   margin-top: 0;
 }
 
-/* bottle-detail T1b: 表面の下に裏面の小サムネ + 「裏面」 */
+/* bottle-detail T1b: 主写真の脇に裏ラベルの小サムネ */
 .bottle-back-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-1);
   align-self: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   border: none;
   padding: 0;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-note);
 }
 
 .bottle-back-thumb-frame {
@@ -5061,6 +5063,7 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 }
 
 .bottle-detail {
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -5082,19 +5085,24 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   pointer-events: none;
 }
 
+.bottle-hero:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 .bottle-hero-img,
 .bottle-silhouette {
-  width: min(100%, 160px);
+  width: min(100%, 180px);
   height: 240px;
   object-fit: contain;
   object-position: bottom center;
 }
 
 .bottle-hero-img.is-photo {
-  height: 300px;
-  object-fit: cover;
+  width: min(100%, 220px);
+  height: 240px;
+  object-fit: contain;
   border-radius: 8px;
-  box-shadow: var(--shadow-inset-sm);
 }
 
 .bottle-hero-shelf {
@@ -5103,9 +5111,9 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 
 .bottle-status-row {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-3);
 }
 
 .bottle-status-pill {
@@ -5130,14 +5138,14 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   color: var(--muted);
   font-size: var(--text-note);
   line-height: 1.5;
-  text-align: center;
   overflow-wrap: anywhere;
+  text-align: start;
 }
 
 .bottle-props {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0;
   margin: 0;
   min-width: 0;
 }
@@ -5148,6 +5156,12 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   gap: var(--space-4);
   margin: 0;
   min-width: 0;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+.bottle-prop:last-child {
+  border-bottom: 0;
 }
 
 .bottle-prop dt {
@@ -5175,7 +5189,7 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 
 .bottle-prop.is-stack dd,
 .bottle-prop.is-memo dd {
-  text-align: left;
+  text-align: start;
   width: 100%;
 }
 
@@ -6049,12 +6063,87 @@ html[data-reduce-motion="1"] .guide-fan-item {
   gap: var(--space-3);
 }
 
+.bottle-photo-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 128px;
+  padding: var(--space-4);
+  border: 1px dashed color-mix(in srgb, var(--foreground) 22%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--neu-light) 28%, var(--surface));
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-note);
+  font-weight: 600;
+}
+
+.bottle-photo-drop:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.bottle-photo-filled {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.bottle-photo-filled.has-back {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.bottle-photo-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 128px;
+  max-height: 140px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+  background: var(--surface);
+}
+
+.bottle-photo-preview-img {
+  width: auto;
+  height: 140px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.bottle-photo-preview-placeholder {
+  display: block;
+  width: 100%;
+  height: 128px;
+}
+
+.bottle-photo-add-back {
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+}
+
 .bottle-photo-slot {
-  flex: 1 1 140px;
-  min-width: 132px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.bottle-photo-slot.is-compact .bottle-photo-thumb {
+  width: 64px;
+  height: 96px;
 }
 
 .bottle-photo-empty {
@@ -6075,6 +6164,12 @@ html[data-reduce-motion="1"] .guide-fan-item {
   font: inherit;
   font-weight: 600;
   text-align: start;
+}
+
+.bottle-photo-action:focus-visible,
+.bottle-photo-add-back:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .photo-action-panel-list {
@@ -6101,10 +6196,38 @@ html[data-reduce-motion="1"] .guide-fan-item {
   font-weight: 600;
 }
 
-.count-stepper {
+.count-stepper-field {
+  min-inline-size: 0;
+}
+
+.count-stepper-field::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+.count-stepper-field > legend {
+  float: left;
+  width: auto;
   display: flex;
   align-items: center;
+  min-height: var(--tap-min);
+  margin: 0;
+  padding: 0;
+}
+
+.count-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: var(--space-2);
+  margin-left: auto;
+}
+
+.count-stepper-field > .field-hint,
+.count-stepper-field > .field-error {
+  clear: both;
 }
 
 .count-stepper-input {
@@ -6183,14 +6306,31 @@ html[data-reduce-motion="1"] .guide-fan-item {
   gap: var(--space-3);
 }
 
-.bottle-hero.is-compact .bottle-hero-img,
-.bottle-hero.is-compact .bottle-silhouette {
-  height: 180px;
+.bottle-detail-photos.has-back .bottle-hero {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 80px);
 }
 
-.bottle-hero.is-compact .bottle-hero-img.is-photo {
-  height: 180px;
-  object-fit: contain;
+@media (max-width: 360px) {
+  .bottle-detail-photos,
+  .bottle-detail-photos.has-back {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .bottle-detail-photos.has-back .bottle-hero {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.bottle-detail-identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .bottle-detail-name {
@@ -6202,28 +6342,149 @@ html[data-reduce-motion="1"] .guide-fan-item {
   overflow-wrap: anywhere;
 }
 
-.bottle-status-row {
-  align-items: flex-start;
+.bottle-cellar-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-note);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
-.bottle-cellar-chip {
+.bottle-status {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-outset-sm);
-  font-size: 13px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--foreground);
+  font-size: var(--text-note);
+}
+
+.bottle-status.is-consumed {
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  color: var(--primary);
   font-weight: 600;
 }
 
-.bottle-summary {
-  text-align: start;
+.bottle-basics {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.bottle-prop.is-stack dd,
-.bottle-prop.is-memo dd {
-  text-align: start;
+.bottle-basics-title {
+  margin: 0 0 var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-note);
+  font-weight: 600;
+}
+
+.bottle-hero-empty-label {
+  color: var(--muted);
+  font-size: var(--text-note);
+}
+
+.bottle-detail-actions {
+  position: sticky;
+  bottom: var(--keyboard-inset, 0px);
+  z-index: 1;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  padding-bottom: 12px;
+  background: var(--background);
+  border-top: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+  box-shadow: 0 12px 0 var(--background);
+}
+
+.cellar-destination-shared-copy {
+  color: var(--muted);
+  font-size: var(--text-note);
+  line-height: 1.5;
+}
+
+.cellar-destination-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.cellar-destination-card.is-action {
+  cursor: pointer;
+}
+
+.cellar-destination-card.is-action:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.cellar-destination-label {
+  color: var(--muted);
+  font-size: var(--text-note);
+  font-weight: 600;
+}
+
+.cellar-destination-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.bottle-form
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="file"]):not([type="radio"]),
+.bottle-form textarea,
+.bottle-form .form-select-row,
+.bottle-form .count-stepper-input {
+  border: 1px solid color-mix(in srgb, var(--foreground) 16%, transparent);
+  background: color-mix(in srgb, var(--neu-light) 35%, var(--surface));
+  box-shadow: none;
+}
+
+.bottle-form .field-label,
+.bottle-form .field-hint,
+.bottle-form .field-error {
+  font-size: var(--text-note);
+}
+
+@media (min-width: 640px) {
+  .bottle-detail,
+  .form-page.bottle-form {
+    max-width: 32rem;
+    margin-inline: auto;
+    width: 100%;
+  }
+}
+
+.tab-bar.is-quiet-center .tab-center {
+  justify-content: center;
+}
+
+.tab-bar.is-quiet-center .tab-center-btn {
+  position: static;
+  top: auto;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  box-shadow: var(--shadow-outset-sm);
 }
 
 .form-delete-spaced {

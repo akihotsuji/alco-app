@@ -1,3 +1,4 @@
+import { Camera, Images } from "lucide-react";
 import { type RefObject, useRef, useState } from "react";
 import type { PhotoAttachment } from "@/client/components/layout/photo-edit-context.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
@@ -32,7 +33,7 @@ type BottlePhotoPairProps = {
 
 type PanelSide = "front" | "back" | null;
 
-/** ボトル表裏のコンパクトな横並びサムネ。操作はパネルに集約する */
+/** ボトル写真。空は主写真 1 枠。裏ラベルは表面があるときの補助操作 */
 export function BottlePhotoPair({
   frontAttachment,
   frontPreviewUrl,
@@ -54,11 +55,13 @@ export function BottlePhotoPair({
   onBackClear,
 }: BottlePhotoPairProps) {
   const [panel, setPanel] = useState<PanelSide>(null);
+  const dropTrigger = useRef<HTMLButtonElement>(null);
   const frontTrigger = useRef<HTMLButtonElement>(null);
   const backTrigger = useRef<HTMLButtonElement>(null);
   const frontUrl = frontAttachment?.previewUrl ?? frontPreviewUrl ?? null;
   const backUrl = backAttachment?.previewUrl ?? backPreviewUrl ?? null;
   const hasFront = frontStatus !== "none";
+  const hasBack = hasFront && backStatus !== "none";
 
   const frontActions: PhotoActionItem[] = frontUrl
     ? [
@@ -103,45 +106,81 @@ export function BottlePhotoPair({
 
   return (
     <section className="log-form-section bottle-photo-pair">
-      <div className="bottle-photo-pair-grid">
-        <PhotoSlot
-          heading={BOTTLE_PHOTO_ACTION_LABELS.frontHeading}
-          previewUrl={frontUrl}
-          alt={BOTTLE_PHOTO_ACTION_LABELS.frontThumbAlt}
-          status={frontStatus}
-          actionLabel={frontUrl ? BOTTLE_PHOTO_ACTION_LABELS.editPhoto : undefined}
-          emptyActions={
-            frontUrl
-              ? undefined
-              : [
-                  { label: BOTTLE_PHOTO_ACTION_LABELS.addFrontCapture, onSelect: onFrontCapture },
-                  { label: BOTTLE_PHOTO_ACTION_LABELS.addFrontLibrary, onSelect: onFrontLibrary },
-                ]
-          }
-          disabled={disabled}
-          triggerRef={frontTrigger}
-          onRetry={frontStatus === "error" ? onFrontRetry : undefined}
-          onOpenPanel={frontUrl ? () => setPanel("front") : undefined}
-        />
-        <PhotoSlot
-          heading={BOTTLE_PHOTO_ACTION_LABELS.backHeading}
-          previewUrl={hasFront ? backUrl : null}
-          alt={BOTTLE_PHOTO_ACTION_LABELS.backThumbAlt}
-          status={hasFront ? backStatus : "none"}
-          processing={backProcessing}
-          actionLabel={
-            !hasFront
-              ? undefined
-              : backUrl
-                ? BOTTLE_PHOTO_ACTION_LABELS.editPhoto
-                : BOTTLE_PHOTO_ACTION_LABELS.addBack
-          }
-          disabled={disabled || !hasFront}
-          triggerRef={backTrigger}
-          onRetry={hasFront && backStatus === "error" ? onBackRetry : undefined}
-          onOpenPanel={hasFront ? () => setPanel("back") : undefined}
-        />
-      </div>
+      {hasFront ? (
+        <div className={hasBack ? "bottle-photo-filled has-back" : "bottle-photo-filled"}>
+          <FilledSlot
+            heading={BOTTLE_PHOTO_ACTION_LABELS.frontHeading}
+            previewUrl={frontUrl}
+            alt={BOTTLE_PHOTO_ACTION_LABELS.frontThumbAlt}
+            status={frontStatus}
+            processingLabel={BOTTLE_PHOTO_ACTION_LABELS.frontProcessing}
+            actionLabel={BOTTLE_PHOTO_ACTION_LABELS.editFrontPhoto}
+            disabled={disabled}
+            triggerRef={frontTrigger}
+            onRetry={frontStatus === "error" ? onFrontRetry : undefined}
+            onOpenPanel={() => setPanel("front")}
+          />
+          {hasBack ? (
+            <FilledSlot
+              heading={BOTTLE_PHOTO_ACTION_LABELS.backHeading}
+              previewUrl={backUrl}
+              alt={BOTTLE_PHOTO_ACTION_LABELS.backThumbAlt}
+              status={backStatus}
+              processing={backProcessing}
+              processingLabel={BOTTLE_PHOTO_ACTION_LABELS.backProcessing}
+              actionLabel={BOTTLE_PHOTO_ACTION_LABELS.editBackPhoto}
+              compact
+              disabled={disabled}
+              triggerRef={backTrigger}
+              onRetry={backStatus === "error" ? onBackRetry : undefined}
+              onOpenPanel={() => setPanel("back")}
+            />
+          ) : (
+            <button
+              ref={backTrigger}
+              type="button"
+              className="bottle-photo-add-back"
+              disabled={disabled}
+              onClick={() => setPanel("back")}
+            >
+              {BOTTLE_PHOTO_ACTION_LABELS.addBack}
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <button
+            ref={dropTrigger}
+            type="button"
+            className="bottle-photo-drop"
+            disabled={disabled}
+            onClick={() => setPanel("front")}
+          >
+            <Camera size={28} aria-hidden />
+            {BOTTLE_PHOTO_ACTION_LABELS.addFrontPrompt}
+          </button>
+          <div className="photo-action-row">
+            <button
+              type="button"
+              className="photo-action"
+              disabled={disabled}
+              onClick={onFrontCapture}
+            >
+              <Camera size={18} aria-hidden />
+              {BOTTLE_PHOTO_ACTION_LABELS.captureShort}
+            </button>
+            <button
+              type="button"
+              className="photo-action"
+              disabled={disabled}
+              onClick={onFrontLibrary}
+            >
+              <Images size={18} aria-hidden />
+              {BOTTLE_PHOTO_ACTION_LABELS.libraryShort}
+            </button>
+          </div>
+        </>
+      )}
       {error ? (
         <p className="field-error" role="alert">
           {error}
@@ -151,7 +190,7 @@ export function BottlePhotoPair({
         open={panel === "front"}
         title={BOTTLE_PHOTO_ACTION_LABELS.frontHeading}
         actions={frontActions}
-        restoreFocus={frontTrigger}
+        restoreFocus={hasFront ? frontTrigger : dropTrigger}
         onClose={() => setPanel(null)}
       />
       <PhotoActionPanel
@@ -165,14 +204,15 @@ export function BottlePhotoPair({
   );
 }
 
-function PhotoSlot({
+function FilledSlot({
   heading,
   previewUrl,
   alt,
   status,
   processing,
+  processingLabel,
   actionLabel,
-  emptyActions,
+  compact = false,
   disabled,
   triggerRef,
   onRetry,
@@ -183,64 +223,56 @@ function PhotoSlot({
   alt: string;
   status: PhotoSaveStatus;
   processing?: boolean;
-  actionLabel?: string;
-  emptyActions?: readonly { label: string; onSelect: () => void }[];
+  processingLabel: string;
+  actionLabel: string;
+  compact?: boolean;
   disabled?: boolean;
   triggerRef: RefObject<HTMLButtonElement | null>;
   onRetry?: () => void;
-  onOpenPanel?: () => void;
+  onOpenPanel: () => void;
 }) {
+  const busy = status === "uploading" || processing;
   return (
-    <div className="bottle-photo-slot">
+    <div className={compact ? "bottle-photo-slot is-compact" : "bottle-photo-slot"}>
       <p className="field-label">{heading}</p>
-      {previewUrl ? (
-        <div className="photo-thumb photo-thumb-bottle bottle-photo-thumb">
+      <div
+        className={
+          compact ? "photo-thumb photo-thumb-bottle bottle-photo-thumb" : "bottle-photo-preview"
+        }
+      >
+        {previewUrl ? (
           <ContentPhoto
             src={previewUrl}
-            className="photo-thumb-img"
+            className={compact ? "photo-thumb-img" : "bottle-photo-preview-img"}
             size={PHOTO_DISPLAY_SIZE.bottleTile}
             loading="eager"
             alt={alt}
           />
-          {status === "uploading" || processing ? (
-            <span className="photo-tile-progress" role="status">
-              アップロード中
-            </span>
-          ) : null}
-          {status === "error" && onRetry ? (
-            <button type="button" className="photo-tile-retry" onClick={onRetry}>
-              <span aria-hidden>!</span>
-              <span>再試行</span>
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <div className="bottle-photo-empty" aria-hidden />
-      )}
-      {actionLabel && onOpenPanel ? (
-        <button
-          ref={triggerRef}
-          type="button"
-          className="bottle-photo-action"
-          disabled={disabled}
-          onClick={onOpenPanel}
-        >
-          {actionLabel}
-        </button>
+        ) : (
+          <span className="bottle-photo-preview-placeholder" />
+        )}
+        {busy ? <span className="photo-tile-progress" aria-hidden /> : null}
+        {status === "error" && onRetry ? (
+          <button type="button" className="photo-tile-retry" onClick={onRetry}>
+            <span aria-hidden>!</span>
+            <span>再試行</span>
+          </button>
+        ) : null}
+      </div>
+      {busy ? (
+        <p className="field-hint" role="status">
+          {processingLabel}
+        </p>
       ) : null}
-      {emptyActions
-        ? emptyActions.map((action) => (
-            <button
-              key={action.label}
-              type="button"
-              className="bottle-photo-action"
-              disabled={disabled}
-              onClick={action.onSelect}
-            >
-              {action.label}
-            </button>
-          ))
-        : null}
+      <button
+        ref={triggerRef}
+        type="button"
+        className="bottle-photo-action"
+        disabled={disabled}
+        onClick={onOpenPanel}
+      >
+        {actionLabel}
+      </button>
     </div>
   );
 }

@@ -12,7 +12,7 @@ const source = readFileSync(
 describe("BottleDetail 状態バッジ", () => {
   it("棚は未開栓、貯蔵庫は開栓日付きの consumed クラス", () => {
     expect(source).toContain("bottleStatusPill(bottle)");
-    expect(source).toContain("bottle-status-pill is-consumed");
+    expect(source).toContain("bottle-status is-consumed");
     expect(source).toContain("{statusPill.label}");
     expect(bottleStatusPill({ status: "sealed", consumedOn: null }).label).toBe("未開栓");
     expect(bottleStatusPill({ status: "consumed", consumedOn: "2026-09-05" })).toEqual({
@@ -46,6 +46,13 @@ describe("BottleDetail 状態バッジ", () => {
 
   it("プロパティの年はヴィンテージ、産地は生産国と書く", () => {
     expect(source).toContain("bottle-detail-name");
+    expect(source.indexOf("bottle-detail-name")).toBeLessThan(
+      source.indexOf("bottle-detail-photos"),
+    );
+    expect(source).toContain("bottle-cellar-meta");
+    expect(source).toContain("基本情報");
+    expect(source).toContain("bottle-detail-actions");
+    expect(source).toContain("has-back");
     expect(source).toContain("UNKNOWN_PROP_VALUE");
     expect(source).toContain("vintageLabel");
     expect(source).toContain("BOTTLE_FIELD_LABELS.variety");
