@@ -81,7 +81,8 @@ export const BOTTLE_SAVE_LABELS = {
 export const BOTTLE_SAVE_HINTS = {
   unchanged: "変更はありません",
   required: "必須項目を入力してください",
-  photoUploading: "写真の保存が終わるまでお待ちください",
+  nameRequired: "品名を入力すると登録できます",
+  photoUploading: "写真を処理しています",
   photoError: "写真を再試行するか削除してください",
 } as const;
 
@@ -245,7 +246,7 @@ export function bottleSaveDisabledHint(input: {
     return BOTTLE_SAVE_HINTS.unchanged;
   }
   if (input.name.trim().length === 0) {
-    return BOTTLE_SAVE_HINTS.required;
+    return BOTTLE_SAVE_HINTS.nameRequired;
   }
   if (!input.canSubmit) {
     return BOTTLE_SAVE_HINTS.required;
@@ -496,7 +497,7 @@ export type BottlePropLayout = "inline" | "stack" | "memo";
 const STACK_PROP_LABELS = new Set(["生産者", "購入場所", "保管場所", "品種", "生産国"]);
 
 export function bottlePropLayout(label: string): BottlePropLayout {
-  if (label === "メモ") {
+  if (label.startsWith("メモ")) {
     return "memo";
   }
   return STACK_PROP_LABELS.has(label) ? "stack" : "inline";

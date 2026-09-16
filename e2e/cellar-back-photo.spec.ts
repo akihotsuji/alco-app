@@ -37,13 +37,13 @@ async function confirmCellarPhotoEdit(page: Page): Promise<void> {
 
 async function pickFrontFromLibrary(page: Page, file: string): Promise<void> {
   const chooserPromise = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "写真を選ぶ" }).click();
+  await page.getByRole("button", { name: "ライブラリ" }).click();
   await (await chooserPromise).setFiles(file);
   await confirmCellarPhotoEdit(page);
 }
 
 async function pickBackFromLibrary(page: Page, file: string): Promise<void> {
-  await page.getByRole("button", { name: "＋ 裏ラベル" }).click();
+  await page.getByRole("button", { name: "＋ 裏ラベルを追加（任意）" }).click();
   const chooserPromise = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "裏ラベルを選ぶ" }).click();
   await (await chooserPromise).setFiles(file);
@@ -79,7 +79,7 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await expect(page.getByText("裏面（任意）")).toHaveCount(0);
 
   await pickFrontFromLibrary(page, frontJpeg);
-  await expect(page.getByRole("button", { name: "＋ 裏ラベル" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "＋ 裏ラベルを追加（任意）" })).toBeVisible();
 
   const retry = page.getByRole("button", { name: "再読み取り" });
   await expect(retry).toBeVisible({ timeout: 30_000 });
@@ -107,7 +107,7 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
 
   await expect(page.getByRole("heading", { name: "ボトル詳細" })).toBeVisible();
   await expect(page.getByRole("heading", { name: BOTTLE_NAME })).toBeVisible();
-  await expect(page.getByRole("button", { name: "裏面の写真を拡大" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "裏ラベルの写真を拡大" })).toBeVisible();
   await expect(page.locator(".bottle-props dt", { hasText: "品名" })).toHaveCount(0);
   await expectPropStackedStart(page, "生産者");
   await expectPropStackedStart(page, "保管場所");
@@ -118,7 +118,7 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
     await props.screenshot({ path: `${walkthroughDir}/cellar_detail_props_block.png` });
   }
   await shot(page, "cellar_detail_with_back_thumb");
-  await page.getByRole("button", { name: "裏面の写真を拡大" }).click();
+  await page.getByRole("button", { name: "裏ラベルの写真を拡大" }).click();
   const viewer = page.getByRole("dialog", { name: "写真" });
   await expect(viewer).toBeVisible();
   await shot(page, "cellar_detail_back_lightbox");
@@ -171,7 +171,7 @@ test("まとめて追加の行に裏面と再読み取りを付けられる", as
   await expect(page.getByText(BATCH_NAME)).toBeVisible();
 
   await page.getByRole("link", { name: BATCH_NAME }).click();
-  await expect(page.getByRole("button", { name: "裏面の写真を拡大" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "裏ラベルの写真を拡大" })).toBeVisible();
   const bottleId = new URL(page.url()).pathname.split("/").pop();
   await expectBottlePhotos(page, bottleId ?? "", 2);
 });

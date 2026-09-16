@@ -50,7 +50,8 @@ test("共有セラーを作り、招待リンクで参加できる", async ({ br
   await expect(memberPage.getByText("2人")).toBeVisible();
 
   await memberPage.getByRole("link", { name: "ボトルを追加" }).click();
-  await expect(memberPage.getByText("保存先：ふたりのセラー")).toBeVisible();
+  await expect(memberPage.locator(".cellar-destination")).toContainText("保存先");
+  await expect(memberPage.locator(".cellar-destination")).toContainText("ふたりのセラー");
   await expect(memberPage.getByText("参加者全員に表示されます")).toBeVisible();
 
   await memberContext.close();

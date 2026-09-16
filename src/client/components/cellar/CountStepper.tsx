@@ -18,7 +18,7 @@ export function clampCountInput(raw: string, fallback: number): number {
 
 export function CountStepper({ value, onChange, error }: CountStepperProps) {
   return (
-    <fieldset className="log-form-section">
+    <fieldset className="log-form-section count-stepper-field">
       <legend className="field-label">本数</legend>
       <div className="count-stepper">
         <IconButton

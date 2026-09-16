@@ -8,6 +8,8 @@ type BottomTabBarProps = {
   onSelect: (tab: TabDef) => void;
   /** 初回ガイドの記録 1/3。中央タブ円をスポットライトする */
   guideTarget?: string;
+  /** bottle-detail。中央タブの浮きを抑え他タブに近づける */
+  quietCenter?: boolean;
 };
 
 const ICONS: Record<TabId, ReactNode> = {
@@ -18,9 +20,14 @@ const ICONS: Record<TabId, ReactNode> = {
   settings: <Settings size={20} aria-hidden />,
 };
 
-export function BottomTabBar({ activeTab, onSelect, guideTarget }: BottomTabBarProps) {
+export function BottomTabBar({
+  activeTab,
+  onSelect,
+  guideTarget,
+  quietCenter = false,
+}: BottomTabBarProps) {
   return (
-    <nav className="tab-bar" aria-label="メイン">
+    <nav className={quietCenter ? "tab-bar is-quiet-center" : "tab-bar"} aria-label="メイン">
       {TABS.map((tab) => {
         if (tab.root === null) {
           // 中央タブは「記録」作成ボタンで着地画面を持たないため、現在地ハイライトも aria-current も付けない
@@ -34,7 +41,7 @@ export function BottomTabBar({ activeTab, onSelect, guideTarget }: BottomTabBarP
               {...prefetchTabPointerProps(tab.id)}
             >
               <span className="tab-center-btn" data-guide-target={guideTarget}>
-                {ICONS[tab.id]}
+                {quietCenter ? <Plus size={20} aria-hidden /> : ICONS[tab.id]}
               </span>
               <span className="tab-label tab-center-label">{tab.label}</span>
             </button>

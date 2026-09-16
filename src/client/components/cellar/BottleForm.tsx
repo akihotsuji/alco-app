@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { OriginCountryField } from "@/client/components/form/OriginCountryField.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
@@ -562,14 +563,15 @@ export function BottleFormFields({
         />
       ) : null}
       <div className="log-form-section">
-        <label className="field-label" htmlFor="bottle-name">
+        <FieldLabel htmlFor="bottle-name" required>
           {BOTTLE_FIELD_LABELS.name}
-        </label>
+        </FieldLabel>
         <FieldWithAiMark marked={aiMarks.has("name")}>
           <Input
             id="bottle-name"
             value={state.name}
             maxLength={BOTTLE_NAME_MAX_LENGTH}
+            placeholder="例：常山 わせ"
             aria-invalid={errors.name ? true : undefined}
             onChange={(event) => update({ name: event.target.value })}
           />
@@ -581,6 +583,7 @@ export function BottleFormFields({
         ) : null}
       </div>
       <DrinkTypeSelect
+        required
         value={state.drinkType}
         onChange={(drinkType) => {
           setDrinkTypeTouched(true);

@@ -179,6 +179,7 @@ describe("dirty / helpers", () => {
     expect(bottlePropLayout("購入場所")).toBe("stack");
     expect(bottlePropLayout("保管場所")).toBe("stack");
     expect(bottlePropLayout("メモ")).toBe("memo");
+    expect(bottlePropLayout("メモ（参加者に共有）")).toBe("memo");
     expect(bottlePropLayout("価格")).toBe("inline");
     expect(bottlePropLayout("購入日")).toBe("inline");
     expect(bottleStatusPill({ status: "sealed", consumedOn: null })).toEqual({
@@ -263,7 +264,19 @@ describe("bottleSaveDisabledHint", () => {
         photo: "none",
         canSubmit: false,
       }),
-    ).toBe("必須項目を入力してください");
+    ).toBe("品名を入力すると登録できます");
+  });
+
+  it("写真処理中は待機理由を返す", () => {
+    expect(
+      bottleSaveDisabledHint({
+        mode: "new",
+        dirty: true,
+        name: "赤",
+        photo: "uploading",
+        canSubmit: false,
+      }),
+    ).toBe("写真を処理しています");
   });
 
   it("保存できるときは理由を返さない", () => {

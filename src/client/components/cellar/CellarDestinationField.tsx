@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { ChevronDown, Users } from "lucide-react";
 import { useState } from "react";
 import {
   DialogContent,
@@ -7,8 +7,7 @@ import {
   DialogTitle,
 } from "@/client/components/ui/dialog.tsx";
 import { cellarDisplayName, cellarPeopleLabel } from "@/client/lib/cellar-share.ts";
-import type { CellarSummary } from "@/shared/cellars.ts";
-import { CELLAR_COPY } from "@/shared/cellars.ts";
+import { CELLAR_COPY, type CellarSummary } from "@/shared/cellars.ts";
 
 type CellarDestinationFieldProps = {
   items: readonly CellarSummary[];
@@ -32,31 +31,25 @@ export function CellarDestinationField({
   }
   const shared = current.kind === "shared";
   const canChange = !locked && !disabled && Boolean(onChange) && items.length > 1;
+  const name = cellarDisplayName(current);
 
   return (
     <section className="cellar-destination">
-      <button
-        type="button"
-        className="cellar-destination-row"
-        disabled={!canChange}
-        onClick={() => {
-          if (canChange) {
-            setOpen(true);
-          }
-        }}
-      >
-        <span>
-          保存先：{cellarDisplayName(current)}
-          {canChange ? " ▾" : null}
-        </span>
-        {shared ? (
-          <span className="cellar-destination-people">
-            <Users size={16} aria-hidden />
-            {cellarPeopleLabel(current)}
-          </span>
-        ) : null}
-      </button>
-      {shared ? <p className="field-hint">{CELLAR_COPY.saveDestinationShared}</p> : null}
+      {canChange ? (
+        <button
+          type="button"
+          className="cellar-destination-card is-action"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+        >
+          <DestinationBody name={name} shared={shared} current={current} showChevron />
+        </button>
+      ) : (
+        <div className="cellar-destination-card">
+          <DestinationBody name={name} shared={shared} current={current} />
+        </div>
+      )}
       <DialogRoot open={open} onOpenChange={setOpen}>
         <DialogContent className="app-sheet-panel">
           <DialogTitle>保存先</DialogTitle>
@@ -90,5 +83,36 @@ export function CellarDestinationField({
         </DialogContent>
       </DialogRoot>
     </section>
+  );
+}
+
+function DestinationBody({
+  name,
+  shared,
+  current,
+  showChevron = false,
+}: {
+  name: string;
+  shared: boolean;
+  current: CellarSummary;
+  showChevron?: boolean;
+}) {
+  return (
+    <>
+      <span className="cellar-destination-label">保存先</span>
+      <span className="cellar-destination-name">
+        {name}
+        {showChevron ? <ChevronDown size={20} aria-hidden /> : null}
+      </span>
+      {shared ? (
+        <span className="cellar-destination-people">
+          <Users size={16} aria-hidden />
+          {cellarPeopleLabel(current)}
+        </span>
+      ) : null}
+      {shared ? (
+        <span className="cellar-destination-shared-copy">{CELLAR_COPY.saveDestinationShared}</span>
+      ) : null}
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { BottleNotesSection } from "@/client/components/cellar/BottleNotesSection.tsx";
@@ -21,6 +22,7 @@ import {
   UNKNOWN_PROP_VALUE,
   vintageLabel,
 } from "@/client/lib/bottle-form.ts";
+import { BOTTLE_PHOTO_ACTION_LABELS } from "@/client/lib/bottle-photo-actions.ts";
 import { cellarDisplayName, newOperationKey } from "@/client/lib/cellar-share.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { rememberShelfEvent } from "@/client/lib/history-state.ts";
@@ -174,48 +176,61 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
     );
   }
 
+  const heroClass = photo?.kind === "cutout" ? "bottle-hero bottle-hero-cutout" : "bottle-hero";
+  const heroImage = photo ? (
+    <ContentPhoto
+      className={photo.kind === "cutout" ? "bottle-hero-img is-cutout" : "bottle-hero-img is-photo"}
+      src={photoContentUrl(photo.id)}
+      size={PHOTO_DISPLAY_SIZE.bottleHero}
+      loading="eager"
+    />
+  ) : (
+    <>
+      <BottleSilhouette drinkType={bottle.drinkType} />
+      <span className="bottle-hero-empty-label">{BOTTLE_PHOTO_ACTION_LABELS.emptyPhoto}</span>
+    </>
+  );
+
   return (
     <div className="bottle-detail skeleton-fade">
+      <div className="bottle-detail-identity">
+        {cellar ? (
+          <p className="bottle-cellar-meta">
+            {shared ? <Users size={16} aria-hidden /> : null}
+            {cellarDisplayName(cellar)}
+          </p>
+        ) : null}
+        <h2 className="bottle-detail-name">{bottle.name}</h2>
+        <div className="bottle-status-row">
+          {summary.length > 0 ? <p className="bottle-summary">{summary.join(" ・ ")}</p> : null}
+          <span className={statusPill.consumed ? "bottle-status is-consumed" : "bottle-status"}>
+            {statusPill.label}
+          </span>
+        </div>
+      </div>
       <div className="bottle-detail-photos">
-        <button
-          type="button"
-          className={
-            photo?.kind === "cutout"
-              ? "bottle-hero bottle-hero-cutout is-compact"
-              : "bottle-hero is-compact"
-          }
-          onClick={() => {
-            if (photo) {
-              setLightbox("front");
-            }
-          }}
-          aria-label={photo ? "写真を拡大" : undefined}
-          disabled={!photo}
-        >
-          {photo ? (
-            <ContentPhoto
-              className={
-                photo.kind === "cutout" ? "bottle-hero-img is-cutout" : "bottle-hero-img is-photo"
-              }
-              src={photoContentUrl(photo.id)}
-              size={
-                photo.kind === "cutout"
-                  ? PHOTO_DISPLAY_SIZE.bottleHero
-                  : PHOTO_DISPLAY_SIZE.bottleHeroPhoto
-              }
-              loading="eager"
-            />
-          ) : (
-            <BottleSilhouette drinkType={bottle.drinkType} />
-          )}
-          <span className="shelf-board bottle-hero-shelf" />
-        </button>
+        {photo ? (
+          <button
+            type="button"
+            className={heroClass}
+            onClick={() => setLightbox("front")}
+            aria-label={BOTTLE_PHOTO_ACTION_LABELS.expandFront}
+          >
+            {heroImage}
+            <span className="shelf-board bottle-hero-shelf" />
+          </button>
+        ) : (
+          <div className={heroClass}>
+            {heroImage}
+            <span className="shelf-board bottle-hero-shelf" />
+          </div>
+        )}
         {backPhoto ? (
           <button
             type="button"
             className="bottle-back-thumb"
             onClick={() => setLightbox("back")}
-            aria-label="裏面の写真を拡大"
+            aria-label={BOTTLE_PHOTO_ACTION_LABELS.expandBack}
           >
             <span className="photo-thumb bottle-back-thumb-frame">
               <ContentPhoto
@@ -225,60 +240,23 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
                 loading="lazy"
               />
             </span>
-            <span className="bottle-back-thumb-label">裏面</span>
+            <span className="bottle-back-thumb-label">
+              {BOTTLE_PHOTO_ACTION_LABELS.backHeading}
+            </span>
           </button>
         ) : null}
       </div>
-      <h2 className="bottle-detail-name">{bottle.name}</h2>
-      <div className="bottle-status-row">
-        {cellar ? <span className="bottle-cellar-chip">{cellarDisplayName(cellar)}</span> : null}
-        {statusPill.consumed ? (
-          <span className="bottle-status-pill is-consumed">{statusPill.label}</span>
-        ) : (
-          <span className="bottle-status-pill">{statusPill.label}</span>
-        )}
-        <p className="bottle-summary">{summary.join(" ・ ")}</p>
-      </div>
-      {archived ? (
-        <div className="bottle-followup-actions">
-          <Link
-            className="bottle-followup-row"
-            to={logCreateHref({ bottleId: bottle.id, from: "detail" })}
-          >
-            飲んだ量を記録
-          </Link>
-          <Link className="bottle-followup-row" to={noteCreateHref(bottle.id, "detail")}>
-            テイスティングノートを書く
-          </Link>
-        </div>
-      ) : (
-        <Button
-          type="button"
-          state={consume.isPending ? "loading" : consumeState}
-          disabled={pending}
-          onClick={onConsume}
-        >
-          {consume.isPending ? "更新中…" : "開栓する"}
-        </Button>
-      )}
-      {archived ? (
-        <Button type="button" variant="secondary" disabled={pending} onClick={onRestore}>
-          {restore.isPending ? "更新中…" : "開栓の記録を取り消す"}
-        </Button>
-      ) : null}
-      {actionError ? (
-        <p className="field-error" role="alert">
-          {actionError}
-        </p>
-      ) : null}
-      <dl className="bottle-props">
-        {rows.map((row) => (
-          <div className={`bottle-prop is-${bottlePropLayout(row.label)}`} key={row.label}>
-            <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <section className="bottle-basics">
+        <h3 className="bottle-basics-title">基本情報</h3>
+        <dl className="bottle-props">
+          {rows.map((row) => (
+            <div className={`bottle-prop is-${bottlePropLayout(row.label)}`} key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
       <BottleNotesSection
         bottleId={bottle.id}
         notes={notes}
@@ -303,10 +281,44 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
           </ul>
         </section>
       ) : null}
+      <div className="bottle-detail-actions">
+        {archived ? (
+          <div className="bottle-followup-actions">
+            <Link
+              className="bottle-followup-row"
+              to={logCreateHref({ bottleId: bottle.id, from: "detail" })}
+            >
+              飲んだ量を記録
+            </Link>
+            <Link className="bottle-followup-row" to={noteCreateHref(bottle.id, "detail")}>
+              テイスティングノートを書く
+            </Link>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            state={consume.isPending ? "loading" : consumeState}
+            disabled={pending}
+            onClick={onConsume}
+          >
+            {consume.isPending ? "更新中…" : "開栓する"}
+          </Button>
+        )}
+        {archived ? (
+          <Button type="button" variant="secondary" disabled={pending} onClick={onRestore}>
+            {restore.isPending ? "更新中…" : "開栓の記録を取り消す"}
+          </Button>
+        ) : null}
+        {actionError ? (
+          <p className="field-error" role="alert">
+            {actionError}
+          </p>
+        ) : null}
+      </div>
       <PhotoViewer
         open={lightbox !== null && Boolean(lightboxPhoto)}
         src={lightboxPhoto ? photoContentUrl(lightboxPhoto.id) : ""}
-        alt={lightbox === "back" ? `${bottle.name}（裏面）` : bottle.name}
+        alt={lightbox === "back" ? `${bottle.name}（裏ラベル）` : bottle.name}
         checkerboard={lightboxPhoto?.kind === "cutout"}
         onClose={() => setLightbox(null)}
       />
