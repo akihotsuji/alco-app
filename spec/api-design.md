@@ -489,7 +489,7 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 
 送ったフィールドだけ更新。`drunkAt` を変えたら `drunkOn` を再計算。`volumeMl` / `abvPercent` を変えたら `alcoholG` を再計算。
 
-`myDrinkId` を後から付けても、量・度数・種類は送られた値（または既存値）が正。プリセットの再コピーはしない。`bottleId` を変えたとき、`drinkName` / `drinkType` が未指定なら新しいボトルからコピーする。明示されていればスナップショットを残す。null にしたら `drinkName` は残す。`photoIds` は差し替え（送った id の集合にする。未紐付けは記録へ付け、ボトル写真は複製して付ける。外れた写真は削除 = R2 も消す）。
+`myDrinkId` を後から付けても、量・度数・種類は送られた値（または既存値）が正。プリセットの再コピーはしない。`bottleId` を変えたとき、`drinkName` / `drinkType` が未指定なら新しいボトルからコピーする。明示されていればスナップショットを残す。null にしたら `drinkName` は残す。`photoIds` は差し替え（送った id の集合にする。未紐付けは記録へ付け、ボトル写真は複製して付ける。外れた写真は削除 = R2 も消す）。送らない場合は写真を変えない。空配列 `[]` は写真をすべて外して削除する。
 
 #### DELETE /api/drink-logs/:id
 
@@ -661,7 +661,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 #### GET / PATCH / DELETE /api/bottles/:id
 
-PATCH は部分更新。`status` / `consumedAt` / `consumedOn` / `sortOrder` は受け取らない（開栓は 4.5.1、戻しは 4.5.2、並びは 4.5 の `PUT /order`）。`drinkType` を変えたら新しい種類の先頭へ置く。`photoIds` は差し替え（配列全体 `[表面, 裏面?]`。紐付け済みの自分の写真は残し、外れた写真は削除、添字を `sortOrder` に書き直す）。共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
+PATCH は部分更新。`status` / `consumedAt` / `consumedOn` / `sortOrder` は受け取らない（開栓は 4.5.1、戻しは 4.5.2、並びは 4.5 の `PUT /order`）。`drinkType` を変えたら新しい種類の先頭へ置く。`photoIds` は差し替え（配列全体 `[表面, 裏面?]`。紐付け済みの自分の写真は残し、外れた写真は削除、添字を `sortOrder` に書き直す）。**送らない場合は写真を変えない。空配列 `[]` は写真をすべて外して削除する。** 共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
 
 DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` と記録の `bottleId` は SET NULL。本体は残る。貯蔵庫の本も削除できる。
 
@@ -787,7 +787,7 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 #### GET / PATCH / DELETE /api/tasting-notes/:id
 
-PATCH で `bottleId` を付け替える場合、新しいボトルも自分のもの。スナップショット（`drinkName` / `drinkType`）は**新しいボトルから再コピー**する。`bottleId` を null にする場合は `drinkName` と `drinkType` が必須（都度入力に戻す）。`photoIds` は差し替え（配列順 = `sortOrder`。外れた写真は削除）。
+PATCH で `bottleId` を付け替える場合、新しいボトルも自分のもの。スナップショット（`drinkName` / `drinkType`）は**新しいボトルから再コピー**する。`bottleId` を null にする場合は `drinkName` と `drinkType` が必須（都度入力に戻す）。`photoIds` は差し替え（配列順 = `sortOrder`。外れた写真は削除）。送らない場合は写真を変えない。空配列 `[]` は写真をすべて外して削除する。
 
 DELETE: ノート写真は CASCADE（R2 も消す）。
 

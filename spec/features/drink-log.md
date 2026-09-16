@@ -313,7 +313,7 @@ PATCH は全フィールド任意（送ったものだけ更新）。空オブ�
 - 更新・削除は `id AND user_id`。他人・不在は同じ 404 本文。403 は使わない
 - 参照 ID（`myDrinkId` / `bottleId` / `photoIds`）が他人のものなら 404 で **作成しない**（トランザクション内で確認）
 - `POST /api/drink-logs` は `photoIds` の紐付け（`photos.drink_log_id`）を同一トランザクション（D1 batch）で行う。ボトル写真 id は R2 ごと複製してから紐付ける（元は残す）
-- `PATCH` の `photoIds` は差し替え。ボトル写真 id は同様に複製。外れた写真は R2 も削除
+- `PATCH` の `photoIds` は差し替え。ボトル写真 id は同様に複製。外れた写真は R2 も削除。送らない場合は写真を変えない。空配列 `[]` は写真をすべて外して削除する
 - `DELETE /api/drink-logs/:id` は写真 CASCADE + R2 削除（失敗分は日次 GC が再試行）
 - `GET /api/drink-logs/summary` は `/:id` より **先に登録**
 - 日次フィルタは `drunk_on = :date`（JST 日を保存済み）。期間は `drunk_on BETWEEN :from AND :to`。UTC 日付で切らない

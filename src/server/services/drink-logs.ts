@@ -40,6 +40,7 @@ import {
 } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
+import { photosRemovedByPatch } from "../lib/photo-patch.ts";
 import { requireOwnBottle } from "./bottles.ts";
 import { writtenOrigin } from "./origin-write.ts";
 import {
@@ -596,8 +597,7 @@ export async function updateDrinkLog(input: {
         : resolvedPhotos.attach
           ? [resolvedPhotos.attach]
           : [];
-  const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
-  const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
+  const removedPhotoRows = photosRemovedByPatch(currentPhotoRows, desiredPhotoRows);
   const patch = {
     ...(body.drunkAt === undefined ? {} : { drunkAt, drunkOn: tokyoToday(drunkAt) }),
     ...(body.volumeMl === undefined ? {} : { volumeMl }),

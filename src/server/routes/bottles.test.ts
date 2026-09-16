@@ -751,6 +751,29 @@ describe("GET / PATCH / DELETE /api/bottles/:id", () => {
     ).toEqual([]);
   });
 
+  it("PATCH で photoIds を省略したら既存写真は残る", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const photo = await uploadPhoto(ctx.app, a.cookie);
+    const created = createBottlesResponseSchema.parse(
+      await (await postBottle(ctx.app, a.cookie, { ...BASE, photoIds: [photo.id] })).json(),
+    );
+    const id = created.items[0]?.id ?? "";
+
+    const patched = await patchBottle(ctx.app, a.cookie, id, { name: "改名だけ" });
+    expect(patched.status).toBe(200);
+    expect(bottleSchema.parse(await patched.json()).photos.map((item) => item.id)).toEqual([
+      photo.id,
+    ]);
+
+    const fetched = bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, id)).json());
+    expect(fetched.photos.map((item) => item.id)).toEqual([photo.id]);
+    expect(fetched.thumbPhotoId).toBe(photo.id);
+    const rows = await ctx.db.select().from(photos).where(eq(photos.bottleId, id));
+    expect(rows.map((row) => row.id)).toEqual([photo.id]);
+    expect(rows[0]?.cellarId).not.toBeNull();
+  });
+
   it("PATCH で既存の表面に裏面を足し、外した写真は R2 ごと消える", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");

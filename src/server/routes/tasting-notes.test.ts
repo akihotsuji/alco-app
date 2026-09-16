@@ -573,6 +573,34 @@ describe("GET / PATCH / DELETE /api/tasting-notes/:id", () => {
     expect(await ctx.db.select().from(photos).where(eq(photos.id, second.id))).toHaveLength(1);
   });
 
+  it("PATCH で photoIds を省略したら既存写真は残る", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const photo = await uploadPhoto(ctx.app, a.cookie);
+    const created = tastingNoteSchema.parse(
+      await (await postNote(ctx.app, a.cookie, { ...HAND, photoIds: [photo.id] })).json(),
+    );
+
+    const patched = tastingNoteSchema.parse(
+      await (await patchNote(ctx.app, a.cookie, created.id, { taste: "改名だけ" })).json(),
+    );
+    expect(patched.photos.map((item) => item.id)).toEqual([photo.id]);
+    expect(patched.thumbPhotoId).toBe(photo.id);
+
+    const fetched = tastingNoteSchema.parse(
+      await (
+        await ctx.app.request(`/api/tasting-notes/${created.id}`, {
+          headers: { Cookie: a.cookie },
+        })
+      ).json(),
+    );
+    expect(fetched.photos.map((item) => item.id)).toEqual([photo.id]);
+    expect(fetched.photoCount).toBe(1);
+    expect(
+      await ctx.db.select().from(photos).where(eq(photos.tastingNoteId, created.id)),
+    ).toHaveLength(1);
+  });
+
   it("PATCH photoIds 空配列は既存写真を外して削除する", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");

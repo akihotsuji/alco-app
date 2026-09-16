@@ -27,6 +27,7 @@ import { DEFAULT_BOTTLE_STATUS, DRINK_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
+import { photosRemovedByPatch } from "../lib/photo-patch.ts";
 import {
   actorDisplayName,
   assertSharedVersion,
@@ -902,8 +903,7 @@ export async function updateBottle(input: {
   ]);
   const desiredPhotoRows = photoBundle.desired;
   const currentPhotoRows = photoBundle.currentRows;
-  const desiredIds = new Set(desiredPhotoRows?.map((photo) => photo.id) ?? []);
-  const removedPhotoRows = currentPhotoRows.filter((photo) => !desiredIds.has(photo.id));
+  const removedPhotoRows = photosRemovedByPatch(currentPhotoRows, desiredPhotoRows);
   const updatedAt = input.now ?? new Date();
   let nextSortOrder: number | undefined;
   if (
