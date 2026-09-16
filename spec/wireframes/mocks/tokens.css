@@ -13,6 +13,7 @@
   --rest: #2f5d3e;
   --score: #7a3538;
   --ring: #7a3538;
+  --search-link: #315f85;
   --neu-light: rgba(255, 255, 255, 0.8);
   --neu-dark: #c9c2b6;
   /* 大: カード・行・写真タイル（高さ 64px 以上） */
@@ -74,6 +75,7 @@ html.dark {
   --rest: #8fcb9e;
   --score: #cc8484;
   --ring: #cc8484;
+  --search-link: #93bce0;
   --neu-light: #3a3632;
   --neu-dark: #1a1816;
   --shadow-outset: 6px 6px 14px #1a1816, -5px -5px 12px #3a3632;
@@ -103,6 +105,7 @@ html.dark {
     --rest: #8fcb9e;
     --score: #cc8484;
     --ring: #cc8484;
+    --search-link: #93bce0;
     --neu-light: #3a3632;
     --neu-dark: #1a1816;
     --shadow-outset: 6px 6px 14px #1a1816, -5px -5px 12px #3a3632;

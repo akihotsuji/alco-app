@@ -103,6 +103,7 @@
 - `pnpm dev`（Vite）では SW を登録しない（HMR と CSP 未適用のため）。確認は `pnpm build` → `wrangler dev --env dev`
 - 古い SW が残って壊れたときの外し方は README
 - 通常の復旧では Cookie / IndexedDB / localStorage / 全キャッシュを一括削除しない
+- お酒の Google 検索は `https://www.google.com/search` への外部遷移。scope は `/` のまま広げない。検索結果を precache しない
 
 Workers Static Assets の `_headers` で次を付ける。
 

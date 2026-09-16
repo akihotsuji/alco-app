@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { NotePhotoCarousel } from "@/client/components/notes/NotePhotoCarousel.tsx";
 import { RatingStars } from "@/client/components/notes/RatingStars.tsx";
@@ -51,6 +52,15 @@ function NoteDetailBody({ note }: { note: TastingNote }) {
   return (
     <article className="note-detail">
       <NotePhotoCarousel photos={note.photos} />
+      <div className="note-detail-heading">
+        <h2 className="note-detail-name">{note.drinkName}</h2>
+        <DrinkSearchLink
+          name={note.drinkName}
+          producer={note.producer}
+          vintage={note.vintage}
+          drinkType={note.drinkType}
+        />
+      </div>
       <div className="note-detail-rating">
         <RatingStars ratingX10={note.ratingX10} size={20} />
         <strong>{formatRatingX10(note.ratingX10)}</strong>

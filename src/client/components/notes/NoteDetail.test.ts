@@ -19,6 +19,9 @@ describe("NoteDetail 4 欄とボトル行", () => {
     expect(finish).toBeGreaterThan(taste);
     expect(detail).toContain("まだ書いていません");
     expect(detail).toContain("note.vintage");
+    expect(detail).toContain("<DrinkSearchLink");
+    expect(detail.indexOf("note-detail-name")).toBeLessThan(detail.indexOf("<DrinkSearchLink"));
+    expect(detail).toContain("name={note.drinkName}");
     expect(detail).toContain("{field.value}");
     expect(detail).not.toContain("dangerouslySetInnerHTML");
     expect(styles).toContain(".note-detail-fields dd");

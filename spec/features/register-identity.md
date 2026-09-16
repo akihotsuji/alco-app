@@ -150,19 +150,26 @@ UI ラベルは全画面で次で統一する（セラーの「銘柄名」は *
 
 ---
 
-## 8. セキュリティ
+## 8. お酒の Google 検索
+
+品名付近から Google 検索を開く導線。正本は [drink-search.md](drink-search.md)。3 機能で同じ検索語規則。写真の有無や AI 成功は条件にしない。保存前のフォーム state でも検索できる。
+
+---
+
+## 9. セキュリティ
 
 | 観点 | 規則 |
 |---|---|
 | 認可 | `fromLog` もセッションの `user.id`。他人は 404 |
 | 場所 URL | 自前生成のみ。`javascript:` や任意ホストを描かない |
+| 商品検索 URL | 自前生成のみ。host は `www.google.com`、pathname は `/search` |
 | XSS | 品名・店名・識別はテキスト |
 | 位置 | ログに座標を出さない。AI に送らない |
 | 入力 | 識別 ≦100、ヴィンテージ範囲、緯度経度の対 |
 
 ---
 
-## 9. 決定事項
+## 10. 決定事項
 
 | 項目 | 決定 |
 |---|---|
@@ -175,7 +182,7 @@ UI ラベルは全画面で次で統一する（セラーの「銘柄名」は *
 
 ---
 
-## 10. 関連
+## 11. 関連
 
 - [01-requirements.md](../01-requirements.md) 1.2 / 1.3 / 1.4 / 1.5
-- [drink-log.md](drink-log.md)、[cellar.md](cellar.md)、[tasting-note.md](tasting-note.md)
+- [drink-log.md](drink-log.md)、[cellar.md](cellar.md)、[tasting-note.md](tasting-note.md)、[drink-search.md](drink-search.md)

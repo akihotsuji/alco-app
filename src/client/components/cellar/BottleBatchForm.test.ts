@@ -26,6 +26,7 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     // 購入日・価格・場所・メモは持たない（あとで bottle-edit）
     expect(source).not.toContain("購入日");
     expect(source).not.toContain("bottle-memo");
+    expect(source).not.toContain("DrinkSearchLink");
   });
 
   it("「次を撮る」は連続撮影、「ライブラリから（複数枚）」は複数選択（G8 / G8b）", () => {

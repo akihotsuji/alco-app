@@ -61,6 +61,7 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 | `--rest` | `#2F5D3E` | 休肝ピルの文字 |
 | `--score` | `#7A3538` | 杯数・g |
 | `--ring` | `#7A3538` | フォーカス |
+| `--search-link` | `#315F85` | お酒の Google 検索リンク（本文 4.5:1） |
 | `--neu-light` | `rgba(255,255,255,0.8)` | 外光（2026-09-05: 純白 → 80%。強すぎると切り抜きに見える） |
 | `--neu-dark` | `#C9C2B6` | 外陰 |
 
@@ -79,6 +80,7 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 | `--rest` | `#8FCB9E` | 休肝 |
 | `--score` | `#CC8484` | スコア |
 | `--ring` | `#CC8484` | フォーカス |
+| `--search-link` | `#93BCE0` | お酒の Google 検索リンク（本文 4.5:1） |
 | `--neu-light` | `#3A3632` | 外光（暗い面のハイライト） |
 | `--neu-dark` | `#1A1816` | 外陰 |
 
@@ -92,12 +94,14 @@ Phase 1-03 の成果物（2026-09-04 改訂、2026-09-05 に 1-07 / 1-08 で追�
 | `#5C564C` | `#E6E0D6` | 5.53 | ライト muted |
 | `#FFF8F4` | `#7A3538` | 8.35 | ライト主ボタン |
 | `#7A3538` | `#E6E0D6` | 6.68 | ライト primary テキスト |
+| `#315F85` | `#E6E0D6` | 5.15 | ライト検索リンク |
 | `#2F5D3E` | `#E6E0D6` | 5.80 | ライト休肝 |
 | `#FFF8F4` | `#8B1E1E` | 8.68 | ライト danger |
 | `#F4EDE4` | `#2C2926` | 12.45 | ダーク本文 |
 | `#C9BDB0` | `#2C2926` | 7.84 | ダーク muted |
 | `#2A1818` | `#CC8484` | 5.80 | ダーク主ボタン |
 | `#CC8484` | `#2C2926` | 4.96 | ダーク primary テキスト（旧 `#C47878` は 4.34 で不合格） |
+| `#93BCE0` | `#2C2926` | 7.24 | ダーク検索リンク |
 | `#2A1818` | `#E07070` | 5.41 | ダーク danger |
 | `#8FCB9E` | `#2C2926` | 7.71 | ダーク休肝 |
 | `#FFF8F4` | `#7A3538` + `--fill-tint` | 5.81 | ライト主ボタン、水位線の上（[motion-design.md](motion-design.md) 6.4b） |
@@ -328,7 +332,7 @@ Material の `0 10px 40px` 一方向ドロップや、1px ハイライトべベ�
 ```text
 --background --surface --foreground --muted
 --primary --primary-fg --danger --danger-fg
---rest --score --ring
+--rest --score --ring --search-link
 --neu-light --neu-dark
 --text-caption --text-note --text-body --text-title --text-score
 --space-1 … --space-8 --tap-min

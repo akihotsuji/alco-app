@@ -189,8 +189,9 @@ test("表面だけのボトルに裏面を足すと案内帯から表と裏で�
   await expect(arrange).toBeEnabled({ timeout: 30_000 });
   await arrange.click();
   await expect(page.getByRole("heading", { name: EDIT_BOTTLE_NAME })).toBeVisible();
+  await expect(page.getByText("Googleで調べる")).toBeVisible();
 
-  await page.getByRole("link", { name: "編集" }).click();
+  await page.getByRole("link", { name: "編集", exact: true }).click();
   await expect(page.getByRole("heading", { name: "ボトルを編集" })).toBeVisible();
   await expect(page.getByText("裏面も使ってラベルを読み取れます")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "裏面も含めて読み取る" })).toHaveCount(0);

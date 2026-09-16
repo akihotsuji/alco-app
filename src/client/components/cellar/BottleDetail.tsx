@@ -5,6 +5,7 @@ import { BottleNotesSection } from "@/client/components/cellar/BottleNotesSectio
 import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.tsx";
 import { OpenedFollowupSheet } from "@/client/components/cellar/OpenedFollowupSheet.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
@@ -200,7 +201,15 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             {cellarDisplayName(cellar)}
           </p>
         ) : null}
-        <h2 className="bottle-detail-name">{bottle.name}</h2>
+        <div className="bottle-detail-heading">
+          <h2 className="bottle-detail-name">{bottle.name}</h2>
+          <DrinkSearchLink
+            name={bottle.name}
+            producer={bottle.producer}
+            vintage={bottle.vintage}
+            drinkType={bottle.drinkType}
+          />
+        </div>
         <div className="bottle-status-row">
           {summary.length > 0 ? <p className="bottle-summary">{summary.join(" ・ ")}</p> : null}
           <span className={statusPill.consumed ? "bottle-status is-consumed" : "bottle-status"}>
