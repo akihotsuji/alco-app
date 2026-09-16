@@ -55,6 +55,17 @@ async function expectPropStackedStart(page: Page, label: string): Promise<void> 
   await expect(row.locator("dd")).toHaveCSS("text-align", "start");
 }
 
+/** 失敗帯の再読み取り。ローカル AI が速いと「読み取り中」が一瞬で終わり、ボタン消失の断言がフレークする */
+async function clickRecognizeRetry(page: Page): Promise<void> {
+  const retry = page.getByRole("button", { name: "再読み取り" });
+  const loading = page.getByText("ラベルを読み取り中…");
+  await expect(retry).toBeVisible({ timeout: 30_000 });
+  await retry.click();
+  await loading.waitFor({ state: "visible", timeout: 5_000 }).catch(() => undefined);
+  await expect(loading).toHaveCount(0, { timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible({ timeout: 30_000 });
+}
+
 async function expectBottlePhotos(page: Page, bottleId: string, count: number): Promise<void> {
   const res = await page.request.get(`/api/bottles/${bottleId}`);
   expect(res.ok()).toBeTruthy();
@@ -81,13 +92,9 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await pickFrontFromLibrary(page, frontJpeg);
   await expect(page.getByRole("button", { name: "＋ 裏ラベルを追加（任意）" })).toBeVisible();
 
-  const retry = page.getByRole("button", { name: "再読み取り" });
-  await expect(retry).toBeVisible({ timeout: 30_000 });
-  await shot(page, "cellar_new_front_retry");
-  await retry.click();
-  await expect(page.getByText("ラベルを読み取り中…")).toBeVisible();
-  await expect(retry).toHaveCount(0);
   await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible({ timeout: 30_000 });
+  await shot(page, "cellar_new_front_retry");
+  await clickRecognizeRetry(page);
 
   await pickBackFromLibrary(page, backJpeg);
   await expect(page.getByRole("dialog", { name: "写真を編集" })).toHaveCount(0);
@@ -146,13 +153,9 @@ test("まとめて追加の行に裏面と再読み取りを付けられる", as
   await (await chooserPromise).setFiles(frontJpeg);
 
   await expect(page.getByRole("button", { name: "+ 裏面" })).toBeVisible({ timeout: 30_000 });
-  const retry = page.getByRole("button", { name: "再読み取り" });
-  await expect(retry).toBeVisible({ timeout: 30_000 });
-  await shot(page, "cellar_batch_retry");
-  await retry.click();
-  await expect(page.getByText("ラベルを読み取り中…")).toBeVisible();
-  await expect(page.getByRole("button", { name: "再読み取り" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible({ timeout: 30_000 });
+  await shot(page, "cellar_batch_retry");
+  await clickRecognizeRetry(page);
 
   const backChooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "+ 裏面" }).click();
