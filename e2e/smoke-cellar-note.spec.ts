@@ -16,7 +16,8 @@ test("ボトルを登録してからノートを作成し、詳細がボトル�
   await arrange.click();
 
   await expect(page.getByRole("heading", { name: "ボトル詳細" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: BOTTLE_NAME })).toBeVisible();
+  await expect(page.getByRole("heading", { name: BOTTLE_NAME, level: 2 })).toBeVisible();
+  await expect(page.getByText("Googleで調べる")).toBeVisible();
   await expect(page.getByText(BOTTLE_NAME).first()).toBeVisible();
 
   await mainNav(page).getByRole("button", { name: "ノート" }).click();
@@ -35,7 +36,8 @@ test("ボトルを登録してからノートを作成し、詳細がボトル�
   await expect(save).toBeEnabled();
   await save.click();
 
-  await expect(page.getByRole("heading", { name: BOTTLE_NAME })).toBeVisible();
+  await expect(page.getByRole("heading", { name: BOTTLE_NAME, level: 2 })).toBeVisible();
+  await expect(page.getByText("Googleで調べる")).toBeVisible();
   await expect(page.getByText("セラーのボトル")).toBeVisible();
-  await expect(page.getByRole("link", { name: new RegExp(BOTTLE_NAME) })).toBeVisible();
+  await expect(page.getByRole("link", { name: "セラーのボトル" })).toBeVisible();
 });
