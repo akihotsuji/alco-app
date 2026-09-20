@@ -9,7 +9,6 @@ import {
 type OpenedFollowupSheetProps = {
   open: boolean;
   onLog: () => void;
-  onNote: () => void;
   onClose: () => void;
   shared?: boolean;
 };
@@ -17,7 +16,6 @@ type OpenedFollowupSheetProps = {
 export function OpenedFollowupSheet({
   open,
   onLog,
-  onNote,
   onClose,
   shared = false,
 }: OpenedFollowupSheetProps) {
@@ -39,9 +37,6 @@ export function OpenedFollowupSheet({
         </DialogDescription>
         <Button type="button" onClick={onLog}>
           {shared ? "自分の飲酒記録をつける" : "飲んだ量を記録"}
-        </Button>
-        <Button type="button" variant="secondary" onClick={onNote}>
-          {shared ? "自分のノートを書く" : "テイスティングノートを書く"}
         </Button>
         <Button type="button" variant="ghost" onClick={onClose}>
           今はしない

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  createTastingNoteSchema,
+  drinkLogTastingNoteInputSchema,
   formatRatingX10,
   isTastedOnAllowed,
   isValidRatingX10,
@@ -10,26 +10,18 @@ import {
   ratingStarFill,
   ratingX10FromStar,
   ratingX10FromStarTap,
+  snapshotDrinkName,
   stepRatingX10,
   TASTING_NOTE_MESSAGES,
   tastingNotesQuerySchema,
-  updateTastingNoteSchema,
 } from "./tasting-notes.ts";
 import { tokyoToday } from "./tokyo-date.ts";
 import "./zod-config.ts";
 
 const UUID = "11111111-1111-4111-8111-111111111111";
-const TODAY = tokyoToday();
-
-const HAND = {
-  drinkName: "サンプル赤",
-  drinkType: "wine" as const,
-  tastedOn: TODAY,
-  ratingX10: 45,
-};
 
 function createMessages(input: unknown): Record<string, string[]> {
-  const result = createTastingNoteSchema.safeParse(input);
+  const result = drinkLogTastingNoteInputSchema.safeParse(input);
   if (result.success) {
     return {};
   }
@@ -80,7 +72,7 @@ describe("ratingX10 helpers", () => {
   });
 });
 
-describe("normalizeNoteText / isTastedOnAllowed", () => {
+describe("normalizeNoteText / isTastedOnAllowed / snapshotDrinkName", () => {
   it("前後空白だけなら null、本文は trim する", () => {
     expect(normalizeNoteText("  \n ")).toBeNull();
     expect(normalizeNoteText("  酸がきれい  ")).toBe("酸がきれい");
@@ -93,81 +85,42 @@ describe("normalizeNoteText / isTastedOnAllowed", () => {
     expect(isTastedOnAllowed("2026-09-08", now)).toBe(false);
     expect(isTastedOnAllowed("2026-02-30", now)).toBe(false);
   });
+
+  it("品名が空なら種類の表示名を使う", () => {
+    expect(snapshotDrinkName("  赤  ", "wine")).toBe("赤");
+    expect(snapshotDrinkName(null, "beer")).toBe("ビール");
+    expect(snapshotDrinkName("   ", "wine_red")).toBe("赤ワイン");
+  });
 });
 
-describe("createTastingNoteSchema", () => {
-  it("手入力（銘柄・種類・評価・今日）が通る", () => {
-    expect(createTastingNoteSchema.parse(HAND)).toEqual(HAND);
-  });
-
-  it("ボトルありなら銘柄・種類を省略できる", () => {
-    const parsed = createTastingNoteSchema.parse({
-      bottleId: UUID,
-      tastedOn: TODAY,
-      ratingX10: 40,
-    });
-    expect(parsed.bottleId).toBe(UUID);
-    expect(parsed.drinkName).toBeUndefined();
-  });
-
-  it("ボトルなしで銘柄・種類が無いと 必須エラー", () => {
-    const fields = createMessages({ tastedOn: TODAY, ratingX10: 40 });
-    expect(fields.drinkName).toEqual([TASTING_NOTE_MESSAGES.drinkName]);
-    expect(fields.drinkType).toEqual([TASTING_NOTE_MESSAGES.drinkType]);
+describe("drinkLogTastingNoteInputSchema", () => {
+  it("評価だけ通る。識別・日付は受け取らない", () => {
+    expect(drinkLogTastingNoteInputSchema.parse({ ratingX10: 45 })).toEqual({ ratingX10: 45 });
+    expect(createMessages({ ratingX10: 45, drinkName: "赤" })[""]).toBeDefined();
+    expect(createMessages({ ratingX10: 45, tastedOn: tokyoToday() })[""]).toBeDefined();
   });
 
   it("評価 5.1 / 1.2 / 0 / 9 は不可。1.1（11）は可", () => {
-    expect(createMessages({ ...HAND, ratingX10: 3.3 }).ratingX10).toEqual([
-      TASTING_NOTE_MESSAGES.rating,
-    ]);
-    expect(createMessages({ ...HAND, ratingX10: 5.1 }).ratingX10).toEqual([
-      TASTING_NOTE_MESSAGES.rating,
-    ]);
-    expect(createMessages({ ...HAND, ratingX10: 1.2 }).ratingX10).toEqual([
-      TASTING_NOTE_MESSAGES.rating,
-    ]);
-    expect(createMessages({ ...HAND, ratingX10: 0 }).ratingX10).toEqual([
-      TASTING_NOTE_MESSAGES.rating,
-    ]);
-    expect(createMessages({ ...HAND, ratingX10: 9 }).ratingX10).toEqual([
-      TASTING_NOTE_MESSAGES.rating,
-    ]);
-    expect(createTastingNoteSchema.parse({ ...HAND, ratingX10: 11 }).ratingX10).toBe(11);
-    expect(createTastingNoteSchema.parse({ ...HAND, ratingX10: 42 }).ratingX10).toBe(42);
+    expect(createMessages({ ratingX10: 3.3 }).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+    expect(createMessages({ ratingX10: 5.1 }).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+    expect(createMessages({ ratingX10: 1.2 }).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+    expect(createMessages({ ratingX10: 0 }).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+    expect(createMessages({ ratingX10: 9 }).ratingX10).toEqual([TASTING_NOTE_MESSAGES.rating]);
+    expect(drinkLogTastingNoteInputSchema.parse({ ratingX10: 11 }).ratingX10).toBe(11);
+    expect(drinkLogTastingNoteInputSchema.parse({ ratingX10: 42 }).ratingX10).toBe(42);
   });
 
-  it("未来日と不正日、7 枚・重複 photoIds、未知キーを拒否する", () => {
-    expect(createMessages({ ...HAND, tastedOn: "2099-01-01" }).tastedOn).toEqual([
-      TASTING_NOTE_MESSAGES.tastedOnFuture,
-    ]);
-    expect(createMessages({ ...HAND, tastedOn: "2026-02-30" }).tastedOn).toEqual([
-      TASTING_NOTE_MESSAGES.tastedOnFormat,
-    ]);
+  it("7 枚・重複 photoIds、未知キーを拒否する", () => {
     expect(
       createMessages({
-        ...HAND,
+        ratingX10: 40,
         photoIds: Array.from({ length: 7 }, (_, i) => `11111111-1111-4111-8111-11111111111${i}`),
       }).photoIds,
     ).toEqual([TASTING_NOTE_MESSAGES.photoIdsMax]);
-    expect(createMessages({ ...HAND, photoIds: [UUID, UUID] }).photoIds).toEqual([
+    expect(createMessages({ ratingX10: 40, photoIds: [UUID, UUID] }).photoIds).toEqual([
       TASTING_NOTE_MESSAGES.photoIdsDuplicate,
     ]);
-    expect(createMessages({ ...HAND, userId: "x" })[""]).toBeDefined();
-  });
-});
-
-describe("updateTastingNoteSchema", () => {
-  it("空オブジェクトは拒否し、bottleId null では銘柄・種類が必須", () => {
-    expect(updateTastingNoteSchema.safeParse({}).success).toBe(false);
-    const missing = updateTastingNoteSchema.safeParse({ bottleId: null });
-    expect(missing.success).toBe(false);
-    expect(
-      updateTastingNoteSchema.safeParse({
-        bottleId: null,
-        drinkName: "手入力",
-        drinkType: "beer",
-      }).success,
-    ).toBe(true);
+    expect(createMessages({ ratingX10: 40, userId: "x" })[""]).toBeDefined();
   });
 });
 

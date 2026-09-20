@@ -33,9 +33,9 @@ test("度数は 0.5 刻み、評価は 0.1 刻みでスライダー左右の ± 
   await page.getByRole("button", { name: "破棄する" }).click();
   await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
 
-  await mainNav(page).getByRole("button", { name: "ノート" }).click();
-  await page.getByRole("link", { name: "ノートを作成" }).click();
-  await expect(page.getByRole("heading", { name: "ノートを作成" })).toBeVisible();
+  await mainNav(page).getByRole("button", { name: "飲酒を記録" }).click();
+  await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
+  await page.getByRole("button", { name: "テイスティングを残す" }).click();
 
   const slider = page.getByRole("slider", { name: "評価（1.0〜5.0、0.1刻み）" });
   await expect(slider).toHaveAttribute("aria-valuetext", "未選択");

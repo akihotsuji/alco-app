@@ -313,7 +313,7 @@ export function guideSpotlight(step: GuideStep): GuideSpotlightConfig | null {
   if (step === "notes-create") {
     return {
       target: '[data-guide-target="notes-create"]',
-      message: "味や感想は、ノートに残します",
+      message: "味や感想は、記録するときに残せます",
     };
   }
   if (step === "notes-rating") {

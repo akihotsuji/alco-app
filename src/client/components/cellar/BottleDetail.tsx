@@ -14,7 +14,7 @@ import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
-import { logCreateHref, noteCreateHref } from "@/client/lib/app-routes.ts";
+import { logCreateHref } from "@/client/lib/app-routes.ts";
 import {
   bottlePropLayout,
   bottleStatusPill,
@@ -299,9 +299,6 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             >
               飲んだ量を記録
             </Link>
-            <Link className="bottle-followup-row" to={noteCreateHref(bottle.id, "detail")}>
-              テイスティングノートを書く
-            </Link>
           </div>
         ) : (
           <Button
@@ -338,10 +335,6 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         onLog={() => {
           dismissFollowup();
           navigate(logCreateHref({ bottleId: bottle.id, from: "opened" }));
-        }}
-        onNote={() => {
-          dismissFollowup();
-          navigate(noteCreateHref(bottle.id, "opened"));
         }}
       />
     </div>

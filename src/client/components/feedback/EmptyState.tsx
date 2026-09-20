@@ -42,11 +42,11 @@ export function EmptyState({
       : actionTo?.startsWith("/cellar") && guide.interceptCellarAdd
         ? guide.onCellarAdd
         : undefined;
-  const guideTarget = intercept
-    ? actionTo?.startsWith("/notes")
-      ? "notes-create"
-      : "cellar-add"
-    : undefined;
+  const guideTarget = guide.interceptNotesCreate
+    ? "notes-create"
+    : intercept
+      ? "cellar-add"
+      : undefined;
   const variant = actionVariant === "secondary" ? "secondary" : "default";
   const enterRef = useRef<boolean | null>(null);
   if (enterRef.current === null) {
@@ -54,7 +54,11 @@ export function EmptyState({
   }
 
   return (
-    <div className="empty-state" data-enter={enterRef.current ? "1" : undefined}>
+    <div
+      className="empty-state"
+      data-enter={enterRef.current ? "1" : undefined}
+      data-guide-target={guideTarget === "notes-create" ? "notes-create" : undefined}
+    >
       <span className="empty-state-mascot">
         <Mascot pose={pose} size={96} aria-hidden />
       </span>

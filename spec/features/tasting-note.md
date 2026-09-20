@@ -15,21 +15,21 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 
 ## 1. 目的
 
-3 つ目のコア機能。体験は **写真を撮って、評価と一言を付ける**。外観 / 香り / 味わい / 余韻の 4 欄はあとから書ける。セラーのボトル（貯蔵庫含む）に紐づけて参照できる。
+3 つ目のコア機能。**作成は飲酒記録の任意節**。ノートタブは閲覧専用。感官（評価・4 欄）とノート写真は子テーブル。識別の正は親の `drink_logs`。
 
 | ゴール | 内容 |
 |---|---|
-| 最短作成 | 評価を選び、銘柄（ボトル or 手入力）を入れて保存。写真・4 欄は任意 |
-| 写真付き | 一覧の右下「＋」→ フォーム → 「写真を撮る」（OS 確定で即 4:5 サムネ。`photo-edit` は挟まない。位置直しはサムネの「編集」）→ 評価 → 保存。最大 6 枚。「写真を選ぶ」で保存済み写真も付けられる |
-| 一覧 | 横並びカード（銘柄が主。写真・日付・評価・短い感想）。銘柄・種類・評価で絞り込み |
-| セラー | ボトル詳細のノート節から一覧・作成。作成時にボトルを選べる（貯蔵庫含む） |
+| 最短作成 | `log-new` でテイスティングを開き、評価を入れて同じ保存。閉じたままなら飲酒だけ |
+| 写真付き | 記録写真 1 枚とは別に、節内のノート写真 ≦6 |
+| 一覧 | 横並びカード（銘柄が主。写真・日付・評価・短い感想）。銘柄・種類・評価で絞り込み。FAB なし |
+| セラー | ボトル詳細のノート節から一覧のみ。作成は「飲んだ量を記録」 |
 
 ### 対象外（本フェーズで作らない）
 
 | 項目 | 時期 |
 |---|---|
 | 種類別の評価テンプレート（ワイン用・ウイスキー用の評価軸プリセット） | v1.x |
-| ノート作成時の飲酒記録同時作成 | v1.x（[01-requirements.md](../01-requirements.md) 1.5） |
+| ノート単独の新規作成 | 廃止。新規は必ず記録の子 |
 | SNS 共有 | 対象外 |
 | 写真パイプライン本体（撮影・編集・合成・`POST /api/photos`・未紐付け GC） | 2-08 済み。本フェーズは呼び出しと `photoIds` 紐付け、複数枚 UI |
 | ボトル CRUD / 棚 / 開栓 | Phase 4。本フェーズは参照とピッカーのみ |
@@ -73,8 +73,8 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 | L5 | 写真なし | 同じ枠の inset。中央に種類アイコン 32px muted。レイアウトは崩れない | `drinkType` |
 | L6 | 名前 / 評価 / 日付 / 感想 | 名前 14px/600・最大 2 行省略。日付 + 星。感想は 2 行省略（無ければ行なし）。写真 2 枚以上は `images` + `photoCount` | `drinkName`, `ratingX10`, `tastedOn`, `photoCount`, `taste` |
 | L7 | カードタップ | `/notes/:noteId` | — |
-| L8 | `bottleId` 指定時 | ヘッダーは ← + 銘柄名（ボトル詳細へ戻る）。一覧はそのボトルのみ。右下「＋」は `bottleId` を引き継ぐ（`/notes/new?bottleId=`） | `GET /api/tasting-notes?bottleId=` |
-| L9 | 作成 | 右下 FAB ピル「＋ ノート作成」→ `/notes/new`（`bottleId` があれば引き継ぐ）。撮影しない。[00-common.md](../screen-designs/00-common.md) 1.4 | — |
+| L8 | `bottleId` 指定時 | ヘッダーは ← + 銘柄名（ボトル詳細へ戻る）。一覧はそのボトルのみ | `GET /api/tasting-notes?bottleId=` |
+| L9 | （廃止） | FAB と空状態の作成ボタンは置かない | — |
 
 - `q` / `drinkType` / `ratingX10Min` / `bottleId` は URL に載せ、再訪で残す。空の `q` と OFF の評価チップは付けない
 - 並びは API 既定（`tastedOn` 降順、同値は `id` 降順）。クライアントで並べ替えない
@@ -85,14 +85,16 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 | 状態 | 表示 |
 |---|---|
 | ローディング | 4:5 の枠 ×4（静止。到着で M-29） |
-| 空（フィルタなし 0 件） | キャラ `default` 96px +「テイスティングノートはまだありません」+「気になるお酒の味わいを記録してみましょう」+ Button 主「ノートを作成」。**0 件のときだけ**。1 件以上で「まだ他のノートはありません」は出さない。初回描画で 1 回現れる（M-26 / M-27） |
+| 空（フィルタなし 0 件） | キャラ `default` 96px +「テイスティングノートはまだありません」+「味や感想は、記録するときに残せます」。作成ボタンは出さない |
 | 検索 / フィルタ 0 | 「該当するノートがありません」（検索時は「一致するノートがありません」）+「フィルタを解除」（キャラなし）。未登録とは別 |
 | `bottleId` が他人 / 不在 / 不正 | `not-found`（空配列にしない） |
 | エラー | 「読み込めませんでした」+ 再試行 |
 
 `bottleId` 指定かつフィルタなし 0 件は、空状態の「作成」が `bottleId` を引き継ぐ。
 
-### 3.2 `note-new` ノートを作成（`/notes/new?bottleId=&camera=1`）
+### 3.2 `note-new`（廃止）
+
+`/notes/new` は `/logs/new` へリダイレクトする。感官の入力規則は [drink-log.md](drink-log.md) の N11 と本ファイル 4 章。
 
 タブバーは隠す。入口は L の「+」、ボトル詳細 T6「書く ›」/ 貯蔵庫詳細 T3「ノートを書く」。ディープリンクでも `?camera=1` が無くてもフォームは開く。
 
@@ -133,7 +135,7 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 | V2b | 識別 | 生産者・生産国・品種があればテキストで出す | `producer`, `origin`, `variety` |
 | V3 | ボトル行 | `bottle` があれば「🍾 セラーのボトル ›」または「🍾 貯蔵庫のボトル ›」→ `/cellar/:bottleId`。削除済み（`bottle === null`）なら行を出さない | `bottle` |
 | V4 | 4 欄 | 見出し 13px muted + 本文 16px。**値のある欄だけ**。順は **外観 / 香り / 味わい / 余韻**。すべて空なら「まだ書いていません」 | `appearance`, `aroma`, `taste`, `finish` |
-| V5 | 編集 | ヘッダー右 → `/notes/:noteId/edit` | — |
+| V5 | 編集 | ヘッダー右 → 親記録の `/logs/entries/:logId/edit` | `drinkLogId` |
 
 - ヘッダー左は戻る、中央は銘柄名（スナップショット）
 - 4 欄の本文はテキスト描画。`white-space: pre-wrap`。URL 化しない
@@ -142,9 +144,9 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 
 戻り先: 履歴。無ければ `/notes`（来た一覧が `bottleId` 付きならそれを維持）
 
-### 3.4 `note-edit` ノートを編集（`/notes/:noteId/edit`）
+### 3.4 `note-edit`（廃止）
 
-`note-new` と同じレイアウト。タブバーは隠す。差分:
+`/notes/:noteId/edit` は親記録の `log-edit` へリダイレクトする。取れなければ `not-found`。差分の正本は [drink-log.md](drink-log.md) 3.3。旧規則の参照用:
 
 | 項目 | 規則 |
 |---|---|
@@ -163,11 +165,11 @@ Phase 5-01 の成果物。テイスティングノート（作成・編集・削
 
 | 項目 | 規則 |
 |---|---|
-| 見出し | 「ノート」右に「書く ›」→ `/notes/new?bottleId=<id>` |
+| 見出し | 「ノート」。作成導線は置かない |
 | 行 | 最新 3 件（`tastedOn` 降順）。「日付  ★4.5 ›」→ `/notes/:noteId` |
 | すべて | 「すべて（N）›」→ `/notes?bottleId=`。N は `totalCount`（そのボトルの総数。フィルタ前） |
-| 0 件 | 行は出さず、見出し +「書く ›」は出す（記録節 T7 が 0 件で節ごと消すのと違う） |
-| 貯蔵庫 | T3 の主ボタンが「ノートを書く」（4-03 済み）。着地は同じ `note-new?bottleId=` |
+| 0 件 | 行は出さず、見出しは出す（記録節 T7 が 0 件で節ごと消すのと違う） |
+| 貯蔵庫 | T3c は「飲んだ量を記録」だけ |
 
 他人の `:bottleId` で詳細を開いた時点で `not-found` なので、ノート節が他人のノートを見ることはない。
 
@@ -188,7 +190,9 @@ Zod は `src/shared` に置き、クライアント（即時表示）とサー�
 
 評価は **整数 `ratingX10`** だけを送受信する。float の 1.0〜5.0 は API に置かない（比較が脆いため）。
 
-### 4.1 作成・更新（`POST` / `PATCH /api/tasting-notes`）
+### 4.1 作成・更新（`POST` / `PATCH /api/drink-logs` の `tastingNote`）
+
+単独の `POST` / `PATCH /api/tasting-notes` は置かない。子ノートの入力は次のとおり。識別・日付・ボトルは親記録からコピーする。
 
 | フィールド | 規則 | エラー文 |
 |---|---|---|
@@ -240,9 +244,9 @@ PATCH の `photoIds` は **差し替え**（配列順 = `sortOrder` 0, 1, …）
 - 401 は `RequireAuth`
 - 429 / 502（recognize）: 失敗帯。保存は止めない
 
-### 4.4 写真読み取り（`POST /api/tasting-notes/recognize`）
+### 4.4 写真読み取り（廃止）
 
-`multipart/form-data`。パート `file`。認証必須。公開エンドポイントではない。`/:id` より **先に登録**する。
+`POST /api/tasting-notes/recognize` は置かない。識別の読取は `POST /api/drink-logs/recognize`。旧規則の参照用:
 
 | 規則 | 内容 |
 |---|---|
@@ -339,14 +343,14 @@ PATCH の `photoIds` は **差し替え**（配列順 = `sortOrder` 0, 1, …）
 | 画面・操作 | API | 実装タスク |
 |---|---|---|
 | 一覧 | `GET /api/tasting-notes?q=&drinkType=&ratingX10Min=&bottleId=&limit=&cursor=` | 5-02 |
-| 作成 | `POST /api/tasting-notes`（`photoIds`, `bottleId`） | 5-02（`photoIds` 空配列可）。複数枚 UI は 5-03 |
-| 詳細 / 編集初期値 | `GET /api/tasting-notes/:id` | 5-02 |
-| 編集保存 | `PATCH /api/tasting-notes/:id` | 5-02 |
-| 削除 | `DELETE /api/tasting-notes/:id` | 5-02 |
+| 作成 | `POST /api/drink-logs` の任意 `tastingNote` | 記録へ統合 |
+| 詳細 | `GET /api/tasting-notes/:id` | 5-02 |
+| 編集保存 | `PATCH /api/drink-logs/:id` の `tastingNote` | 記録へ統合 |
+| 削除 | `DELETE /api/tasting-notes/:id` または `tastingNote: null` | 記録へ統合 |
 | 写真（撮る / 破棄 / 配信） | `POST` / `DELETE` / `GET /api/photos/:id/content`（2-08 済み） | 5-03（呼び出しとストリップ / カルーセル） |
 | ボトルピッカー | `GET /api/bottles?view=all&q=`（4-02 済み） | 5-04（ノート作成への接続） |
 | ボトル詳細のノート節 | `GET /api/tasting-notes?bottleId=&limit=3` | 5-04 |
-| 写真からの推定 | `POST /api/tasting-notes/recognize` | 本変更。`/:id` より先に登録 |
+| 写真からの推定 | `POST /api/drink-logs/recognize`（ノート専用は置かない） | 記録へ統合 |
 
 ### 8.1 一覧応答（補足）
 
@@ -518,15 +522,13 @@ data-model 6.4 の列 + `photos` メタ配列（`sortOrder` 昇順、最大 6）
 
 ---
 
-## 13. 受け入れ（5-01）
+## 13. 受け入れ（記録へ統合）
 
-- [x] ファイルが存在し、画面項目・バリデーション・API・連携・写真枚数がある
-- [x] [01-requirements.md](../01-requirements.md) 1.4 と矛盾しない（v1.x を混ぜていない）
-- [x] 未決を残さず、決定事項を 11 章に列挙した
-- [x] Phase 4 / 2-08 の写真基盤を再利用すると明記した（新アップロード API なし）
-- [x] 写真の認可方針が [security.mdc](../../.cursor/rules/security.mdc) / [photos.md](photos.md) と矛盾しない
-- [x] 実装ファイル（`src/`）を含まない
-- [x] オーナー承認（#46 のマージをもって承認）
+- [x] ノートタブは閲覧専用。FAB / `note-new` / 単独 POST / 認識 API を置かない
+- [x] 新規ノートは必ず `drink_log_id` の子。識別の正は `drink_logs`
+- [x] 作成・更新は `POST` / `PATCH /api/drink-logs` の任意 `tastingNote`
+- [x] 他人・不在は 404。セッションの `userId` のみ
+- [x] 既存単独ノートはスタブ記録へ移行すると data-model に書いた
 
 ---
 

@@ -18,6 +18,9 @@ describe("NoteDetail 4 欄とボトル行", () => {
     expect(taste).toBeGreaterThan(aroma);
     expect(finish).toBeGreaterThan(taste);
     expect(detail).toContain("まだ書いていません");
+    expect(detail).toContain("note.drinkLog.volumeMl");
+    expect(detail).toContain("note.drinkLog.abvPercent");
+    expect(detail).toContain("note.drinkLog.alcoholG");
     expect(detail).toContain("note.vintage");
     expect(detail).toContain("<DrinkSearchLink");
     expect(detail.indexOf("note-detail-name")).toBeLessThan(detail.indexOf("<DrinkSearchLink"));

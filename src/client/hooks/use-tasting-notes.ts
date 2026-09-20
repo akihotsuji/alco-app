@@ -8,7 +8,6 @@ import {
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type { DrinkType } from "@/shared/constants.ts";
-import type { CreateTastingNoteInput, UpdateTastingNoteInput } from "@/shared/tasting-notes.ts";
 
 export type TastingNotesListQuery = {
   bottleId?: string;
@@ -38,26 +37,8 @@ export function getTastingNote(id: string, client: ApiClient = api) {
   return unwrap(client.api["tasting-notes"][":id"].$get({ param: { id } }));
 }
 
-export function createTastingNote(body: CreateTastingNoteInput, client: ApiClient = api) {
-  return unwrap(client.api["tasting-notes"].$post({ json: body }));
-}
-
-export function recognizeNotePhoto(file: Blob, client: ApiClient = api) {
-  return unwrap(
-    client.api["tasting-notes"].recognize.$post({
-      form: {
-        file: new File([file], "note.jpg", { type: "image/jpeg" }),
-      },
-    }),
-  );
-}
-
-export function updateTastingNote(
-  id: string,
-  body: UpdateTastingNoteInput,
-  client: ApiClient = api,
-) {
-  return unwrap(client.api["tasting-notes"][":id"].$patch({ param: { id }, json: body }));
+export function recognizeNotePhoto(_file: Blob): Promise<never> {
+  return Promise.reject(new Error("ノート単独の認識は廃止しました"));
 }
 
 export function deleteTastingNote(id: string, client: ApiClient = api) {
@@ -105,23 +86,6 @@ export function useTastingNote(id: string | undefined) {
     queryKey: queryKeys.tastingNote(id ?? ""),
     queryFn: () => getTastingNote(id ?? ""),
     enabled: Boolean(id),
-  });
-}
-
-export function useCreateTastingNote() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: CreateTastingNoteInput) => createTastingNote(body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.tastingNotes }),
-  });
-}
-
-export function useUpdateTastingNote() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, body }: { id: string; body: UpdateTastingNoteInput }) =>
-      updateTastingNote(id, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.tastingNotes }),
   });
 }
 

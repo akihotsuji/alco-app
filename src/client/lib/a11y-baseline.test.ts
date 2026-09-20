@@ -22,7 +22,7 @@ const FORMS = [
   "src/client/components/logs/MemoField.tsx",
   "src/client/components/logs/PlaceField.tsx",
   "src/client/components/cellar/BottleForm.tsx",
-  "src/client/components/notes/NoteForm.tsx",
+  "src/client/components/notes/RatingField.tsx",
   "src/client/pages/logs/MyDrinkPages.tsx",
   "src/client/pages/AccountDeletionPages.tsx",
   "src/client/pages/FeedbackPage.tsx",

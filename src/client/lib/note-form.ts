@@ -5,18 +5,17 @@ import type { DrinkLog } from "@/shared/drink-logs.ts";
 import {
   IDENTITY_MESSAGES,
   IDENTITY_TEXT_MAX_LENGTH,
-  normalizeOptionalText,
   originInputError,
 } from "@/shared/identity.ts";
 import {
   type CreateTastingNoteInput,
+  type DrinkLogTastingNoteInput,
   isTastedOnAllowed,
   isValidRatingX10,
   NOTE_DRINK_NAME_MAX_LENGTH,
   NOTE_TEXT_MAX_LENGTH,
   TASTING_NOTE_MESSAGES,
   type TastingNote,
-  type UpdateTastingNoteInput,
 } from "@/shared/tasting-notes.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 
@@ -318,26 +317,8 @@ export function toCreateTastingNoteBody(
     return null;
   }
   const body: CreateTastingNoteInput = {
-    tastedOn: state.tastedOn,
     ratingX10: state.ratingX10,
   };
-  if (state.bottleId) {
-    body.bottleId = state.bottleId;
-  } else if (!state.drinkType) {
-    return null;
-  }
-  if (state.drinkType) {
-    body.drinkType = state.drinkType;
-  }
-  const name = state.drinkName.trim();
-  if (name.length > 0) {
-    body.drinkName = name;
-  }
-  const vintage = state.vintage.trim();
-  body.vintage = vintage.length === 0 ? null : Number(vintage);
-  body.producer = normalizeOptionalText(state.producer);
-  body.origin = normalizeOptionalText(state.origin);
-  body.variety = normalizeOptionalText(state.variety);
   const appearance = optionalText(state.appearance);
   const aroma = optionalText(state.aroma);
   const taste = optionalText(state.taste);
@@ -364,24 +345,8 @@ export function toUpdateTastingNoteBody(
   state: NoteFormState,
   initial: NoteFormState,
   photoIds?: readonly string[],
-): UpdateTastingNoteInput | null {
-  const body: UpdateTastingNoteInput = {};
-  if (state.tastedOn !== initial.tastedOn) {
-    body.tastedOn = state.tastedOn;
-  }
-  if (state.vintage.trim() !== initial.vintage.trim()) {
-    const vintage = state.vintage.trim();
-    body.vintage = vintage.length === 0 ? null : Number(vintage);
-  }
-  if (state.producer.trim() !== initial.producer.trim()) {
-    body.producer = normalizeOptionalText(state.producer);
-  }
-  if (state.origin.trim() !== initial.origin.trim()) {
-    body.origin = normalizeOptionalText(state.origin);
-  }
-  if (state.variety.trim() !== initial.variety.trim()) {
-    body.variety = normalizeOptionalText(state.variety);
-  }
+): Partial<DrinkLogTastingNoteInput> | null {
+  const body: Partial<DrinkLogTastingNoteInput> = {};
   if (state.ratingX10 !== initial.ratingX10 && state.ratingX10 !== null) {
     body.ratingX10 = state.ratingX10;
   }
@@ -396,22 +361,6 @@ export function toUpdateTastingNoteBody(
   }
   if (state.finish.trim() !== initial.finish.trim()) {
     body.finish = state.finish.trim() || null;
-  }
-  if (state.bottleId !== initial.bottleId) {
-    if (state.bottleId) {
-      body.bottleId = state.bottleId;
-    } else if (state.drinkType) {
-      body.bottleId = null;
-      body.drinkName = state.drinkName.trim();
-      body.drinkType = state.drinkType;
-    }
-  } else if (!state.bottleId) {
-    if (state.drinkName.trim() !== initial.drinkName.trim()) {
-      body.drinkName = state.drinkName.trim();
-    }
-    if (state.drinkType && state.drinkType !== initial.drinkType) {
-      body.drinkType = state.drinkType;
-    }
   }
   if (photoIds !== undefined) {
     body.photoIds = [...photoIds];

@@ -9,14 +9,11 @@ const source = readFileSync(join(here, "AddFab.tsx"), "utf8");
 const shell = readFileSync(join(here, "AppShell.tsx"), "utf8");
 
 describe("AddFab（00-common 1.4）", () => {
-  it("セラー一覧とノート一覧に FAB", () => {
+  it("セラー一覧だけ FAB。ノート一覧には出さない", () => {
     expect(addFabForRoute("/cellar")).toEqual({ to: "/cellar/new", label: "＋ ボトル追加" });
-    expect(addFabForRoute("/notes")).toEqual({ to: "/notes/new", label: "＋ ノート作成" });
+    expect(addFabForRoute("/notes")).toBeNull();
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toEqual({
-      to: `/notes/new?bottleId=${id}`,
-      label: "＋ ノート作成",
-    });
+    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toBeNull();
   });
 
   it("作成・編集・詳細・他タブには出さない", () => {

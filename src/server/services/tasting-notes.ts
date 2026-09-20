@@ -1,32 +1,33 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
-import { photos, tastingNotes } from "@/db/schema.ts";
+import { drinkLogs, photos, tastingNotes } from "@/db/schema.ts";
 import { escapeLike } from "@/shared/bottles.ts";
 import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
-import { resolveIdentityFields } from "@/shared/identity.ts";
 import {
-  type CreateTastingNoteInput,
+  type DrinkLogTastingNoteInput,
   normalizeNoteText,
+  snapshotDrinkName,
   TASTING_NOTE_MESSAGES,
   TASTING_NOTE_PHOTO_MAX,
   type TastingNote,
   type TastingNoteBottle,
+  type TastingNoteEmbedded,
   type TastingNoteListItem,
+  type TastingNoteSummary,
   type TastingNotesQuery,
   type TastingNotesResponse,
-  type UpdateTastingNoteInput,
 } from "@/shared/tasting-notes.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { photosRemovedByPatch } from "../lib/photo-patch.ts";
 import { requireOwnBottle } from "./bottles.ts";
-import { writtenOrigin } from "./origin-write.ts";
 import { type PhotoBucket, toPhotoMeta } from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
 
 type NoteRow = typeof tastingNotes.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
+type DrinkLogRow = typeof drinkLogs.$inferSelect;
 type BottleSnap = { id: string; name: string; drinkType: DrinkType; status: BottleStatus };
 
 function toIso(value: Date | number): string {
@@ -40,14 +41,58 @@ function toBottleEmbed(row: BottleSnap | null): TastingNoteBottle {
   return { id: row.id, name: row.name, status: row.status };
 }
 
+function toDrinkLogEmbed(log: DrinkLogRow) {
+  return {
+    id: log.id,
+    volumeMl: log.volumeMl,
+    abvPercent: log.abvPercent,
+    alcoholG: log.alcoholG,
+    drunkAt: toIso(log.drunkAt),
+    drunkOn: log.drunkOn,
+  };
+}
+
+export function isUniqueConstraintError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /UNIQUE constraint failed|SQLITE_CONSTRAINT_UNIQUE/i.test(message);
+}
+
+export function toTastingNoteSummary(row: NoteRow): TastingNoteSummary {
+  return {
+    id: row.id,
+    ratingX10: row.ratingX10,
+    taste: row.taste,
+  };
+}
+
+export function toTastingNoteEmbedded(
+  row: NoteRow,
+  photoRows: readonly PhotoRow[],
+): TastingNoteEmbedded {
+  const metas = photoRows.map(toPhotoMeta);
+  return {
+    id: row.id,
+    ratingX10: row.ratingX10,
+    taste: row.taste,
+    appearance: row.appearance,
+    aroma: row.aroma,
+    finish: row.finish,
+    photos: metas,
+    photoCount: metas.length,
+    thumbPhotoId: metas[0]?.id ?? null,
+  };
+}
+
 export function toTastingNote(
   row: NoteRow,
   photoRows: readonly PhotoRow[],
   bottle: BottleSnap | null,
+  log: DrinkLogRow,
 ): TastingNote {
   const metas = photoRows.map(toPhotoMeta);
   return {
     id: row.id,
+    drinkLogId: row.drinkLogId,
     drinkName: row.drinkName,
     drinkType: row.drinkType,
     vintage: row.vintage,
@@ -65,6 +110,7 @@ export function toTastingNote(
     finish: row.finish,
     photos: metas,
     bottle: toBottleEmbed(bottle),
+    drinkLog: toDrinkLogEmbed(log),
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };
@@ -77,6 +123,7 @@ export function toTastingNoteListItem(
 ): TastingNoteListItem {
   return {
     id: row.id,
+    drinkLogId: row.drinkLogId,
     drinkName: row.drinkName,
     drinkType: row.drinkType,
     vintage: row.vintage,
@@ -129,7 +176,18 @@ function decodeCursor(cursor: string): z.infer<typeof noteCursorSchema> {
   }
 }
 
-/** 貯蔵庫の本も選べる。他人・不在は同じ 404。 */
+function identityFromLog(log: DrinkLogRow) {
+  return {
+    drinkName: snapshotDrinkName(log.drinkName, log.drinkType),
+    drinkType: log.drinkType,
+    vintage: log.vintage,
+    producer: log.producer,
+    origin: log.origin,
+    variety: log.variety,
+    bottleId: log.bottleId,
+    tastedOn: log.drunkOn,
+  };
+}
 
 async function resolveUnattachedPhotos(
   db: AppBatchDb,
@@ -251,55 +309,75 @@ async function loadBottleForNote(
   }
 }
 
-export async function createTastingNote(input: {
+export async function loadNoteByDrinkLogId(
+  db: AppBatchDb,
+  userId: string,
+  drinkLogId: string,
+): Promise<NoteRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(tastingNotes)
+    .where(and(eq(tastingNotes.drinkLogId, drinkLogId), eq(tastingNotes.userId, userId)));
+  return row;
+}
+
+export async function loadEmbeddedTastingNote(
+  db: AppBatchDb,
+  userId: string,
+  drinkLogId: string,
+): Promise<TastingNoteEmbedded | null> {
+  const row = await loadNoteByDrinkLogId(db, userId, drinkLogId);
+  if (!row) {
+    return null;
+  }
+  const photoRows = await loadNotePhotos(db, userId, row.id);
+  return toTastingNoteEmbedded(row, photoRows);
+}
+
+export async function loadTastingNoteSummaries(
+  db: AppBatchDb,
+  userId: string,
+  drinkLogIds: readonly string[],
+): Promise<Map<string, TastingNoteSummary>> {
+  const summaries = new Map<string, TastingNoteSummary>();
+  if (drinkLogIds.length === 0) {
+    return summaries;
+  }
+  const rows = await db
+    .select()
+    .from(tastingNotes)
+    .where(
+      and(inArray(tastingNotes.drinkLogId, [...drinkLogIds]), eq(tastingNotes.userId, userId)),
+    );
+  for (const row of rows) {
+    summaries.set(row.drinkLogId, toTastingNoteSummary(row));
+  }
+  return summaries;
+}
+
+async function insertNoteForLog(input: {
   db: AppBatchDb;
   userId: string;
-  body: CreateTastingNoteInput;
-  now?: Date;
-}): Promise<TastingNote> {
-  const { db, userId, body } = input;
-  const now = input.now ?? new Date();
-
-  let drinkName = body.drinkName ?? "";
-  let drinkType = body.drinkType;
-  let bottle: Awaited<ReturnType<typeof requireOwnBottle>> | null = null;
-  const bottleId = body.bottleId ?? null;
-  if (bottleId) {
-    bottle = await requireOwnBottle(db, userId, bottleId);
-    if (!body.drinkName) {
-      drinkName = bottle.name;
-    }
-    if (!body.drinkType) {
-      drinkType = bottle.drinkType;
-    }
-  }
-  if (!drinkType || drinkName.length === 0) {
-    throw new ApiError("validation_error", {
-      fields: {
-        ...(drinkName.length === 0 ? { drinkName: [TASTING_NOTE_MESSAGES.drinkName] } : {}),
-        ...(!drinkType ? { drinkType: [TASTING_NOTE_MESSAGES.drinkType] } : {}),
-      },
-    });
-  }
-
-  const identity = resolveIdentityFields(body, bottle);
-  const originWrite = writtenOrigin(body.origin, bottle?.origin);
-  if (originWrite !== undefined) {
-    identity.origin = originWrite;
-  }
+  log: DrinkLogRow;
+  body: DrinkLogTastingNoteInput;
+  now: Date;
+}): Promise<NoteRow> {
+  const { db, userId, log, body, now } = input;
+  const identity = identityFromLog(log);
   const photoRows = await resolveUnattachedPhotos(db, userId, body.photoIds ?? []);
   const id = crypto.randomUUID();
   const row: NoteRow = {
     id,
     userId,
-    bottleId,
-    drinkName,
-    drinkType,
+    drinkLogId: log.id,
+    bottleId: identity.bottleId,
+    drinkName: identity.drinkName,
+    drinkType: identity.drinkType,
     vintage: identity.vintage,
     producer: identity.producer,
     origin: identity.origin,
     variety: identity.variety,
-    tastedOn: body.tastedOn,
+    tastedOn: identity.tastedOn,
     appearance: normalizeNoteText(body.appearance),
     aroma: normalizeNoteText(body.aroma),
     taste: normalizeNoteText(body.taste),
@@ -310,38 +388,170 @@ export async function createTastingNote(input: {
   };
 
   const insert = db.insert(tastingNotes).values(row);
-  if (photoRows.length === 0) {
-    await insert;
-  } else {
-    await db.batch([
-      insert,
-      ...photoRows.map((photo, index) =>
-        db
+  try {
+    if (photoRows.length === 0) {
+      await insert;
+    } else {
+      await db.batch([
+        insert,
+        ...photoRows.map((photo, index) =>
+          db
+            .update(photos)
+            .set({ tastingNoteId: id, sortOrder: index, updatedAt: now })
+            .where(
+              and(
+                eq(photos.id, photo.id),
+                eq(photos.userId, userId),
+                isNull(photos.tastingNoteId),
+                isNull(photos.bottleId),
+                isNull(photos.drinkLogId),
+              ),
+            ),
+        ),
+      ]);
+    }
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new ApiError("validation_error", {
+        fields: { tastingNote: [TASTING_NOTE_MESSAGES.alreadyExists] },
+      });
+    }
+    throw error;
+  }
+  return row;
+}
+
+async function updateNoteSensory(input: {
+  db: AppBatchDb;
+  bucket?: PhotoBucket;
+  userId: string;
+  current: NoteRow;
+  log: DrinkLogRow;
+  body: DrinkLogTastingNoteInput;
+  now: Date;
+}): Promise<NoteRow> {
+  const { db, userId, current, log, body, now } = input;
+  const identity = identityFromLog(log);
+  const currentPhotoRows = await loadNotePhotos(db, userId, current.id);
+  const desiredPhotoRows =
+    body.photoIds === undefined
+      ? undefined
+      : await resolvePatchPhotos(db, userId, current.id, body.photoIds);
+  const removedPhotoRows = photosRemovedByPatch(currentPhotoRows, desiredPhotoRows);
+  const patch = {
+    ...identity,
+    ratingX10: body.ratingX10,
+    appearance: normalizeNoteText(body.appearance),
+    aroma: normalizeNoteText(body.aroma),
+    taste: normalizeNoteText(body.taste),
+    finish: normalizeNoteText(body.finish),
+    updatedAt: now,
+  };
+
+  const updateStatement = db
+    .update(tastingNotes)
+    .set(patch)
+    .where(and(eq(tastingNotes.id, current.id), eq(tastingNotes.userId, userId)));
+  const detachStatement =
+    removedPhotoRows.length > 0
+      ? db
           .update(photos)
-          .set({ tastingNoteId: id, sortOrder: index, updatedAt: now })
+          .set({ tastingNoteId: null, updatedAt: now })
           .where(
             and(
-              eq(photos.id, photo.id),
+              inArray(
+                photos.id,
+                removedPhotoRows.map((photo) => photo.id),
+              ),
               eq(photos.userId, userId),
-              isNull(photos.tastingNoteId),
-              isNull(photos.bottleId),
-              isNull(photos.drinkLogId),
+              eq(photos.tastingNoteId, current.id),
             ),
+          )
+      : null;
+  const attachStatements =
+    desiredPhotoRows?.map((photo, index) =>
+      db
+        .update(photos)
+        .set({ tastingNoteId: current.id, sortOrder: index, updatedAt: now })
+        .where(
+          and(
+            eq(photos.id, photo.id),
+            eq(photos.userId, userId),
+            isNull(photos.bottleId),
+            isNull(photos.drinkLogId),
           ),
-      ),
-    ]);
+        ),
+    ) ?? [];
+
+  const statements = [
+    updateStatement,
+    ...(detachStatement ? [detachStatement] : []),
+    ...attachStatements,
+  ];
+  const [firstStatement, ...restStatements] = statements;
+  if (!firstStatement || restStatements.length === 0) {
+    await updateStatement;
+  } else {
+    await db.batch([firstStatement, ...restStatements]);
   }
 
-  return toTastingNote(
-    row,
-    photoRows.map((photo, index) => ({
-      ...photo,
-      tastingNoteId: id,
-      sortOrder: index,
-      updatedAt: now,
-    })),
-    bottle,
-  );
+  if (desiredPhotoRows !== undefined && input.bucket) {
+    await Promise.all(
+      removedPhotoRows.map((photo) =>
+        removeDetachedPhoto(db, input.bucket as PhotoBucket, userId, photo),
+      ),
+    );
+  }
+
+  return { ...current, ...patch };
+}
+
+export async function upsertTastingNoteForLog(input: {
+  db: AppBatchDb;
+  bucket?: PhotoBucket;
+  userId: string;
+  log: DrinkLogRow;
+  body: DrinkLogTastingNoteInput;
+  now?: Date;
+}): Promise<NoteRow> {
+  const now = input.now ?? new Date();
+  const current = await loadNoteByDrinkLogId(input.db, input.userId, input.log.id);
+  if (current) {
+    return updateNoteSensory({
+      db: input.db,
+      bucket: input.bucket,
+      userId: input.userId,
+      current,
+      log: input.log,
+      body: input.body,
+      now,
+    });
+  }
+  return insertNoteForLog({
+    db: input.db,
+    userId: input.userId,
+    log: input.log,
+    body: input.body,
+    now,
+  });
+}
+
+export async function syncTastingNoteIdentityFromLog(input: {
+  db: AppBatchDb;
+  userId: string;
+  log: DrinkLogRow;
+  now?: Date;
+}): Promise<void> {
+  const now = input.now ?? new Date();
+  const current = await loadNoteByDrinkLogId(input.db, input.userId, input.log.id);
+  if (!current) {
+    return;
+  }
+  const identity = identityFromLog(input.log);
+  await input.db
+    .update(tastingNotes)
+    .set({ ...identity, updatedAt: now })
+    .where(and(eq(tastingNotes.id, current.id), eq(tastingNotes.userId, input.userId)));
 }
 
 export async function getOwnTastingNote(
@@ -349,18 +559,19 @@ export async function getOwnTastingNote(
   userId: string,
   noteId: string,
 ): Promise<TastingNote> {
-  const [row] = await db
-    .select()
+  const [joined] = await db
+    .select({ note: tastingNotes, log: drinkLogs })
     .from(tastingNotes)
+    .innerJoin(drinkLogs, eq(tastingNotes.drinkLogId, drinkLogs.id))
     .where(and(eq(tastingNotes.id, noteId), eq(tastingNotes.userId, userId)));
-  if (!row) {
+  if (!joined) {
     throw new ApiError("not_found");
   }
   const [photoRows, bottle] = await Promise.all([
     loadNotePhotos(db, userId, noteId),
-    loadBottleForNote(db, userId, row.bottleId),
+    loadBottleForNote(db, userId, joined.note.bottleId),
   ]);
-  return toTastingNote(row, photoRows, bottle);
+  return toTastingNote(joined.note, photoRows, bottle, joined.log);
 }
 
 export async function listTastingNotes(input: {
@@ -460,183 +671,6 @@ export async function listTastingNotes(input: {
   };
 }
 
-export async function updateTastingNote(input: {
-  db: AppBatchDb;
-  bucket: PhotoBucket;
-  userId: string;
-  noteId: string;
-  body: UpdateTastingNoteInput;
-  now?: Date;
-}): Promise<TastingNote> {
-  const { db, bucket, userId, noteId, body } = input;
-  const [current] = await db
-    .select()
-    .from(tastingNotes)
-    .where(and(eq(tastingNotes.id, noteId), eq(tastingNotes.userId, userId)));
-  if (!current) {
-    throw new ApiError("not_found");
-  }
-
-  let drinkName = current.drinkName;
-  let drinkType = current.drinkType;
-  let bottleId = current.bottleId;
-  let bottleSnap: Awaited<ReturnType<typeof requireOwnBottle>> | null = null;
-  if (body.bottleId) {
-    bottleSnap = await requireOwnBottle(db, userId, body.bottleId);
-    if (body.drinkName === undefined) {
-      drinkName = bottleSnap.name;
-    } else {
-      drinkName = body.drinkName;
-    }
-    if (body.drinkType === undefined) {
-      drinkType = bottleSnap.drinkType;
-    } else {
-      drinkType = body.drinkType;
-    }
-    bottleId = bottleSnap.id;
-  } else if (body.bottleId === null) {
-    bottleId = null;
-    if (!body.drinkName || !body.drinkType) {
-      throw new ApiError("validation_error", {
-        fields: {
-          ...(!body.drinkName ? { drinkName: [TASTING_NOTE_MESSAGES.drinkName] } : {}),
-          ...(!body.drinkType ? { drinkType: [TASTING_NOTE_MESSAGES.drinkType] } : {}),
-        },
-      });
-    }
-    drinkName = body.drinkName;
-    drinkType = body.drinkType;
-  } else {
-    if (body.drinkName !== undefined && current.bottleId === null) {
-      drinkName = body.drinkName;
-    }
-    if (body.drinkType !== undefined && current.bottleId === null) {
-      drinkType = body.drinkType;
-    }
-  }
-
-  const [photoBundle, bottle] = await Promise.all([
-    body.photoIds === undefined
-      ? loadNotePhotos(db, userId, noteId).then((rows) => ({
-          desired: undefined as PhotoRow[] | undefined,
-          current: rows,
-        }))
-      : Promise.all([
-          resolvePatchPhotos(db, userId, noteId, body.photoIds),
-          loadNotePhotos(db, userId, noteId),
-        ]).then(([desired, currentRows]) => ({ desired, current: currentRows })),
-    bottleSnap
-      ? Promise.resolve({
-          id: bottleSnap.id,
-          name: bottleSnap.name,
-          drinkType: bottleSnap.drinkType,
-          status: bottleSnap.status,
-        })
-      : loadBottleForNote(db, userId, bottleId),
-  ]);
-  const desiredPhotoRows = photoBundle.desired;
-  const currentPhotoRows = photoBundle.current;
-  const removedPhotoRows = photosRemovedByPatch(currentPhotoRows, desiredPhotoRows);
-  const updatedAt = input.now ?? new Date();
-  const identity = resolveIdentityFields(
-    body,
-    bottleSnap ?? {
-      producer: current.producer,
-      origin: current.origin,
-      variety: current.variety,
-      vintage: current.vintage,
-    },
-  );
-  const originWrite = writtenOrigin(body.origin, current.origin);
-  if (originWrite !== undefined) {
-    identity.origin = originWrite;
-  }
-
-  const patch = {
-    ...(body.tastedOn === undefined ? {} : { tastedOn: body.tastedOn }),
-    ...(body.vintage === undefined && !bottleSnap ? {} : { vintage: identity.vintage }),
-    ...(body.producer === undefined && !bottleSnap ? {} : { producer: identity.producer }),
-    ...(body.origin === undefined && !bottleSnap ? {} : { origin: identity.origin }),
-    ...(body.variety === undefined && !bottleSnap ? {} : { variety: identity.variety }),
-    ...(body.ratingX10 === undefined ? {} : { ratingX10: body.ratingX10 }),
-    ...(body.appearance === undefined ? {} : { appearance: normalizeNoteText(body.appearance) }),
-    ...(body.aroma === undefined ? {} : { aroma: normalizeNoteText(body.aroma) }),
-    ...(body.taste === undefined ? {} : { taste: normalizeNoteText(body.taste) }),
-    ...(body.finish === undefined ? {} : { finish: normalizeNoteText(body.finish) }),
-    ...(body.bottleId === undefined &&
-    drinkName === current.drinkName &&
-    drinkType === current.drinkType
-      ? {}
-      : { bottleId, drinkName, drinkType }),
-    updatedAt,
-  };
-
-  const updateStatement = db
-    .update(tastingNotes)
-    .set(patch)
-    .where(and(eq(tastingNotes.id, noteId), eq(tastingNotes.userId, userId)));
-  const detachStatement =
-    removedPhotoRows.length > 0
-      ? db
-          .update(photos)
-          .set({ tastingNoteId: null, updatedAt })
-          .where(
-            and(
-              inArray(
-                photos.id,
-                removedPhotoRows.map((photo) => photo.id),
-              ),
-              eq(photos.userId, userId),
-              eq(photos.tastingNoteId, noteId),
-            ),
-          )
-      : null;
-  const attachStatements =
-    desiredPhotoRows?.map((photo, index) =>
-      db
-        .update(photos)
-        .set({ tastingNoteId: noteId, sortOrder: index, updatedAt })
-        .where(
-          and(
-            eq(photos.id, photo.id),
-            eq(photos.userId, userId),
-            isNull(photos.bottleId),
-            isNull(photos.drinkLogId),
-          ),
-        ),
-    ) ?? [];
-
-  const statements = [
-    updateStatement,
-    ...(detachStatement ? [detachStatement] : []),
-    ...attachStatements,
-  ];
-  const [firstStatement, ...restStatements] = statements;
-  if (!firstStatement || restStatements.length === 0) {
-    await updateStatement;
-  } else {
-    await db.batch([firstStatement, ...restStatements]);
-  }
-
-  if (desiredPhotoRows !== undefined) {
-    await Promise.all(
-      removedPhotoRows.map((photo) => removeDetachedPhoto(db, bucket, userId, photo)),
-    );
-  }
-
-  const updatedRow: NoteRow = { ...current, ...patch };
-  const photoRows =
-    desiredPhotoRows === undefined
-      ? currentPhotoRows
-      : desiredPhotoRows.map((photo, index) => ({
-          ...photo,
-          tastingNoteId: noteId,
-          sortOrder: index,
-          updatedAt,
-        }));
-  return toTastingNote(updatedRow, photoRows, bottle);
-}
-
 export async function deleteTastingNote(input: {
   db: AppBatchDb;
   bucket: PhotoBucket;
@@ -667,4 +701,22 @@ export async function deleteTastingNote(input: {
   await db
     .delete(tastingNotes)
     .where(and(eq(tastingNotes.id, noteId), eq(tastingNotes.userId, userId)));
+}
+
+export async function deleteTastingNoteForLog(input: {
+  db: AppBatchDb;
+  bucket: PhotoBucket;
+  userId: string;
+  drinkLogId: string;
+}): Promise<void> {
+  const current = await loadNoteByDrinkLogId(input.db, input.userId, input.drinkLogId);
+  if (!current) {
+    return;
+  }
+  await deleteTastingNote({
+    db: input.db,
+    bucket: input.bucket,
+    userId: input.userId,
+    noteId: current.id,
+  });
 }

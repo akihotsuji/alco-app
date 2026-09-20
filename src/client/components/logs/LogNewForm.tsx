@@ -19,6 +19,7 @@ import {
 } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
+import { LogTastingSection } from "@/client/components/logs/LogTastingSection.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
 import { PlaceField } from "@/client/components/logs/PlaceField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
@@ -28,7 +29,8 @@ import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
-import { logDayHref, noteFromLogHref } from "@/client/lib/app-routes.ts";
+import { useNotePhotos } from "@/client/hooks/use-note-photos.ts";
+import { logDayHref } from "@/client/lib/app-routes.ts";
 import {
   drinkLogSavePhotoId,
   firstPhotoId,
@@ -107,8 +109,8 @@ export function LogNewForm() {
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<Partial<Record<LogFormField, boolean>>>({});
   const [discardOpen, setDiscardOpen] = useState(false);
-  const [notePrompt, setNotePrompt] = useState<{ id: string; drunkOn: string } | null>(null);
   const [discarding, setDiscarding] = useState(false);
+  const notePhotos = useNotePhotos();
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -142,8 +144,12 @@ export function LogNewForm() {
     ...serverErrors,
   };
   const visibleErrors = visibleLogFormErrors(errors, { submitted, touched });
-  const canSubmit = canSubmitLogForm(state, errors, photoStatus);
-  const dirty = isLogFormDirty(state, initial) || attachment !== undefined;
+  const tastingPhotoStatus = state.tastingOpen ? notePhotos.photoStatus : "none";
+  const canSubmit =
+    canSubmitLogForm(state, errors, photoStatus) &&
+    (tastingPhotoStatus === "none" || tastingPhotoStatus === "ready");
+  const dirty =
+    isLogFormDirty(state, initial) || attachment !== undefined || notePhotos.photosDirty;
 
   const clearRef = useRef(clearAttachment);
   clearRef.current = clearAttachment;
@@ -285,7 +291,7 @@ export function LogNewForm() {
 
   function submit() {
     setSubmitted(true);
-    const body = toCreateDrinkLogBody(state, drinkLogSavePhotoId(attachment));
+    const body = toCreateDrinkLogBody(state, drinkLogSavePhotoId(attachment), notePhotos.photoIds);
     if (!body || !canSubmit || create.isPending) {
       return;
     }
@@ -298,7 +304,8 @@ export function LogNewForm() {
         setGuard(null);
         haptic("success");
         releaseAttachment("log");
-        setNotePrompt({ id: log.id, drunkOn: log.drunkOn });
+        notePhotos.releaseLocal();
+        goToDay(log);
       },
       onError: (error) => {
         const failure = describeSaveFailure(error, navigator.onLine, {
@@ -499,11 +506,53 @@ export function LogNewForm() {
         error={visibleErrors.memo}
         onChange={(memo) => update({ memo }, "memo")}
       />
+      <LogTastingSection
+        open={state.tastingOpen}
+        ratingX10={state.tastingRatingX10}
+        appearance={state.tastingAppearance}
+        aroma={state.tastingAroma}
+        taste={state.tastingTaste}
+        finish={state.tastingFinish}
+        errors={{
+          ratingX10: visibleErrors.ratingX10,
+          appearance: visibleErrors.appearance,
+          aroma: visibleErrors.aroma,
+          taste: visibleErrors.taste,
+          finish: visibleErrors.finish,
+        }}
+        photos={notePhotos.items}
+        canAddPhotos={notePhotos.canAdd}
+        onOpenChange={(tastingOpen) => update({ tastingOpen })}
+        onRatingChange={(tastingRatingX10) => update({ tastingRatingX10 }, "ratingX10")}
+        onTextChange={(field, value) => {
+          const key =
+            field === "appearance"
+              ? "tastingAppearance"
+              : field === "aroma"
+                ? "tastingAroma"
+                : field === "taste"
+                  ? "tastingTaste"
+                  : "tastingFinish";
+          update({ [key]: value }, field);
+        }}
+        onAddPhoto={() => void notePhotos.addPhoto("camera")}
+        onLibraryPhoto={() => void notePhotos.addPhoto("library")}
+        onEditPhoto={(key) => void notePhotos.editPhoto(key)}
+        onRetryPhoto={(key) => void notePhotos.retryPhoto(key)}
+        onRemovePhoto={(key) => void notePhotos.removePhoto(key)}
+        onMakeFirst={notePhotos.makeFirst}
+      />
       <SaveBar
         label={saveButtonLabel(false, photoStatus)}
         pending={create.isPending}
         disabled={!canSubmit}
-        hint={!canSubmit ? logSaveDisabledHint(state, errors, photoStatus) : null}
+        hint={
+          !canSubmit
+            ? tastingPhotoStatus === "uploading" || tastingPhotoStatus === "error"
+              ? logSaveDisabledHint(state, errors, tastingPhotoStatus)
+              : logSaveDisabledHint(state, errors, photoStatus)
+            : null
+        }
         state={create.isPending ? "loading" : saveState}
         onSave={submit}
       />
@@ -518,25 +567,6 @@ export function LogNewForm() {
         onClose={() => {
           setDiscardOpen(false);
           pendingLeave.current = null;
-        }}
-      />
-      <Dialog
-        open={notePrompt !== null}
-        title="テイスティングノートをつける？"
-        body="お酒の情報と写真をノートに引き継ぎます"
-        primaryLabel="つける"
-        secondaryLabel="あとで"
-        onPrimary={() => {
-          if (!notePrompt) {
-            return;
-          }
-          navigate(noteFromLogHref(notePrompt.id), { replace: true });
-        }}
-        onClose={() => {
-          if (notePrompt) {
-            goToDay(notePrompt);
-          }
-          setNotePrompt(null);
         }}
       />
     </div>

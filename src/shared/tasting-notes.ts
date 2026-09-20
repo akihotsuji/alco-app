@@ -1,8 +1,12 @@
 import { z } from "zod";
-import { vintageSchema } from "./bottles.ts";
-import { BOTTLE_STATUSES, PHOTO_OWNER_LIMITS } from "./constants.ts";
-import { drinkTypeSchema } from "./drink-logs.ts";
-import { IDENTITY_MESSAGES, optionalIdentityText } from "./identity.ts";
+import {
+  BOTTLE_STATUSES,
+  DRINK_TYPE_LABELS,
+  DRINK_TYPES,
+  type DrinkType,
+  PHOTO_OWNER_LIMITS,
+} from "./constants.ts";
+import { IDENTITY_MESSAGES } from "./identity.ts";
 import { photoMetaSchema } from "./photos.ts";
 import { parseCalendarDate, tokyoToday } from "./tokyo-date.ts";
 
@@ -33,6 +37,8 @@ export const TASTING_NOTE_MESSAGES = {
   photoIdsDuplicate: "写真の指定が正しくありません",
   photoNotFound: "写真をもう一度撮ってください",
   bottleNotFound: "ボトルが見つかりません",
+  drinkLogNotFound: "記録が見つかりません",
+  alreadyExists: "この記録にはすでにノートがあります",
   patchEmpty: "変更する項目を指定してください",
   q: `${NOTE_SEARCH_MAX_LENGTH}文字以内で入力してください`,
   limit: "件数は1以上100以下で指定してください",
@@ -104,6 +110,15 @@ export function isTastedOnAllowed(value: string, now: Date = new Date()): boolea
   return parseCalendarDate(value) !== null && value <= tokyoToday(now);
 }
 
+/** 親記録の品名。空なら種類の表示名をスナップショットする */
+export function snapshotDrinkName(
+  drinkName: string | null | undefined,
+  drinkType: DrinkType,
+): string {
+  const trimmed = drinkName?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : DRINK_TYPE_LABELS[drinkType];
+}
+
 export function normalizeNoteText(value: string | null | undefined): string | null {
   if (value === null || value === undefined) {
     return null;
@@ -138,6 +153,8 @@ export const noteTextSchema = z
   .string({ error: TASTING_NOTE_MESSAGES.noteText })
   .max(NOTE_TEXT_MAX_LENGTH, { error: TASTING_NOTE_MESSAGES.noteText });
 
+const drinkTypeSchema = z.enum(DRINK_TYPES, { error: TASTING_NOTE_MESSAGES.drinkType });
+
 const referenceId = z.string().uuid();
 
 const photoIdsSchema = z
@@ -147,77 +164,23 @@ const photoIdsSchema = z
     error: TASTING_NOTE_MESSAGES.photoIdsDuplicate,
   });
 
-function requireHandEntry(
-  body: { bottleId?: string | null; drinkName?: string; drinkType?: unknown },
-  context: z.RefinementCtx,
-) {
-  if (body.bottleId) {
-    return;
-  }
-  if (!body.drinkName) {
-    context.addIssue({
-      code: "custom",
-      path: ["drinkName"],
-      message: TASTING_NOTE_MESSAGES.drinkName,
-    });
-  }
-  if (!body.drinkType) {
-    context.addIssue({
-      code: "custom",
-      path: ["drinkType"],
-      message: TASTING_NOTE_MESSAGES.drinkType,
-    });
-  }
-}
-
-export const createTastingNoteSchema = z
+/** 記録 POST/PATCH に載せる感官。識別・日付は親記録からコピーする */
+export const drinkLogTastingNoteInputSchema = z
   .object({
-    bottleId: referenceId.nullable().optional(),
-    drinkName: noteDrinkNameSchema.optional(),
-    drinkType: drinkTypeSchema.optional(),
-    vintage: vintageSchema.nullable().optional(),
-    producer: optionalIdentityText,
-    origin: optionalIdentityText,
-    variety: optionalIdentityText,
-    tastedOn: tastedOnSchema,
-    appearance: noteTextSchema.nullable().optional(),
-    aroma: noteTextSchema.nullable().optional(),
-    taste: noteTextSchema.nullable().optional(),
-    finish: noteTextSchema.nullable().optional(),
     ratingX10: ratingX10Schema,
-    photoIds: photoIdsSchema.optional(),
-  })
-  .strict()
-  .superRefine(requireHandEntry);
-
-export type CreateTastingNoteInput = z.infer<typeof createTastingNoteSchema>;
-
-export const updateTastingNoteSchema = z
-  .object({
-    bottleId: referenceId.nullable().optional(),
-    drinkName: noteDrinkNameSchema.optional(),
-    drinkType: drinkTypeSchema.optional(),
-    vintage: vintageSchema.nullable().optional(),
-    producer: optionalIdentityText,
-    origin: optionalIdentityText,
-    variety: optionalIdentityText,
-    tastedOn: tastedOnSchema.optional(),
     appearance: noteTextSchema.nullable().optional(),
     aroma: noteTextSchema.nullable().optional(),
     taste: noteTextSchema.nullable().optional(),
     finish: noteTextSchema.nullable().optional(),
-    ratingX10: ratingX10Schema.optional(),
     photoIds: photoIdsSchema.optional(),
   })
-  .strict()
-  .refine((body) => Object.keys(body).length > 0, { error: TASTING_NOTE_MESSAGES.patchEmpty })
-  .superRefine((body, context) => {
-    if (body.bottleId === null) {
-      requireHandEntry(body, context);
-    }
-  });
+  .strict();
 
-export type UpdateTastingNoteInput = z.infer<typeof updateTastingNoteSchema>;
+export type DrinkLogTastingNoteInput = z.infer<typeof drinkLogTastingNoteInputSchema>;
+
+/** @deprecated 単独作成は廃止。テスト互換のため入力形だけ残す */
+export const createTastingNoteSchema = drinkLogTastingNoteInputSchema;
+export type CreateTastingNoteInput = DrinkLogTastingNoteInput;
 
 const ratingBoundSchema = z.coerce
   .number({ error: TASTING_NOTE_MESSAGES.ratingRange })
@@ -283,8 +246,43 @@ export const tastingNoteBottleSchema = z
 
 export type TastingNoteBottle = z.infer<typeof tastingNoteBottleSchema>;
 
+export const tastingNoteDrinkLogSchema = z
+  .object({
+    id: z.string(),
+    volumeMl: z.number().int(),
+    abvPercent: z.number(),
+    alcoholG: z.number(),
+    drunkAt: z.string(),
+    drunkOn: z.string(),
+  })
+  .strict();
+
+export type TastingNoteDrinkLog = z.infer<typeof tastingNoteDrinkLogSchema>;
+
+export const tastingNoteSummarySchema = z
+  .object({
+    id: z.string(),
+    ratingX10: z.number().int(),
+    taste: z.string().nullable(),
+  })
+  .strict();
+
+export type TastingNoteSummary = z.infer<typeof tastingNoteSummarySchema>;
+
+export const tastingNoteEmbeddedSchema = tastingNoteSummarySchema.extend({
+  appearance: z.string().nullable(),
+  aroma: z.string().nullable(),
+  finish: z.string().nullable(),
+  photos: z.array(photoMetaSchema),
+  photoCount: z.number().int().min(0),
+  thumbPhotoId: z.string().nullable(),
+});
+
+export type TastingNoteEmbedded = z.infer<typeof tastingNoteEmbeddedSchema>;
+
 export const tastingNoteListItemSchema = z.object({
   id: z.string(),
+  drinkLogId: z.string(),
   drinkName: z.string(),
   drinkType: drinkTypeSchema,
   vintage: z.number().int().nullable(),
@@ -310,6 +308,7 @@ export const tastingNoteSchema = tastingNoteListItemSchema.extend({
   finish: z.string().nullable(),
   photos: z.array(photoMetaSchema),
   bottle: tastingNoteBottleSchema,
+  drinkLog: tastingNoteDrinkLogSchema,
 });
 
 export type TastingNote = z.infer<typeof tastingNoteSchema>;

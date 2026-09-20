@@ -3,7 +3,7 @@ import { mainNav, signUpAsNewUser } from "./helpers/auth.ts";
 
 const BOTTLE_NAME = "E2Eスモークボトル";
 
-test("ボトルを登録してからノートを作成し、詳細がボトルを指す", async ({ page }) => {
+test("ボトルを登録してから記録でノートを残し、詳細がボトルを指す", async ({ page }) => {
   await signUpAsNewUser(page);
 
   await mainNav(page).getByRole("button", { name: "セラー" }).click();
@@ -22,20 +22,26 @@ test("ボトルを登録してからノートを作成し、詳細がボトル�
 
   await mainNav(page).getByRole("button", { name: "ノート" }).click();
   await expect(page.getByText("テイスティングノートはまだありません")).toBeVisible();
-  await page.getByRole("link", { name: "ノートを作成" }).click();
+  await expect(page.getByText("味や感想は、記録するときに残せます")).toBeVisible();
+  await page.getByRole("link", { name: "記録する" }).click();
 
-  await page.getByRole("button", { name: "セラーから選ぶ" }).first().click();
-  await page.getByRole("button", { name: "セラーから選ぶ" }).nth(1).click();
+  await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
+  await page.getByRole("button", { name: "セラーのボトルと関連付ける" }).click();
   await expect(page.getByRole("heading", { name: "ボトル" })).toBeVisible();
   await page.getByRole("button", { name: new RegExp(BOTTLE_NAME) }).click();
 
-  await expect(page.locator("#note-drink-name")).toHaveValue(BOTTLE_NAME);
+  await page.getByRole("button", { name: "テイスティングを残す" }).click();
   await page.getByRole("radio", { name: "評価 4" }).click();
 
-  const save = page.getByRole("button", { name: "ノートを保存" });
+  const save = page.getByRole("button", { name: "記録を保存" });
   await expect(save).toBeEnabled();
   await save.click();
 
+  await expect(page.getByText(`${BOTTLE_NAME} 125ml`)).toBeVisible();
+  await expect(page.getByText("★4.0")).toBeVisible();
+
+  await mainNav(page).getByRole("button", { name: "ノート" }).click();
+  await page.getByRole("link", { name: new RegExp(BOTTLE_NAME) }).click();
   await expect(page.getByRole("heading", { name: BOTTLE_NAME, level: 2 })).toBeVisible();
   await expect(page.getByText("Googleで調べる")).toBeVisible();
   await expect(page.getByText("セラーのボトル")).toBeVisible();

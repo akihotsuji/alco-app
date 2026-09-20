@@ -122,6 +122,7 @@ erDiagram
     bottles ||--o{ drink_logs : "optional (consume / manual)"
     bottles ||--o{ tasting_notes : "optional"
     bottles ||--o{ photos : "one owner"
+    drink_logs ||--o| tasting_notes : "optional child"
     tasting_notes ||--o{ photos : "one owner"
     drink_logs ||--o{ photos : "one owner"
 
@@ -209,6 +210,7 @@ erDiagram
     tasting_notes {
         text id PK
         text user_id FK
+        text drink_log_id FK
         text bottle_id FK
         text drink_name
         text drink_type
@@ -393,6 +395,8 @@ erDiagram
 
 **ボトル紐付け（1-07）:** `bottle_id` を付けるとき、サーバーは自ユーザーのボトルを読み `drink_name` にボトル名、`drink_type` にボトルの種類をコピーする（量・度数はリクエストが正）。ボトル削除後も `drink_name` は残る。写真は `photos.drink_log_id` で 1 枚。開栓 API は記録を作らない（2026-09-06）。
 
+**テイスティング（2026-09-20）:** 子の `tasting_notes` は 1 記録あたり 0 または 1。識別の正はこの表。記録を消すとノートは CASCADE。
+
 ### 6.2 my_drinks
 
 よく飲む組み合わせのプリセット。
@@ -447,18 +451,21 @@ erDiagram
 
 ### 6.4 tasting_notes
 
+1 行 = 1 回のテイスティング。**必ず 1 つの `drink_logs` の子**（1:0..1。UNIQUE）。テーブルは統合しない。識別の正は親記録。感官とノート写真（≦6）だけがこの表の固有データ。
+
 | 列 (TS) | DB 列 | 型 | NULL | 制約 | 説明 |
 |---|---|---|---|---|---|
 | id | id | text | NO | PK | UUID v4 |
-| userId | user_id | text | NO | FK → user.id CASCADE | |
-| bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | セラー連携。参照可能なボトル（個人または参加中の共有）以外は 404 |
-| drinkName | drink_name | text | NO | 1〜100 | 品名スナップショット |
-| drinkType | drink_type | text | NO | CHECK enum | 種類スナップショット |
-| vintage | vintage | integer | YES | 1800〜2100 | ヴィンテージ。未入力は NULL。UI は NV と出さない |
-| producer | producer | text | YES | ≦100 | 生産者 |
-| origin | origin | text | YES | ≦100 | 生産国 |
-| variety | variety | text | YES | ≦100 | 品種 |
-| tastedOn | tasted_on | text | NO | `YYYY-MM-DD` | テイスティング日（JST） |
+| userId | user_id | text | NO | FK → user.id CASCADE | 親記録と同じユーザー。不一致は作らない |
+| drinkLogId | drink_log_id | text | NO | FK → drink_logs.id CASCADE、UNIQUE | 親記録。削除でノートも消える |
+| bottleId | bottle_id | text | YES | FK → bottles.id SET NULL | 親記録からコピー。参照用 |
+| drinkName | drink_name | text | NO | 1〜100 | 親記録からのスナップショット |
+| drinkType | drink_type | text | NO | CHECK enum | 親記録からのスナップショット |
+| vintage | vintage | integer | YES | 1800〜2100 | 親記録からコピー |
+| producer | producer | text | YES | ≦100 | 親記録からコピー |
+| origin | origin | text | YES | ≦100 | 親記録からコピー |
+| variety | variety | text | YES | ≦100 | 親記録からコピー |
+| tastedOn | tasted_on | text | NO | `YYYY-MM-DD` | 親記録の `drunk_on` と同期 |
 | appearance | appearance | text | YES | ≦2000 | 外観 |
 | aroma | aroma | text | YES | ≦2000 | 香り |
 | taste | taste | text | YES | ≦2000 | 味わい |
@@ -467,11 +474,13 @@ erDiagram
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
 
-ボトル選択時: サーバーが自ユーザーのボトルを読み、`drink_name` / `drink_type` をコピーする。以降ボトルを改名してもノートは当時の値を保持する。`producer` / `origin` / `variety` / `vintage` はボディがあれば採用、省略時はボトルからコピーする（作成時）。ボトル詳細のノート一覧は `bottle_id` で辿る。
+新規ノートは `POST` / `PATCH /api/drink-logs` の任意 `tastingNote` だけで作る。識別・ボトル・日付はクライアントから受けず、サーバーが親記録からコピーする。親記録の識別を直したら子のスナップショットも揃える。
 
-ボトル未選択（都度入力）: `bottle_id` は NULL。`drink_name` と `drink_type` は手入力必須。
+**既存単独ノートの移行:** `drink_log_id` が無い行ごとにスタブの `drink_logs` を作る。`drink_type` / 識別 / `bottle_id` はノートから。`drunk_on` = `tasted_on`。`drunk_at` はその日 20:00 JST。量・度数は種類デフォルト（`other` は 100ml / 0%）。`memo` は「テイスティングノートから移行」。移行後は `drink_log_id` を NOT NULL UNIQUE にする。
 
-4 欄はすべて任意（評価と銘柄・日付は必須）。
+4 欄はすべて任意（評価は必須）。
+
+ボトル詳細のノート一覧は `bottle_id` で辿る。ボトル削除後は SET NULL。スナップショットと親記録は残る。
 
 ### 6.5 photos
 
@@ -734,6 +743,7 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | `photos_uploaded_created_idx` | photos | `uploaded_by`, `created_at` | 日次上限 |
 | `tasting_notes_user_tasted_on_idx` | tasting_notes | `user_id`, `tasted_on` | ノート一覧（日付降順） |
 | `tasting_notes_user_bottle_idx` | tasting_notes | `user_id`, `bottle_id` | ボトル詳細からの参照 |
+| `tasting_notes_drink_log_uidx` | tasting_notes | `drink_log_id` UNIQUE | 1 記録 0..1 ノート |
 | `photos_user_created_idx` | photos | `user_id`, `created_at` | 未紐付け GC、所有確認 |
 | `photos_bottle_sort_idx` | photos | `bottle_id`, `sort_order` | ボトルサムネ |
 | `photos_note_sort_idx` | photos | `tasting_note_id`, `sort_order` | ノートギャラリー |
@@ -768,6 +778,7 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | `my_drinks.id` | `drink_logs.my_drink_id` | SET NULL | 過去ログを残す |
 | `bottles.id` | `drink_logs.bottle_id` | SET NULL | 記録と `drink_name` スナップショットを残す |
 | `bottles.id` | `tasting_notes.bottle_id` | SET NULL | ノートとスナップショットを残す |
+| `drink_logs.id` | `tasting_notes.drink_log_id` | CASCADE | 記録を消すと子ノートも消える |
 | `bottles.id` | `photos.bottle_id` | CASCADE | ボトル写真は在庫と運命を共にする |
 | `tasting_notes.id` | `photos.tasting_note_id` | CASCADE | ノート写真も同様 |
 | `drink_logs.id` | `photos.drink_log_id` | CASCADE | 記録写真も同様 |
@@ -922,6 +933,9 @@ export const tastingNotes = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    drinkLogId: text("drink_log_id")
+      .notNull()
+      .references(() => drinkLogs.id, { onDelete: "cascade" }),
     bottleId: text("bottle_id").references(() => bottles.id, { onDelete: "set null" }),
     drinkName: text("drink_name").notNull(),
     drinkType: text("drink_type", { enum: drinkTypeEnum }).notNull(),
@@ -939,6 +953,7 @@ export const tastingNotes = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
+    uniqueIndex("tasting_notes_drink_log_uidx").on(table.drinkLogId),
     index("tasting_notes_user_tasted_on_idx").on(table.userId, table.tastedOn),
     index("tasting_notes_user_bottle_idx").on(table.userId, table.bottleId),
   ],

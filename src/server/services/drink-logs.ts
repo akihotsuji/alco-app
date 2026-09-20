@@ -31,6 +31,7 @@ import {
   type UpdateDrinkLogInput,
 } from "@/shared/drink-logs.ts";
 import { normalizeOptionalText, resolveIdentityFields } from "@/shared/identity.ts";
+import type { TastingNoteEmbedded, TastingNoteSummary } from "@/shared/tasting-notes.ts";
 import {
   addCalendarDays,
   isoWeekDates,
@@ -50,6 +51,13 @@ import {
   toPhotoMeta,
 } from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
+import {
+  deleteTastingNoteForLog,
+  loadEmbeddedTastingNote,
+  loadTastingNoteSummaries,
+  syncTastingNoteIdentityFromLog,
+  upsertTastingNoteForLog,
+} from "./tasting-notes.ts";
 
 type DrinkLogRow = typeof drinkLogs.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
@@ -58,7 +66,11 @@ function toIso(value: Date | number): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
-export function toDrinkLog(row: DrinkLogRow, photoRows: readonly PhotoRow[]): DrinkLog {
+export function toDrinkLog(
+  row: DrinkLogRow,
+  photoRows: readonly PhotoRow[],
+  tastingNote: TastingNoteEmbedded | null = null,
+): DrinkLog {
   const metas = photoRows.map(toPhotoMeta);
   return {
     id: row.id,
@@ -81,12 +93,17 @@ export function toDrinkLog(row: DrinkLogRow, photoRows: readonly PhotoRow[]): Dr
     bottleId: row.bottleId,
     thumbPhotoId: metas[0]?.id ?? null,
     photos: metas,
+    tastingNote,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };
 }
 
-export function toDrinkLogItem(row: DrinkLogRow, thumbPhotoId: string | null): DrinkLogItem {
+export function toDrinkLogItem(
+  row: DrinkLogRow,
+  thumbPhotoId: string | null,
+  tastingNote: TastingNoteSummary | null = null,
+): DrinkLogItem {
   return {
     id: row.id,
     drunkAt: toIso(row.drunkAt),
@@ -107,6 +124,7 @@ export function toDrinkLogItem(row: DrinkLogRow, thumbPhotoId: string | null): D
     myDrinkId: row.myDrinkId,
     bottleId: row.bottleId,
     thumbPhotoId,
+    tastingNote,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };
@@ -367,7 +385,20 @@ export async function createDrinkLog(input: {
     await insert;
   }
 
-  return toDrinkLog(row, resultPhotos);
+  let tastingNote = null;
+  if (body.tastingNote) {
+    await upsertTastingNoteForLog({
+      db,
+      bucket: input.bucket,
+      userId,
+      log: row,
+      body: body.tastingNote,
+      now,
+    });
+    tastingNote = await loadEmbeddedTastingNote(db, userId, row.id);
+  }
+
+  return toDrinkLog(row, resultPhotos, tastingNote);
 }
 
 export async function getOwnDrinkLog(
@@ -382,12 +413,15 @@ export async function getOwnDrinkLog(
   if (!row) {
     throw new ApiError("not_found");
   }
-  const photoRows = await db
-    .select()
-    .from(photos)
-    .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
-    .orderBy(asc(photos.sortOrder), asc(photos.createdAt));
-  return toDrinkLog(row, photoRows);
+  const [photoRows, tastingNote] = await Promise.all([
+    db
+      .select()
+      .from(photos)
+      .where(and(eq(photos.drinkLogId, logId), eq(photos.userId, userId)))
+      .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
+    loadEmbeddedTastingNote(db, userId, logId),
+  ]);
+  return toDrinkLog(row, photoRows, tastingNote);
 }
 
 export async function listDrinkLogs(input: {
@@ -481,8 +515,15 @@ export async function listDrinkLogs(input: {
 
   const last = page.at(-1);
   const totalCount = Number(agg?.n ?? 0);
+  const noteSummaries = await loadTastingNoteSummaries(
+    db,
+    userId,
+    page.map((row) => row.id),
+  );
   return {
-    items: page.map((row) => toDrinkLogItem(row, thumbByLogId.get(row.id) ?? null)),
+    items: page.map((row) =>
+      toDrinkLogItem(row, thumbByLogId.get(row.id) ?? null, noteSummaries.get(row.id) ?? null),
+    ),
     nextCursor: hasMore && last ? encodeCursor(last) : null,
     totalCount,
     totalAlcoholG: sumAlcoholGrams([Number(agg?.alcohol ?? 0)]),
@@ -691,7 +732,24 @@ export async function updateDrinkLog(input: {
     desiredPhotoRows === undefined
       ? currentPhotoRows
       : desiredPhotoRows.map((photo) => ({ ...photo, drinkLogId: logId, updatedAt }));
-  return toDrinkLog(row, finalPhotos);
+
+  if (body.tastingNote === null) {
+    await deleteTastingNoteForLog({ db, bucket, userId, drinkLogId: logId });
+  } else if (body.tastingNote) {
+    await upsertTastingNoteForLog({
+      db,
+      bucket,
+      userId,
+      log: row,
+      body: body.tastingNote,
+      now: updatedAt,
+    });
+  } else {
+    await syncTastingNoteIdentityFromLog({ db, userId, log: row, now: updatedAt });
+  }
+
+  const tastingNote = await loadEmbeddedTastingNote(db, userId, logId);
+  return toDrinkLog(row, finalPhotos, tastingNote);
 }
 
 function datesForSummary(query: DrinkLogSummaryQuery): string[] {
@@ -796,6 +854,7 @@ export async function deleteDrinkLog(input: {
   if (!row) {
     throw new ApiError("not_found");
   }
+  await deleteTastingNoteForLog({ db, bucket, userId, drinkLogId: logId });
   const photoRows = await db
     .select({ id: photos.id, r2Key: photos.r2Key })
     .from(photos)

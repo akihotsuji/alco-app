@@ -10,8 +10,10 @@ const card = readFileSync(join(here, "NoteCard.tsx"), "utf8");
 describe("NoteList 空状態と 404", () => {
   it("フィルタなし空は作成、検索 0 とフィルタ 0 は未登録と別。他人 bottleId は not-found", () => {
     expect(list).toContain("テイスティングノートはまだありません");
-    expect(list).toContain("気になるお酒の味わいを記録してみましょう");
-    expect(list).toContain("ノートを作成");
+    expect(list).toContain("味や感想は、記録するときに残せます");
+    expect(list).toContain("記録する");
+    expect(list).toContain("logCreateHref");
+    expect(list).not.toContain("ノートを作成");
     expect(list).toContain("一致するノートがありません");
     expect(list).toContain("該当するノートがありません");
     expect(list).toContain("フィルタを解除");

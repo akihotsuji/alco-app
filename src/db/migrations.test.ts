@@ -157,10 +157,20 @@ function insertLog(
   ).run(id, userId, NOW, refs.myDrinkId ?? null, refs.bottleId ?? null, NOW, NOW);
 }
 
-function insertNote(db: DatabaseSync, id: string, userId: string, bottleId: string | null) {
+function insertNote(
+  db: DatabaseSync,
+  id: string,
+  userId: string,
+  bottleId: string | null,
+  drinkLogId?: string,
+) {
+  const logId = drinkLogId ?? `log-${id}`;
+  if (!drinkLogId) {
+    insertLog(db, logId, userId, bottleId ? { bottleId } : {});
+  }
   db.prepare(
-    "INSERT INTO tasting_notes (id, user_id, bottle_id, drink_name, drink_type, tasted_on, rating_x10, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(id, userId, bottleId, "n", "wine", "2026-01-01", 40, NOW, NOW);
+    "INSERT INTO tasting_notes (id, user_id, drink_log_id, bottle_id, drink_name, drink_type, tasted_on, rating_x10, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  ).run(id, userId, logId, bottleId, "n", "wine", "2026-01-01", 40, NOW, NOW);
 }
 
 function insertPhoto(
@@ -320,6 +330,70 @@ describe("0010_shared_cellar と D1 の外部キー", () => {
       expect(sqlText, entry.tag).not.toMatch(/DROP TABLE `bottles`/i);
       expect(sqlText, entry.tag).not.toMatch(/DROP TABLE `photos`/i);
     }
+  });
+});
+
+describe("0013_tasting_notes_drink_log_id", () => {
+  it("単独ノートをスタブ記録に結び、ノート写真は残す（D1 相当）", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    applyThrough(db, "0013_tasting_notes_drink_log_id");
+    insertUser(db, "u1");
+    db.prepare(
+      `INSERT INTO tasting_notes (id, user_id, drink_name, drink_type, tasted_on, rating_x10, created_at, updated_at)
+       VALUES ('n-wine', 'u1', '移行赤', 'wine_red', '2026-09-10', 42, ?, ?)`,
+    ).run(NOW, NOW);
+    db.prepare(
+      `INSERT INTO tasting_notes (id, user_id, drink_name, drink_type, tasted_on, rating_x10, created_at, updated_at)
+       VALUES ('n-other', 'u1', 'その他', 'other', '2026-09-11', 30, ?, ?)`,
+    ).run(NOW, NOW);
+    db.prepare(
+      `INSERT INTO photos (id, user_id, r2_key, content_type, byte_size, tasting_note_id, created_at, updated_at)
+       VALUES ('p-note', 'u1', 'p-note.jpg', 'image/jpeg', 100, 'n-wine', ?, ?)`,
+    ).run(NOW, NOW);
+    applyMigrationAsD1(db, "0013_tasting_notes_drink_log_id");
+
+    const wine = db
+      .prepare(
+        `SELECT n.drink_log_id AS log_id, l.volume_ml AS volume, l.abv_percent AS abv, l.alcohol_g AS grams,
+                l.memo AS memo, l.drunk_on AS drunk_on, l.drunk_at AS drunk_at, l.drink_name AS name
+         FROM tasting_notes n
+         JOIN drink_logs l ON l.id = n.drink_log_id
+         WHERE n.id = 'n-wine'`,
+      )
+      .get() as {
+      log_id: string;
+      volume: number;
+      abv: number;
+      grams: number;
+      memo: string;
+      drunk_on: string;
+      drunk_at: number;
+      name: string;
+    };
+    expect(wine.name).toBe("移行赤");
+    expect(wine.volume).toBe(125);
+    expect(wine.abv).toBe(12);
+    expect(wine.grams).toBe(12);
+    expect(wine.memo).toBe("テイスティングノートから移行");
+    expect(wine.drunk_on).toBe("2026-09-10");
+    expect(wine.drunk_at).toBe(Date.parse("2026-09-10T11:00:00.000Z"));
+
+    const other = db
+      .prepare(
+        `SELECT l.volume_ml AS volume, l.abv_percent AS abv, l.alcohol_g AS grams
+         FROM tasting_notes n
+         JOIN drink_logs l ON l.id = n.drink_log_id
+         WHERE n.id = 'n-other'`,
+      )
+      .get() as { volume: number; abv: number; grams: number };
+    expect(other).toEqual({ volume: 100, abv: 0, grams: 0 });
+
+    const photo = db
+      .prepare("SELECT tasting_note_id AS id FROM photos WHERE id = 'p-note'")
+      .get() as { id: string };
+    expect(photo.id).toBe("n-wine");
+    db.close();
   });
 });
 
@@ -581,6 +655,14 @@ describe("制約の挙動", () => {
     expect(photoIds(db)).toEqual(["p-log"]);
     db.prepare("DELETE FROM drink_logs WHERE id = 'l1'").run();
     expect(photoIds(db)).toEqual([]);
+  });
+
+  it("tasting_notes.drink_log_id は UNIQUE で、記録削除はノートも CASCADE", () => {
+    insertLog(db, "l-shared", "u1");
+    insertNote(db, "n1", "u1", null, "l-shared");
+    expect(() => insertNote(db, "n2", "u1", null, "l-shared")).toThrow(/UNIQUE/);
+    db.prepare("DELETE FROM drink_logs WHERE id = 'l-shared'").run();
+    expect(db.prepare("SELECT id FROM tasting_notes WHERE id = 'n1'").get()).toBeUndefined();
   });
 
   it("存在しない user の個人セラーは FK で拒否する", () => {

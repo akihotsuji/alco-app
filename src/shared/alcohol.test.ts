@@ -8,6 +8,7 @@ import {
   displayAlcoholGrams,
   ETHANOL_DENSITY,
   isDryDay,
+  stubVolumeAbvForDrinkType,
   sumAlcoholGrams,
   VOLUME_ML_MAX,
   VOLUME_ML_MIN,
@@ -121,6 +122,8 @@ describe("DRINK_TYPE_PRESETS", () => {
     ).toBe(14.4);
     expect(DRINK_TYPE_PRESETS.other.volumeMl).toBeNull();
     expect(DRINK_TYPE_PRESETS.other.abvPercent).toBeNull();
+    expect(stubVolumeAbvForDrinkType("wine_red")).toEqual({ volumeMl: 125, abvPercent: 12 });
+    expect(stubVolumeAbvForDrinkType("other")).toEqual({ volumeMl: 100, abvPercent: 0 });
   });
 
   it("量チップは種類の値にボトル量を足す", () => {

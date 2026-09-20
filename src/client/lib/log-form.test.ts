@@ -54,6 +54,13 @@ describe("initial state", () => {
       memo: "",
       bottleId: null,
       bottleName: null,
+      tastingOpen: false,
+      tastingRatingX10: null,
+      tastingAppearance: "",
+      tastingAroma: "",
+      tastingTaste: "",
+      tastingFinish: "",
+      tastingDelete: false,
     });
     expect(canSubmitLogForm(state, validateLogForm(state, NOW), "none")).toBe(true);
   });
@@ -296,6 +303,31 @@ describe("body", () => {
     expect(toCreateDrinkLogBody({ ...state, volumeMl: null }, null)).toBeNull();
   });
 
+  it("折りたたみを閉じたままなら tastingNote を送らず、開いて評価があると載せる", () => {
+    const closed = initialLogFormState(null, NOW);
+    expect(toCreateDrinkLogBody(closed, null)?.tastingNote).toBeUndefined();
+    const open = {
+      ...closed,
+      tastingOpen: true,
+      tastingRatingX10: 45,
+      tastingTaste: "  酸  ",
+    };
+    expect(toCreateDrinkLogBody(open, null)?.tastingNote).toEqual({
+      ratingX10: 45,
+      appearance: null,
+      aroma: null,
+      taste: "酸",
+      finish: null,
+    });
+    expect(canSubmitLogForm(open, validateLogForm(open, NOW), "none")).toBe(true);
+    const noRating = { ...closed, tastingOpen: true };
+    expect(validateLogForm(noRating, NOW).ratingX10).toBeDefined();
+    expect(canSubmitLogForm(noRating, validateLogForm(noRating, NOW), "none")).toBe(false);
+    expect(logSaveDisabledHint(noRating, validateLogForm(noRating, NOW), "none")).toBe(
+      SAVE_DISABLED_HINTS.rating,
+    );
+  });
+
   it("編集は変更したフィールドだけを送り、空メモは null、写真は差し替えにする", () => {
     const log = {
       id: "log",
@@ -318,6 +350,7 @@ describe("body", () => {
       bottleId: null,
       thumbPhotoId: null,
       photos: [],
+      tastingNote: null,
       createdAt: NOW.toISOString(),
       updatedAt: NOW.toISOString(),
     } satisfies DrinkLog;
@@ -337,6 +370,13 @@ describe("body", () => {
     expect(toUpdateDrinkLogBody({ ...initial, volumeMl: 350 }, initial, null)).toEqual({
       volumeMl: 350,
     });
+    expect(
+      toUpdateDrinkLogBody(
+        { ...initial, tastingDelete: true },
+        { ...initial, tastingOpen: true },
+        null,
+      ),
+    ).toEqual({ tastingNote: null });
   });
 });
 
@@ -350,6 +390,7 @@ describe("dirty", () => {
     expect(isLogFormDirty({ ...initial, memo: "a" }, initial)).toBe(true);
     expect(isLogFormDirty({ ...initial, placeName: "居酒屋" }, initial)).toBe(true);
     expect(isLogFormDirty({ ...initial, producer: "生産者" }, initial)).toBe(true);
+    expect(isLogFormDirty({ ...initial, tastingOpen: true }, initial)).toBe(true);
   });
 });
 
@@ -382,6 +423,14 @@ describe("describeSaveFailure", () => {
       true,
     );
     expect(nested.fieldErrors.photoIds).toBe("不正");
+
+    const tasting = describeSaveFailure(
+      new ApiClientError(400, "validation_error", {
+        "tastingNote.ratingX10": ["評価を選んでください"],
+      }),
+      true,
+    );
+    expect(tasting.fieldErrors.ratingX10).toBe("評価を選んでください");
   });
 
   it("404 は写真を解除して「写真をもう一度撮ってください」", () => {

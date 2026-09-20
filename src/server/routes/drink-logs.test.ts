@@ -153,6 +153,7 @@ describe("POST /api/drink-logs", () => {
     expect(body.bottleId).toBeNull();
     expect(body.thumbPhotoId).toBeNull();
     expect(body.photos).toEqual([]);
+    expect(body.tastingNote).toBeNull();
     const drunkAt = new Date(body.drunkAt).getTime();
     expect(drunkAt).toBeGreaterThanOrEqual(before);
     expect(drunkAt).toBeLessThanOrEqual(Date.now());

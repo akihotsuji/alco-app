@@ -200,6 +200,7 @@ Phase 8  （将来）一般公開準備    法対応・レート制限・OAuth
 - [x] **登録の共通識別・撮影日・場所・連続導線**: 記録・セラー・ノートの品名 / 品種 / ヴィンテージ / 生産国 / 生産者を揃え、登録日は撮影日、飲酒記録に場所、保存後にノート導線（2026-09-08。[register-identity.md](features/register-identity.md)）
 - [x] **酒記録の外部 AI 補完と写真導線**: Gemini 3.7 Flash（サーバー設定で切替）、根拠付きの国・品種、撮影後は詳細入力へ直接、色補正廃止、キャラは設定自動適用、写真拡大（2026-09-09。[ai-recognition.md](features/ai-recognition.md)）
 - [x] **セラー共有**: 個人セラーと共有セラー（最大 6 人）。招待リンク・参加・除名・移譲・移動・revision 同期・楽観ロック（2026-09-11。[shared-cellar.md](features/shared-cellar.md)、[11-shared-cellar.md](screen-designs/11-shared-cellar.md)）
+- [x] **記録へノート統合**: 作成は飲酒記録だけ。ノートは任意の子（`tasting_notes.drink_log_id` UNIQUE）。タブは閲覧専用。単独 POST / 認識 API / FAB / 保存後ダイアログを廃止（2026-09-20）
 
 詳細な順序・Issue分割・実機チェック項目は [roadmap/phase-05-5-device-hardening/](../roadmap/phase-05-5-device-hardening/00-phase.md) を参照する。
 

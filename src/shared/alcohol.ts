@@ -96,3 +96,15 @@ export function isDryDay(logCount: number, isFuture = false): boolean {
 export function volumeChipsFor(drinkType: DrinkType): number[] {
   return [...DRINK_TYPE_PRESETS[drinkType].volumeChips, ...BOTTLE_VOLUME_CHIPS];
 }
+
+/** 単独ノート移行用。種類デフォルト。`other` は 100ml / 0%。 */
+export function stubVolumeAbvForDrinkType(drinkType: DrinkType): {
+  volumeMl: number;
+  abvPercent: number;
+} {
+  const preset = DRINK_TYPE_PRESETS[drinkType];
+  if (preset.volumeMl === null || preset.abvPercent === null) {
+    return { volumeMl: 100, abvPercent: 0 };
+  }
+  return { volumeMl: preset.volumeMl, abvPercent: preset.abvPercent };
+}

@@ -19,6 +19,7 @@ import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
 import { DrinkTypeSelect } from "@/client/components/logs/DrinkTypeSelect.tsx";
 import { DrunkAtRow } from "@/client/components/logs/DrunkAtRow.tsx";
+import { LogTastingSection } from "@/client/components/logs/LogTastingSection.tsx";
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
 import { PlaceField } from "@/client/components/logs/PlaceField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
@@ -31,6 +32,7 @@ import {
   useUpdateDrinkLog,
 } from "@/client/hooks/use-drink-logs.ts";
 import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
+import { useNotePhotos } from "@/client/hooks/use-note-photos.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
@@ -97,6 +99,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   } = usePhotoEdit();
   const updateLog = useUpdateDrinkLog();
   const deleteLog = useDeleteDrinkLog();
+  const notePhotos = useNotePhotos(log.tastingNote?.photos ?? []);
   const [initial] = useState(() => logFormStateFromDrinkLog(log));
   const [state, setState] = useState(initial);
   const [existingPhotoId, setExistingPhotoId] = useState(log.thumbPhotoId);
@@ -149,9 +152,16 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
     ...serverErrors,
   };
   const visibleErrors = visibleLogFormErrors(errors, { submitted, touched });
-  const dirty = isLogFormDirty(state, initial) || attachment !== undefined;
+  const tastingPhotoStatus =
+    state.tastingOpen && !state.tastingDelete ? notePhotos.photoStatus : "none";
+  const dirty =
+    isLogFormDirty(state, initial) || attachment !== undefined || notePhotos.photosDirty;
   const canSubmit =
-    dirty && canSubmitLogForm(state, errors, photoStatus) && !photoDeleting && !deleteLog.isPending;
+    dirty &&
+    canSubmitLogForm(state, errors, photoStatus) &&
+    (tastingPhotoStatus === "none" || tastingPhotoStatus === "ready") &&
+    !photoDeleting &&
+    !deleteLog.isPending;
 
   useEffect(() => {
     if (!dirty || savedRef.current) {
@@ -184,7 +194,12 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
 
   function submit() {
     setSubmitted(true);
-    const body = toUpdateDrinkLogBody(state, initial, drinkLogSavePhotoId(attachment));
+    const body = toUpdateDrinkLogBody(
+      state,
+      initial,
+      drinkLogSavePhotoId(attachment),
+      notePhotos.photosDirty ? notePhotos.photoIds : undefined,
+    );
     if (!body || !canSubmit || updateLog.isPending) {
       return;
     }
@@ -199,6 +214,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
           setGuard(null);
           haptic("success");
           releaseAttachment("log");
+          notePhotos.releaseLocal();
           navigate(`${logDayHref(updated.drunkOn)}?highlight=${updated.id}`, { replace: true });
           showToast({ message: TOAST_MESSAGES.saved });
         },
@@ -433,11 +449,55 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         error={visibleErrors.memo}
         onChange={(memo) => update({ memo }, "memo")}
       />
+      <LogTastingSection
+        open={state.tastingOpen && !state.tastingDelete}
+        ratingX10={state.tastingRatingX10}
+        appearance={state.tastingAppearance}
+        aroma={state.tastingAroma}
+        taste={state.tastingTaste}
+        finish={state.tastingFinish}
+        errors={{
+          ratingX10: visibleErrors.ratingX10,
+          appearance: visibleErrors.appearance,
+          aroma: visibleErrors.aroma,
+          taste: visibleErrors.taste,
+          finish: visibleErrors.finish,
+        }}
+        photos={notePhotos.items}
+        canAddPhotos={notePhotos.canAdd}
+        canDelete={Boolean(log.tastingNote) && !state.tastingDelete}
+        onOpenChange={(tastingOpen) => update({ tastingOpen, tastingDelete: false })}
+        onRatingChange={(tastingRatingX10) => update({ tastingRatingX10 }, "ratingX10")}
+        onTextChange={(field, value) => {
+          const key =
+            field === "appearance"
+              ? "tastingAppearance"
+              : field === "aroma"
+                ? "tastingAroma"
+                : field === "taste"
+                  ? "tastingTaste"
+                  : "tastingFinish";
+          update({ [key]: value }, field);
+        }}
+        onAddPhoto={() => void notePhotos.addPhoto("camera")}
+        onLibraryPhoto={() => void notePhotos.addPhoto("library")}
+        onEditPhoto={(key) => void notePhotos.editPhoto(key)}
+        onRetryPhoto={(key) => void notePhotos.retryPhoto(key)}
+        onRemovePhoto={(key) => void notePhotos.removePhoto(key)}
+        onMakeFirst={notePhotos.makeFirst}
+        onDeleteNote={() => update({ tastingDelete: true, tastingOpen: false })}
+      />
       <SaveBar
         label={saveButtonLabel(updateLog.isPending, photoStatus)}
         pending={updateLog.isPending}
         disabled={!canSubmit}
-        hint={!canSubmit ? logSaveDisabledHint(state, errors, photoStatus) : null}
+        hint={
+          !canSubmit
+            ? tastingPhotoStatus === "uploading" || tastingPhotoStatus === "error"
+              ? logSaveDisabledHint(state, errors, tastingPhotoStatus)
+              : logSaveDisabledHint(state, errors, photoStatus)
+            : null
+        }
         state={updateLog.isPending ? "loading" : saveState}
         onSave={submit}
       />

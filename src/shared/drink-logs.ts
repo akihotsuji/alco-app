@@ -10,6 +10,11 @@ import {
   optionalPlaceName,
   placeCoordsArePaired,
 } from "./place.ts";
+import {
+  drinkLogTastingNoteInputSchema,
+  tastingNoteEmbeddedSchema,
+  tastingNoteSummarySchema,
+} from "./tasting-notes.ts";
 import { addCalendarDays, parseCalendarDate, TOKYO_TIME_ZONE } from "./tokyo-date.ts";
 
 /**
@@ -125,6 +130,7 @@ export const createDrinkLogSchema = z
       .array(referenceId)
       .max(DRINK_LOG_PHOTO_MAX, { error: DRINK_LOG_MESSAGES.photoIdsMax })
       .optional(),
+    tastingNote: drinkLogTastingNoteInputSchema.optional(),
   })
   .strict()
   .superRefine(refinePlacePair);
@@ -152,6 +158,7 @@ export const updateDrinkLogSchema = z
       .array(referenceId)
       .max(DRINK_LOG_PHOTO_MAX, { error: DRINK_LOG_MESSAGES.photoIdsMax })
       .optional(),
+    tastingNote: drinkLogTastingNoteInputSchema.nullable().optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0, { error: DRINK_LOG_MESSAGES.patchEmpty })
@@ -276,6 +283,7 @@ export const drinkLogItemSchema = z.object({
   myDrinkId: z.string().nullable(),
   bottleId: z.string().nullable(),
   thumbPhotoId: z.string().nullable(),
+  tastingNote: tastingNoteSummarySchema.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -285,6 +293,7 @@ export type DrinkLogItem = z.infer<typeof drinkLogItemSchema>;
 /** `GET /:id` と作成応答は一覧行に写真メタを加える。 */
 export const drinkLogSchema = drinkLogItemSchema.extend({
   photos: z.array(photoMetaSchema),
+  tastingNote: tastingNoteEmbeddedSchema.nullable(),
 });
 
 export type DrinkLog = z.infer<typeof drinkLogSchema>;

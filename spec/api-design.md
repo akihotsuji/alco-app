@@ -277,11 +277,9 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | POST | `/api/bottles/:id/consume` | 必須 | 開栓 → 貯蔵庫。記録は作らない |
 | POST | `/api/bottles/:id/restore` | 必須 | 貯蔵庫 → 棚（undo / 開栓の記録を取り消す） |
 | POST | `/api/bottles/recognize` | 必須 | ラベル写真から候補フィールド。保存しない |
-| GET | `/api/tasting-notes` | 必須 | ノート一覧 |
-| POST | `/api/tasting-notes` | 必須 | ノート作成 |
-| GET | `/api/tasting-notes/:id` | 必須 | 詳細（写真メタ含む） |
-| PATCH | `/api/tasting-notes/:id` | 必須 | 部分更新 |
-| DELETE | `/api/tasting-notes/:id` | 必須 | 削除（写真 CASCADE） |
+| GET | `/api/tasting-notes` | 必須 | ノート一覧（タブ用） |
+| GET | `/api/tasting-notes/:id` | 必須 | 詳細（写真メタ含む。読み取り） |
+| DELETE | `/api/tasting-notes/:id` | 必須 | ノートだけ削除（親記録は残す。写真 CASCADE） |
 | POST | `/api/photos` | 必須 | 画像アップロード |
 | GET | `/api/photos/:id` | 必須 | 写真メタ（`r2Key` なし） |
 | GET | `/api/photos/:id/content` | 必須 | 画像本体 |
@@ -382,10 +380,11 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | myDrinkId | string \| null | 参照。削除後は null |
 | bottleId | string \| null | セラー連携（1-07）。削除後は null |
 | thumbPhotoId | string \| null | 記録写真（1 枚）の id |
+| tastingNote | object \| null | 一覧は要約（`id`, `ratingX10`, `taste`）。詳細・作成・更新は感官 + ノート写真 |
 | createdAt | string | ISO UTC |
 | updatedAt | string | ISO UTC |
 
-詳細（`GET /:id`）と作成応答には `photos`（4.7 のメタ配列、最大 1）を含める。
+詳細（`GET /:id`）と作成応答には `photos`（4.7 のメタ配列、最大 1）と、あれば `tastingNote`（感官 + ノート写真メタ、最大 6）を含める。一覧の `tastingNote` は要約だけ。無いときは `null`。
 
 #### GET /api/drink-logs
 
@@ -476,8 +475,9 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 | placeLat / placeLng | 任意 | **両方揃える**。片方だけは 400。範囲 lat −90〜90、lng −180〜180 |
 | bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404。`drinkName` / `drinkType` は明示されていればスナップショット。未指定だけボトル現在値（1-07） |
 | photoIds | 任意 | 自分の **未紐付け**写真 id、または参照可能なボトルに紐付いた写真 id。最大 1。ボトル写真はサーバーが複製して記録へ紐付ける（元のボトル写真は残す）。他人・ノート等へ紐付け済み・不明は 404。同一トランザクションで `drink_log_id` をセット（1-07） |
+| tastingNote | 任意 | オブジェクトなら子ノートを作る。`ratingX10` 必須。`appearance` / `aroma` / `taste` / `finish` 任意。`photoIds` はノート写真（未紐付け、最大 6）。識別・日付・ボトルは送らない（親記録からコピー） |
 
-通常の POST で `myDrinkId` を付けるのは「どのプリセットから始めたか」の記録用。1 タップ（サーバーコピー）とは別経路。`myDrinkId` と `bottleId` の同時指定は可（`drinkName` はボトル名が優先）。
+通常の POST で `myDrinkId` を付けるのは「どのプリセットから始めたか」の記録用。1 タップ（サーバーコピー）とは別経路。`myDrinkId` と `bottleId` の同時指定は可（`drinkName` はボトル名が優先）。`tastingNote` を省略すれば飲酒だけ保存する。
 
 成功: 201 と作成オブジェクト。
 
@@ -490,6 +490,8 @@ Cron（公開エンドポイントではない）: `scheduled` ハンドラで�
 送ったフィールドだけ更新。`drunkAt` を変えたら `drunkOn` を再計算。`volumeMl` / `abvPercent` を変えたら `alcoholG` を再計算。
 
 `myDrinkId` を後から付けても、量・度数・種類は送られた値（または既存値）が正。プリセットの再コピーはしない。`bottleId` を変えたとき、`drinkName` / `drinkType` が未指定なら新しいボトルからコピーする。明示されていればスナップショットを残す。null にしたら `drinkName` は残す。`photoIds` は差し替え（送った id の集合にする。未紐付けは記録へ付け、ボトル写真は複製して付ける。外れた写真は削除 = R2 も消す）。送らない場合は写真を変えない。空配列 `[]` は写真をすべて外して削除する。
+
+`tastingNote` を省略したら既存ノートは残す（識別は親に合わせて同期）。オブジェクトなら upsert（評価必須。ノート写真 `photoIds` は差し替え）。`null` なら子ノートだけ削除（記録は残す）。既にノートがある記録へもう一度作ろうとしたら 400。他人・不在の記録は 404。
 
 #### DELETE /api/drink-logs/:id
 
@@ -722,74 +724,29 @@ DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` �
 
 ### 4.6 tasting-notes
 
-**共通オブジェクト:** data-model 6.4。API の評価は **`ratingX10`**（10〜50、1 刻み）。UI 表示は `/ 10`。`tastedOn` は JST 日。
+**共通オブジェクト:** data-model 6.4 + `drinkLogId`。API の評価は **`ratingX10`**（10〜50、1 刻み）。UI 表示は `/ 10`。`tastedOn` は親記録の `drunkOn`。識別は親記録のスナップショット。
 
-詳細・作成応答に `photos` メタ配列を含める。一覧は `photoCount` と先頭 1 枚の `thumbPhotoId` に加え、カード用の短い感想 `taste`（無ければ null）。一覧応答にフィルタ前の `totalCount`（`bottleId` 指定時はそのボトルの総数）を含める。詳細・作成・更新応答に `bottle: { id, name, status } | null` を含める（削除済みは null。画面 V3 の「セラーの / 貯蔵庫の」）。行の形は [features/tasting-note.md](features/tasting-note.md) 8 章。
+一覧は `photoCount` と先頭 1 枚の `thumbPhotoId`、カード用の短い感想 `taste`（無ければ null）、`drinkLogId`。一覧応答にフィルタ前の `totalCount`（`bottleId` 指定時はそのボトルの総数）を含める。詳細に `photos` メタ、`bottle: { id, name, status } | null`、`drinkLog`（量・度数・g・`drunkAt`）を含める。行の形は [features/tasting-note.md](features/tasting-note.md) 8 章。
+
+単独の `POST /api/tasting-notes` と `POST /api/tasting-notes/recognize` は置かない（作成・識別は飲酒記録側）。
 
 #### GET /api/tasting-notes
 
 | クエリ | 説明 |
 |---|---|
 | `bottleId` | 指定時、**自分のボトル**でなければ 404（空配列にしない。5-04） |
-| `q` | 品名（スナップショット）の部分一致。最大 100 文字 |
+| `q` | 品名（親記録の識別）の部分一致。最大 100 文字 |
 | `drinkType` | 12 種 |
 | `ratingX10Min`, `ratingX10Max` | 10〜50、1 刻み。`min <= max` |
 | `limit`, `cursor` | 2.7 |
 
-#### POST /api/tasting-notes
+#### GET / DELETE /api/tasting-notes/:id
 
-| フィールド | 必須 | 備考 |
-|---|---|---|
-| bottleId | 任意 | 自分のボトルのみ（貯蔵庫の本も可）。他人・不明は 404 |
-| drinkName | `bottleId` なしのとき必須 | ボトルありでもキーがあればスナップショット。省略時だけボトルからコピー |
-| drinkType | `bottleId` なしのとき必須 | 同上 |
-| vintage | 任意 | 1800〜2100 または null。ボディがあれば採用、省略時はボトルからコピー（作成時） |
-| producer / origin / variety | 任意 | ≦100。ボディがあれば採用、省略時はボトルからコピー（作成時） |
-| tastedOn | 必須 | JST 日。未来は 400 |
-| appearance, aroma, taste, finish | 任意 | 各 ≦2000 |
-| ratingX10 | 必須 | 10〜50、1 刻み |
-| photoIds | 任意 | 自分の未紐付け写真 id、**最大 6**、配列順が `sortOrder` |
+GET: 200 と詳細。他人・不在は同じ 404。
 
-スナップショット方針は data-model 6.4。以降のボトル改名はノートに反映しない。
+DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{ "ok": true }`。他人・不在は 404。
 
-成功: 201（`photos` を含む）。
-
-#### POST /api/tasting-notes/recognize
-
-ノート写真（ラベル / グラス / 缶 / 瓶）から **品名・種類・識別 4 項目の候補**を返す。画像も結果も保存しない。`ai_usage` は `POST /api/bottles/recognize` および `POST /api/drink-logs/recognize` と **同じ 10000 回 / 日（JST。許容上限 MAX）** を共有する。`/:id` より **先に登録**する。`max_tokens` は 500 程度。
-
-`multipart/form-data`、パート名 `file`。4:5 JPEG、≦1MB。検証は 4.5.3 と同じ（magic bytes・サイズ・長辺）。出力上限はプロファイル（Llama は 500 程度）。
-
-```json
-{
-  "fields": {
-    "drinkName": { "value": "サンプル赤", "confidence": 0.82 },
-    "drinkType": { "value": "wine", "confidence": 0.9 },
-    "vintage": { "value": 2020, "confidence": 0.7 },
-    "producer": { "value": "生産者", "confidence": 0.7 },
-    "origin": { "value": "フランス", "confidence": 0.7 },
-    "variety": { "value": "ピノ", "confidence": 0.6 }
-  },
-  "provider": "workers-ai",
-  "remainingToday": 27
-}
-```
-
-| 規則 | 内容 |
-|---|---|
-| プロバイダ | 4.5.3 と同じ認識プロファイル。実装は `NoteRecognizer`（`LabelRecognizer` と同じ口）。プロンプトはサーバー固定（ユーザー文を混ぜない） |
-| 出力 | `drinkName` ≦100、`drinkType` 12 種、`producer` / `origin` / `variety` ≦100、`vintage` 1800〜2100、`confidence` 0〜1。検証落ちは省く。空 `fields` でも 200。`name` / `drinkName` はどちらも品名 |
-| 上限 / 失敗 | 4.5.3 と同じ。429 `rate_limited`、502 `upstream_error`（加算しない）。タイムアウトはプロファイルに従う |
-| クライアント | 確度 0.5 未満は捨てる。空欄と直前の AI 値は再読取で上書きする。ボトル選択中は種類を変えない |
-| 対象 | `note-new` / `note-edit` |
-
-公開エンドポイントではない。
-
-#### GET / PATCH / DELETE /api/tasting-notes/:id
-
-PATCH で `bottleId` を付け替える場合、新しいボトルも自分のもの。スナップショット（`drinkName` / `drinkType`）は**新しいボトルから再コピー**する。`bottleId` を null にする場合は `drinkName` と `drinkType` が必須（都度入力に戻す）。`photoIds` は差し替え（配列順 = `sortOrder`。外れた写真は削除）。送らない場合は写真を変えない。空配列 `[]` は写真をすべて外して削除する。
-
-DELETE: ノート写真は CASCADE（R2 も消す）。
+作成・更新・ノート写真の差し替えは `POST` / `PATCH /api/drink-logs` の `tastingNote`。PATCH `/api/tasting-notes/:id` は置かない。
 
 ### 4.7 photos
 
@@ -934,7 +891,7 @@ src/server/
   routes/drink-logs.ts  # /summary を /:id より前
   routes/my-drinks.ts
   routes/bottles.ts
-  routes/tasting-notes.ts  # /recognize を /:id より前
+  routes/tasting-notes.ts  # GET / と GET /:id。作成・認識は置かない
   routes/photos.ts
   routes/feedback.ts
   services/             # 複数ルートで共有する業務ロジック
@@ -982,7 +939,7 @@ src/server/
 | ノートと飲酒記録の同時作成 | v1.x（開栓 → 記録も作らない。2026-09-06） |
 | 切り抜きと長方形の両方を保存 | v1.x（MVP はどちらか 1 枚） |
 | Gemini / OpenAI 等の外部 Vision API | 記録・セラー・ノートの既定は Gemini 3.7 Flash（Cloudflare Unified Billing）。Llama は設定キーで戻せる。[features/ai-recognition.md](features/ai-recognition.md) |
-| 記録・ノート写真の AI 推定 | 記録は `POST /api/drink-logs/recognize`。ノートは `POST /api/tasting-notes/recognize`（本変更） |
+| 記録・ノート写真の AI 推定 | 記録は `POST /api/drink-logs/recognize`。ノート専用認識は置かない |
 | CSV エクスポート | 将来構想 |
 | アカウント削除 API | 実装済み（[features/account-deletion.md](features/account-deletion.md)） |
 | パスワードリセットメール | Phase 8-03（実装済み） |
@@ -1003,14 +960,14 @@ src/server/
 | auth-login / auth-signup | `/api/auth/*` |
 | home | `GET /api/drink-logs/summary?period=day\|week`、`GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
 | log-day | `GET /api/drink-logs?date=`、`POST /api/my-drinks/:id/log`、DELETE（undo） |
-| log-new / log-edit | POST / PATCH `/api/drink-logs`（`photoIds`, `bottleId`）、`POST /api/photos`、`GET /api/bottles?view=all&q=` |
+| log-new / log-edit | POST / PATCH `/api/drink-logs`（`photoIds`, `bottleId`, 任意 `tastingNote`）、`POST /api/photos`、`GET /api/bottles?view=all&q=` |
 | mydrink-list / mydrink-new | `/api/my-drinks` |
 | summary-week / summary-month | `GET /api/drink-logs/summary?period=week\|month` |
 | bottle-list（棚） | `GET /api/bottles?view=cellar`、`PUT /api/bottles/order`（`bottle-type-grid`） |
 | bottle-archive（貯蔵庫） | `GET /api/bottles?view=archive` |
 | bottle-new / bottle-edit | `POST /api/bottles`（`count`, `photoIds`）、PATCH、`POST /api/photos`、`POST /api/bottles/recognize`（bottle-new のみ） |
 | bottle-detail | `GET /api/bottles/:id`、`POST /api/bottles/:id/consume`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
-| note-list / note-detail / note-new / note-edit | `/api/tasting-notes`（`photoIds`）、`POST /api/tasting-notes/recognize`、`/api/photos`、`GET /api/bottles?view=all&q=` |
+| note-list / note-detail | `GET /api/tasting-notes`、`GET /api/tasting-notes/:id`。編集は `log-edit` |
 | photo-edit | `POST /api/photos`（未紐付け）、`DELETE /api/photos/:id`（破棄） |
 | settings | `GET /api/me`、Better Auth ログアウト / 表示名、`POST /api/me/account-deletion`、`POST /api/feedback` |
 

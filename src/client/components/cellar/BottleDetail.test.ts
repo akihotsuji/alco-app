@@ -27,7 +27,7 @@ describe("BottleDetail 状態バッジ", () => {
   it("棚は開栓する、貯蔵庫は記録とテイスティングノートの入口と開栓の取り消し", () => {
     expect(source).toContain("開栓する");
     expect(source).toContain("飲んだ量を記録");
-    expect(source).toContain("テイスティングノートを書く");
+    expect(source).not.toContain("テイスティングノートを書く");
     expect(source).toContain("開栓の記録を取り消す");
     expect(source).toContain("更新中…");
     expect(source).not.toContain("セラーに戻す");

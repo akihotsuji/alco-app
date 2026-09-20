@@ -35,9 +35,8 @@ test("OSダーク×アプリライトでも設定ラベルと作成画面の入�
     });
   }
 
-  await mainNav(page).getByRole("button", { name: "ノート" }).click();
-  await page.getByRole("link", { name: "ノートを作成" }).click();
-  await page.getByRole("button", { name: "お酒の情報（任意）" }).click();
+  await mainNav(page).getByRole("button", { name: "飲酒を記録" }).click();
+  await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
 
   const variety = page.getByLabel("品種");
   await variety.evaluate((el) => {
@@ -47,7 +46,17 @@ test("OSダーク×アプリライトでも設定ラベルと作成画面の入�
   const box = await variety.boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
 
-  const save = page.getByRole("button", { name: "ノートを保存" });
+  await page.getByRole("button", { name: "テイスティングを残す" }).click();
+  const slider = page.getByRole("slider", { name: "評価（1.0〜5.0、0.1刻み）" });
+  await slider.evaluate((el) => {
+    el.scrollIntoView({ block: "center", inline: "nearest" });
+  });
+  await expect(slider).toBeVisible();
+  const sliderBox = await slider.boundingBox();
+  expect(sliderBox?.width ?? 0).toBeGreaterThanOrEqual(80);
+  expect(sliderBox?.height ?? 0).toBeGreaterThan(0);
+
+  const save = page.getByRole("button", { name: "記録を保存" });
   await expect(save).toBeVisible();
   const saveColor = await save.evaluate((el) => getComputedStyle(el).color);
   expect(saveColor).not.toBe("rgba(0, 0, 0, 0)");
@@ -61,7 +70,7 @@ test("OSダーク×アプリライトでも設定ラベルと作成画面の入�
 
   if (walkthroughDir) {
     await page.screenshot({
-      path: `${walkthroughDir}/note_new_variety_centered.png`,
+      path: `${walkthroughDir}/log_new_variety_centered.png`,
       fullPage: false,
     });
   }

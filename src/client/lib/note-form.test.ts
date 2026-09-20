@@ -99,17 +99,12 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
       "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     ]);
     expect(body).toMatchObject({
-      bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      drinkName: "棚の赤",
-      drinkType: "wine",
-      vintage: 2019,
-      origin: null,
-      producer: null,
-      variety: null,
       ratingX10: 40,
       taste: "酸がきれい",
       photoIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
     });
+    expect(body).not.toHaveProperty("bottleId");
+    expect(body).not.toHaveProperty("drinkName");
   });
 
   it("PATCH は変えた欄とボトル解除だけ送る", () => {
@@ -124,10 +119,9 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
     };
     const cleared = clearSelectedBottle(initial);
     const body = toUpdateTastingNoteBody(cleared, initial);
-    expect(body).toEqual({
-      bottleId: null,
-      drinkName: "棚の赤",
-      drinkType: "wine",
+    expect(body).toBeNull();
+    expect(toUpdateTastingNoteBody({ ...initial, taste: "更新" }, initial)).toEqual({
+      taste: "更新",
     });
   });
 
@@ -228,6 +222,7 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
       bottleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       thumbPhotoId: null,
       photos: [],
+      tastingNote: null,
       createdAt: NOW.toISOString(),
       updatedAt: NOW.toISOString(),
     } satisfies DrinkLog;

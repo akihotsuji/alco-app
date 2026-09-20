@@ -11,6 +11,7 @@ import {
   normalizeMemo,
   updateDrinkLogSchema,
 } from "./drink-logs.ts";
+import { TASTING_NOTE_MESSAGES } from "./tasting-notes.ts";
 import "./zod-config.ts";
 
 const BASE = { drinkType: "wine", volumeMl: 125, abvPercent: 12 } as const;
@@ -122,6 +123,18 @@ describe("createDrinkLogSchema", () => {
   it("メモは 500 文字まで", () => {
     expect(createDrinkLogSchema.safeParse({ ...BASE, memo: "a".repeat(500) }).success).toBe(true);
     expect(messagesOf({ ...BASE, memo: "a".repeat(501) }).memo).toEqual([DRINK_LOG_MESSAGES.memo]);
+  });
+
+  it("tastingNote は省略可。付けるなら評価必須、4 欄は任意", () => {
+    expect(createDrinkLogSchema.safeParse(BASE).success).toBe(true);
+    expect(
+      createDrinkLogSchema.parse({ ...BASE, tastingNote: { ratingX10: 45, taste: "酸" } })
+        .tastingNote,
+    ).toEqual({ ratingX10: 45, taste: "酸" });
+    expect(
+      messagesOf({ ...BASE, tastingNote: { taste: "だけ" } })["tastingNote.ratingX10"],
+    ).toEqual([TASTING_NOTE_MESSAGES.rating]);
+    expect(updateDrinkLogSchema.parse({ tastingNote: null })).toEqual({ tastingNote: null });
   });
 
   it("写真は 1 枚まで、参照 ID は UUID", () => {
