@@ -233,12 +233,10 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             aria-label={BOTTLE_PHOTO_ACTION_LABELS.expandFront}
           >
             {heroImage}
-            <span className="shelf-board bottle-hero-shelf" />
           </button>
         ) : (
           <div className={heroClass}>
             {heroImage}
-            <span className="shelf-board bottle-hero-shelf" />
           </div>
         )}
         {backPhoto ? (

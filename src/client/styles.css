@@ -5169,10 +5169,6 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   border-radius: 8px;
 }
 
-.bottle-hero-shelf {
-  width: min(100%, 220px);
-}
-
 .bottle-status-row {
   display: flex;
   flex-wrap: wrap;
@@ -6648,6 +6644,11 @@ html[data-reduce-motion="1"] .guide-fan-item {
   min-height: var(--tap-min);
 }
 
+.friends-row > .app-btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 .friends-row-link {
   display: flex;
   align-items: center;
@@ -6656,6 +6657,16 @@ html[data-reduce-motion="1"] .guide-fan-item {
   flex: 1;
   color: inherit;
   text-decoration: none;
+}
+
+.friends-row-name {
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  writing-mode: horizontal-tb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .friends-header-actions {
