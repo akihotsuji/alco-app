@@ -243,8 +243,12 @@ export class ImageInspectFailure extends Error {
   }
 }
 
-export function inspectImageBytes(bytes: Uint8Array): InspectedImage {
-  if (bytes.byteLength > PHOTO_MAX_BYTES) {
+export function inspectImageBytes(
+  bytes: Uint8Array,
+  limits: { maxBytes?: number; maxLongEdge?: number } = {},
+): InspectedImage {
+  const maxBytes = limits.maxBytes ?? PHOTO_MAX_BYTES;
+  if (bytes.byteLength > maxBytes) {
     throw new ImageInspectFailure("payload_too_large");
   }
 
@@ -257,7 +261,7 @@ export function inspectImageBytes(bytes: Uint8Array): InspectedImage {
     if (!size) {
       throw new ImageInspectFailure("invalid_dimensions");
     }
-    assertLongEdge(size);
+    assertLongEdge(size, limits.maxLongEdge);
     return { contentType: "image/jpeg", extension: "jpg", kind: "photo", ...size };
   }
 
@@ -266,7 +270,7 @@ export function inspectImageBytes(bytes: Uint8Array): InspectedImage {
     if (!size) {
       throw new ImageInspectFailure("invalid_dimensions");
     }
-    assertLongEdge(size);
+    assertLongEdge(size, limits.maxLongEdge);
     return {
       contentType: "image/png",
       extension: "png",
@@ -281,7 +285,7 @@ export function inspectImageBytes(bytes: Uint8Array): InspectedImage {
     if (!parsed) {
       throw new ImageInspectFailure("invalid_dimensions");
     }
-    assertLongEdge(parsed);
+    assertLongEdge(parsed, limits.maxLongEdge);
     return {
       contentType: "image/webp",
       extension: "webp",
@@ -294,8 +298,11 @@ export function inspectImageBytes(bytes: Uint8Array): InspectedImage {
   throw new ImageInspectFailure("unsupported_media_type");
 }
 
-function assertLongEdge(size: { width: number; height: number }) {
-  if (Math.max(size.width, size.height) > PHOTO_MAX_LONG_EDGE) {
+function assertLongEdge(
+  size: { width: number; height: number },
+  maxLongEdge = PHOTO_MAX_LONG_EDGE,
+) {
+  if (Math.max(size.width, size.height) > maxLongEdge) {
     throw new ImageInspectFailure("invalid_dimensions");
   }
 }

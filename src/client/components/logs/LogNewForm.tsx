@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
+import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
+import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import {
   usePhotoEdit,
@@ -30,6 +32,7 @@ import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
 import { useNotePhotos } from "@/client/hooks/use-note-photos.ts";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
 import {
   drinkLogSavePhotoId,
@@ -69,6 +72,7 @@ import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { getRecordLocationPref } from "@/client/lib/preferences.ts";
 import { DRINK_LOG_MESSAGES, DRINK_NAME_MAX_LENGTH } from "@/shared/drink-logs.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 
 const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";
@@ -94,6 +98,9 @@ export function LogNewForm() {
     inheritOwnedPhoto,
   } = usePhotoEdit();
   const create = useCreateDrinkLog();
+  const share = useShareIntent();
+  const { showToast } = useToast();
+  const openingEventId = searchParams.get("openingEventId");
 
   // 「いま」は開いた時点で固定する（N7 の既定値。ユーザーが変えられる）
   const [now] = useState(() => new Date());
@@ -305,7 +312,20 @@ export function LogNewForm() {
         haptic("success");
         releaseAttachment("log");
         notePhotos.releaseLocal();
-        goToDay(log);
+        const source =
+          openingEventId && queryBottleId
+            ? {
+                kind: "opening_with_log" as const,
+                openingEventId,
+                drinkLogId: log.id,
+              }
+            : { kind: "drink_log" as const, drinkLogId: log.id };
+        void share.shareIfNeeded(source).then((status) => {
+          if (status === "failed") {
+            showToast({ message: SOCIAL_COPY.shareFailedAfterSave });
+          }
+          goToDay(log);
+        });
       },
       onError: (error) => {
         const failure = describeSaveFailure(error, navigator.onLine, {
@@ -542,8 +562,15 @@ export function LogNewForm() {
         onRemovePhoto={(key) => void notePhotos.removePhoto(key)}
         onMakeFirst={notePhotos.makeFirst}
       />
+      <ShareField
+        shareOn={share.shareOn}
+        onShareOnChange={share.setShareOn}
+        canShare={share.canShare}
+        reason={share.reason}
+        preview={state.drinkName || state.tastingTaste || "お酒"}
+      />
       <SaveBar
-        label={saveButtonLabel(false, photoStatus)}
+        label={shareSaveLabel(share.shareOn, share.canShare, saveButtonLabel(false, photoStatus))}
         pending={create.isPending}
         disabled={!canSubmit}
         hint={

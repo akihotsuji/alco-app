@@ -27,7 +27,9 @@ describe("isValidLogDateParam", () => {
 
 describe("TABS", () => {
   it("中央タブ「飲酒を記録」だけ根を持たない（作成ボタン。00-common 1.2）", () => {
-    expect(TABS.map((tab) => tab.id)).toEqual(["home", "cellar", "log", "notes", "settings"]);
+    expect(TABS.map((tab) => tab.id)).toEqual(["home", "cellar", "log", "friends", "settings"]);
+    expect(TABS.find((tab) => tab.id === "friends")?.label).toBe("友達");
+    expect(TABS.find((tab) => tab.id === "friends")?.root).toBe("/friends");
     expect(TABS.find((tab) => tab.id === "log")?.label).toBe("飲酒を記録");
     expect(TABS.find((tab) => tab.id === "log")?.root).toBeNull();
     for (const tab of TABS.filter((tab) => tab.id !== "log")) {
@@ -41,7 +43,10 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/", NOW).parentTab).toBe("home");
     expect(resolveAppRoute("/summary/week", NOW).parentTab).toBe("home");
     expect(resolveAppRoute("/cellar/archive", NOW).parentTab).toBe("cellar");
-    expect(resolveAppRoute("/notes/abc/edit", NOW).parentTab).toBe("notes");
+    expect(resolveAppRoute("/notes/abc/edit", NOW).parentTab).toBe("settings");
+    expect(resolveAppRoute("/friends", NOW).parentTab).toBe("friends");
+    expect(resolveAppRoute("/friends/list", NOW).parentTab).toBe("friends");
+    expect(resolveAppRoute("/settings/profile", NOW).parentTab).toBe("settings");
     expect(resolveAppRoute("/settings", NOW).parentTab).toBe("settings");
   });
 
@@ -116,6 +121,9 @@ describe("resolveAppRoute", () => {
     expect(resolveAppRoute("/notes/n1/edit", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/settings/account/delete", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/settings/feedback", NOW).hideTabBar).toBe(true);
+    expect(resolveAppRoute("/friends/invite", NOW).hideTabBar).toBe(true);
+    expect(resolveAppRoute("/friends/join", NOW).hideTabBar).toBe(true);
+    expect(resolveAppRoute("/settings/profile", NOW).hideTabBar).toBe(true);
     expect(resolveAppRoute("/logs", NOW).hideTabBar).toBe(false);
     expect(resolveAppRoute("/cellar/b1", NOW).hideTabBar).toBe(false);
   });
@@ -225,6 +233,11 @@ describe("resolveAppRoute", () => {
       to: "/cellar/b1/edit",
     });
     expect(resolveAppRoute("/cellar/b1", NOW).quietTabCenter).toBe(true);
+    expect(resolveAppRoute("/friends", NOW).header).toEqual({
+      title: "友達の近況",
+      left: { kind: "spacer" },
+      right: { kind: "friends-actions" },
+    });
     expect(resolveAppRoute("/notes/n1", NOW).quietTabCenter).toBe(false);
     expect(resolveAppRoute("/cellar", NOW).quietTabCenter).toBe(false);
     expect(resolveAppRoute("/unknown", NOW).header).toEqual({
@@ -283,6 +296,10 @@ describe("logCreateHref", () => {
       kind: "back",
       fallback: `/cellar/${id}`,
     });
+    const openingEventId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    expect(logCreateHref({ bottleId: id, from: "opened", openingEventId })).toBe(
+      `/logs/new?bottleId=${id}&from=opened&openingEventId=${openingEventId}`,
+    );
   });
 });
 

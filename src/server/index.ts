@@ -14,10 +14,12 @@ import { createCellarInvitationsRoute, createCellarsRoute } from "./routes/cella
 import { createConfigRoute } from "./routes/config.ts";
 import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
 import { createFeedbackRoute } from "./routes/feedback.ts";
+import { createFriendsRoute } from "./routes/friends.ts";
 import { healthRoute } from "./routes/health.ts";
 import { createMeRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
+import { createSocialRoute } from "./routes/social.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
 import { runAccountDeletionJobs } from "./services/account-deletion-jobs.ts";
 import { createTaskRecognizer } from "./services/ai-recognition/create-recognizer.ts";
@@ -143,6 +145,8 @@ export function createApp(options: CreateAppOptions = {}) {
     .route("/api/tasting-notes", tastingNotesRoute)
     .route("/api/cellars", createCellarsRoute(routeDeps))
     .route("/api/cellar-invitations", createCellarInvitationsRoute(routeDeps))
+    .route("/api/social", createSocialRoute(routeDeps))
+    .route("/api/friends", createFriendsRoute(routeDeps))
     .route(
       "/api/feedback",
       createFeedbackRoute({

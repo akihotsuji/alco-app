@@ -32,6 +32,12 @@ export const CONFLICT_REASONS = [
   "capacity",
   "deleted",
   "set",
+  "already_friends",
+  "already_requested",
+  "reverse_request",
+  "profile_incomplete",
+  "blocked",
+  "cancelled",
 ] as const;
 export type ConflictReason = (typeof CONFLICT_REASONS)[number];
 

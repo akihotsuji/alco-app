@@ -64,6 +64,7 @@ export type BatchSubmitResult = {
   created: Bottle[];
   failedCount: number;
   leftoverCount: number;
+  registrationBatchId: string | null;
 };
 
 function attachmentFromProcessed(
@@ -744,6 +745,7 @@ export function useBottleBatch(autoCapture: boolean) {
       setSubmitting(true);
       const outcome: BatchSubmitOutcome = { succeeded: [], failed: [] };
       const created: Bottle[] = [];
+      const registrationBatchId = crypto.randomUUID();
       try {
         for (const row of rowsRef.current) {
           if (!isBatchRowSavable(row)) {
@@ -764,6 +766,7 @@ export function useBottleBatch(autoCapture: boolean) {
                 createBottles({
                   ...body,
                   ...(cellarId ? { cellarId } : {}),
+                  registrationBatchId,
                   operationKey,
                 }),
               {
@@ -815,7 +818,12 @@ export function useBottleBatch(autoCapture: boolean) {
         (row) => !outcome.succeeded.includes(row.key),
       ).length;
       setRows((current) => applyBatchOutcome(current, outcome));
-      return { created, failedCount: outcome.failed.length, leftoverCount };
+      return {
+        created,
+        failedCount: outcome.failed.length,
+        leftoverCount,
+        registrationBatchId: created.length > 0 ? registrationBatchId : null,
+      };
     },
     [queryClient],
   );

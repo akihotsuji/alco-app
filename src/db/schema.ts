@@ -21,6 +21,13 @@ import {
   PHOTO_KINDS,
 } from "../shared/constants.ts";
 import { FEEDBACK_CATEGORIES } from "../shared/feedback.ts";
+import {
+  AVATAR_MODES,
+  FRIEND_REQUEST_STATUSES,
+  SOCIAL_NOTIFICATION_TYPES,
+  SOCIAL_POST_KINDS,
+  SOCIAL_SOURCE_KINDS,
+} from "../shared/social.ts";
 import { user } from "./auth-schema.ts";
 
 export * from "./auth-schema.ts";
@@ -234,10 +241,12 @@ export const bottles = sqliteTable(
     // consumed のとき必須、それ以外 NULL。consumed_on は consumed_at から JST でサーバー算出
     consumedAt: integer("consumed_at", { mode: "timestamp_ms" }),
     consumedOn: text("consumed_on"),
+    registrationBatchId: text("registration_batch_id"),
     ...timestampColumns(),
   },
   (table) => [
     index("bottles_cellar_status_idx").on(table.cellarId, table.status),
+    index("bottles_registration_batch_idx").on(table.registrationBatchId),
     index("bottles_cellar_type_idx").on(table.cellarId, table.drinkType),
     index("bottles_cellar_consumed_idx").on(table.cellarId, table.consumedAt),
     index("bottles_cellar_type_sort_idx").on(
@@ -485,5 +494,319 @@ export const accountDeletionPhotoTasks = sqliteTable(
       "account_deletion_photo_tasks_status_check",
       sql`status IN (${inList(PHOTO_TASK_STATUSES)})`,
     ),
+  ],
+);
+
+export const socialAvatars = sqliteTable(
+  "social_avatars",
+  {
+    id: text("id").primaryKey(),
+    userId: userIdColumn(),
+    r2Key: text("r2_key").notNull(),
+    contentType: text("content_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width"),
+    height: integer("height"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("social_avatars_r2_key_uidx").on(table.r2Key),
+    index("social_avatars_user_idx").on(table.userId),
+  ],
+);
+
+export const socialProfiles = sqliteTable(
+  "social_profiles",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    nickname: text("nickname").notNull(),
+    avatarMode: text("avatar_mode", { enum: AVATAR_MODES }).notNull().default("mascot"),
+    mascotColor: text("mascot_color").notNull(),
+    avatarId: text("avatar_id").references(() => socialAvatars.id, { onDelete: "set null" }),
+    profileCompletedAt: integer("profile_completed_at", { mode: "timestamp_ms" }).notNull(),
+    ...timestampColumns(),
+  },
+  (_table) => [
+    check("social_profiles_avatar_mode_check", sql`avatar_mode IN (${inList(AVATAR_MODES)})`),
+  ],
+);
+
+export const socialPreferences = sqliteTable("social_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  shareDefaultOn: integer("share_default_on", { mode: "boolean" }).notNull().default(true),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const friendInvitations = sqliteTable(
+  "friend_invitations",
+  {
+    id: text("id").primaryKey(),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("friend_invitations_token_hash_uidx").on(table.tokenHash),
+    index("friend_invitations_owner_idx").on(table.ownerUserId, table.expiresAt),
+  ],
+);
+
+export const friendRequests = sqliteTable(
+  "friend_requests",
+  {
+    id: text("id").primaryKey(),
+    requesterUserId: text("requester_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    recipientUserId: text("recipient_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    invitationId: text("invitation_id").references(() => friendInvitations.id, {
+      onDelete: "set null",
+    }),
+    status: text("status", { enum: FRIEND_REQUEST_STATUSES }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("friend_requests_pending_pair_uidx")
+      .on(table.requesterUserId, table.recipientUserId)
+      .where(sql`${table.status} = 'pending'`),
+    index("friend_requests_recipient_idx").on(table.recipientUserId, table.status),
+    index("friend_requests_requester_idx").on(table.requesterUserId, table.status),
+    check("friend_requests_status_check", sql`status IN (${inList(FRIEND_REQUEST_STATUSES)})`),
+    check("friend_requests_not_self_check", sql`requester_user_id != recipient_user_id`),
+  ],
+);
+
+export const friendshipEpochs = sqliteTable(
+  "friendship_epochs",
+  {
+    id: text("id").primaryKey(),
+    userLowId: text("user_low_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userHighId: text("user_high_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }).notNull(),
+    endedAt: integer("ended_at", { mode: "timestamp_ms" }),
+    endedReason: text("ended_reason"),
+  },
+  (table) => [
+    uniqueIndex("friendship_epochs_active_pair_uidx")
+      .on(table.userLowId, table.userHighId)
+      .where(sql`${table.endedAt} IS NULL`),
+    index("friendship_epochs_pair_idx").on(table.userLowId, table.userHighId),
+    check("friendship_epochs_order_check", sql`user_low_id < user_high_id`),
+  ],
+);
+
+export const socialBlocks = sqliteTable(
+  "social_blocks",
+  {
+    blockerUserId: text("blocker_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    blockedUserId: text("blocked_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.blockerUserId, table.blockedUserId] }),
+    index("social_blocks_blocked_idx").on(table.blockedUserId),
+    check("social_blocks_not_self_check", sql`blocker_user_id != blocked_user_id`),
+  ],
+);
+
+export const openingEvents = sqliteTable(
+  "opening_events",
+  {
+    id: text("id").primaryKey(),
+    userId: userIdColumn(),
+    bottleId: text("bottle_id")
+      .notNull()
+      .references(() => bottles.id, { onDelete: "cascade" }),
+    cellarId: text("cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    openedAt: integer("opened_at", { mode: "timestamp_ms" }).notNull(),
+    openedOn: text("opened_on").notNull(),
+    cancelledAt: integer("cancelled_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("opening_events_active_bottle_uidx")
+      .on(table.bottleId)
+      .where(sql`${table.cancelledAt} IS NULL`),
+    index("opening_events_user_idx").on(table.userId, table.openedAt),
+  ],
+);
+
+export const bottleRegistrationBatches = sqliteTable(
+  "bottle_registration_batches",
+  {
+    id: text("id").primaryKey(),
+    userId: userIdColumn(),
+    cellarId: text("cellar_id")
+      .notNull()
+      .references(() => cellars.id, { onDelete: "cascade" }),
+    shareCancelledAt: integer("share_cancelled_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("bottle_registration_batches_user_idx").on(table.userId)],
+);
+
+export const socialPosts = sqliteTable(
+  "social_posts",
+  {
+    id: text("id").primaryKey(),
+    authorUserId: text("author_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: SOCIAL_POST_KINDS }).notNull(),
+    publishedAt: integer("published_at", { mode: "timestamp_ms" }).notNull(),
+    contentUpdatedAt: integer("content_updated_at", { mode: "timestamp_ms" }).notNull(),
+    drinkLogId: text("drink_log_id").references(() => drinkLogs.id, { onDelete: "cascade" }),
+    openingEventId: text("opening_event_id").references(() => openingEvents.id, {
+      onDelete: "cascade",
+    }),
+    registrationBatchId: text("registration_batch_id").references(
+      () => bottleRegistrationBatches.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("social_posts_drink_log_uidx").on(table.drinkLogId),
+    uniqueIndex("social_posts_opening_uidx").on(table.openingEventId),
+    uniqueIndex("social_posts_batch_uidx").on(table.registrationBatchId),
+    index("social_posts_author_published_idx").on(table.authorUserId, table.publishedAt),
+    check("social_posts_kind_check", sql`kind IN (${inList(SOCIAL_POST_KINDS)})`),
+  ],
+);
+
+export const socialPostItems = sqliteTable(
+  "social_post_items",
+  {
+    id: text("id").primaryKey(),
+    postId: text("post_id")
+      .notNull()
+      .references(() => socialPosts.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull(),
+    sourceKind: text("source_kind", { enum: SOCIAL_SOURCE_KINDS }).notNull(),
+    sourceId: text("source_id").notNull(),
+  },
+  (table) => [
+    index("social_post_items_post_idx").on(table.postId, table.sortOrder),
+    index("social_post_items_source_idx").on(table.sourceKind, table.sourceId),
+    check("social_post_items_kind_check", sql`source_kind IN (${inList(SOCIAL_SOURCE_KINDS)})`),
+  ],
+);
+
+export const socialPostRecipients = sqliteTable(
+  "social_post_recipients",
+  {
+    postId: text("post_id")
+      .notNull()
+      .references(() => socialPosts.id, { onDelete: "cascade" }),
+    viewerUserId: text("viewer_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    friendshipEpochId: text("friendship_epoch_id")
+      .notNull()
+      .references(() => friendshipEpochs.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.postId, table.viewerUserId] }),
+    index("social_post_recipients_viewer_idx").on(table.viewerUserId, table.postId),
+    index("social_post_recipients_epoch_idx").on(table.friendshipEpochId),
+  ],
+);
+
+export const reactionTypes = sqliteTable(
+  "reaction_types",
+  {
+    id: text("id").primaryKey(),
+    code: text("code").notNull(),
+    emoji: text("emoji").notNull(),
+    label: text("label").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [uniqueIndex("reaction_types_code_uidx").on(table.code)],
+);
+
+export const socialReactions = sqliteTable(
+  "social_reactions",
+  {
+    postId: text("post_id")
+      .notNull()
+      .references(() => socialPosts.id, { onDelete: "cascade" }),
+    userId: userIdColumn(),
+    reactionTypeId: text("reaction_type_id")
+      .notNull()
+      .references(() => reactionTypes.id, { onDelete: "restrict" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.postId, table.userId] }),
+    index("social_reactions_post_type_idx").on(table.postId, table.reactionTypeId),
+  ],
+);
+
+export const socialNotifications = sqliteTable(
+  "social_notifications",
+  {
+    id: text("id").primaryKey(),
+    recipientUserId: text("recipient_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    actorUserId: text("actor_user_id").references(() => user.id, { onDelete: "set null" }),
+    type: text("type", { enum: SOCIAL_NOTIFICATION_TYPES }).notNull(),
+    targetKind: text("target_kind"),
+    targetId: text("target_id"),
+    dedupKey: text("dedup_key").notNull(),
+    readAt: integer("read_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("social_notifications_dedup_uidx").on(table.recipientUserId, table.dedupKey),
+    index("social_notifications_recipient_idx").on(table.recipientUserId, table.createdAt),
+    index("social_notifications_unread_idx").on(table.recipientUserId, table.readAt),
+    check("social_notifications_type_check", sql`type IN (${inList(SOCIAL_NOTIFICATION_TYPES)})`),
+  ],
+);
+
+export const socialOperationKeys = sqliteTable(
+  "social_operation_keys",
+  {
+    actorUserId: text("actor_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    operationKey: text("operation_key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    resultJson: text("result_json").notNull(),
+    cancelledAt: integer("cancelled_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.actorUserId, table.operationKey] }),
+    index("social_operation_keys_created_idx").on(table.createdAt),
   ],
 );

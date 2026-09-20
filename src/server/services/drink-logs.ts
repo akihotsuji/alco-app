@@ -51,6 +51,7 @@ import {
   toPhotoMeta,
 } from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
+import { deletePostsForDrinkLog, touchPostsForDrinkLog } from "./social-posts.ts";
 import {
   deleteTastingNoteForLog,
   loadEmbeddedTastingNote,
@@ -749,6 +750,7 @@ export async function updateDrinkLog(input: {
   }
 
   const tastingNote = await loadEmbeddedTastingNote(db, userId, logId);
+  await touchPostsForDrinkLog(db, logId, updatedAt);
   return toDrinkLog(row, finalPhotos, tastingNote);
 }
 
@@ -868,5 +870,6 @@ export async function deleteDrinkLog(input: {
       await db.update(photos).set({ drinkLogId: null, updatedAt: new Date() }).where(scope);
     }
   }
+  await deletePostsForDrinkLog(db, logId);
   await db.delete(drinkLogs).where(and(eq(drinkLogs.id, logId), eq(drinkLogs.userId, userId)));
 }

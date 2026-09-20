@@ -99,6 +99,13 @@
       "when": 1789882714924,
       "tag": "0013_tasting_notes_drink_log_id",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1789890858426,
+      "tag": "0014_friends_social",
+      "breakpoints": true
     }
   ]
 }

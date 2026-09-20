@@ -5,7 +5,7 @@ import { bottlesInfiniteQueryOptions, bottlesQueryOptions } from "@/client/hooks
 import { cellarsQueryOptions } from "@/client/hooks/use-cellars.ts";
 import { drinkLogSummaryQueryOptions } from "@/client/hooks/use-drink-log-summary.ts";
 import { myDrinksQueryOptions } from "@/client/hooks/use-my-drinks.ts";
-import { tastingNotesInfiniteQueryOptions } from "@/client/hooks/use-tasting-notes.ts";
+import { socialFeedQueryOptions, socialUnreadQueryOptions } from "@/client/hooks/use-social.ts";
 import { readSelectedCellarId, usableStoredCellarId } from "@/client/lib/cellar-share.ts";
 import { SHELF_TYPE_PAGE_LIMIT, shelfColumns, shelfPageLimit } from "@/client/lib/cellar-shelf.ts";
 import { getCellarListViewPref } from "@/client/lib/preferences.ts";
@@ -54,7 +54,8 @@ export function tabPrefetchEntries(input: TabPrefetchInput): TabPrefetchEntry[] 
   const week = drinkLogSummaryQueryOptions("week", input.today);
   const myDrinks = myDrinksQueryOptions();
   const cellars = cellarsQueryOptions();
-  const notes = tastingNotesInfiniteQueryOptions({});
+  const feed = socialFeedQueryOptions();
+  const unread = socialUnreadQueryOptions();
   const cellarId = input.cellarId;
   const cellar = (() => {
     if (input.cellarView === "type") {
@@ -79,7 +80,8 @@ export function tabPrefetchEntries(input: TabPrefetchInput): TabPrefetchEntry[] 
     single(myDrinks, (qc) => qc.prefetchQuery(myDrinks)),
     single(cellars, (qc) => qc.prefetchQuery(cellars)),
     cellar,
-    infinite(notes, (qc) => qc.prefetchInfiniteQuery(notes)),
+    infinite(feed, (qc) => qc.prefetchInfiniteQuery(feed)),
+    single(unread, (qc) => qc.prefetchQuery(unread)),
   ];
 }
 

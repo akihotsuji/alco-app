@@ -158,6 +158,53 @@ export const JoinPage = lazy(async () => {
   return { default: Page };
 });
 
+export const FriendsFeedPage = lazy(async () => {
+  const { FriendsFeedPage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  return { default: Page };
+});
+
+export const FriendsListPage = lazy(async () => {
+  const { FriendsListPage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  return { default: Page };
+});
+
+export const FriendsInvitePage = lazy(async () => {
+  const { FriendsInvitePage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  return { default: Page };
+});
+
+export const FriendsJoinPage = lazy(async () => {
+  const { FriendsJoinPage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  return { default: Page };
+});
+
+export const FriendsProfilePage = lazy(async () => {
+  const { FriendsProfilePage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  return { default: Page };
+});
+
+export const FriendsPostPage = lazy(async () => {
+  const { FriendsPostPage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  return { default: Page };
+});
+
+export const FriendsNotificationsPage = lazy(async () => {
+  const { FriendsNotificationsPage: Page } = await import(
+    "@/client/pages/friends/FriendsPages.tsx"
+  );
+  return { default: Page };
+});
+
+export const SettingsProfilePage = lazy(async () => {
+  const { SettingsProfilePage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  return { default: Page };
+});
+
+export const SettingsBlocksPage = lazy(async () => {
+  const { SettingsBlocksPage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  return { default: Page };
+});
+
 export const NotesPage = lazy(async () => {
   const { NotesPage: Page } = await import("@/client/pages/notes/NotePages.tsx");
   return { default: Page };

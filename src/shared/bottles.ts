@@ -170,6 +170,7 @@ export const createBottleSchema = z
     ...bottleFields,
     count: bottleCountSchema.optional(),
     cellarId: z.string().uuid({ error: BOTTLE_MESSAGES.cellarId }).optional(),
+    registrationBatchId: z.string().uuid().optional(),
     operationKey: operationKeySchema.optional(),
   })
   .strict();

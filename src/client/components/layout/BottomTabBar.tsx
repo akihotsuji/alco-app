@@ -1,4 +1,4 @@
-import { House, NotebookPen, Plus, Settings, Wine } from "lucide-react";
+import { House, Plus, Settings, Users, Wine } from "lucide-react";
 import type { ReactNode } from "react";
 import { TABS, type TabDef, type TabId } from "@/client/lib/app-routes.ts";
 import { prefetchTabPointerProps } from "@/client/lib/route-chunks.ts";
@@ -16,7 +16,7 @@ const ICONS: Record<TabId, ReactNode> = {
   home: <House size={20} aria-hidden />,
   cellar: <Wine size={20} aria-hidden />,
   log: <Plus size={26} aria-hidden />,
-  notes: <NotebookPen size={20} aria-hidden />,
+  friends: <Users size={20} aria-hidden />,
   settings: <Settings size={20} aria-hidden />,
 };
 

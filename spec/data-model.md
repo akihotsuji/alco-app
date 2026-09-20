@@ -75,7 +75,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 領域 | テーブル | 管理 |
 |---|---|---|
 | 認証 | `user`, `session`, `account`, `verification` | **Auth ライブラリ管理**。`npx auth@latest generate`（Phase 2-02） |
-| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents`, `age_verifications`, `cellars`, `user_cellar_slots`, `cellar_members`, `cellar_invitations`, `cellar_owner_transfers`, `cellar_activity`, `cellar_idempotency`, `feedbacks`, `feedback_photos` | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01。`age_verifications` は 8-02。セラー共有は 6.13 / [shared-cellar.md](features/shared-cellar.md)。ご意見は 6.14 / [feedback.md](features/feedback.md) |
+| アプリ | `drink_logs`, `my_drinks`, `bottles`, `tasting_notes`, `photos`, `ai_usage`, `legal_consents`, `age_verifications`, `cellars`, `user_cellar_slots`, `cellar_members`, `cellar_invitations`, `cellar_owner_transfers`, `cellar_activity`, `cellar_idempotency`, `feedbacks`, `feedback_photos`, 友達・近況（6.15） | 本ドキュメント。Phase 2-01 で Drizzle 定義。`legal_consents` は 8-01。`age_verifications` は 8-02。セラー共有は 6.13 / [shared-cellar.md](features/shared-cellar.md)。ご意見は 6.14 / [feedback.md](features/feedback.md)。友達は 6.15 / [friends-social.md](features/friends-social.md) |
 
 Auth コアの列はライブラリ版に従う。以下は実装時の参照用であり、**列名・追加列を凍結しない**。プラグイン追加で増える可能性がある。
 
@@ -720,6 +720,16 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 - 配信 API は作らない。運営者は通知メールの添付と D1 / R2 で見る
 - 日次件数は `user_id IS NOT NULL` の行だけ数える（退会後の行は新しいアカウントの枠に入らない）
 
+### 6.15 友達・近況（friends-social）
+
+正本は [friends-social.md](features/friends-social.md)。既存テーブルの破壊的再作成はしない。`photos` の所有者排他は触らない。アバターは `social_avatars`。
+
+追加テーブル: `social_profiles`, `social_preferences`, `social_avatars`, `friend_invitations`, `friend_requests`, `friendship_epochs`, `social_blocks`, `opening_events`, `bottle_registration_batches`, `social_posts`, `social_post_items`, `social_post_recipients`, `reaction_types`, `social_reactions`, `social_notifications`, `social_operation_keys`。
+
+`bottles.registration_batch_id` は nullable の追加列（FK なし。アプリが検証。テーブル再作成を避ける）。
+
+公開用ひとことは `tasting_notes.taste`。`drink_logs.memo` は投影しない。受信対象は `social_post_recipients`（`friendship_epoch_id`）に固定する。
+
 ---
 
 ## 7. インデックス
@@ -755,6 +765,12 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | `feedbacks_user_created_idx` | feedbacks | `user_id`, `created_at` | 日次上限 |
 | `feedback_photos_feedback_idx` | feedback_photos | `feedback_id` | 添付の列挙 |
 | `feedback_photos_r2_key_uidx` | feedback_photos | `r2_key` UNIQUE | キー衝突防止 |
+| `social_post_recipients_viewer_idx` | social_post_recipients | `viewer_user_id`, `post_id` | フィード認可 |
+| `social_posts_author_published_idx` | social_posts | `author_user_id`, `published_at` | 作者の共有 |
+| `friendship_epochs_pair_idx` | friendship_epochs | `user_low_id`, `user_high_id` | 世代 |
+| `social_notifications_recipient_idx` | social_notifications | `recipient_user_id`, `created_at` | 通知一覧 |
+| `social_reactions_post_type_idx` | social_reactions | `post_id`, `reaction_type_id` | 件数 |
+| `social_post_items_source_idx` | social_post_items | `source_kind`, `source_id` | 元データ連動 |
 
 名前検索（銘柄・生産者）は個人規模では `user_id` 絞り込み + `LIKE` で足りる。全文検索インデックスは作らない。
 

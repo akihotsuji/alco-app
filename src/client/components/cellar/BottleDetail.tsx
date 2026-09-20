@@ -13,6 +13,7 @@ import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.t
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { useOpeningSource, useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logCreateHref } from "@/client/lib/app-routes.ts";
 import {
@@ -56,6 +57,8 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const [followupOpen, setFollowupOpen] = useState(() => shouldShowOpenedFollowup(bottle.id));
   const consume = useConsumeBottle();
   const restore = useRestoreBottle();
+  const share = useShareIntent();
+  const opening = useOpeningSource(bottle.id);
   const { items } = useCellarSelection();
   useCellarSync(bottle.cellarId);
   const cellar = items.find((item) => item.id === bottle.cellarId);
@@ -108,9 +111,12 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
     return navigator.onLine ? FORM_ERROR_MESSAGES.generic : FORM_ERROR_MESSAGES.offline;
   }
 
-  function dismissFollowup() {
+  function dismissFollowup(shareOpening = false) {
     markOpenedFollowupDismissed(bottle.id);
     setFollowupOpen(false);
+    if (shareOpening && opening.data?.openingEventId) {
+      void share.shareIfNeeded({ kind: "opening", openingEventId: opening.data.openingEventId });
+    }
   }
 
   function onConsume() {
@@ -134,6 +140,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             drinkType: result.drinkType,
           });
           markOpenedFollowupPending(result.id);
+          void opening.refetch();
           setFollowupOpen(true);
           setConsumeState("idle");
         },
@@ -332,9 +339,18 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         open={followupOpen}
         onClose={dismissFollowup}
         shared={shared}
+        canShare={share.canShare}
+        shareOn={share.shareOn}
+        onShareOnChange={share.setShareOn}
         onLog={() => {
-          dismissFollowup();
-          navigate(logCreateHref({ bottleId: bottle.id, from: "opened" }));
+          dismissFollowup(false);
+          navigate(
+            logCreateHref({
+              bottleId: bottle.id,
+              from: "opened",
+              openingEventId: opening.data?.openingEventId,
+            }),
+          );
         }}
       />
     </div>

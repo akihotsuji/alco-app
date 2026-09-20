@@ -14,6 +14,7 @@ export const routeChunks = {
   myDrinks: () => import("@/client/pages/logs/MyDrinkPages.tsx"),
   cellar: () => import("@/client/pages/cellar/CellarPages.tsx"),
   notes: () => import("@/client/pages/notes/NotePages.tsx"),
+  friends: () => import("@/client/pages/friends/FriendsPages.tsx"),
   settings: () => import("@/client/pages/SettingsPage.tsx"),
   feedback: () => import("@/client/pages/FeedbackPage.tsx"),
   accountDeletion: () => import("@/client/pages/AccountDeletionPages.tsx"),
@@ -47,6 +48,9 @@ export function initialRouteChunkIds(pathname: string): readonly RouteChunkId[] 
   if (pathname === "/join") {
     return ["join"];
   }
+  if (pathname === "/friends/join") {
+    return ["friends"];
+  }
   const page = chunkIdForPath(pathname) ?? "home";
   if (page === "home") {
     return ["shell", "home"];
@@ -61,8 +65,8 @@ export function tabChunkIds(tabId: TabId): readonly RouteChunkId[] {
   if (tabId === "cellar") {
     return ["cellar", "photoEdit"];
   }
-  if (tabId === "notes") {
-    return ["notes", "photoEdit"];
+  if (tabId === "friends") {
+    return ["friends"];
   }
   if (tabId === "settings") {
     return ["settings"];
@@ -101,6 +105,9 @@ export function chunkIdForPath(pathname: string): RouteChunkId | null {
   }
   if (pathname === "/join") {
     return "join";
+  }
+  if (pathname.startsWith("/friends")) {
+    return "friends";
   }
   if (pathname.startsWith("/summary/")) {
     return "summary";

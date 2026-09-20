@@ -37,6 +37,9 @@ describe("ルート分割", () => {
     expect(lazyPages).toContain('import("@/client/pages/AccountDeletionPages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/cellar/CellarPages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/notes/NotePages.tsx")');
+    expect(lazyPages).toContain('import("@/client/pages/friends/FriendsPages.tsx")');
+    expect(app).toContain('path="/friends"');
+    expect(app).toContain('path="/friends/join"');
     expect(lazyPages).toContain('import("@/client/pages/summary/SummaryPages.tsx")');
     expect(lazyPages).toContain('import("@/client/pages/logs/LogFormPage.tsx")');
     expect(main).not.toContain("prefetchInitialRoute()");

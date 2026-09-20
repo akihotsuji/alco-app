@@ -3,7 +3,7 @@ import { bottlesInfiniteQueryOptions, bottlesQueryOptions } from "@/client/hooks
 import { cellarsQueryOptions } from "@/client/hooks/use-cellars.ts";
 import { drinkLogSummaryQueryOptions } from "@/client/hooks/use-drink-log-summary.ts";
 import { myDrinksQueryOptions } from "@/client/hooks/use-my-drinks.ts";
-import { tastingNotesInfiniteQueryOptions } from "@/client/hooks/use-tasting-notes.ts";
+import { socialFeedQueryOptions, socialUnreadQueryOptions } from "@/client/hooks/use-social.ts";
 import { SHELF_TYPE_PAGE_LIMIT } from "@/client/lib/cellar-shelf.ts";
 import { createQueryClient } from "@/client/lib/query-client.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
@@ -17,7 +17,7 @@ import {
 const TODAY = "2026-09-10";
 
 describe("tabPrefetchEntries", () => {
-  it("ホーム（日・週サマリー・マイドリンク）、セラー、ノートの初期一覧を対象にする", () => {
+  it("ホーム（日・週サマリー・マイドリンク）、セラー、友達フィードの初期一覧を対象にする", () => {
     const entries = tabPrefetchEntries({ cellarView: "one", viewportWidth: 390, today: TODAY });
     expect(entries.map((e) => e.queryKey)).toEqual([
       drinkLogSummaryQueryOptions("day", TODAY).queryKey,
@@ -26,7 +26,8 @@ describe("tabPrefetchEntries", () => {
       cellarsQueryOptions().queryKey,
       // 1 本ずつ表示は 3 列 × 2 行分（CellarList と同じ limit）
       bottlesInfiniteQueryOptions({ view: "cellar", limit: 6 }).queryKey,
-      tastingNotesInfiniteQueryOptions({}).queryKey,
+      socialFeedQueryOptions().queryKey,
+      socialUnreadQueryOptions().queryKey,
     ]);
     expect(entries.map((e) => e.kind)).toEqual([
       "query",
@@ -35,6 +36,7 @@ describe("tabPrefetchEntries", () => {
       "query",
       "infinite",
       "infinite",
+      "query",
     ]);
   });
 
@@ -98,14 +100,8 @@ describe("tabPrefetchEntries", () => {
         limit: 6,
       }),
     );
-    expect(entries[5]?.queryKey).toEqual(
-      queryKeys.tastingNotesList({
-        bottleId: undefined,
-        q: undefined,
-        drinkType: undefined,
-        ratingX10Min: undefined,
-      }),
-    );
+    expect(entries[5]?.queryKey).toEqual(queryKeys.socialFeed);
+    expect(entries[6]?.queryKey).toEqual(queryKeys.socialUnread);
   });
 });
 
@@ -120,7 +116,7 @@ describe("prefetchTabData", () => {
 
     prefetchTabData(queryClient, entries);
 
-    expect(prefetchQuery).toHaveBeenCalledTimes(4);
+    expect(prefetchQuery).toHaveBeenCalledTimes(5);
     expect(prefetchInfiniteQuery).toHaveBeenCalledTimes(2);
   });
 
@@ -131,7 +127,7 @@ describe("prefetchTabData", () => {
       .spyOn(queryClient, "prefetchInfiniteQuery")
       .mockResolvedValue(undefined);
     queryClient.setQueryData(myDrinksQueryOptions().queryKey, { items: [], nextCursor: null });
-    queryClient.setQueryData(tastingNotesInfiniteQueryOptions({}).queryKey, {
+    queryClient.setQueryData(socialFeedQueryOptions().queryKey, {
       pages: [],
       pageParams: [],
     });
@@ -139,7 +135,7 @@ describe("prefetchTabData", () => {
 
     prefetchTabData(queryClient, entries);
 
-    expect(prefetchQuery).toHaveBeenCalledTimes(3);
+    expect(prefetchQuery).toHaveBeenCalledTimes(4);
     expect(prefetchInfiniteQuery).toHaveBeenCalledTimes(1);
   });
 });

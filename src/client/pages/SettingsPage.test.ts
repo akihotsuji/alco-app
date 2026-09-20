@@ -67,6 +67,22 @@ describe("SettingsPage S11 / S12", () => {
     expect(source).toContain("settings-logout");
   });
 
+  it("アカウント節に友達プロフィール、記録節に共有既定とノート入口、友達節にブロックがある", () => {
+    expect(source).toContain('to="/settings/profile"');
+    expect(source).toContain("友達に表示するプロフィール");
+    expect(source).toContain("SOCIAL_COPY.shareDefault");
+    expect(source).toContain('to="/notes"');
+    expect(source).toContain("テイスティングノート");
+    expect(source).toContain('to="/settings/blocks"');
+    expect(source).toContain("ブロックした相手");
+    expect(source.indexOf('<h2 className="settings-heading">友達</h2>')).toBeGreaterThan(
+      source.indexOf('<h2 className="settings-heading">記録</h2>'),
+    );
+    expect(source.indexOf('<h2 className="settings-heading">表示</h2>')).toBeGreaterThan(
+      source.indexOf('<h2 className="settings-heading">友達</h2>'),
+    );
+  });
+
   it("記録節に現在地を記録するがある", () => {
     expect(source).toContain("記録");
     expect(source).toContain("RecordLocationPrefRow");

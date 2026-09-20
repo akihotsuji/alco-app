@@ -28,7 +28,33 @@ const CELLAR_TABLES = [
   "cellar_idempotency",
 ];
 
-const APP_TABLES = [...USER_SCOPED_TABLES, "bottles", "photos", "feedbacks", "feedback_photos"];
+const SOCIAL_TABLES = [
+  "social_profiles",
+  "social_preferences",
+  "social_avatars",
+  "friend_invitations",
+  "friend_requests",
+  "friendship_epochs",
+  "social_blocks",
+  "opening_events",
+  "bottle_registration_batches",
+  "social_posts",
+  "social_post_items",
+  "social_post_recipients",
+  "reaction_types",
+  "social_reactions",
+  "social_notifications",
+  "social_operation_keys",
+];
+
+const APP_TABLES = [
+  ...USER_SCOPED_TABLES,
+  "bottles",
+  "photos",
+  "feedbacks",
+  "feedback_photos",
+  ...SOCIAL_TABLES,
+];
 
 type Journal = { entries: { idx: number; tag: string }[] };
 
@@ -266,6 +292,39 @@ describe("マイグレーション（src/db/migrations）", () => {
     );
     db.close();
   });
+
+  it("0014 は既存の記録・写真・ボトルを残し、リアクションマスタを入れる", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    applyThrough(db, "0014_friends_social");
+    insertUser(db, "u1");
+    insertBottle(db, "b1", "u1");
+    insertLog(db, "l1", "u1", { bottleId: "b1" });
+    insertNote(db, "n1", "u1", "b1", "l1");
+    insertPhoto(db, "p-bottle", "u1", { bottleId: "b1" });
+    insertPhoto(db, "p-log", "u1", { logId: "l1" });
+    applyMigration(db, "0014_friends_social");
+    expect(count(db, "bottles")).toBe(1);
+    expect(count(db, "drink_logs")).toBe(1);
+    expect(count(db, "tasting_notes")).toBe(1);
+    expect(photoIds(db)).toEqual(["p-bottle", "p-log"]);
+    expect(count(db, "cellar_members")).toBe(1);
+    const codes = (
+      db.prepare("SELECT code FROM reaction_types ORDER BY sort_order").all() as { code: string }[]
+    ).map((row) => row.code);
+    expect(codes).toEqual([
+      "like",
+      "delicious",
+      "want_to_try",
+      "surprised",
+      "celebrate",
+      "cheers",
+      "curious",
+    ]);
+    const cols = db.prepare("PRAGMA table_info('bottles')").all() as { name: string }[];
+    expect(cols.map((c) => c.name)).toContain("registration_batch_id");
+    db.close();
+  });
 });
 
 describe("0010_shared_cellar と D1 の外部キー", () => {
@@ -405,7 +464,7 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
 
   it("schema.ts の全テーブルについて列名・NOT NULL・インデックスが DB と一致する（generate 忘れ検知）", () => {
     const db = openMigratedDb();
-    expect(tables.length).toBe(25);
+    expect(tables.length).toBe(41);
     for (const table of tables) {
       const config = getTableConfig(table);
       const info = db.prepare(`PRAGMA table_info("${config.name}")`).all() as {

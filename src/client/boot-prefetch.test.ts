@@ -16,6 +16,7 @@ import { CELLAR_PREF_KEYS, DEFAULT_CELLAR_LIST_VIEW } from "@/shared/constants.t
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import {
   cellarDataPaths,
+  friendsDataPaths,
   GUEST_ONLY_PATHS,
   homeDataPaths,
   initialDataPaths,
@@ -44,6 +45,8 @@ describe("boot-prefetch の経路", () => {
       "/settings/account/delete",
       "/account-deleted",
       "/join",
+      "/friends",
+      "/friends/join",
       "/logs",
       "/logs/new",
       "/logs/entries/abc/edit",
@@ -172,6 +175,13 @@ describe("boot-prefetch の経路", () => {
     expect(notesDataPaths("?bottleId=abc")).toEqual([]);
   });
 
+  it("友達フィードの GET は useSocialFeed / unread と同じ URL になる", () => {
+    const client = createApiClient();
+    const feed = client.api.social.feed.$path({ query: { limit: "20" } });
+    const unread = client.api.social.notifications["unread-count"].$path();
+    expect(friendsDataPaths()).toEqual([feed, unread]);
+  });
+
   it("パスごとの先読み対象。ゲスト画面では /api/me を投げない", () => {
     const today = tokyoToday();
     const cellar = { storedView: null, viewportWidth: 390 };
@@ -180,6 +190,7 @@ describe("boot-prefetch の経路", () => {
       ...cellarDataPaths({ search: "", ...cellar }),
     ]);
     expect(initialDataPaths("/notes", "", today, cellar)).toEqual([...notesDataPaths("")]);
+    expect(initialDataPaths("/friends", "", today, cellar)).toEqual([...friendsDataPaths()]);
     expect(initialDataPaths("/cellar/archive", "", today, cellar)).toEqual([]);
     expect(initialDataPaths("/settings", "", today, cellar)).toEqual([]);
     expect(GUEST_ONLY_PATHS).toEqual([
@@ -191,6 +202,7 @@ describe("boot-prefetch の経路", () => {
       "/privacy",
       "/account-deleted",
       "/join",
+      "/friends/join",
     ]);
   });
 
