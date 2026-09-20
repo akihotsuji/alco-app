@@ -160,7 +160,7 @@ async function addNote(page: Page, note: (typeof DEMO_NOTES)[number], captureFor
     timeout: 20_000,
   });
   await expect(page.locator("#log-drink-name")).toHaveValue(note.name);
-  await page.getByRole("button", { name: "セラーのボトルと関連付ける（任意）" }).click();
+  await page.getByRole("button", { name: "セラーのボトルと関連付ける" }).click();
   await expect(page.getByRole("heading", { name: "ボトル" })).toBeVisible();
   await page.getByRole("button", { name: new RegExp(note.name) }).click();
   await page.getByRole("button", { name: "テイスティングを残す" }).click();
