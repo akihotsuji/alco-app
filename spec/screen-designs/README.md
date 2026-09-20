@@ -30,7 +30,7 @@ Phase 1-07 の成果物。**全画面の要素・機能・状態・遷移・イ�
 | [02-home.md](02-home.md) | `home` `summary-week` `summary-month` | 3-03 / 3-06 |
 | [03-log.md](03-log.md) | `log-day` `log-new` `log-edit` `mydrink-list` `mydrink-new` `mydrink-edit` | 3-02 〜 3-05 |
 | [04-cellar.md](04-cellar.md) | `bottle-list`（陳列。種類ごと / 1 本ずつ） `bottle-archive`（貯蔵庫） `bottle-new`（ラベル読み取り） `bottle-detail` `bottle-edit` | 4-02 〜 4-07 |
-| [05-notes.md](05-notes.md) | `note-list` `note-new` `note-detail` `note-edit` | 5-02 〜 5-04 |
+| [05-notes.md](05-notes.md) | `note-list` `note-detail`（作成・編集は記録フォーム。`note-new` / `note-edit` は廃止） | 5-02 〜 5-04 / 記録へ統合 |
 | [06-settings.md](06-settings.md) | `settings` | 2-05 / 3-07 |
 | [07-photo-capture.md](07-photo-capture.md) | `photo-edit`（撮影 → 編集 → 合成 → アップロード。記録・セラー・ノート共通） | 2-08 |
 | [08-first-run-guide.md](08-first-run-guide.md) | 初回ガイド（招待・練習。ルートなし） | 2026-09-08 |
