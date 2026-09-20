@@ -20,6 +20,7 @@ import {
   captureFriendJoinToken,
   clearReceivedInvite,
   copyText,
+  friendInviteUrl,
   reconstructStoredInviteUrl,
   rememberFriendSuccessToast,
 } from "@/client/lib/social-invite.ts";
@@ -30,30 +31,36 @@ export function FriendsJoinPage() {
   const boot = useSessionBoot();
   const me = useSocialMe(boot.kind === "authenticated");
   const viewerId = boot.kind === "authenticated" ? (me.data?.userId ?? null) : null;
-  const [token, setToken] = useState<string | null>(() =>
-    typeof window === "undefined"
-      ? null
-      : captureFriendJoinToken(
-          window.location.hash,
-          (url) => {
-            window.history.replaceState(window.history.state, "", url);
-          },
-          { userId: null },
-        ),
-  );
+  const [token, setToken] = useState<string | null>(null);
+  const [tokenReady, setTokenReady] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const preview = useInvitePreview(token);
   const request = useCreateFriendRequest();
   const navigate = useNavigate();
   useEffect(() => {
+    const next = captureFriendJoinToken(
+      window.location.hash,
+      (url) => {
+        window.history.replaceState(window.history.state, "", url);
+      },
+      { userId: viewerId },
+    );
+    if (next) {
+      setToken(next);
+    }
     if (viewerId) {
       bindReceivedInviteUser(viewerId);
     }
+    setTokenReady(true);
   }, [viewerId]);
 
   const inviteUrl =
-    typeof window === "undefined" ? null : reconstructStoredInviteUrl(window.location.origin);
+    typeof window === "undefined"
+      ? null
+      : token
+        ? friendInviteUrl(window.location.origin, token)
+        : reconstructStoredInviteUrl(window.location.origin);
 
   async function onCopy() {
     if (!inviteUrl) {
@@ -64,7 +71,7 @@ export function FriendsJoinPage() {
     setCopyFailed(!ok);
   }
 
-  if (boot.kind === "loading" || boot.kind === "slow") {
+  if (boot.kind === "loading" || boot.kind === "slow" || !tokenReady) {
     return (
       <AuthBoot variant={boot.variant ?? undefined} onRetry={boot.retry} retrying={boot.retrying} />
     );

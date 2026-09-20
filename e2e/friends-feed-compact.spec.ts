@@ -98,6 +98,18 @@ test.describe("友達近況の横型リスト", () => {
       expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(usableBottom + 1);
     }
     await expect(pageB.getByText("＋1本")).toBeVisible();
+
+    const guest = await browser.newContext({
+      viewport: VIEWPORT,
+      locale: "ja-JP",
+      serviceWorkers: "block",
+    });
+    const guestPage = await guest.newPage();
+    await guestPage.goto(`/friends/join#t=${token}`);
+    await expect(guestPage.getByRole("link", { name: "ログインして続ける" })).toBeVisible();
+    await expect(guestPage.getByRole("button", { name: "招待リンクをコピー" })).toBeVisible();
+    await expect(guestPage.getByText("ホーム画面から酒のしおりを開き")).toBeVisible();
+    await guest.close();
     await pageB.close();
   });
 });
