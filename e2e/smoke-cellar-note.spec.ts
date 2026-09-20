@@ -26,7 +26,7 @@ test("ボトルを登録してから記録でノートを残し、詳細がボ�
   await page.getByRole("link", { name: "記録する" }).click();
 
   await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
-  await page.getByRole("button", { name: "セラーのボトルと関連付ける（任意）" }).click();
+  await page.getByRole("button", { name: "セラーのボトルと関連付ける" }).click();
   await expect(page.getByRole("heading", { name: "ボトル" })).toBeVisible();
   await page.getByRole("button", { name: new RegExp(BOTTLE_NAME) }).click();
 
