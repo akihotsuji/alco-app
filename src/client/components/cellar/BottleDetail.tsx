@@ -235,9 +235,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             {heroImage}
           </button>
         ) : (
-          <div className={heroClass}>
-            {heroImage}
-          </div>
+          <div className={heroClass}>{heroImage}</div>
         )}
         {backPhoto ? (
           <button

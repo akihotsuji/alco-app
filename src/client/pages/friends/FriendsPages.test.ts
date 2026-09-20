@@ -20,7 +20,10 @@ describe("FriendsPages 一覧の名前", () => {
     expect(css).toContain(".friends-row > .app-btn");
     expect(css).toContain("writing-mode: horizontal-tb");
     expect(css).toContain(".friends-row-name");
-    const nameBlock = css.slice(css.indexOf(".friends-row-name"), css.indexOf(".friends-header-actions"));
+    const nameBlock = css.slice(
+      css.indexOf(".friends-row-name"),
+      css.indexOf(".friends-header-actions"),
+    );
     expect(nameBlock).toContain("white-space: nowrap");
     expect(nameBlock).toContain("text-overflow: ellipsis");
   });
