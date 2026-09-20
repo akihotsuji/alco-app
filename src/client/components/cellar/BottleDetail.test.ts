@@ -4,10 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { bottleStatusPill } from "@/client/lib/bottle-form.ts";
 
-const source = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "BottleDetail.tsx"),
-  "utf8",
-);
+const here = dirname(fileURLToPath(import.meta.url));
+const source = readFileSync(join(here, "BottleDetail.tsx"), "utf8");
+const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
 describe("BottleDetail 状態バッジ", () => {
   it("棚は未開栓、貯蔵庫は開栓日付きの consumed クラス", () => {
@@ -71,5 +70,11 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).toContain("PhotoViewer");
     expect(source).toContain("checkerboard");
     expect(source).not.toContain("bottle-lightbox");
+  });
+
+  it("表面写真の下にガラス棚板や傍線を置かない", () => {
+    expect(source).not.toContain("bottle-hero-shelf");
+    expect(source).not.toContain("shelf-board");
+    expect(css).not.toContain(".bottle-hero-shelf");
   });
 });
