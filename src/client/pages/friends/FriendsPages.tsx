@@ -115,7 +115,7 @@ export function FriendsListPage() {
       {data?.incoming.map((request) => (
         <div key={request.id} className="friends-row">
           <SocialAvatar profile={request.peer} />
-          <span>{request.peer.nickname}</span>
+          <span className="friends-row-name">{request.peer.nickname}</span>
           <Button type="button" onClick={() => accept.mutate(request.id)}>
             承認
           </Button>
@@ -128,7 +128,7 @@ export function FriendsListPage() {
       {data?.outgoing.map((request) => (
         <div key={request.id} className="friends-row">
           <SocialAvatar profile={request.peer} />
-          <span>{request.peer.nickname}</span>
+          <span className="friends-row-name">{request.peer.nickname}</span>
           <Button type="button" variant="ghost" onClick={() => cancel.mutate(request.id)}>
             取り消す
           </Button>
@@ -140,7 +140,7 @@ export function FriendsListPage() {
         <div key={friend.userId} className="friends-row">
           <Link className="friends-row-link" to={`/friends/profile/${friend.userId}`}>
             <SocialAvatar profile={friend} />
-            <span>{friend.nickname}</span>
+            <span className="friends-row-name">{friend.nickname}</span>
           </Link>
           <Button type="button" variant="ghost" onClick={() => setTarget(friend.userId)}>
             解除
@@ -350,7 +350,7 @@ export function FriendsProfilePage() {
     <div className="friends-profile">
       <div className="friends-row">
         <SocialAvatar profile={profile.data} size={56} />
-        <h2>{profile.data.nickname}</h2>
+        <h2 className="friends-row-name">{profile.data.nickname}</h2>
       </div>
       {items.map((post) => (
         <PostCard key={post.id} post={post} compact />
@@ -646,7 +646,7 @@ export function SettingsBlocksPage() {
       {blocks.data?.items.map((item) => (
         <div key={item.userId} className="friends-row">
           <SocialAvatar profile={item} />
-          <span>{item.nickname}</span>
+          <span className="friends-row-name">{item.nickname}</span>
           <Button type="button" variant="ghost" onClick={() => unblock.mutate(item.userId)}>
             解除
           </Button>
