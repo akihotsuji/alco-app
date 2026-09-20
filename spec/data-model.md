@@ -728,7 +728,7 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 
 `bottles.registration_batch_id` は nullable の追加列（FK なし。アプリが検証。テーブル再作成を避ける）。
 
-公開用ひとことは `tasting_notes.taste`。`drink_logs.memo` は投影しない。受信対象は `social_post_recipients`（`friendship_epoch_id`）に固定する。
+公開用ひとことは `tasting_notes.taste`。`drink_logs.memo` は投影しない。受信対象は `social_post_recipients`（`friendship_epoch_id`）に固定する。友達への表示名の正本は `user.name`。`social_profiles.nickname` は互換列として残し、表示には使わない。行がなくても友達機能は使える。
 
 ---
 

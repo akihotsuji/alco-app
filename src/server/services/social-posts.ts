@@ -29,14 +29,11 @@ import type { PhotoBucket } from "./photos.ts";
 import { photoContentEtag, readOwnedPhotoContent } from "./photos.ts";
 import {
   fallbackProfile,
-  getSocialProfile,
   isBlockedEitherWay,
   listActiveFriendEpochs,
   listActiveFriendIds,
   loadProfiles,
-  requireCompletedProfile,
   requireViewablePost,
-  toPublicProfile,
   viewerIdOfEpoch,
 } from "./social-access.ts";
 import { deleteNotificationsForTarget } from "./social-notifications.ts";
@@ -55,7 +52,6 @@ export async function createSocialShare(input: {
   now?: Date;
 }): Promise<{ post: SocialPost | null; created: boolean }> {
   const now = input.now ?? new Date();
-  await requireCompletedProfile(input.db, input.userId);
   if (!socialShareRateLimiter.consume(input.userId, now.getTime())) {
     throw new ApiError("rate_limited");
   }
@@ -993,11 +989,7 @@ async function projectPosts(
     if (projectedItems.length === 0) {
       continue;
     }
-    let author = authors.get(post.authorUserId);
-    if (!author) {
-      const row = await getSocialProfile(db, post.authorUserId);
-      author = row ? toPublicProfile(row) : fallbackProfile(post.authorUserId);
-    }
+    const author = authors.get(post.authorUserId) ?? fallbackProfile(post.authorUserId);
     result.push({
       id: post.id,
       kind: post.kind,

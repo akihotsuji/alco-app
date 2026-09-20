@@ -8,6 +8,7 @@ import { authClient } from "@/client/lib/auth-client.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { AUTH_NAME_MAX_LENGTH, AUTH_NAME_MESSAGE, displayNameSchema } from "@/shared/auth.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 
 type DisplayNameRowProps = {
   name: string;
@@ -55,6 +56,12 @@ export function DisplayNameRow({ name }: DisplayNameRowProps) {
     }
     closeEditRef.current = true;
     await queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.socialMe });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.socialFeed });
+    void queryClient.invalidateQueries({ queryKey: ["social-posts"] });
+    void queryClient.invalidateQueries({ queryKey: ["social-profiles"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.friends });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.socialNotifications });
     setEditing(false);
     showToast({ message: TOAST_MESSAGES.saved });
   }
@@ -105,7 +112,9 @@ export function DisplayNameRow({ name }: DisplayNameRowProps) {
           <p className="settings-caption settings-error" role="alert">
             {error}
           </p>
-        ) : null}
+        ) : (
+          <p className="settings-caption">{SOCIAL_COPY.displayNameHint}</p>
+        )}
       </div>
     );
   }
@@ -113,7 +122,7 @@ export function DisplayNameRow({ name }: DisplayNameRowProps) {
   return (
     <button
       type="button"
-      className="settings-row"
+      className="settings-row settings-row-stack"
       onClick={() => {
         closeEditRef.current = false;
         setError(null);
@@ -121,11 +130,14 @@ export function DisplayNameRow({ name }: DisplayNameRowProps) {
         setEditing(true);
       }}
     >
-      <span>表示名</span>
-      <span className="settings-value-with-chevron">
-        <span className="settings-value">{name || "未設定"}</span>
-        <ChevronRight size={20} className="settings-chevron" aria-hidden />
+      <span className="settings-row-main">
+        <span>表示名</span>
+        <span className="settings-value-with-chevron">
+          <span className="settings-value">{name || "未設定"}</span>
+          <ChevronRight size={20} className="settings-chevron" aria-hidden />
+        </span>
       </span>
+      <span className="settings-caption">{SOCIAL_COPY.displayNameHint}</span>
     </button>
   );
 }

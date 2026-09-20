@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 import { TypeGridHost } from "@/client/components/cellar/TypeGridHost.tsx";
 import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { SwUpdateHost } from "@/client/components/feedback/SwUpdateHost.tsx";
-import { ToastHost } from "@/client/components/feedback/ToastProvider.tsx";
+import { ToastHost, useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { FirstRunGuideHost } from "@/client/components/guide/FirstRunGuideHost.tsx";
 import {
   FirstRunGuideProvider,
@@ -31,6 +31,7 @@ import {
 } from "@/client/lib/app-routes.ts";
 import { appShellClassName } from "@/client/lib/device-chrome.ts";
 import { isGuidePracticeStep } from "@/client/lib/first-run-guide.ts";
+import { consumeFriendSuccessToast } from "@/client/lib/social-invite.ts";
 
 export const REDUCE_MOTION_ATTR = "data-reduce-motion";
 
@@ -50,6 +51,7 @@ export function AppShell() {
 function AppShellFrame() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const photoEdit = usePhotoEdit();
   const typeGrid = useTypeGrid();
   const guide = useFirstRunGuide();
@@ -69,6 +71,16 @@ function AppShellFrame() {
     title: override.title ?? route.header.title,
     titleMuted: override.titleMuted ?? route.header.titleMuted,
   };
+
+  useEffect(() => {
+    if (location.pathname !== "/") {
+      return;
+    }
+    const message = consumeFriendSuccessToast();
+    if (message) {
+      showToast({ message });
+    }
+  }, [location.pathname, showToast]);
 
   // CSS 側の reduced motion はこの属性 1 つに集約する（motion-design 6.8）
   useEffect(() => {

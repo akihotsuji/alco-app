@@ -7,8 +7,13 @@ import {
   socialPosts,
   socialPreferences,
   socialProfiles,
+  user,
 } from "@/db/schema.ts";
-import { DEFAULT_MASCOT_COLOR, type SocialPublicProfile } from "@/shared/social.ts";
+import {
+  DEFAULT_MASCOT_COLOR,
+  resolvePublicDisplayName,
+  type SocialPublicProfile,
+} from "@/shared/social.ts";
 import { ApiError } from "../errors.ts";
 
 export function pairIds(a: string, b: string): { low: string; high: string } {
@@ -68,17 +73,6 @@ export async function getSocialProfile(db: AppBatchDb, userId: string) {
   return row ?? null;
 }
 
-export async function requireCompletedProfile(db: AppBatchDb, userId: string) {
-  const profile = await getSocialProfile(db, userId);
-  if (!profile) {
-    throw new ApiError("conflict", {
-      fields: { "": ["友達に表示する名前を先に設定してください"] },
-      conflict: { reason: "profile_incomplete" },
-    });
-  }
-  return profile;
-}
-
 export async function getOrCreatePreferences(db: AppBatchDb, userId: string, now = new Date()) {
   const [existing] = await db
     .select()
@@ -99,19 +93,20 @@ export async function getOrCreatePreferences(db: AppBatchDb, userId: string, now
   return created ?? { userId, shareDefaultOn: true, updatedAt: now };
 }
 
-export function toPublicProfile(row: {
+export function toPublicProfile(input: {
   userId: string;
-  nickname: string;
-  avatarMode: "mascot" | "uploaded";
-  mascotColor: string;
-  avatarId: string | null;
+  accountName?: string | null;
+  avatarMode?: "mascot" | "uploaded" | null;
+  mascotColor?: string | null;
+  avatarId?: string | null;
 }): SocialPublicProfile {
+  const uploaded = input.avatarMode === "uploaded" && Boolean(input.avatarId);
   return {
-    userId: row.userId,
-    nickname: row.nickname,
-    avatarMode: row.avatarMode,
-    mascotColor: row.mascotColor,
-    hasCustomAvatar: row.avatarMode === "uploaded" && Boolean(row.avatarId),
+    userId: input.userId,
+    nickname: resolvePublicDisplayName(input.accountName),
+    avatarMode: uploaded ? "uploaded" : "mascot",
+    mascotColor: input.mascotColor || DEFAULT_MASCOT_COLOR,
+    hasCustomAvatar: uploaded,
   };
 }
 
@@ -124,17 +119,35 @@ export async function loadProfiles(
   if (unique.length === 0) {
     return map;
   }
-  const rows = await db.select().from(socialProfiles).where(inArray(socialProfiles.userId, unique));
+  const rows = await db
+    .select({
+      userId: user.id,
+      accountName: user.name,
+      avatarMode: socialProfiles.avatarMode,
+      mascotColor: socialProfiles.mascotColor,
+      avatarId: socialProfiles.avatarId,
+    })
+    .from(user)
+    .leftJoin(socialProfiles, eq(socialProfiles.userId, user.id))
+    .where(inArray(user.id, unique));
   for (const row of rows) {
     map.set(row.userId, toPublicProfile(row));
   }
   return map;
 }
 
+export async function loadPublicProfile(
+  db: AppBatchDb,
+  userId: string,
+): Promise<SocialPublicProfile | null> {
+  const map = await loadProfiles(db, [userId]);
+  return map.get(userId) ?? null;
+}
+
 export function fallbackProfile(userId: string): SocialPublicProfile {
   return {
     userId,
-    nickname: "友達",
+    nickname: resolvePublicDisplayName(""),
     avatarMode: "mascot",
     mascotColor: DEFAULT_MASCOT_COLOR,
     hasCustomAvatar: false,

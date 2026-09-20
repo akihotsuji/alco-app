@@ -13,13 +13,11 @@ import { ApiError } from "../errors.ts";
 import {
   fallbackProfile,
   getActiveEpoch,
-  getSocialProfile,
   isBlockedEitherWay,
   listActiveFriendIds,
   loadProfiles,
+  loadPublicProfile,
   pairIds,
-  requireCompletedProfile,
-  toPublicProfile,
 } from "./social-access.ts";
 import {
   friendInviteJoinUrl,
@@ -43,7 +41,6 @@ export async function createOrGetInvitation(input: {
   now?: Date;
 }): Promise<FriendInvitation> {
   const now = input.now ?? new Date();
-  await requireCompletedProfile(input.db, input.userId);
   if (!socialInviteCreateRateLimiter.consume(input.userId, now.getTime())) {
     throw new ApiError("rate_limited");
   }
@@ -70,7 +67,6 @@ export async function currentInvitationForOwner(input: {
   now?: Date;
 }): Promise<FriendInvitation> {
   const now = input.now ?? new Date();
-  await requireCompletedProfile(input.db, input.userId);
   if (input.token) {
     const tokenHash = await hashInviteToken(input.token);
     const [row] = await input.db
@@ -115,7 +111,6 @@ export async function reissueInvitation(input: {
   now?: Date;
 }): Promise<FriendInvitation> {
   const now = input.now ?? new Date();
-  await requireCompletedProfile(input.db, input.userId);
   if (!socialInviteCreateRateLimiter.consume(input.userId, now.getTime())) {
     throw new ApiError("rate_limited");
   }
@@ -169,10 +164,10 @@ export async function previewInvitation(
     };
   }
   if (invitation.ownerUserId === viewerId) {
-    const profile = await getSocialProfile(db, viewerId);
+    const profile = await loadPublicProfile(db, viewerId);
     return {
       status: "ok",
-      profile: profile ? toPublicProfile(profile) : fallbackProfile(viewerId),
+      profile: profile ?? fallbackProfile(viewerId),
       alreadyFriends: false,
       alreadyRequested: false,
       reversePending: false,
@@ -187,12 +182,12 @@ export async function previewInvitation(
       reversePending: false,
     };
   }
-  const owner = await getSocialProfile(db, invitation.ownerUserId);
+  const owner = await loadPublicProfile(db, invitation.ownerUserId);
   const epoch = await getActiveEpoch(db, viewerId, invitation.ownerUserId);
   const pending = await findPendingRequest(db, viewerId, invitation.ownerUserId);
   return {
     status: "ok",
-    profile: owner ? toPublicProfile(owner) : fallbackProfile(invitation.ownerUserId),
+    profile: owner ?? fallbackProfile(invitation.ownerUserId),
     alreadyFriends: Boolean(epoch),
     alreadyRequested: pending?.requesterUserId === viewerId,
     reversePending: pending?.requesterUserId === invitation.ownerUserId,
@@ -206,7 +201,6 @@ export async function createFriendRequest(input: {
   now?: Date;
 }): Promise<{ request: FriendRequest }> {
   const now = input.now ?? new Date();
-  await requireCompletedProfile(input.db, input.requesterUserId);
   if (!socialRequestRateLimiter.consume(input.requesterUserId, now.getTime())) {
     throw new ApiError("rate_limited");
   }
@@ -269,7 +263,6 @@ export async function acceptFriendRequest(input: {
   now?: Date;
 }): Promise<{ ok: true }> {
   const now = input.now ?? new Date();
-  await requireCompletedProfile(input.db, input.userId);
   const request = await loadRawRequest(input.db, input.requestId);
   if (!request || request.recipientUserId !== input.userId) {
     throw new ApiError("not_found");
@@ -528,12 +521,12 @@ async function loadRequest(db: AppBatchDb, id: string, viewerId: string): Promis
     throw new ApiError("not_found");
   }
   const peerId = row.requesterUserId === viewerId ? row.recipientUserId : row.requesterUserId;
-  const profile = await getSocialProfile(db, peerId);
+  const profile = await loadPublicProfile(db, peerId);
   return {
     id: row.id,
     status: row.status,
     createdAt: row.createdAt.toISOString(),
-    peer: profile ? toPublicProfile(profile) : fallbackProfile(peerId),
+    peer: profile ?? fallbackProfile(peerId),
     direction: row.requesterUserId === viewerId ? "outgoing" : "incoming",
   };
 }

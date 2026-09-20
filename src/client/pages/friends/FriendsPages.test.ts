@@ -7,6 +7,22 @@ const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "FriendsPages.tsx"), "utf8");
 const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
+describe("FriendsPages 近況と入口", () => {
+  it("一覧は横型カードで、プロフィール必須案内を出さない", () => {
+    expect(source).toContain("PostCard");
+    expect(source).toContain("eagerPhoto");
+    expect(source).toContain("SOCIAL_COPY.pasteInvite");
+    expect(source).toContain("友達を招待");
+    expect(source).toContain('to="/friends/invite"');
+    expect(source).toContain('to="/friends/join"');
+    expect(source).not.toContain("profileRequired");
+    expect(source).not.toContain("友達に表示する名前");
+    expect(css).toContain(".social-feed-card");
+    expect(css).toContain(".social-feed-thumb");
+    expect(css).toContain(".social-card-photo");
+  });
+});
+
 describe("FriendsPages 一覧の名前", () => {
   it("友達・申請・ブロックの名前に横書き用クラスを付ける", () => {
     expect(source).toContain("friends-row-name");

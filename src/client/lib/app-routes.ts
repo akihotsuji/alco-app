@@ -414,7 +414,7 @@ export function resolveAppRoute(
       return formRoute("settings-feedback", "settings", FEEDBACK_COPY.title, "/settings");
     }
     if (segments[1] === "profile" && segments.length === 2) {
-      return formRoute("settings-profile", "settings", "友達に表示するプロフィール", "/settings");
+      return formRoute("settings-profile", "settings", "アイコン", "/settings");
     }
     if (segments[1] === "blocks" && segments.length === 2) {
       return found("settings-blocks", "settings", backHeader("ブロックした相手", "/settings"));

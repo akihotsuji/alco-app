@@ -1,4 +1,5 @@
 import { authClient } from "@/client/lib/auth-client.ts";
+import { clearFriendSessionArtifacts } from "@/client/lib/social-invite.ts";
 
 export type EndSessionDeps = {
   /** Better Auth のサインアウト。成功すればクライアントのセッション store が自動で再取得される。 */
@@ -17,6 +18,7 @@ export function createEndSessionHandler(deps: EndSessionDeps): () => Promise<voi
   let inFlight: Promise<void> | null = null;
 
   const run = async () => {
+    clearFriendSessionArtifacts();
     const result = await deps.signOut().catch((error: unknown) => ({ error }));
     if (result.error) {
       deps.refreshSession();

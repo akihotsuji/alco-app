@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, useState } from "react";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { socialAvatarUrl } from "@/client/hooks/use-social.ts";
 import {
@@ -17,7 +17,9 @@ type SocialAvatarProps = {
 
 export function SocialAvatar({ profile, size = 40 }: SocialAvatarProps) {
   const color = profile.mascotColor || DEFAULT_MASCOT_COLOR;
-  if (profile.avatarMode === "uploaded" && profile.hasCustomAvatar) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = profile.avatarMode === "uploaded" && profile.hasCustomAvatar && !imageFailed;
+  if (showImage) {
     return (
       <img
         className="social-avatar-image"
@@ -25,6 +27,7 @@ export function SocialAvatar({ profile, size = 40 }: SocialAvatarProps) {
         alt=""
         width={size}
         height={size}
+        onError={() => setImageFailed(true)}
       />
     );
   }

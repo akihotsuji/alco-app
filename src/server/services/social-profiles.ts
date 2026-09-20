@@ -11,6 +11,7 @@ import {
   DEFAULT_MASCOT_COLOR,
   mascotColorSchema,
   SOCIAL_AVATAR_MAX_BYTES,
+  SOCIAL_FALLBACK_DISPLAY_NAME,
   type SocialMe,
   type SocialPreferences,
 } from "@/shared/social.ts";
@@ -19,28 +20,25 @@ import { ImageInspectFailure, inspectImageBytes } from "./image-inspect.ts";
 import type { PhotoBucket } from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
 import {
-  fallbackProfile,
   getOrCreatePreferences,
   getSocialProfile,
   listActiveFriendIds,
-  toPublicProfile,
+  loadPublicProfile,
 } from "./social-access.ts";
 
 export type { SocialProfilePatch } from "@/shared/social.ts";
 
 export async function getSocialMe(db: AppBatchDb, userId: string): Promise<SocialMe> {
-  const profile = await getSocialProfile(db, userId);
   const friends = await listActiveFriendIds(db, userId);
-  if (!profile) {
-    return {
-      ...fallbackProfile(userId),
-      nickname: "",
-      profileCompleted: false,
-      friendCount: friends.length,
-    };
-  }
+  const profile = await loadPublicProfile(db, userId);
   return {
-    ...toPublicProfile(profile),
+    ...(profile ?? {
+      userId,
+      nickname: SOCIAL_FALLBACK_DISPLAY_NAME,
+      avatarMode: "mascot" as const,
+      mascotColor: DEFAULT_MASCOT_COLOR,
+      hasCustomAvatar: false,
+    }),
     profileCompleted: true,
     friendCount: friends.length,
   };
@@ -53,44 +51,31 @@ export async function updateSocialProfile(
   now = new Date(),
 ): Promise<SocialMe> {
   const current = await getSocialProfile(db, userId);
-  const nickname = patch.nickname ?? current?.nickname;
-  if (!nickname) {
-    throw new ApiError("validation_error", {
-      fields: { nickname: ["友達に表示する名前を入力してください"] },
-    });
-  }
-  const mascotColor = mascotColorSchema.parse(
-    patch.mascotColor ?? current?.mascotColor ?? DEFAULT_MASCOT_COLOR,
-  );
-  let avatarMode = patch.avatarMode ?? current?.avatarMode ?? "mascot";
-  let avatarId = current?.avatarId ?? null;
-  if (avatarMode === "uploaded" && !avatarId) {
-    avatarMode = "mascot";
-  }
-  if (avatarMode === "mascot") {
-    avatarId = current?.avatarId ?? null;
-  }
-  if (current) {
-    await db
-      .update(socialProfiles)
-      .set({
-        nickname,
-        avatarMode,
-        mascotColor,
-        avatarId,
-        updatedAt: now,
-      })
-      .where(eq(socialProfiles.userId, userId));
-  } else {
-    await db.insert(socialProfiles).values({
+  const hasAppearanceChange = patch.mascotColor !== undefined || patch.avatarMode !== undefined;
+  if (hasAppearanceChange) {
+    const mascotColor = mascotColorSchema.parse(
+      patch.mascotColor ?? current?.mascotColor ?? DEFAULT_MASCOT_COLOR,
+    );
+    let avatarMode = patch.avatarMode ?? current?.avatarMode ?? "mascot";
+    const avatarId = current?.avatarId ?? null;
+    if (avatarMode === "uploaded" && !avatarId) {
+      avatarMode = "mascot";
+    }
+    await upsertSocialProfileRow(db, {
       userId,
-      nickname,
-      avatarMode,
+      now,
       mascotColor,
+      avatarMode,
       avatarId,
-      profileCompletedAt: now,
-      createdAt: now,
-      updatedAt: now,
+    });
+  } else {
+    // 旧クライアントの nickname だけは受け取り、アカウント名も専用名も上書きしない
+    await upsertSocialProfileRow(db, {
+      userId,
+      now,
+      mascotColor: current?.mascotColor ?? DEFAULT_MASCOT_COLOR,
+      avatarMode: current?.avatarMode ?? "mascot",
+      avatarId: current?.avatarId ?? null,
     });
   }
   return getSocialMe(db, userId);
@@ -126,7 +111,10 @@ export async function uploadSocialAvatar(input: {
   now?: Date;
 }): Promise<SocialMe> {
   const now = input.now ?? new Date();
-  await requireCompletedOrCreatePlaceholder(input.db, input.userId);
+  await upsertSocialProfileRow(input.db, {
+    userId: input.userId,
+    now,
+  });
   let inspected: ReturnType<typeof inspectImageBytes>;
   try {
     inspected = inspectImageBytes(input.bytes, {
@@ -191,7 +179,7 @@ export async function deleteSocialAvatar(input: {
   const now = input.now ?? new Date();
   const current = await getSocialProfile(input.db, input.userId);
   if (!current) {
-    throw new ApiError("not_found");
+    return getSocialMe(input.db, input.userId);
   }
   await input.db
     .update(socialProfiles)
@@ -222,15 +210,46 @@ async function retireAvatar(db: AppBatchDb, bucket: PhotoBucket, avatarId: strin
   }
 }
 
-async function requireCompletedOrCreatePlaceholder(db: AppBatchDb, userId: string) {
-  const current = await getSocialProfile(db, userId);
+export async function upsertSocialProfileRow(
+  db: AppBatchDb,
+  input: {
+    userId: string;
+    now: Date;
+    mascotColor?: string;
+    avatarMode?: "mascot" | "uploaded";
+    avatarId?: string | null;
+  },
+) {
+  const current = await getSocialProfile(db, input.userId);
   if (current) {
-    return current;
+    const next = {
+      mascotColor: input.mascotColor ?? current.mascotColor,
+      avatarMode: input.avatarMode ?? current.avatarMode,
+      avatarId: input.avatarId === undefined ? current.avatarId : input.avatarId,
+      updatedAt: input.now,
+    };
+    await db.update(socialProfiles).set(next).where(eq(socialProfiles.userId, input.userId));
+    return;
   }
-  throw new ApiError("conflict", {
-    fields: { "": ["友達に表示する名前を先に設定してください"] },
-    conflict: { reason: "profile_incomplete" },
-  });
+  await db
+    .insert(socialProfiles)
+    .values({
+      userId: input.userId,
+      nickname: "",
+      avatarMode: input.avatarMode ?? "mascot",
+      mascotColor: input.mascotColor ?? DEFAULT_MASCOT_COLOR,
+      avatarId: input.avatarId ?? null,
+      profileCompletedAt: input.now,
+      createdAt: input.now,
+      updatedAt: input.now,
+    })
+    .onConflictDoUpdate({
+      target: socialProfiles.userId,
+      set: {
+        mascotColor: input.mascotColor ?? DEFAULT_MASCOT_COLOR,
+        updatedAt: input.now,
+      },
+    });
 }
 
 export async function canReadAvatar(

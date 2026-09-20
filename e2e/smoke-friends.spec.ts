@@ -6,11 +6,9 @@ test("友達タブが空状態で、ノートは設定から開ける", async ({
 
   await mainNav(page).getByRole("button", { name: "設定" }).click();
   await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
-  await page.getByRole("link", { name: "友達に表示するプロフィール" }).click();
-  await expect(page.getByRole("heading", { name: "友達に表示するプロフィール" })).toBeVisible();
-  await page.getByLabel("友達に表示する名前").fill("アリス");
-  await page.getByRole("button", { name: "保存する" }).click();
-  await expect(page.getByText("保存しました")).toBeVisible();
+  await page.getByRole("link", { name: "アイコン（任意）" }).click();
+  await expect(page.getByRole("heading", { name: "アイコン" })).toBeVisible();
+  await expect(page.getByText("アイコンは任意です")).toBeVisible();
   await page.getByRole("button", { name: "戻る" }).click();
   await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
   await page.getByRole("link", { name: "テイスティングノート" }).click();
@@ -21,6 +19,7 @@ test("友達タブが空状態で、ノートは設定から開ける", async ({
   await expect(
     page.getByText("友達を追加すると、共有されたお酒の記録がここに表示されます"),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "招待リンクを貼る" })).toBeVisible();
   await page.getByRole("link", { name: "友達を招待" }).click();
   await expect(page.getByRole("heading", { name: "招待" })).toBeVisible();
   await expect(

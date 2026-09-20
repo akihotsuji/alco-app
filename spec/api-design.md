@@ -873,7 +873,7 @@ DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{
 
 ### 4.12 友達・近況
 
-正本は [features/friends-social.md](features/friends-social.md)。公開エンドポイントは増やさない。受信者一覧をクライアントから受け取らない。投稿本文・author・公開時刻はサーバーが決める。
+正本は [features/friends-social.md](features/friends-social.md)。公開エンドポイントは増やさない。受信者一覧をクライアントから受け取らない。投稿本文・author・公開時刻はサーバーが決める。公開名は `user.name` から解決する。`PATCH /api/social/me` の `nickname` は旧クライアント互換で受け取るがアカウント名を上書きしない。`profileCompleted` は互換のため常に true。プロフィール行なしでも招待・申請・承認・共有できる。
 
 | 操作 | パス |
 |---|---|

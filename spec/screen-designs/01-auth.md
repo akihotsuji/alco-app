@@ -84,7 +84,7 @@
 | # | 要素 | 内容 |
 |---|---|---|
 | S1 | 見出し | 「アカウント作成」 |
-| S2 | 表示名 | Input、任意、1〜40 文字。Better Auth `name` |
+| S2 | 表示名 | Input、任意、1〜40 文字。Better Auth `name`。補足「ニックネーム（友達にも表示されます）」 |
 | S3 | メール | 必須 |
 | S4 | パスワード | 必須。8 文字以上（Better Auth 既定）。`autocomplete=new-password`。強度メーターは置かない |
 | S5 | 登録する | Button 主 → 成功後は自動ログインして `/age`（`redirect` があれば `/age?redirect=`） |

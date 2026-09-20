@@ -10,7 +10,12 @@ import {
   socialPostSchema,
 } from "@/shared/social.ts";
 import { makeJpeg } from "../image-fixtures.ts";
-import { createTestApp, createTestUser, createUnverifiedTestUser } from "../test-helpers.ts";
+import {
+  createTestApp,
+  createTestUser,
+  createUnverifiedTestUser,
+  updateUserName,
+} from "../test-helpers.ts";
 
 type App = Awaited<ReturnType<typeof createTestApp>>["app"];
 
@@ -130,26 +135,90 @@ describe("友達・近況 API の認可", () => {
     expect(((await res.json()) as { error: string }).error).toBe("age_required");
   });
 
-  it("プロフィール未設定・友達0では個人保存でき、共有は conflict", async () => {
+  it("プロフィール行なし・友達0では個人保存でき、共有は conflict", async () => {
     const { app } = await createTestApp();
     const a = await user(app, "a@example.com");
-    const log = await createLog(app, a.cookie);
-    const noProfile = await share(app, a.cookie, { kind: "drink_log", drinkLogId: log.id });
-    expect(noProfile.status).toBe(409);
-    expect(apiErrorBodySchema.parse(await noProfile.json()).conflict?.reason).toBe(
-      "profile_incomplete",
-    );
+    const me = await app.request("/api/social/me", { headers: cookieHeaders(a.cookie) });
+    expect(me.status).toBe(200);
+    const meBody = (await me.json()) as { nickname: string; profileCompleted: boolean };
+    expect(meBody.nickname).toBe("a");
+    expect(meBody.profileCompleted).toBe(true);
 
-    await completeProfile(app, a.cookie, "アリス");
+    const log = await createLog(app, a.cookie);
     const noFriends = await share(app, a.cookie, { kind: "drink_log", drinkLogId: log.id });
     expect(noFriends.status).toBe(409);
     const body = apiErrorBodySchema.parse(await noFriends.json());
     expect(body.fields?.[""]).toContain(SOCIAL_MESSAGES.noFriends);
+    expect(body.conflict?.reason).not.toBe("profile_incomplete");
 
     const kept = await app.request(`/api/drink-logs/${log.id}`, {
       headers: { Cookie: a.cookie },
     });
     expect(kept.status).toBe(200);
+  });
+
+  it("表示名はアカウント名が正本で、旧 nickname では上書きしない", async () => {
+    const { app } = await createTestApp();
+    const a = await createTestUser(app, {
+      name: "アカウント名",
+      email: "name-canon@example.com",
+      password: "password1",
+    });
+    const patched = await app.request("/api/social/me", {
+      method: "PATCH",
+      headers: jsonHeaders(a.cookie),
+      body: JSON.stringify({ nickname: "旧友達名" }),
+    });
+    expect(patched.status).toBe(200);
+    expect(((await patched.json()) as { nickname: string }).nickname).toBe("アカウント名");
+
+    const renamed = await updateUserName(app, a.cookie, "新しい表示名");
+    expect(renamed.status).toBe(200);
+    const after = await app.request("/api/social/me", { headers: cookieHeaders(a.cookie) });
+    expect(((await after.json()) as { nickname: string }).nickname).toBe("新しい表示名");
+  });
+
+  it("空の表示名はユーザー、40文字は友達用制約で拒否しない", async () => {
+    const { app } = await createTestApp();
+    const empty = await createTestUser(app, {
+      name: "",
+      email: "empty-name@example.com",
+      password: "password1",
+    });
+    const emptyMe = await app.request("/api/social/me", { headers: cookieHeaders(empty.cookie) });
+    expect(((await emptyMe.json()) as { nickname: string }).nickname).toBe("ユーザー");
+
+    const long = "あ".repeat(40);
+    const named = await createTestUser(app, {
+      name: long,
+      email: "long-name@example.com",
+      password: "password1",
+    });
+    const longMe = await app.request("/api/social/me", { headers: cookieHeaders(named.cookie) });
+    expect(((await longMe.json()) as { nickname: string }).nickname).toBe(long);
+  });
+
+  it("プロフィール行なしでも招待・申請・承認できる", async () => {
+    const { app } = await createTestApp();
+    const a = await user(app, "invite-a@example.com");
+    const b = await user(app, "invite-b@example.com");
+    const token = await inviteToken(app, a.cookie);
+    const created = await app.request("/api/friends/requests", {
+      method: "POST",
+      headers: jsonHeaders(b.cookie),
+      body: JSON.stringify({ token }),
+    });
+    expect(created.status).toBe(201);
+    const requestId = ((await created.json()) as { request: { id: string } }).request.id;
+    const accept = await app.request(`/api/friends/requests/${requestId}/accept`, {
+      method: "POST",
+      headers: cookieHeaders(a.cookie),
+    });
+    expect(accept.status).toBe(200);
+    const friends = await app.request("/api/friends", { headers: { Cookie: a.cookie } });
+    expect(
+      ((await friends.json()) as { friends: { nickname: string }[] }).friends[0]?.nickname,
+    ).toBe("invite-b");
   });
 
   it("同一オリジンでない更新は拒否する", async () => {

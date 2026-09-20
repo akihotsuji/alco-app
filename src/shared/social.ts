@@ -4,6 +4,11 @@ import { PHOTO_CONTENT_TYPES } from "./constants.ts";
 
 export const SOCIAL_NICKNAME_MIN = 1;
 export const SOCIAL_NICKNAME_MAX = 30;
+/** 友達への表示名が空のときの表示。アカウント名へは書き込まない */
+export const SOCIAL_FALLBACK_DISPLAY_NAME = "ユーザー";
+export const INVITE_TOKEN_MIN = 32;
+export const INVITE_TOKEN_MAX = 128;
+export const INVITE_TOKEN_PATTERN = /^[A-Za-z0-9_-]+$/;
 export const SOCIAL_AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 export const SOCIAL_AVATAR_EDGE = 512;
 export const SOCIAL_FEED_LIMIT = 20;
@@ -51,7 +56,6 @@ export const SOCIAL_MESSAGES = {
   nickname: `1文字以上${SOCIAL_NICKNAME_MAX}文字以内で入力してください`,
   nicknameControl: "使えない文字が含まれています",
   mascotColor: "色は #RRGGBB で指定してください",
-  profileRequired: "友達に表示する名前を先に設定してください",
   noFriends: "共有できる友達がいません",
   invite: "招待リンクが正しくありません",
   cursor: "ページ情報が正しくありません",
@@ -69,11 +73,30 @@ export const SOCIAL_COPY = {
   saveOnly: "保存",
   saveAndShare: "保存して友達に共有",
   shareDefault: "記録時の『友達に共有』を最初からオンにする",
-  profileName: "友達に表示する名前",
+  profileName: "アイコン（任意）",
+  displayNameHint: "ニックネーム（友達にも表示されます）",
   feedTitle: "友達の近況",
   feedEmptyNoFriends: "友達を追加すると、共有されたお酒の記録がここに表示されます",
   feedEmptyNoPosts: "友達になった後に共有された記録が表示されます",
   inviteShareText: "酒のしおりで友達になる",
+  loginAndContinue: "ログインして続ける",
+  copyInviteLink: "招待リンクをコピー",
+  pasteInvite: "招待リンクを貼る",
+  pasteInviteHint: "ホーム画面から酒のしおりを開き、友達 → 友達を追加で貼り付けてください",
+  pasteInviteField: "招待リンク",
+  sendRequest: "友達申請を送る",
+  requestSent: "友達申請を送りました",
+  alreadyRequested: "申請済みです。相手の承認を待っています",
+  alreadyFriends: "すでに友達です",
+  ownInvite: "自分の招待リンクです。このアカウントには申請できません",
+  checkIncoming: "届いた申請を確認",
+  inviteInvalid:
+    "招待リンクが正しくないか、期限が切れています。リンクを開き直すか、招待リンクを貼り付けてください",
+  inviteNetwork: "読み込めませんでした",
+  goHome: "ホームへ",
+  addFriend: "友達を追加",
+  reactionAction: "リアクション",
+  moreBottles: "＋{n}本",
   shareFailedAfterSave: "記録は保存しました。友達への共有に失敗しました",
   shareAfterQuick: "この記録を友達に共有しますか。このアプリで友達になった人だけが見られます",
   shareNow: "共有する",
@@ -90,6 +113,27 @@ export const SOCIAL_COPY = {
 
 export function socialBatchKindLabel(count: number): string {
   return `セラーに${count}本追加`;
+}
+
+export function resolvePublicDisplayName(accountName: string | null | undefined): string {
+  const trimmed = accountName?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : SOCIAL_FALLBACK_DISPLAY_NAME;
+}
+
+export function isInviteToken(value: string): boolean {
+  return (
+    value.length >= INVITE_TOKEN_MIN &&
+    value.length <= INVITE_TOKEN_MAX &&
+    INVITE_TOKEN_PATTERN.test(value)
+  );
+}
+
+export function socialBecameFriendsMessage(name: string): string {
+  return `${name}さんと友達になりました`;
+}
+
+export function socialMoreBottlesLabel(remaining: number): string {
+  return SOCIAL_COPY.moreBottles.replace("{n}", String(remaining));
 }
 
 function stripControlChars(value: string): string {
@@ -170,9 +214,9 @@ export const inviteTokenQuerySchema = z
   .object({
     token: z
       .string({ error: SOCIAL_MESSAGES.invite })
-      .min(32, { error: SOCIAL_MESSAGES.invite })
-      .max(128, { error: SOCIAL_MESSAGES.invite })
-      .regex(/^[A-Za-z0-9_-]+$/, { error: SOCIAL_MESSAGES.invite }),
+      .min(INVITE_TOKEN_MIN, { error: SOCIAL_MESSAGES.invite })
+      .max(INVITE_TOKEN_MAX, { error: SOCIAL_MESSAGES.invite })
+      .regex(INVITE_TOKEN_PATTERN, { error: SOCIAL_MESSAGES.invite }),
   })
   .strict();
 
