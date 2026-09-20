@@ -10,8 +10,7 @@ test("記録のテイスティング節は写真選択後に photo-edit を挟�
 }) => {
   await signUpAsNewUser(page);
 
-  await mainNav(page).getByRole("button", { name: "ノート" }).click();
-  await page.getByRole("link", { name: "記録する" }).click();
+  await mainNav(page).getByRole("button", { name: "飲酒を記録" }).click();
   await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
   await page.getByRole("button", { name: "テイスティングを残す" }).click();
 

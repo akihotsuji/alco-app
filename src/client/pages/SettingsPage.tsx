@@ -15,6 +15,7 @@ import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPr
 import { ThemePrefRow } from "@/client/components/settings/ThemePrefRow.tsx";
 import { Switch } from "@/client/components/ui/switch.tsx";
 import { useMe } from "@/client/hooks/use-me.ts";
+import { useSocialPreferences, useUpdateSocialPreferences } from "@/client/hooks/use-social.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { readClientBuildId } from "@/client/lib/app-version.ts";
 import { needsGuideFanReveal } from "@/client/lib/guide-spotlight-layout.ts";
@@ -28,10 +29,13 @@ import { formatAppVersionLabel } from "@/shared/app-version.ts";
 import { APP_VERSION } from "@/shared/constants.ts";
 import { FEEDBACK_COPY } from "@/shared/feedback.ts";
 import { legalHref } from "@/shared/legal.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 import { PWA_NAME } from "@/shared/pwa.ts";
 
 export function SettingsPage() {
   const me = useMe();
+  const prefs = useSocialPreferences();
+  const updatePrefs = useUpdateSocialPreferences();
   const guide = useFirstRunGuide();
   const reduceMotion = useReducedMotion();
   const fanAnchorRef = useRef<HTMLDivElement>(null);
@@ -72,6 +76,10 @@ export function SettingsPage() {
               <span>メール</span>
               <span className="settings-value">{me.data.email}</span>
             </div>
+            <Link className="settings-row" to="/settings/profile">
+              <span>友達に表示するプロフィール</span>
+              <ChevronRight size={20} className="settings-chevron" aria-hidden />
+            </Link>
           </div>
         ) : null}
         <Link className="settings-row settings-logout" to="/settings/account/delete">
@@ -133,6 +141,30 @@ export function SettingsPage() {
         <h2 className="settings-heading">記録</h2>
         <div className="settings-group">
           <RecordLocationPrefRow />
+          <div className="settings-row settings-row-stack">
+            <span className="settings-row-main">
+              <span>{SOCIAL_COPY.shareDefault}</span>
+              <Switch
+                label={SOCIAL_COPY.shareDefault}
+                checked={prefs.data?.shareDefaultOn ?? true}
+                onChange={(value) => updatePrefs.mutate(value)}
+              />
+            </span>
+          </div>
+          <Link className="settings-row" to="/notes">
+            <span>テイスティングノート</span>
+            <ChevronRight size={20} className="settings-chevron" aria-hidden />
+          </Link>
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <h2 className="settings-heading">友達</h2>
+        <div className="settings-group">
+          <Link className="settings-row" to="/settings/blocks">
+            <span>ブロックした相手</span>
+            <ChevronRight size={20} className="settings-chevron" aria-hidden />
+          </Link>
         </div>
       </section>
 

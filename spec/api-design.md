@@ -871,6 +871,26 @@ DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{
 - 日次 3 件超（JST）は 429 `rate_limited`。数値はレスポンスに出さない
 - 未認証 401。年齢未確認 403 `age_required`
 
+### 4.12 友達・近況
+
+正本は [features/friends-social.md](features/friends-social.md)。公開エンドポイントは増やさない。受信者一覧をクライアントから受け取らない。投稿本文・author・公開時刻はサーバーが決める。
+
+| 操作 | パス |
+|---|---|
+| 自分のプロフィール | `GET` / `PATCH /api/social/me` |
+| アバター | `POST` / `DELETE /api/social/me/avatar`。`GET /api/social/avatars/:userId/content` |
+| 共有設定 | `GET` / `PATCH /api/social/preferences` |
+| 招待 | `GET` / `POST` / `POST /reissue /api/friends/invitations`。`GET /api/friends/invitations/preview?token=` |
+| 申請 | `POST /api/friends/requests`。`POST /:id/accept\|decline\|cancel` |
+| 関係 | `GET /api/friends`。`DELETE /api/friends/:userId`。`GET` / `POST` / `DELETE /api/friends/blocks` |
+| フィード | `GET /api/social/feed?cursor=` |
+| 投稿 | `GET` / `DELETE /api/social/posts/:id`。`POST /api/social/shares` |
+| 画像 | `GET /api/social/posts/:postId/photos/:photoId/content`（`Cache-Control: private, no-store`） |
+| リアクション | `GET /api/social/reaction-types`。`PUT` / `DELETE /api/social/posts/:id/reaction` |
+| 通知 | `GET /api/social/notifications`、`GET /unread-count`、`POST /read-all`、`PATCH /:id` |
+
+`POST /api/bottles/:id/consume` は既存 Bottle に `openingEventId` を足して返す。`POST /api/bottles` は任意 `registrationBatchId`。
+
 ---
 
 ## 5. ルート登録順（Hono / RPC）
@@ -894,6 +914,8 @@ src/server/
   routes/tasting-notes.ts  # GET / と GET /:id。作成・認識は置かない
   routes/photos.ts
   routes/feedback.ts
+  routes/social.ts
+  routes/friends.ts
   services/             # 複数ルートで共有する業務ロジック
 ```
 
@@ -969,7 +991,10 @@ src/server/
 | bottle-detail | `GET /api/bottles/:id`、`POST /api/bottles/:id/consume`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
 | note-list / note-detail | `GET /api/tasting-notes`、`GET /api/tasting-notes/:id`。編集は `log-edit` |
 | photo-edit | `POST /api/photos`（未紐付け）、`DELETE /api/photos/:id`（破棄） |
-| settings | `GET /api/me`、Better Auth ログアウト / 表示名、`POST /api/me/account-deletion`、`POST /api/feedback` |
+| settings | `GET /api/me`、Better Auth ログアウト / 表示名、`POST /api/me/account-deletion`、`POST /api/feedback`、`GET /api/social/me`、`GET /api/social/preferences` |
+| friends-feed | `GET /api/social/feed`、`GET /api/social/notifications/unread-count` |
+| friends-list / invite / join | `/api/friends/*` |
+| friends-post | `GET /api/social/posts/:id`、反応・画像 |
 
 クライアントのルートガードは UX。認可の正は本 API。
 

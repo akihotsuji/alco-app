@@ -1,4 +1,5 @@
 import { Archive, ChevronLeft, ChevronRight, Images, Plus } from "lucide-react";
+import { FriendsHeaderActions } from "@/client/components/friends/FriendsHeaderActions.tsx";
 import { Link, useNavigate } from "react-router";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
@@ -142,6 +143,8 @@ function HeaderRightSlot({
           <ChevronRight size={22} />
         </IconButton>
       );
+    case "friends-actions":
+      return <FriendsHeaderActions />;
     default:
       return <span className="app-header-spacer" />;
   }

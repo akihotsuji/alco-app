@@ -8,6 +8,7 @@ import {
 } from "@/shared/constants.ts";
 import { discardAccountScopedClientData } from "./account-deletion-client.ts";
 import { JOIN_TOKEN_STORAGE_KEY } from "./cellar-share.ts";
+import { FRIEND_JOIN_TOKEN_KEY, FRIEND_OWN_INVITE_TOKEN_KEY } from "./social-invite.ts";
 
 const store = new Map<string, string>();
 const sessionStore = new Map<string, string>();
@@ -48,6 +49,8 @@ describe("discardAccountScopedClientData", () => {
     sessionStore.set("cellar.shelfEvent", "{}");
     sessionStore.set(ACCOUNT_DELETION_PENDING_USER_KEY, "u1");
     sessionStore.set(JOIN_TOKEN_STORAGE_KEY, "token-value");
+    sessionStore.set(FRIEND_JOIN_TOKEN_KEY, "join-token");
+    sessionStore.set(FRIEND_OWN_INVITE_TOKEN_KEY, "own-token");
     sessionStore.set("cellar.revision.abc", "3");
 
     discardAccountScopedClientData();
@@ -60,6 +63,8 @@ describe("discardAccountScopedClientData", () => {
     expect(sessionStore.has("cellar.shelfEvent")).toBe(false);
     expect(sessionStore.has(ACCOUNT_DELETION_PENDING_USER_KEY)).toBe(false);
     expect(sessionStore.has(JOIN_TOKEN_STORAGE_KEY)).toBe(false);
+    expect(sessionStore.has(FRIEND_JOIN_TOKEN_KEY)).toBe(false);
+    expect(sessionStore.has(FRIEND_OWN_INVITE_TOKEN_KEY)).toBe(false);
     expect(sessionStore.has("cellar.revision.abc")).toBe(false);
   });
 });

@@ -29,16 +29,16 @@ test("中央タブ「飲酒を記録」は 1 行で隣タブと重ならない",
       .getByRole("button", { name: "セラー" })
       .locator(".tab-label")
       .boundingBox();
-    const notesBox = await mainNav(page)
-      .getByRole("button", { name: "ノート" })
+    const friendsBox = await mainNav(page)
+      .getByRole("button", { name: "友達" })
       .locator(".tab-label")
       .boundingBox();
     expect(centerBox, `${width}px center`).toBeTruthy();
     expect(cellarBox, `${width}px cellar`).toBeTruthy();
-    expect(notesBox, `${width}px notes`).toBeTruthy();
-    if (centerBox && cellarBox && notesBox) {
+    expect(friendsBox, `${width}px friends`).toBeTruthy();
+    if (centerBox && cellarBox && friendsBox) {
       expect(boxesOverlap(centerBox, cellarBox), `${width}px vs セラー`).toBe(false);
-      expect(boxesOverlap(centerBox, notesBox), `${width}px vs ノート`).toBe(false);
+      expect(boxesOverlap(centerBox, friendsBox), `${width}px vs 友達`).toBe(false);
     }
   }
 });

@@ -27,6 +27,8 @@ describe("chunkIdForPath", () => {
     expect(chunkIdForPath("/settings/account/delete")).toBe("accountDeletion");
     expect(chunkIdForPath("/account-deleted")).toBe("accountDeletion");
     expect(chunkIdForPath("/join")).toBe("join");
+    expect(chunkIdForPath("/friends")).toBe("friends");
+    expect(chunkIdForPath("/friends/join")).toBe("friends");
     expect(chunkIdForPath("/unknown")).toBeNull();
   });
 });
@@ -41,6 +43,8 @@ describe("initialRouteChunkIds", () => {
     expect(initialRouteChunkIds("/terms")).toEqual(["legal"]);
     expect(initialRouteChunkIds("/account-deleted")).toEqual(["accountDeletion"]);
     expect(initialRouteChunkIds("/join")).toEqual(["join"]);
+    expect(initialRouteChunkIds("/friends/join")).toEqual(["friends"]);
+    expect(initialRouteChunkIds("/friends")).toEqual(["shell", "friends"]);
     expect(initialRouteChunkIds("/settings/account/delete")).toEqual(["shell", "accountDeletion"]);
     expect(initialRouteChunkIds("/settings/feedback")).toEqual(["shell", "feedback"]);
     expect(initialRouteChunkIds("/")).toEqual(["shell", "home"]);
@@ -53,7 +57,7 @@ describe("tabChunkIds", () => {
   it("記録タブはフォームと photo-edit を先読みする", () => {
     expect(tabChunkIds("home")).toEqual(["home"]);
     expect(tabChunkIds("cellar")).toEqual(["cellar", "photoEdit"]);
-    expect(tabChunkIds("notes")).toEqual(["notes", "photoEdit"]);
+    expect(tabChunkIds("friends")).toEqual(["friends"]);
     expect(tabChunkIds("settings")).toEqual(["settings"]);
     expect(tabChunkIds("log")).toEqual(["logForm", "photoEdit"]);
   });

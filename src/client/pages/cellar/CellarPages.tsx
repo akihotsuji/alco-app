@@ -42,6 +42,9 @@ import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import type { Bottle, BottleItem } from "@/shared/bottles.ts";
 import { formatBottleCount } from "@/shared/bottles.ts";
+import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 import { CELLAR_COPY } from "@/shared/cellars.ts";
 
 export function CellarPage() {
@@ -171,6 +174,7 @@ export function BottleFormPage({ mode }: { mode: "new" | "edit" }) {
 function NewBottlePage() {
   const create = useCreateBottles();
   const { afterCreate } = useBottleFormSubmit();
+  const share = useShareIntent();
   const { items, selected } = useCellarSelection();
   const [destinationId, setDestinationId] = useState<string | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
@@ -198,6 +202,15 @@ function NewBottlePage() {
           onChange={(cellar) => setDestinationId(cellar.id)}
         />
       }
+      shareSlot={
+        <ShareField
+          shareOn={share.shareOn}
+          onShareOnChange={share.setShareOn}
+          canShare={share.canShare}
+          reason={share.reason}
+          preview={undefined}
+        />
+      }
       onClearServer={() => {
         setFormError(null);
         setServerErrors({});
@@ -214,7 +227,16 @@ function NewBottlePage() {
         create.mutate(
           { ...body, cellarId: destination.id, operationKey: newOperationKey() },
           {
-            onSuccess: (result) => afterCreate(result.items),
+            onSuccess: (result) => {
+              const first = result.items[0];
+              if (first) {
+                void share.shareIfNeeded({ kind: "cellar_add", bottleId: first.id }).then(() => {
+                  afterCreate(result.items);
+                });
+                return;
+              }
+              afterCreate(result.items);
+            },
             onError: (error) => {
               const failure = describeBottleSaveFailure(error, navigator.onLine);
               setSaveState("error");
@@ -292,7 +314,9 @@ function LoadedEditBottle({
         isShared={shared}
         deleteTitle={shared ? `『${bottle.name}』を共有セラーから削除しますか？` : undefined}
         deleteBody={
-          shared ? "参加者全員のセラーから消えます。各自の飲酒記録とノートは残ります。" : undefined
+          shared
+            ? `参加者全員のセラーから消えます。各自の飲酒記録とノートは残ります。${SOCIAL_COPY.deleteWithShare} ${SOCIAL_COPY.deleteBatchPartial}`
+            : undefined
         }
         deletePrimaryLabel={shared ? "全員のセラーから削除" : undefined}
         memoLabel={shared ? CELLAR_COPY.sharedMemoLabel : undefined}

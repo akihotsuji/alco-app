@@ -1,7 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
+import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 import { deleteDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { type MyDrink, useLogMyDrink } from "@/client/hooks/use-my-drinks.ts";
 import { haptic } from "@/client/lib/haptic.ts";
@@ -31,6 +34,8 @@ export function MyDrinkQuickList({
   onUndone,
 }: MyDrinkQuickListProps) {
   const mutation = useLogMyDrink();
+  const share = useShareIntent();
+  const [pendingShareId, setPendingShareId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -72,6 +77,9 @@ export function MyDrinkQuickList({
           haptic("success");
           setActiveState("success");
           onLogged?.(created);
+          if (share.canShare && share.shareOn) {
+            setPendingShareId(created.id);
+          }
           showToast({
             message: TOAST_MESSAGES.logged,
             action: { label: "取り消す", onSelect: () => void undo(created.id) },
@@ -105,6 +113,27 @@ export function MyDrinkQuickList({
           <span>{item.volumeMl}ml</span>
         </Chip>
       ))}
+      <Dialog
+        open={pendingShareId !== null}
+        title={SOCIAL_COPY.shareTitle}
+        body={SOCIAL_COPY.shareAfterQuick}
+        primaryLabel={SOCIAL_COPY.shareNow}
+        secondaryLabel={SOCIAL_COPY.skipShare}
+        pending={share.sharing}
+        onPrimary={() => {
+          const id = pendingShareId;
+          if (!id) {
+            return;
+          }
+          void share.shareIfNeeded({ kind: "drink_log", drinkLogId: id }).then((result) => {
+            if (result === "failed") {
+              showToast({ message: share.shareFailedMessage });
+            }
+            setPendingShareId(null);
+          });
+        }}
+        onClose={() => setPendingShareId(null)}
+      />
     </div>
   );
 }

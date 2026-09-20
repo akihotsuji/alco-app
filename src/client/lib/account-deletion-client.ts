@@ -1,4 +1,5 @@
 import { JOIN_TOKEN_STORAGE_KEY } from "@/client/lib/cellar-share.ts";
+import { FRIEND_JOIN_TOKEN_KEY, FRIEND_OWN_INVITE_TOKEN_KEY } from "@/client/lib/social-invite.ts";
 import {
   ACCOUNT_DELETION_CHANNEL,
   ACCOUNT_DELETION_PENDING_USER_KEY,
@@ -34,6 +35,8 @@ export function discardAccountScopedClientData(): void {
     sessionStorage.removeItem(CELLAR_SHELF_EVENT_KEY);
     sessionStorage.removeItem(ACCOUNT_DELETION_PENDING_USER_KEY);
     sessionStorage.removeItem(JOIN_TOKEN_STORAGE_KEY);
+    sessionStorage.removeItem(FRIEND_JOIN_TOKEN_KEY);
+    sessionStorage.removeItem(FRIEND_OWN_INVITE_TOKEN_KEY);
     removeMatchingKeys(
       sessionStorage,
       (key) => key.startsWith(OPENED_FOLLOWUP_PREFIX) || key.startsWith("cellar.revision."),

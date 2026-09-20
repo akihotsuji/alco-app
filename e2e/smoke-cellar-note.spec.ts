@@ -20,7 +20,8 @@ test("ボトルを登録してから記録でノートを残し、詳細がボ�
   await expect(page.getByText("Googleで調べる")).toBeVisible();
   await expect(page.getByText(BOTTLE_NAME).first()).toBeVisible();
 
-  await mainNav(page).getByRole("button", { name: "ノート" }).click();
+  await mainNav(page).getByRole("button", { name: "設定" }).click();
+  await page.getByRole("link", { name: "テイスティングノート" }).click();
   await expect(page.getByText("テイスティングノートはまだありません")).toBeVisible();
   await expect(page.getByText("味や感想は、記録するときに残せます")).toBeVisible();
   await page.getByRole("link", { name: "記録する" }).click();
@@ -40,7 +41,8 @@ test("ボトルを登録してから記録でノートを残し、詳細がボ�
   await expect(page.getByText(`${BOTTLE_NAME} 125ml`)).toBeVisible();
   await expect(page.getByText("★4.0")).toBeVisible();
 
-  await mainNav(page).getByRole("button", { name: "ノート" }).click();
+  await mainNav(page).getByRole("button", { name: "設定" }).click();
+  await page.getByRole("link", { name: "テイスティングノート" }).click();
   await page.getByRole("link", { name: new RegExp(BOTTLE_NAME) }).click();
   await expect(page.getByRole("heading", { name: BOTTLE_NAME, level: 2 })).toBeVisible();
   await expect(page.getByText("Googleで調べる")).toBeVisible();

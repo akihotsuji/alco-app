@@ -85,7 +85,7 @@ const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";
 const DISCARD_BODY_WITH_PHOTO = "入力した内容は保存されず、写真も削除されます";
 const DELETE_TITLE = "このボトルを削除しますか";
-const DELETE_BODY = "ノートは残ります。記録のボトル名は残ります";
+const DELETE_BODY = "ノートは残ります。記録のボトル名は残ります。友達への共有とリアクションも削除されます";
 
 type BottleFormProps = {
   mode: "new" | "edit";
@@ -108,6 +108,7 @@ type BottleFormProps = {
   deleteBody?: string;
   deletePrimaryLabel?: string;
   memoLabel?: string;
+  shareSlot?: ReactNode;
 };
 
 export function BottleFormFields({
@@ -130,6 +131,7 @@ export function BottleFormFields({
   deleteBody,
   deletePrimaryLabel,
   memoLabel,
+  shareSlot,
 }: BottleFormProps) {
   const { setGuard } = useLeaveGuard();
   const session = usePhotoFormSession("cellar", mode === "edit" ? "edit" : null);
@@ -740,6 +742,7 @@ export function BottleFormFields({
           </div>
         ) : null}
       </section>
+      {shareSlot}
       <SaveBar
         label={mode === "new" ? BOTTLE_SAVE_LABELS.arrange(state.count) : BOTTLE_SAVE_LABELS.save}
         pending={pending}

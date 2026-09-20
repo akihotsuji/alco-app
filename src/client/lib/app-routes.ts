@@ -16,7 +16,7 @@ import {
 
 export { isTokyoToday, tokyoToday };
 
-export const TAB_IDS = ["home", "cellar", "log", "notes", "settings"] as const;
+export const TAB_IDS = ["home", "cellar", "log", "friends", "settings"] as const;
 export type TabId = (typeof TAB_IDS)[number];
 
 export type TabDef = {
@@ -30,7 +30,7 @@ export const TABS: readonly TabDef[] = [
   { id: "home", label: "ホーム", root: "/" },
   { id: "cellar", label: "セラー", root: "/cellar" },
   { id: "log", label: "飲酒を記録", root: null },
-  { id: "notes", label: "ノート", root: "/notes" },
+  { id: "friends", label: "友達", root: "/friends" },
   { id: "settings", label: "設定", root: "/settings" },
 ];
 
@@ -47,7 +47,8 @@ export type HeaderRight =
   | { kind: "batch"; to: string }
   | { kind: "edit"; to: string }
   | { kind: "text"; to: string; label: string }
-  | { kind: "day-next"; date: string; disabled: boolean };
+  | { kind: "day-next"; date: string; disabled: boolean }
+  | { kind: "friends-actions" };
 
 /** セラー / ノート一覧の右下 FAB（00-common 1.4） */
 export type AddFab = {
@@ -315,26 +316,64 @@ export function resolveAppRoute(
     return notFoundRoute();
   }
 
+  if (segments[0] === "friends") {
+    if (segments.length === 1) {
+      return found("friends-feed", "friends", {
+        title: "友達の近況",
+        left: SPACER,
+        right: { kind: "friends-actions" },
+      });
+    }
+    if (segments[1] === "list" && segments.length === 2) {
+      return found("friends-list", "friends", backHeader("友達", "/friends"));
+    }
+    if (segments[1] === "invite" && segments.length === 2) {
+      return formRoute("friends-invite", "friends", "招待", "/friends/list");
+    }
+    if (segments[1] === "join" && segments.length === 2) {
+      return {
+        screenId: "friends-join",
+        parentTab: null,
+        hideTabBar: true,
+        hideHeader: true,
+        quietTabCenter: false,
+        header: { title: "友達になる", left: SPACER, right: SPACER },
+        notFound: false,
+      };
+    }
+    if (segments[1] === "notifications" && segments.length === 2) {
+      return found("friends-notifications", "friends", backHeader("通知", "/friends"));
+    }
+    if (segments[1] === "profile" && segments.length === 3 && segments[2] && isUuidParam(segments[2])) {
+      return found("friends-profile", "friends", backHeader("プロフィール", "/friends/list"));
+    }
+    if (segments[1] === "posts" && segments.length === 3 && segments[2] && isUuidParam(segments[2])) {
+      return found("friends-post", "friends", backHeader("共有", "/friends"));
+    }
+    return notFoundRoute();
+  }
+
   if (segments[0] === "notes") {
     const bottleId = new URLSearchParams(search).get("bottleId");
+    const notesParent: TabId = bottleId && isUuidParam(bottleId) ? "cellar" : "settings";
     if (segments.length === 1) {
-      return found("note-list", "notes", {
+      return found("note-list", notesParent, {
         title: "ノート",
         left:
           bottleId && isUuidParam(bottleId)
             ? { kind: "back", fallback: `/cellar/${bottleId}` }
-            : SPACER,
+            : { kind: "back", fallback: "/settings" },
         right: SPACER,
       });
     }
     if (segments[1] === "new" && segments.length === 2) {
-      return formRoute("note-new", "notes", "ノートを作成", noteNewFallback(bottleId, search));
+      return formRoute("note-new", notesParent, "ノートを作成", noteNewFallback(bottleId, search));
     }
     if (segments.length === 3 && segments[2] === "edit" && segments[1]) {
-      return formRoute("note-edit", "notes", "ノートを編集", `/notes/${segments[1]}`);
+      return formRoute("note-edit", notesParent, "ノートを編集", `/notes/${segments[1]}`);
     }
     if (segments.length === 2 && segments[1]) {
-      return detailRoute("note-detail", "notes", "ノート", "/notes", `/notes/${segments[1]}/edit`);
+      return detailRoute("note-detail", notesParent, "ノート", "/notes", `/notes/${segments[1]}/edit`);
     }
     return notFoundRoute();
   }
@@ -357,6 +396,12 @@ export function resolveAppRoute(
     }
     if (segments[1] === "feedback" && segments.length === 2) {
       return formRoute("settings-feedback", "settings", FEEDBACK_COPY.title, "/settings");
+    }
+    if (segments[1] === "profile" && segments.length === 2) {
+      return formRoute("settings-profile", "settings", "友達に表示するプロフィール", "/settings");
+    }
+    if (segments[1] === "blocks" && segments.length === 2) {
+      return found("settings-blocks", "settings", backHeader("ブロックした相手", "/settings"));
     }
     if (segments[1] === "account" && segments[2] === "delete" && segments.length === 3) {
       return formRoute("settings-account-delete", "settings", "アカウントを削除", "/settings");
@@ -405,6 +450,7 @@ export function logCreateHref(input?: {
   date?: string;
   bottleId?: string | null;
   from?: "opened" | "detail" | null;
+  openingEventId?: string | null;
 }): string {
   const params = new URLSearchParams();
   if (input?.date) {
@@ -415,6 +461,9 @@ export function logCreateHref(input?: {
     if (input.from) {
       params.set("from", input.from);
     }
+  }
+  if (input?.openingEventId && isUuidParam(input.openingEventId)) {
+    params.set("openingEventId", input.openingEventId);
   }
   const query = params.toString();
   return query ? `/logs/new?${query}` : "/logs/new";

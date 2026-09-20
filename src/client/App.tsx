@@ -23,6 +23,13 @@ import {
   CellarPage,
   FeedbackPage,
   ForgotPasswordPage,
+  FriendsFeedPage,
+  FriendsInvitePage,
+  FriendsJoinPage,
+  FriendsListPage,
+  FriendsNotificationsPage,
+  FriendsPostPage,
+  FriendsProfilePage,
   HomePage,
   JoinPage,
   LegalPrivacyPage,
@@ -39,7 +46,9 @@ import {
   NotesPage,
   NotFoundPage,
   ResetPasswordPage,
+  SettingsBlocksPage,
   SettingsPage,
+  SettingsProfilePage,
   ShareActivityPage,
   ShareCreatedPage,
   ShareInvitePage,
@@ -105,6 +114,14 @@ export function App() {
             }
           />
           <Route
+            path="/friends/join"
+            element={
+              <Suspense fallback={<main className="join-page" />}>
+                <FriendsJoinPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/forgot-password"
             element={
               <Suspense fallback={<main className="auth-page" />}>
@@ -155,7 +172,15 @@ export function App() {
                 <Route path="/notes/new" element={<NoteNewPage />} />
                 <Route path="/notes/:noteId/edit" element={<NoteEditPage />} />
                 <Route path="/notes/:noteId" element={<NoteDetailPage />} />
+                <Route path="/friends" element={<FriendsFeedPage />} />
+                <Route path="/friends/list" element={<FriendsListPage />} />
+                <Route path="/friends/invite" element={<FriendsInvitePage />} />
+                <Route path="/friends/notifications" element={<FriendsNotificationsPage />} />
+                <Route path="/friends/profile/:id" element={<FriendsProfilePage />} />
+                <Route path="/friends/posts/:id" element={<FriendsPostPage />} />
                 <Route path="/settings/feedback" element={<FeedbackPage />} />
+                <Route path="/settings/profile" element={<SettingsProfilePage />} />
+                <Route path="/settings/blocks" element={<SettingsBlocksPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>

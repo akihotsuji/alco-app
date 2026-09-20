@@ -8,6 +8,8 @@ import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { OriginCountryField } from "@/client/components/form/OriginCountryField.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
+import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
@@ -57,6 +59,7 @@ export function BottleBatchForm() {
   const { showToast } = useToast();
   const { setGuard } = useLeaveGuard();
   const batch = useBottleBatch(true);
+  const share = useShareIntent();
   const { items, selected } = useCellarSelection();
   const [destinationId, setDestinationId] = useState<string | undefined>(undefined);
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -113,6 +116,15 @@ export function BottleBatchForm() {
       return;
     }
     const result = await batch.submit(destination.id);
+    if (result.registrationBatchId && result.created.length > 0) {
+      const status = await share.shareIfNeeded({
+        kind: "cellar_batch",
+        registrationBatchId: result.registrationBatchId,
+      });
+      if (status === "failed") {
+        showToast({ message: "記録は保存しました。友達への共有に失敗しました" });
+      }
+    }
     if (result.failedCount > 0 || result.leftoverCount > 0) {
       if (result.failedCount > 0) {
         setSaveState("error");
@@ -216,8 +228,14 @@ export function BottleBatchForm() {
         </button>
       </div>
       {!batch.canAdd ? <p className="field-hint">{BOTTLE_BATCH_MESSAGES.rowLimit}</p> : null}
+      <ShareField
+        shareOn={share.shareOn}
+        onShareOnChange={share.setShareOn}
+        canShare={share.canShare}
+        reason={share.reason}
+      />
       <SaveBar
-        label={BOTTLE_SAVE_LABELS.arrange(savableCount)}
+        label={shareSaveLabel(share.shareOn, share.canShare, BOTTLE_SAVE_LABELS.arrange(savableCount))}
         pending={batch.submitting}
         disabled={!canSubmit}
         state={batch.submitting ? "loading" : saveState}

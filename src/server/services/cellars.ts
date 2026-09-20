@@ -58,6 +58,7 @@ import {
   cellarInviteUseRateLimiter,
 } from "./cellar-rate-limit.ts";
 import { idempotencyInsert, readIdempotentResult, recoverIdempotentResult } from "./idempotency.ts";
+import { invalidateCellarSourcedPosts } from "./social-posts.ts";
 
 function requireIso(value: Date | number): string {
   return value instanceof Date
@@ -470,6 +471,7 @@ export async function leaveSharedCellar(input: {
   }
   const now = input.now ?? new Date();
   if (access.ownerUserId === input.userId) {
+    await invalidateCellarSourcedPosts(input.db, input.userId, access.id);
     const requestId = crypto.randomUUID();
     await input.db.batch([
       enqueueCellarPhotoTasks(input.db, access.id, requestId, now.getTime()),
@@ -522,6 +524,7 @@ export async function leaveSharedCellar(input: {
       now,
     }),
   ]);
+  await invalidateCellarSourcedPosts(input.db, input.userId, access.id);
   return { ok: true };
 }
 
@@ -594,6 +597,7 @@ export async function removeMember(input: {
       now,
     }),
   ]);
+  await invalidateCellarSourcedPosts(input.db, input.targetUserId, access.id);
   return { ok: true };
 }
 

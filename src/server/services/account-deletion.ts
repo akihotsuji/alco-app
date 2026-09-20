@@ -82,6 +82,14 @@ export async function acceptAccountDeletion(input: AcceptAccountDeletionInput): 
             AND lease_until <= ${nowMs}
         `)
         .onConflictDoNothing(),
+      input.db
+        .insert(accountDeletionPhotoTasks)
+        .select(sql`
+          SELECT r2_key, ${requestId}, 'pending', 0, ${nowMs}, NULL, NULL, ${nowMs}
+          FROM social_avatars
+          WHERE user_id = ${input.userId}
+        `)
+        .onConflictDoNothing(),
       input.db.insert(accountDeletionRecords).values({
         userId: input.userId,
         requestId,

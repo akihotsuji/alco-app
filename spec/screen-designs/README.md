@@ -30,8 +30,9 @@ Phase 1-07 の成果物。**全画面の要素・機能・状態・遷移・イ�
 | [02-home.md](02-home.md) | `home` `summary-week` `summary-month` | 3-03 / 3-06 |
 | [03-log.md](03-log.md) | `log-day` `log-new` `log-edit` `mydrink-list` `mydrink-new` `mydrink-edit` | 3-02 〜 3-05 |
 | [04-cellar.md](04-cellar.md) | `bottle-list`（陳列。種類ごと / 1 本ずつ） `bottle-archive`（貯蔵庫） `bottle-new`（ラベル読み取り） `bottle-detail` `bottle-edit` | 4-02 〜 4-07 |
-| [05-notes.md](05-notes.md) | `note-list` `note-detail`（作成・編集は記録フォーム。`note-new` / `note-edit` は廃止） | 5-02 〜 5-04 / 記録へ統合 |
+| [05-notes.md](05-notes.md) | `note-list` `note-detail`（作成・編集は記録フォーム。`note-new` / `note-edit` は廃止。タブは友達へ置換） | 5-02 〜 5-04 / 記録へ統合 |
 | [06-settings.md](06-settings.md) | `settings` | 2-05 / 3-07 |
+| [13-friends.md](13-friends.md) | `friends-feed` `friends-list` `friends-invite` `friends-join` `friends-profile` `friends-post` `friends-notifications` `settings-profile` | 友達・近況 |
 | [07-photo-capture.md](07-photo-capture.md) | `photo-edit`（撮影 → 編集 → 合成 → アップロード。記録・セラー・ノート共通） | 2-08 |
 | [08-first-run-guide.md](08-first-run-guide.md) | 初回ガイド（招待・練習。ルートなし） | 2026-09-08 |
 | [09-legal.md](09-legal.md) | `legal-terms` `legal-privacy` | 8-01 |
@@ -44,7 +45,7 @@ Phase 1-07 の成果物。**全画面の要素・機能・状態・遷移・イ�
 
 | 項目 | 判断 | 理由 |
 |---|---|---|
-| タブ順 | **ホーム / セラー / 記録 / ノート / 設定**。記録が中央 | オーナー指示（記録が最頻）。中央は円形の primary ボタンとして浮かせる |
+| タブ順 | **ホーム / セラー / 記録 / 友達 / 設定**。記録が中央。旧ノート位置を友達に置換 | オーナー指示（記録が最頻）。中央は円形の primary ボタンとして浮かせる |
 | 中央タブの挙動 | **記録**作成ボタン（円内 Plus。下ラベルは「記録」のみ）。タップで空の `log-new`。カメラは開かない。着地・現在地ハイライトなし。写真なし記録は中央タブだけ。ホームはサマリー（記録 CTA なし）。日別は一覧・合計・編集・削除 | 2026-09-08。ホームの記録ボタン廃止 |
 | 写真の位置づけ | 記録・ノートはフォーム**先頭**の小さな「写真を撮る / 選ぶ」（任意。明示タップのみ）。巨大タイルにはしない。セラー追加は従来の写真タイル | 2026-09-08。撮る操作を先に置く |
 | セラーの見せ方 | **棚（陳列）**。地色の上に **ガラス風の棚板**、**切り抜いた**ボトルが 3 本／段で立つ。行リストは廃止 | オーナー指示（2026-09-05 に「ガラス棚 + 切り抜きを MVP」で確定）。除去できないときは長方形写真にフォールバック |

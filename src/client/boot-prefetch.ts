@@ -18,6 +18,7 @@ const loaders = {
   myDrinks: () => import("@/client/pages/logs/MyDrinkPages.tsx"),
   cellar: () => import("@/client/pages/cellar/CellarPages.tsx"),
   notes: () => import("@/client/pages/notes/NotePages.tsx"),
+  friends: () => import("@/client/pages/friends/FriendsPages.tsx"),
   settings: () => import("@/client/pages/SettingsPage.tsx"),
   feedback: () => import("@/client/pages/FeedbackPage.tsx"),
   accountDeletion: () => import("@/client/pages/AccountDeletionPages.tsx"),
@@ -40,6 +41,7 @@ export const GUEST_ONLY_PATHS: readonly string[] = [
   "/privacy",
   "/account-deleted",
   "/join",
+  "/friends/join",
 ];
 
 /* 以下は src/shared/constants.ts・cellar-shelf.ts・各 hooks の値の写し。boot-prefetch.test.ts が一致を検証する */
@@ -53,6 +55,7 @@ const SHELF_COLUMNS_WIDE = 4;
 const SHELF_TYPE_PAGE_LIMIT = 12;
 const CELLAR_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TASTING_NOTES_LIST_LIMIT = 50;
+const SOCIAL_FEED_LIMIT = 20;
 
 export function homeDataPaths(today: string): readonly string[] {
   return [
@@ -122,6 +125,11 @@ export function notesDataPaths(search: string): readonly string[] {
   return [`/api/tasting-notes?limit=${TASTING_NOTES_LIST_LIMIT}`];
 }
 
+/** 友達フィード（`/friends`）が最初に投げる GET */
+export function friendsDataPaths(): readonly string[] {
+  return [`/api/social/feed?limit=${SOCIAL_FEED_LIMIT}`, "/api/social/notifications/unread-count"];
+}
+
 function readStoredCellarView(): string | null {
   try {
     return localStorage.getItem(CELLAR_LIST_VIEW_PREF_KEY);
@@ -153,6 +161,9 @@ export function initialDataPaths(
   if (pathname === "/notes") {
     return notesDataPaths(search);
   }
+  if (pathname === "/friends") {
+    return friendsDataPaths();
+  }
   return [];
 }
 
@@ -178,6 +189,9 @@ export function initialRouteChunkIds(pathname: string): readonly BootChunkId[] {
   if (pathname === "/join") {
     return ["join"];
   }
+  if (pathname === "/friends/join") {
+    return ["friends"];
+  }
   if (pathname === "/settings/account/delete") {
     return ["shell", "accountDeletion"];
   }
@@ -195,6 +209,9 @@ export function initialRouteChunkIds(pathname: string): readonly BootChunkId[] {
   }
   if (pathname.startsWith("/notes")) {
     return ["shell", "notes"];
+  }
+  if (pathname.startsWith("/friends")) {
+    return ["shell", "friends"];
   }
   if (pathname.startsWith("/settings")) {
     return ["shell", "settings"];

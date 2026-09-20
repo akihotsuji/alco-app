@@ -43,4 +43,21 @@ export const queryKeys = {
     limit?: number;
   }) => ["tasting-notes", query] as const,
   tastingNote: (id: string) => ["tasting-notes", id] as const,
+  socialMe: ["social-me"] as const,
+  socialPreferences: ["social-preferences"] as const,
+  socialFeed: ["social-feed"] as const,
+  socialPost: (id: string) => ["social-posts", id] as const,
+  socialProfile: (id: string) => ["social-profiles", id] as const,
+  socialProfilePosts: (id: string) => ["social-profiles", id, "posts"] as const,
+  socialSources: (query: {
+    bottleId?: string;
+    drinkLogId?: string;
+    registrationBatchId?: string;
+  }) => ["social-sources", query] as const,
+  friends: ["friends"] as const,
+  friendInvitation: ["friend-invitation"] as const,
+  friendBlocks: ["friend-blocks"] as const,
+  socialNotifications: ["social-notifications"] as const,
+  socialUnread: ["social-unread"] as const,
+  reactionTypes: ["reaction-types"] as const,
 } as const;

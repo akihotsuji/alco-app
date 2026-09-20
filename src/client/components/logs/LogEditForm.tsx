@@ -14,6 +14,7 @@ import {
   usePhotoEdit,
   usePhotoFormSession,
 } from "@/client/components/layout/photo-edit-context.tsx";
+import { ShareField } from "@/client/components/friends/ShareField.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
@@ -31,6 +32,8 @@ import {
   useDrinkLog,
   useUpdateDrinkLog,
 } from "@/client/hooks/use-drink-logs.ts";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
+import { useCreateShare, useSocialSources, useUnsharePost } from "@/client/hooks/use-social.ts";
 import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
 import { useNotePhotos } from "@/client/hooks/use-note-photos.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
@@ -64,7 +67,9 @@ import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
+import { newSocialOperationKey } from "@/client/lib/social-invite.ts";
 import { DRINK_NAME_MAX_LENGTH, type DrinkLog } from "@/shared/drink-logs.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 
 export function LogEditForm({ logId }: { logId: string | undefined }) {
@@ -99,6 +104,11 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
   } = usePhotoEdit();
   const updateLog = useUpdateDrinkLog();
   const deleteLog = useDeleteDrinkLog();
+  const share = useShareIntent();
+  const sources = useSocialSources({ drinkLogId: log.id });
+  const createShare = useCreateShare();
+  const unshare = useUnsharePost();
+  const alreadyShared = Boolean(sources.data?.drinkLogPostId);
   const notePhotos = useNotePhotos(log.tastingNote?.photos ?? []);
   const [initial] = useState(() => logFormStateFromDrinkLog(log));
   const [state, setState] = useState(initial);
@@ -487,6 +497,37 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
         onMakeFirst={notePhotos.makeFirst}
         onDeleteNote={() => update({ tastingDelete: true, tastingOpen: false })}
       />
+      <ShareField
+        shareOn={alreadyShared}
+        onShareOnChange={() => undefined}
+        canShare={alreadyShared || share.canShare}
+        reason={share.reason}
+        alreadyShared={alreadyShared}
+        preview={state.drinkName || "お酒"}
+      />
+      {!alreadyShared && share.canShare ? (
+        <button
+          type="button"
+          className="header-text-link"
+          onClick={() =>
+            createShare.mutate({
+              operationKey: newSocialOperationKey(),
+              source: { kind: "drink_log", drinkLogId: log.id },
+            })
+          }
+        >
+          友達に共有
+        </button>
+      ) : null}
+      {alreadyShared && sources.data?.drinkLogPostId ? (
+        <button
+          type="button"
+          className="log-delete"
+          onClick={() => unshare.mutate(sources.data.drinkLogPostId ?? "")}
+        >
+          共有を取り消す
+        </button>
+      ) : null}
       <SaveBar
         label={saveButtonLabel(updateLog.isPending, photoStatus)}
         pending={updateLog.isPending}
@@ -523,7 +564,7 @@ function LoadedLogEditForm({ log }: { log: DrinkLog }) {
       <Dialog
         open={deleteOpen}
         title="この記録を削除しますか"
-        body="削除した記録は元に戻せません"
+        body={`削除した記録は元に戻せません。${SOCIAL_COPY.deleteWithShare}`}
         primaryLabel="削除する"
         destructive
         pending={deleteLog.isPending}

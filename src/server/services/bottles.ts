@@ -46,6 +46,13 @@ import { idempotencyInsert, readIdempotentResult, recoverIdempotentResult } from
 import { writtenOrigin } from "./origin-write.ts";
 import { duplicatePhotoObject, type PhotoBucket, toPhotoMeta } from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
+import {
+  cancelOpeningEvent,
+  ensureOpeningEvent,
+  ensureRegistrationBatch,
+  onBottleDeleted,
+  touchPostsForBottle,
+} from "./social-posts.ts";
 
 type BottleRow = typeof bottles.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
@@ -418,6 +425,13 @@ export async function createBottles(input: {
   const { db, bucket, userId, body } = input;
   const now = input.now ?? new Date();
   const cellarId = await resolveBottleCellarId(db, userId, body.cellarId);
+  const registrationBatchId = await ensureRegistrationBatch({
+    db,
+    userId,
+    cellarId,
+    batchId: body.registrationBatchId,
+    now,
+  });
   const requestHash = await hashRequestBody({ action: "create", ...body });
   if (body.operationKey) {
     const cached = await readIdempotentResult<{ items: Bottle[] }>(db, {
@@ -476,6 +490,7 @@ export async function createBottles(input: {
     status: DEFAULT_BOTTLE_STATUS,
     consumedAt: null,
     consumedOn: null,
+    registrationBatchId,
     createdAt: now,
     updatedAt: now,
   };
@@ -1034,6 +1049,7 @@ export async function updateBottle(input: {
       }),
     ]);
   }
+  await touchPostsForBottle(db, bottleId, updatedAt);
   return result;
 }
 
@@ -1136,6 +1152,14 @@ export async function consumeBottle(input: {
       }),
     ]);
   }
+  await ensureOpeningEvent({
+    db,
+    userId,
+    bottleId,
+    cellarId: current.cellarId,
+    openedAt: now,
+    openedOn: result.consumedOn ?? tokyoToday(now),
+  });
   return result;
 }
 
@@ -1228,6 +1252,7 @@ export async function restoreBottle(input: {
       }),
     ]);
   }
+  await cancelOpeningEvent(db, bottleId, now);
   return result;
 }
 
@@ -1399,6 +1424,7 @@ export async function deleteBottle(input: {
   if (still) {
     throw versionConflict(await getOwnBottle(db, userId, bottleId));
   }
+  await onBottleDeleted(db, bottleId);
   if (body.operationKey) {
     await db.batch([
       idempotencyInsert(db, {

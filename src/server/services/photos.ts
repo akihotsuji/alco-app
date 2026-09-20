@@ -537,6 +537,15 @@ export async function updatePhoto(input: {
   } else if (current.bottleId && current.bottleId !== owners.bottleId) {
     await touchBottlePhoto(input.db, input.userId, current.bottleId, now);
   }
+  const { touchPostsForBottle, touchPostsForDrinkLog } = await import("./social-posts.ts");
+  const bottleId = owners.bottleId ?? current.bottleId;
+  const drinkLogId = owners.drinkLogId ?? current.drinkLogId;
+  if (bottleId) {
+    await touchPostsForBottle(input.db, bottleId, now);
+  }
+  if (drinkLogId) {
+    await touchPostsForDrinkLog(input.db, drinkLogId, now);
+  }
 
   return toPhotoMeta({
     ...current,
@@ -563,6 +572,12 @@ export async function deletePhoto(input: {
   await input.db.delete(photos).where(eq(photos.id, input.photoId));
   if (row.bottleId) {
     await touchBottlePhoto(input.db, input.userId, row.bottleId);
+    const { touchPostsForBottle } = await import("./social-posts.ts");
+    await touchPostsForBottle(input.db, row.bottleId);
+  }
+  if (row.drinkLogId) {
+    const { touchPostsForDrinkLog } = await import("./social-posts.ts");
+    await touchPostsForDrinkLog(input.db, row.drinkLogId);
   }
 }
 
