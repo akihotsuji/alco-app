@@ -77,7 +77,7 @@ export function SettingsPage() {
               <span className="settings-value">{me.data.email}</span>
             </div>
             <Link className="settings-row" to="/settings/profile">
-              <span>友達に表示するプロフィール</span>
+              <span>アイコン（任意）</span>
               <ChevronRight size={20} className="settings-chevron" aria-hidden />
             </Link>
           </div>

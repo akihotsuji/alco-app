@@ -33,7 +33,7 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 | 週 / 月サマリー | ホーム配下。週 = ホーム今週セクションの「詳しく見る ›」と月サマリーの週行、月 = 週サマリーの「今月 ›」。週の日別行 → その日の日別 | 今日カード本体は日別へ行くため、週への入口をリンクにした（2026-09-06） |
 | 貯蔵庫（アーカイブ） | セラー配下の独立画面 `/cellar/archive`。ヘッダー左のボタンから | 棚と分けて在庫感を守る |
 | 開栓 | 詳細の主ボタン。確認なし。成功後は詳細に留まり、「飲んだ量を記録」だけ任意案内する。開栓だけでは記録もノートも作らない | 2026-09-20。ノート専用ボタンは置かない |
-| 表示名 | 設定画面の任意項目。独立画面は作らない | Better Auth の name を出す想定。未設定でも使える |
+| 表示名 | 設定画面の任意項目。独立画面は作らない。友達への表示名の正本でもある | Better Auth の name。未設定でも使え、友達には「ユーザー」と出す |
 | 作成・編集中のタブバー | 隠す | 入力領域と保存ボタンを優先。キーボード時も保存バーは残す（1-02） |
 | ボトルのノート一覧 | 独立画面は作らない | ボトル詳細内のセクション。必要なら `/notes?bottleId=` へ |
 | FAB | **セラー一覧だけ**右下にピル「＋ ボトル追加」。ノート一覧は閲覧専用で FAB なし。記録の主導線は中央タブのまま。ホーム・設定・マイドリンク・詳細には置かない | 2026-09-20。ノート作成 FAB を廃止 |
@@ -156,11 +156,11 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 | friends-feed | 友達の近況 | `/friends` | friends | 表示 | 時系列カード。通知・一覧入口 |
 | friends-list | 友達一覧 | `/friends/list` | friends | 表示 | 承認済み・申請・招待 |
 | friends-invite | 招待 | `/friends/invite` | friends | 隠す | リンクと QR |
-| friends-join | 招待参加 | `/friends/join` | friends | 隠す | トークンは `#t=`。未ログインはログイン後復帰 |
+| friends-join | 招待参加 | `/friends/join` | friends | 隠す | トークンは `#t=`。未ログインはログイン後復帰。貼り付け経路あり |
 | friends-profile | 友達プロフィール | `/friends/profile/:id` | friends | 表示 | 閲覧可能な共有だけ |
 | friends-post | 共有詳細 | `/friends/posts/:id` | friends | 表示 | リアクション・詳しく見る |
 | friends-notifications | 通知 | `/friends/notifications` | friends | 表示 | 申請・承認・反応 |
-| settings-profile | 友達に表示するプロフィール | `/settings/profile` | settings | 隠す | ニックネーム・ワイン君色・画像 |
+| settings-profile | アイコン | `/settings/profile` | settings | 隠す | 任意のワイン君色・画像。名前は設定の表示名 |
 
 `note-new` / `note-edit` は廃止。`/notes/new` は `/logs/new` へリダイレクト（`bottleId` / `from` は引き継ぐ。`fromLog` は捨てる）。`/notes/:noteId/edit` は親記録の `log-edit` へリダイレクト（取れなければ `not-found`）。
 

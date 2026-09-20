@@ -131,15 +131,17 @@ export function SignupPage() {
       <Label htmlFor="signup-name">表示名</Label>
       <Input
         id="signup-name"
-        className="mb-4"
         type="text"
         autoComplete="name"
         maxLength={AUTH_NAME_MAX_LENGTH}
         value={name}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? "auth-form-error" : undefined}
+        aria-describedby={error ? "signup-name-hint auth-form-error" : "signup-name-hint"}
         onChange={(event) => setName(event.target.value)}
       />
+      <p id="signup-name-hint" className="share-field-caption mb-4">
+        ニックネーム（友達にも表示されます）
+      </p>
       <Label htmlFor="signup-email">メール</Label>
       <Input
         id="signup-email"

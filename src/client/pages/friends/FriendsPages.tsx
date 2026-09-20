@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { AuthBoot } from "@/client/auth/AuthBoot.tsx";
-import { loginPathFor } from "@/client/auth/login-path.ts";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { EmptyState } from "@/client/components/feedback/EmptyState.tsx";
 import { CardSkeleton, ListSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
@@ -11,20 +9,16 @@ import { PostCard } from "@/client/components/friends/PostCard.tsx";
 import { ReactionBar } from "@/client/components/friends/ReactionBar.tsx";
 import { SocialAvatar } from "@/client/components/friends/SocialAvatar.tsx";
 import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
-import { Input } from "@/client/components/ui/input.tsx";
-import { useSessionBoot } from "@/client/hooks/use-session-boot.ts";
 import {
   socialPhotoContentUrl,
   useAcceptFriendRequest,
   useBlocks,
   useCancelFriendRequest,
-  useCreateFriendRequest,
   useCreateInvitation,
   useDeclineFriendRequest,
   useDeleteSocialAvatar,
   useFriendInvitation,
   useFriends,
-  useInvitePreview,
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useReissueInvitation,
@@ -42,21 +36,22 @@ import {
 } from "@/client/hooks/use-social.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import {
-  captureFriendJoinToken,
+  copyText,
   readOwnInviteToken,
   rememberOwnInviteToken,
 } from "@/client/lib/social-invite.ts";
 import { formatRelativeShareTime } from "@/client/lib/social-time.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
-import { PWA_NAME } from "@/shared/pwa.ts";
 import {
   DEFAULT_MASCOT_COLOR,
   MASCOT_COLOR_PRESETS,
   SOCIAL_COPY,
-  SOCIAL_MESSAGES,
+  socialBecameFriendsMessage,
   socialKindLabel,
 } from "@/shared/social.ts";
 import { formatRatingX10 } from "@/shared/tasting-notes.ts";
+
+export { FriendsJoinPage } from "./FriendsJoinPage.tsx";
 
 export function FriendsFeedPage() {
   const feed = useSocialFeed();
@@ -70,18 +65,26 @@ export function FriendsFeedPage() {
   }
   if (items.length === 0) {
     return (
-      <EmptyState
-        pose="default"
-        message={friendCount === 0 ? SOCIAL_COPY.feedEmptyNoFriends : SOCIAL_COPY.feedEmptyNoPosts}
-        actionLabel={friendCount === 0 ? "友達を招待" : undefined}
-        actionTo={friendCount === 0 ? "/friends/invite" : undefined}
-      />
+      <div className="friends-feed">
+        <EmptyState
+          pose="default"
+          message={
+            friendCount === 0 ? SOCIAL_COPY.feedEmptyNoFriends : SOCIAL_COPY.feedEmptyNoPosts
+          }
+        />
+        <Link className={buttonVariants()} to="/friends/invite">
+          友達を招待
+        </Link>
+        <Link className={buttonVariants({ variant: "secondary" })} to="/friends/join">
+          {SOCIAL_COPY.pasteInvite}
+        </Link>
+      </div>
     );
   }
   return (
     <div className="friends-feed">
-      {items.map((post) => (
-        <PostCard key={post.id} post={post} compact />
+      {items.map((post, index) => (
+        <PostCard key={post.id} post={post} compact eagerPhoto={index < 3} />
       ))}
       {feed.hasNextPage ? (
         <Button type="button" variant="ghost" onClick={() => void feed.fetchNextPage()}>
@@ -98,7 +101,10 @@ export function FriendsListPage() {
   const decline = useDeclineFriendRequest();
   const cancel = useCancelFriendRequest();
   const unfriend = useUnfriend();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [target, setTarget] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   if (list.isPending) {
     return <ListSkeleton count={4} />;
   }
@@ -111,15 +117,36 @@ export function FriendsListPage() {
       <Link className={buttonVariants()} to="/friends/invite">
         招待する
       </Link>
+      <Link className={buttonVariants({ variant: "secondary" })} to="/friends/join">
+        {SOCIAL_COPY.pasteInvite}
+      </Link>
       {data?.incoming.length ? <h2 className="friends-section">届いた申請</h2> : null}
       {data?.incoming.map((request) => (
         <div key={request.id} className="friends-row">
           <SocialAvatar profile={request.peer} />
           <span className="friends-row-name">{request.peer.nickname}</span>
-          <Button type="button" onClick={() => accept.mutate(request.id)}>
+          <Button
+            type="button"
+            disabled={busyId === request.id}
+            onClick={() => {
+              setBusyId(request.id);
+              accept.mutate(request.id, {
+                onSuccess: () => {
+                  showToast({ message: socialBecameFriendsMessage(request.peer.nickname) });
+                  navigate("/", { replace: true });
+                },
+                onSettled: () => setBusyId(null),
+              });
+            }}
+          >
             承認
           </Button>
-          <Button type="button" variant="ghost" onClick={() => decline.mutate(request.id)}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busyId === request.id}
+            onClick={() => decline.mutate(request.id)}
+          >
             辞退
           </Button>
         </div>
@@ -180,21 +207,11 @@ export function FriendsInvitePage() {
     return <CardSkeleton />;
   }
   if (invitation.isError && !invitation.data) {
-    const incomplete = isApiClientError(invitation.error) && invitation.error.code === "conflict";
     return (
       <div className="friends-invite">
-        {incomplete ? (
-          <>
-            <p className="share-field-hint">{SOCIAL_MESSAGES.profileRequired}</p>
-            <Link className={buttonVariants()} to="/settings/profile">
-              プロフィールを設定
-            </Link>
-          </>
-        ) : (
-          <Button type="button" onClick={() => create.mutate()}>
-            招待リンクを作る
-          </Button>
-        )}
+        <Button type="button" onClick={() => create.mutate()}>
+          招待リンクを作る
+        </Button>
       </div>
     );
   }
@@ -215,8 +232,15 @@ export function FriendsInvitePage() {
           <Button
             type="button"
             onClick={() => {
-              void navigator.clipboard.writeText(data.url);
-              showToast({ message: "コピーしました" });
+              void copyText(data.url).then((ok) => {
+                if (ok) {
+                  showToast({ message: "コピーしました" });
+                  return;
+                }
+                showToast({
+                  message: "コピーできませんでした。リンクを長押ししてコピーしてください",
+                });
+              });
             }}
           >
             リンクをコピー
@@ -245,89 +269,6 @@ export function FriendsInvitePage() {
         再発行する
       </Button>
     </div>
-  );
-}
-
-export function FriendsJoinPage() {
-  const boot = useSessionBoot();
-  const [token, setToken] = useState<string | null>(null);
-  useEffect(() => {
-    setToken(
-      captureFriendJoinToken(window.location.hash, (url) => {
-        window.history.replaceState(window.history.state, "", url);
-      }),
-    );
-  }, []);
-  const preview = useInvitePreview(token);
-  const request = useCreateFriendRequest();
-  const me = useSocialMe();
-
-  if (boot.kind === "loading" || boot.kind === "slow") {
-    return (
-      <AuthBoot variant={boot.variant ?? undefined} onRetry={boot.retry} retrying={boot.retrying} />
-    );
-  }
-  if (boot.kind !== "authenticated") {
-    return (
-      <main className="join-page">
-        <h1>{PWA_NAME}</h1>
-        <p>酒のしおりで友達になるには、ログインしてください。</p>
-        <Link className={buttonVariants()} to={loginPathFor("/friends/join")}>
-          ログインしてはじめる
-        </Link>
-      </main>
-    );
-  }
-  if (!me.data?.profileCompleted) {
-    return (
-      <main className="join-page">
-        <p>先に、友達に表示する名前を設定してください。</p>
-        <Link className={buttonVariants()} to="/settings/profile">
-          プロフィールを設定
-        </Link>
-      </main>
-    );
-  }
-  if (!token || preview.data?.status === "unavailable") {
-    return (
-      <main className="join-page">
-        <p>招待リンクが正しくないか、期限が切れています。</p>
-        <Link className={buttonVariants({ variant: "secondary" })} to="/friends">
-          友達の近況へ
-        </Link>
-      </main>
-    );
-  }
-  if (preview.isPending) {
-    return <CardSkeleton />;
-  }
-  const profile = preview.data?.profile;
-  return (
-    <main className="join-page">
-      <h1>友達申請</h1>
-      {profile ? (
-        <>
-          <SocialAvatar profile={profile} size={64} />
-          <p>{profile.nickname}</p>
-        </>
-      ) : null}
-      {preview.data?.alreadyFriends ? <p>すでに友達です。</p> : null}
-      {preview.data?.alreadyRequested ? <p>申請済みです。相手の承認を待っています。</p> : null}
-      {preview.data?.reversePending ? (
-        <p>相手からの申請が届いています。友達一覧で確認してください。</p>
-      ) : null}
-      {!preview.data?.alreadyFriends &&
-      !preview.data?.alreadyRequested &&
-      !preview.data?.reversePending ? (
-        <Button
-          type="button"
-          onClick={() => token && request.mutate(token)}
-          disabled={request.isPending}
-        >
-          友達申請を送る
-        </Button>
-      ) : null}
-    </main>
   );
 }
 
@@ -497,6 +438,9 @@ export function FriendsNotificationsPage() {
   const markAll = useMarkAllNotificationsRead();
   const accept = useAcceptFriendRequest();
   const decline = useDeclineFriendRequest();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const [busyId, setBusyId] = useState<string | null>(null);
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
   if (list.isPending) {
     return <ListSkeleton count={4} />;
@@ -521,12 +465,29 @@ export function FriendsNotificationsPage() {
           )}
           {item.canRespond && item.requestId ? (
             <div className="friends-row">
-              <Button type="button" onClick={() => accept.mutate(item.requestId ?? "")}>
+              <Button
+                type="button"
+                disabled={busyId === item.requestId}
+                onClick={() => {
+                  const requestId = item.requestId ?? "";
+                  setBusyId(requestId);
+                  accept.mutate(requestId, {
+                    onSuccess: () => {
+                      showToast({
+                        message: socialBecameFriendsMessage(item.actor?.nickname ?? "ユーザー"),
+                      });
+                      navigate("/", { replace: true });
+                    },
+                    onSettled: () => setBusyId(null),
+                  });
+                }}
+              >
                 承認
               </Button>
               <Button
                 type="button"
                 variant="ghost"
+                disabled={busyId === item.requestId}
                 onClick={() => decline.mutate(item.requestId ?? "")}
               >
                 辞退
@@ -545,11 +506,9 @@ export function SettingsProfilePage() {
   const upload = useUploadSocialAvatar();
   const remove = useDeleteSocialAvatar();
   const { showToast } = useToast();
-  const [nickname, setNickname] = useState("");
   const [color, setColor] = useState(DEFAULT_MASCOT_COLOR);
   useEffect(() => {
     if (me.data) {
-      setNickname(me.data.nickname);
       setColor(me.data.mascotColor || DEFAULT_MASCOT_COLOR);
     }
   }, [me.data]);
@@ -561,22 +520,9 @@ export function SettingsProfilePage() {
   }
   return (
     <div className="settings-profile">
-      {me.data ? (
-        <SocialAvatar profile={{ ...me.data, nickname: nickname || me.data.nickname }} size={72} />
-      ) : null}
-      <label className="field-label" htmlFor="social-nickname">
-        {SOCIAL_COPY.profileName}
-        <Input
-          id="social-nickname"
-          value={nickname}
-          maxLength={30}
-          autoComplete="off"
-          onChange={(event) => setNickname(event.target.value)}
-        />
-      </label>
-      <p className="share-field-caption">
-        本名は自動では入れません。友達に見せる名前だけを書いてください。
-      </p>
+      {me.data ? <SocialAvatar profile={me.data} size={72} /> : null}
+      <p className="share-field-hint">{SOCIAL_COPY.profileName}</p>
+      <p className="share-field-caption">名前は設定の表示名を使います。アイコンは任意です。</p>
       <div className="mascot-color-row">
         {MASCOT_COLOR_PRESETS.map((preset) => (
           <button
@@ -599,12 +545,12 @@ export function SettingsProfilePage() {
         type="button"
         onClick={() =>
           update.mutate(
-            { nickname, mascotColor: color, avatarMode: "mascot" },
+            { mascotColor: color },
             { onSuccess: () => showToast({ message: "保存しました" }) },
           )
         }
       >
-        保存する
+        色を保存する
       </Button>
       <label className={buttonVariants({ variant: "secondary" })}>
         画像を選ぶ
@@ -622,7 +568,7 @@ export function SettingsProfilePage() {
       </label>
       {me.data?.hasCustomAvatar ? (
         <Button type="button" variant="ghost" onClick={() => remove.mutate()}>
-          ワイン君の色に戻す
+          ワイン君に戻す
         </Button>
       ) : null}
     </div>

@@ -21,11 +21,7 @@ import { ApiError, MALFORMED_REQUEST_MESSAGE } from "../errors.ts";
 import { assertSameOrigin } from "../services/origin.ts";
 import type { PhotoBucket } from "../services/photos.ts";
 import { matchesIfNoneMatch } from "../services/photos.ts";
-import {
-  getSocialProfile,
-  listActiveFriendIds,
-  toPublicProfile,
-} from "../services/social-access.ts";
+import { listActiveFriendIds, loadPublicProfile } from "../services/social-access.ts";
 import {
   listNotifications,
   markAllNotificationsRead,
@@ -153,12 +149,12 @@ export function createSocialRoute(deps: SocialRouteDeps) {
           throw new ApiError("not_found");
         }
       }
-      const profile = await getSocialProfile(deps.getDb(c), id);
+      const profile = await loadPublicProfile(deps.getDb(c), id);
       if (!profile) {
         throw new ApiError("not_found");
       }
       noStore(c);
-      return c.json(toPublicProfile(profile));
+      return c.json(profile);
     })
     .get("/feed", validate("query", socialFeedQuerySchema), async (c) => {
       noStore(c);

@@ -69,7 +69,7 @@ describe("SettingsPage S11 / S12", () => {
 
   it("アカウント節に友達プロフィール、記録節に共有既定とノート入口、友達節にブロックがある", () => {
     expect(source).toContain('to="/settings/profile"');
-    expect(source).toContain("友達に表示するプロフィール");
+    expect(source).toContain("アイコン（任意）");
     expect(source).toContain("SOCIAL_COPY.shareDefault");
     expect(source).toContain('to="/notes"');
     expect(source).toContain("テイスティングノート");

@@ -31,10 +31,11 @@ export function getSocialPreferences(client: ApiClient = api) {
   return unwrap(client.api.social.preferences.$get());
 }
 
-export function useSocialMe() {
+export function useSocialMe(enabled = true) {
   return useQuery({
     queryKey: queryKeys.socialMe,
     queryFn: () => getSocialMe(),
+    enabled,
   });
 }
 

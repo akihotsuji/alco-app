@@ -13,12 +13,8 @@ export function useShareIntent() {
   const me = useSocialMe();
   const prefs = useSocialPreferences();
   const createShare = useCreateShare();
-  const canShare = Boolean(me.data?.profileCompleted && (me.data.friendCount ?? 0) > 0);
-  const reason = !me.data?.profileCompleted
-    ? SOCIAL_MESSAGES.profileRequired
-    : (me.data?.friendCount ?? 0) === 0
-      ? SOCIAL_MESSAGES.noFriends
-      : null;
+  const canShare = (me.data?.friendCount ?? 0) > 0;
+  const reason = canShare ? null : SOCIAL_MESSAGES.noFriends;
   const [shareOn, setShareOn] = useState(true);
   useEffect(() => {
     if (prefs.data) {
