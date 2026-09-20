@@ -149,19 +149,21 @@ async function addLog(page: Page, log: (typeof DEMO_LOGS)[number], captureForm: 
   const save = page.getByRole("button", { name: "記録を保存" });
   await expect(save).toBeEnabled();
   await save.click();
-  await expect(page.getByRole("heading", { name: "テイスティングノートをつける？" })).toBeVisible();
-  await page.getByRole("button", { name: "あとで" }).click();
+  await expect(page.getByText(`${log.name} `, { exact: false })).toBeVisible({ timeout: 30_000 });
 }
 
 async function addNote(page: Page, note: (typeof DEMO_NOTES)[number], captureForm: boolean) {
-  await page.goto("/notes/new");
-  await expect(page.getByRole("heading", { name: "ノートを作成" })).toBeVisible();
+  await page.goto("/logs/new");
+  await expect(page.getByRole("heading", { name: "お酒を記録" })).toBeVisible();
   await pickLibraryPhoto(page, note.photo, false);
-  await expect(page.getByText(/写真から入れました|写真から銘柄/)).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator("#note-drink-name")).toHaveValue(note.name);
+  await expect(page.getByText(/写真から .+項目を入れました|写真から入れました/)).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page.locator("#log-drink-name")).toHaveValue(note.name);
   await page.getByRole("button", { name: "セラーのボトルと関連付ける（任意）" }).click();
   await expect(page.getByRole("heading", { name: "ボトル" })).toBeVisible();
   await page.getByRole("button", { name: new RegExp(note.name) }).click();
+  await page.getByRole("button", { name: "テイスティングを残す" }).click();
   await page.getByRole("radio", { name: `評価 ${note.ratingStar}` }).click();
   if (note.halfStar) {
     await page.getByRole("radio", { name: `評価 ${note.ratingStar}` }).click();
@@ -171,9 +173,12 @@ async function addNote(page: Page, note: (typeof DEMO_NOTES)[number], captureFor
   if (captureForm) {
     await shot(page, "note-new");
   }
-  const save = page.getByRole("button", { name: "ノートを保存" });
+  const save = page.getByRole("button", { name: "記録を保存" });
   await expect(save).toBeEnabled();
   await save.click();
+  await expect(page.getByText(`${note.name} `, { exact: false })).toBeVisible({ timeout: 30_000 });
+  await page.goto("/notes");
+  await page.getByRole("link", { name: new RegExp(note.name) }).first().click();
   await expect(page.getByRole("heading", { name: note.name })).toBeVisible({ timeout: 30_000 });
 }
 

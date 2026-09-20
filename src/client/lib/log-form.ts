@@ -27,6 +27,11 @@ import {
 } from "@/shared/identity.ts";
 import { PLACE_MESSAGES, placeCoordsArePaired } from "@/shared/place.ts";
 import {
+  isValidRatingX10,
+  NOTE_TEXT_MAX_LENGTH,
+  TASTING_NOTE_MESSAGES,
+} from "@/shared/tasting-notes.ts";
+import {
   formatMonthDay,
   formatTokyoTime,
   parseCalendarDate,
@@ -56,6 +61,13 @@ export type LogFormState = {
   memo: string;
   bottleId: string | null;
   bottleName: string | null;
+  tastingOpen: boolean;
+  tastingRatingX10: number | null;
+  tastingAppearance: string;
+  tastingAroma: string;
+  tastingTaste: string;
+  tastingFinish: string;
+  tastingDelete: boolean;
 };
 
 export type LogFormField =
@@ -70,7 +82,12 @@ export type LogFormField =
   | "placeName"
   | "memo"
   | "photoIds"
-  | "bottleId";
+  | "bottleId"
+  | "ratingX10"
+  | "appearance"
+  | "aroma"
+  | "taste"
+  | "finish";
 
 export type LogFormErrors = Partial<Record<LogFormField, string>>;
 
@@ -89,6 +106,7 @@ export const SAVE_DISABLED_HINTS = {
   photo: "写真の保存が終わるまでお待ちください",
   photoError: "写真を再試行するか削除してください",
   fields: "入力内容を確認してください",
+  rating: TASTING_NOTE_MESSAGES.rating,
 } as const;
 
 export const FORM_ERROR_MESSAGES = {
@@ -122,6 +140,13 @@ export function initialLogFormState(dateParam: string | null | undefined, now: D
     memo: "",
     bottleId: null,
     bottleName: null,
+    tastingOpen: false,
+    tastingRatingX10: null,
+    tastingAppearance: "",
+    tastingAroma: "",
+    tastingTaste: "",
+    tastingFinish: "",
+    tastingDelete: false,
   };
 }
 
@@ -324,6 +349,29 @@ export function validateLogForm(
   ) {
     errors.placeName = PLACE_MESSAGES.pair;
   }
+  if (state.tastingOpen && !state.tastingDelete) {
+    if (state.tastingRatingX10 === null || !isValidRatingX10(state.tastingRatingX10)) {
+      errors.ratingX10 = TASTING_NOTE_MESSAGES.rating;
+    }
+    for (const key of [
+      "tastingAppearance",
+      "tastingAroma",
+      "tastingTaste",
+      "tastingFinish",
+    ] as const) {
+      if (state[key].length > NOTE_TEXT_MAX_LENGTH) {
+        const field =
+          key === "tastingAppearance"
+            ? "appearance"
+            : key === "tastingAroma"
+              ? "aroma"
+              : key === "tastingTaste"
+                ? "taste"
+                : "finish";
+        errors[field] = TASTING_NOTE_MESSAGES.noteText;
+      }
+    }
+  }
   return errors;
 }
 
@@ -368,6 +416,9 @@ export function logSaveDisabledHint(
   if (state.volumeMl === null || state.abvPercent === null) {
     return SAVE_DISABLED_HINTS.volumeAbv;
   }
+  if (state.tastingOpen && !state.tastingDelete && errors.ratingX10) {
+    return SAVE_DISABLED_HINTS.rating;
+  }
   if (Object.keys(errors).length > 0) {
     return SAVE_DISABLED_HINTS.fields;
   }
@@ -392,9 +443,30 @@ export function visibleLogFormErrors(
 }
 
 /** 送信ボディ。`alcoholG` / `drunkOn` は含めない（サーバー計算） */
+function tastingNotePayload(
+  state: LogFormState,
+  tastingPhotoIds: readonly string[] | undefined,
+): NonNullable<CreateDrinkLogInput["tastingNote"]> | undefined {
+  if (!state.tastingOpen || state.tastingDelete || state.tastingRatingX10 === null) {
+    return undefined;
+  }
+  const note: NonNullable<CreateDrinkLogInput["tastingNote"]> = {
+    ratingX10: state.tastingRatingX10,
+    appearance: state.tastingAppearance.trim() || null,
+    aroma: state.tastingAroma.trim() || null,
+    taste: state.tastingTaste.trim() || null,
+    finish: state.tastingFinish.trim() || null,
+  };
+  if (tastingPhotoIds !== undefined) {
+    note.photoIds = [...tastingPhotoIds];
+  }
+  return note;
+}
+
 export function toCreateDrinkLogBody(
   state: LogFormState,
   photoId: string | null,
+  tastingPhotoIds: readonly string[] = [],
 ): CreateDrinkLogInput | null {
   if (state.volumeMl === null || state.abvPercent === null) {
     return null;
@@ -429,6 +501,13 @@ export function toCreateDrinkLogBody(
     body.placeLat = state.placeLat;
     body.placeLng = state.placeLng;
   }
+  const tastingNote = tastingNotePayload(
+    state,
+    tastingPhotoIds.length > 0 ? tastingPhotoIds : undefined,
+  );
+  if (tastingNote) {
+    body.tastingNote = tastingNote;
+  }
   return body;
 }
 
@@ -449,6 +528,13 @@ export function logFormStateFromDrinkLog(log: DrinkLog): LogFormState {
     memo: log.memo ?? "",
     bottleId: log.bottleId,
     bottleName: log.bottleId ? (log.drinkName ?? null) : null,
+    tastingOpen: Boolean(log.tastingNote),
+    tastingRatingX10: log.tastingNote?.ratingX10 ?? null,
+    tastingAppearance: log.tastingNote?.appearance ?? "",
+    tastingAroma: log.tastingNote?.aroma ?? "",
+    tastingTaste: log.tastingNote?.taste ?? "",
+    tastingFinish: log.tastingNote?.finish ?? "",
+    tastingDelete: false,
   };
 }
 
@@ -457,6 +543,7 @@ export function toUpdateDrinkLogBody(
   state: LogFormState,
   initial: LogFormState,
   replacementPhotoId: string | null,
+  tastingPhotoIds?: readonly string[],
 ): UpdateDrinkLogInput | null {
   const body: UpdateDrinkLogInput = {};
   if (state.drinkType !== initial.drinkType) {
@@ -503,6 +590,14 @@ export function toUpdateDrinkLogBody(
     body.placeLat = state.placeLat;
     body.placeLng = state.placeLng;
   }
+  if (state.tastingDelete && (initial.tastingOpen || initial.tastingRatingX10 !== null)) {
+    body.tastingNote = null;
+  } else if (state.tastingOpen) {
+    const tastingNote = tastingNotePayload(state, tastingPhotoIds);
+    if (tastingNote) {
+      body.tastingNote = tastingNote;
+    }
+  }
   return Object.keys(body).length > 0 ? body : null;
 }
 
@@ -522,7 +617,14 @@ export function isLogFormDirty(state: LogFormState, initial: LogFormState): bool
     state.placeName !== initial.placeName ||
     state.placeLat !== initial.placeLat ||
     state.placeLng !== initial.placeLng ||
-    state.bottleId !== initial.bottleId
+    state.bottleId !== initial.bottleId ||
+    state.tastingOpen !== initial.tastingOpen ||
+    state.tastingRatingX10 !== initial.tastingRatingX10 ||
+    state.tastingAppearance !== initial.tastingAppearance ||
+    state.tastingAroma !== initial.tastingAroma ||
+    state.tastingTaste !== initial.tastingTaste ||
+    state.tastingFinish !== initial.tastingFinish ||
+    state.tastingDelete !== initial.tastingDelete
   );
 }
 
@@ -550,6 +652,11 @@ const FIELD_KEYS: readonly LogFormField[] = [
   "memo",
   "photoIds",
   "bottleId",
+  "ratingX10",
+  "appearance",
+  "aroma",
+  "taste",
+  "finish",
 ];
 
 function isFormField(key: string): key is LogFormField {
@@ -596,7 +703,8 @@ export function describeSaveFailure(
       const fieldErrors: LogFormErrors = {};
       let generic = false;
       for (const [key, messages] of Object.entries(error.fields)) {
-        const field = key.split(".")[0] ?? "";
+        const parts = key.split(".");
+        const field = parts[0] === "tastingNote" ? (parts[1] ?? "") : (parts[0] ?? "");
         if (isFormField(field) && messages[0]) {
           fieldErrors[field] = messages[0];
         } else {

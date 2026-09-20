@@ -21,9 +21,6 @@ test("サインアップから記録し、今日と週のサマリー数字が�
   await expect(save).toBeEnabled();
   await save.click();
 
-  await expect(page.getByRole("heading", { name: "テイスティングノートをつける？" })).toBeVisible();
-  await page.getByRole("button", { name: "あとで" }).click();
-
   await expect(page.getByText(`${DRINK_NAME} 350ml`)).toBeVisible();
   await expect(page.getByText("1 杯 ・", { exact: false })).toBeVisible();
   await expect(page.getByText(`${BEER_ALCOHOL_G} g`)).toBeVisible();

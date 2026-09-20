@@ -64,9 +64,6 @@ test("開栓から飲酒記録を付けると一覧と詳細にボトル写真�
   await expect(save).toBeEnabled();
   await save.click();
 
-  await expect(page.getByRole("heading", { name: "テイスティングノートをつける？" })).toBeVisible();
-  await page.getByRole("button", { name: "あとで" }).click();
-
   await expect(page.getByText(`${BOTTLE_NAME} 125ml`)).toBeVisible();
   const listThumb = page.getByRole("button", { name: "写真を拡大" });
   await expect(listThumb).toBeVisible();

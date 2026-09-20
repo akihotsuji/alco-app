@@ -5,42 +5,15 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "NoteForm.tsx"), "utf8");
 
-describe("NoteForm 写真先頭と AI / 識別", () => {
-  it("写真ストリップを銘柄より先に出し、折りたたみの間には置かない", () => {
-    const photo = source.indexOf("<NotePhotoStrip");
-    const name = source.indexOf('htmlFor="note-drink-name"');
-    expect(photo).toBeGreaterThan(-1);
-    expect(name).toBeGreaterThan(photo);
-    expect(source).not.toContain("between={");
-  });
-
-  it("識別 4 項目と写真からの推測がある", () => {
-    expect(source).toContain('idPrefix="note"');
-    expect(source).toContain("IDENTITY_FIELD_LABELS.drinkName");
-    expect(source).toContain("startNoteRecognition");
-    expect(source).toContain("applyRecognizeToNoteForm");
-    expect(source).toContain("latestNoteRecognizeJpeg");
-    expect(source).toContain("NOTE_RECOGNIZE_BANNER");
-    expect(source).toContain("capturedAtToCalendarDate");
-    expect(source).toContain("fromLog");
-    expect(source).toContain("inheritPhotoId");
-    expect(source).toContain("inheritFrom");
-  });
-
-  it("関連付けと商品情報は入口のあと。後選択は手入力を残す", () => {
-    expect(source).toContain("セラーから選ぶ");
-    expect(source).toContain("新しく入力");
-    expect(source).toContain("お酒の情報を編集");
-    expect(source).toContain("お酒の情報（任意）");
-    expect(source).toContain("NoteEditSummary");
-    expect(source).toContain("useState(() => identityError)");
-    expect(source.indexOf("<TastedOnRow")).toBeGreaterThan(source.indexOf("<NoteSourceToggle"));
-    expect(source.indexOf("<NoteTextFields")).toBeGreaterThan(source.indexOf("<IdentityFields"));
-    expect(source).toContain("TargetBottleChip");
-    expect(source).toContain("preserveEdits: true");
-    expect(source).toContain("<DrinkSearchLink");
-    expect(source.indexOf("errors.drinkName")).toBeLessThan(source.indexOf("<DrinkSearchLink"));
-    expect(source).toContain("showSearch={!identityExpanded}");
-    expect(source).toContain("name={state.drinkName}");
+describe("NoteForm は記録フォームへリダイレクトする", () => {
+  it("新規は log-new へ、編集は親記録の log-edit へ行く", () => {
+    expect(source).toContain("logCreateHref");
+    expect(source).toContain("<Navigate");
+    expect(source).toContain("/logs/entries/");
+    expect(source).toContain("query.data.drinkLog.id");
+    expect(source).not.toContain("fromLog");
+    expect(source).not.toContain("<NotePhotoStrip");
+    expect(source).not.toContain("startNoteRecognition");
+    expect(source).not.toContain("ノートを保存");
   });
 });

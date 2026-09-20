@@ -10,15 +10,8 @@ type AddFabProps = {
 /** セラー一覧とノート一覧の右下追加（00-common 1.4）。ピル＋文言。primary にはしない */
 export function AddFab({ fab }: AddFabProps) {
   const guide = useFirstRunGuide();
-  const cellar = fab.to.startsWith("/cellar");
-  const intercept = cellar
-    ? guide.interceptCellarAdd
-      ? guide.onCellarAdd
-      : undefined
-    : guide.interceptNotesCreate
-      ? guide.onNotesCreate
-      : undefined;
-  const target = cellar ? "cellar-add" : "notes-create";
+  const intercept = guide.interceptCellarAdd ? guide.onCellarAdd : undefined;
+  const target = "cellar-add";
 
   return (
     <Link

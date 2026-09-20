@@ -18,7 +18,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const field = readFileSync(join(here, "RatingField.tsx"), "utf8");
 const css = readFileSync(join(here, "../../styles.css"), "utf8");
 const stars = readFileSync(join(here, "RatingStars.tsx"), "utf8");
-const form = readFileSync(join(here, "NoteForm.tsx"), "utf8");
+const form = readFileSync(join(here, "../logs/LogTastingSection.tsx"), "utf8");
 
 describe("RatingField 星タップと数値", () => {
   it("± は 0.1（ratingX10 で 1）。未選択から 1.0、上限は 5.0", () => {

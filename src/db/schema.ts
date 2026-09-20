@@ -291,6 +291,9 @@ export const tastingNotes = sqliteTable(
   {
     id: text("id").primaryKey(),
     userId: userIdColumn(),
+    drinkLogId: text("drink_log_id")
+      .notNull()
+      .references(() => drinkLogs.id, { onDelete: "cascade" }),
     bottleId: text("bottle_id").references(() => bottles.id, { onDelete: "set null" }),
     // ボトル改名後も当時の値を残すためのスナップショット
     drinkName: text("drink_name").notNull(),
@@ -309,6 +312,7 @@ export const tastingNotes = sqliteTable(
     ...timestampColumns(),
   },
   (table) => [
+    uniqueIndex("tasting_notes_drink_log_uidx").on(table.drinkLogId),
     index("tasting_notes_user_tasted_on_idx").on(table.userId, table.tastedOn),
     index("tasting_notes_user_bottle_idx").on(table.userId, table.bottleId),
     drinkTypeCheck("tasting_notes"),

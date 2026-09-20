@@ -18,6 +18,7 @@ import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import { displayAlcoholGrams } from "@/shared/alcohol.ts";
 import { DRINK_TYPE_LABELS } from "@/shared/constants.ts";
 import type { DrinkLogItem } from "@/shared/drink-logs.ts";
+import { formatRatingX10 } from "@/shared/tasting-notes.ts";
 import { formatTokyoTime } from "@/shared/tokyo-date.ts";
 
 export function LogDayPage() {
@@ -158,6 +159,7 @@ function LogDayRow({ item, ref, highlighted, fading, removing, onPreviewPhoto }:
   const secondary = [
     formatTokyoTime(new Date(item.drunkAt)),
     `${item.abvPercent}%`,
+    item.tastingNote ? `★${formatRatingX10(item.tastingNote.ratingX10)}` : null,
     item.bottleId ? item.drinkName : null,
     item.placeName,
   ]

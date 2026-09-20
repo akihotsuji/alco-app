@@ -9,6 +9,7 @@ import { RatingStars } from "@/client/components/notes/RatingStars.tsx";
 import { useTastingNote } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { isUuid } from "@/client/lib/bottle-form.ts";
+import { formatGrams } from "@/client/lib/log-form.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 import { formatRatingX10, type TastingNote } from "@/shared/tasting-notes.ts";
@@ -67,6 +68,10 @@ function NoteDetailBody({ note }: { note: TastingNote }) {
         <span className="note-detail-date">{formatLongJapaneseDate(note.tastedOn)}</span>
         {note.vintage !== null ? <span>{note.vintage}</span> : null}
       </div>
+      <p className="note-detail-log">
+        {note.drinkLog.volumeMl}ml ・ {note.drinkLog.abvPercent}% ・{" "}
+        {formatGrams(note.drinkLog.alcoholG)} g
+      </p>
       {note.bottle ? (
         <Link className="form-row note-bottle-link" to={`/cellar/${note.bottle.id}`}>
           <span className="form-row-label">

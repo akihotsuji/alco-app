@@ -40,8 +40,9 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("requestCurrentPosition");
     expect(source).toContain("getRecordLocationPref");
     expect(source).toContain("capturedAtToDrunkAt");
-    expect(source).toContain("テイスティングノートをつける？");
-    expect(source).toContain("noteFromLogHref");
+    expect(source).toContain("<LogTastingSection");
+    expect(source).not.toContain("テイスティングノートをつける？");
+    expect(source).not.toContain("noteFromLogHref");
     expect(source).toContain("TargetBottleChip");
     expect(source).toContain("preserveEdits: true");
     expect(source).toContain("inheritOwnedPhoto");
@@ -51,10 +52,12 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     expect(source).toContain("firstPhotoId");
     expect(source).toContain('clearAttachment("log")');
     expect(edit).toContain('clearAttachment("log")');
-    expect(source).toContain("お酒の情報と写真をノートに引き継ぎます");
+    expect(source).not.toContain("お酒の情報と写真をノートに引き継ぎます");
     expect(source).not.toContain("写真はコピーしません");
     expect(edit).toContain("<IdentityFields");
     expect(edit).toContain("<PlaceField");
+    expect(edit).toContain("<LogTastingSection");
+    expect(edit).toContain("onDeleteNote");
     for (const form of [source, edit]) {
       expect(form).toContain("<DrinkSearchLink");
       expect(form.indexOf("visibleErrors.drinkName")).toBeLessThan(

@@ -431,21 +431,14 @@ export function isUuidParam(value: string): boolean {
 }
 
 export function noteFromLogHref(logId: string): string {
-  return `/notes/new?fromLog=${encodeURIComponent(logId)}`;
+  return `/logs/entries/${encodeURIComponent(logId)}/edit`;
 }
 
 export function noteCreateHref(
   bottleId?: string | null,
   from?: "opened" | "detail" | null,
 ): string {
-  if (bottleId && isUuidParam(bottleId)) {
-    const params = new URLSearchParams({ bottleId });
-    if (from) {
-      params.set("from", from);
-    }
-    return `/notes/new?${params.toString()}`;
-  }
-  return "/notes/new";
+  return logCreateHref({ bottleId, from });
 }
 
 export function notesListHref(bottleId?: string | null): string {
@@ -464,10 +457,6 @@ export function addFabForRoute(
   const route = resolveAppRoute(pathname, now, search);
   if (route.screenId === "bottle-list") {
     return { to: "/cellar/new", label: "＋ ボトル追加" };
-  }
-  if (route.screenId === "note-list") {
-    const bottleId = new URLSearchParams(search).get("bottleId");
-    return { to: noteCreateHref(bottleId), label: "＋ ノート作成" };
   }
   return null;
 }

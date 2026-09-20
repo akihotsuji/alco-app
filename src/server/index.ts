@@ -129,11 +129,7 @@ export function createApp(options: CreateAppOptions = {}) {
     getLabelRecognizer: (c) => options.labelRecognizer ?? createTaskRecognizer(c.env, "label"),
     recognizeTimeoutMs: options.recognizeTimeoutMs,
   });
-  const tastingNotesRoute = createTastingNotesRoute({
-    ...routeDeps,
-    getNoteRecognizer: (c) => options.noteRecognizer ?? createTaskRecognizer(c.env, "note"),
-    recognizeTimeoutMs: options.recognizeTimeoutMs,
-  });
+  const tastingNotesRoute = createTastingNotesRoute(routeDeps);
 
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app

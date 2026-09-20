@@ -71,6 +71,7 @@ export function useCreateDrinkLog() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs });
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogSummaries });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tastingNotes });
     },
   });
 }
@@ -82,6 +83,7 @@ export function useDeleteDrinkLog() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs });
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogSummaries });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tastingNotes });
     },
   });
 }
@@ -125,6 +127,7 @@ export function useUpdateDrinkLog() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogs });
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinkLogSummaries });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tastingNotes });
     },
   });
 }

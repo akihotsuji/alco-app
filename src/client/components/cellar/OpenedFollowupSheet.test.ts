@@ -9,12 +9,12 @@ const source = readFileSync(
 );
 
 describe("OpenedFollowupSheet T3b", () => {
-  it("見出し・補足と3操作だけ出す", () => {
+  it("見出し・補足と記録・今はしないだけ出す", () => {
     expect(source).toContain("開栓しました");
     expect(source).toContain("このボトルについて残しますか？");
     expect(source).toContain("飲んだ量を記録");
-    expect(source).toContain("テイスティングノートを書く");
     expect(source).toContain("今はしない");
+    expect(source).not.toContain("テイスティングノートを書く");
     expect(source).not.toContain("あとで");
     expect(source).not.toContain("dangerouslySetInnerHTML");
   });

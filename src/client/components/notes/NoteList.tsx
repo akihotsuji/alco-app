@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
 import { EmptyState } from "@/client/components/feedback/EmptyState.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
@@ -11,7 +11,7 @@ import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useNoteListFilters } from "@/client/hooks/use-note-list-filters.ts";
 import { useInfiniteTastingNotes } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
-import { noteCreateHref } from "@/client/lib/app-routes.ts";
+import { logCreateHref } from "@/client/lib/app-routes.ts";
 import { isUuid } from "@/client/lib/bottle-form.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import type { TastingNoteListItem } from "@/shared/tasting-notes.ts";
@@ -40,7 +40,6 @@ function LoadedNoteList() {
   );
 
   const guide = useFirstRunGuide();
-  const [showNotesHint] = useState(() => !guide.notesHintSeen);
   const emptyAll = query.data?.pages[0]?.totalCount === 0;
   useEffect(() => {
     if (emptyAll && !guide.notesHintSeen) {
@@ -66,7 +65,6 @@ function LoadedNoteList() {
 
   const items: TastingNoteListItem[] = query.data?.pages.flatMap((page) => page.items) ?? [];
   const emptyFilter = Boolean(query.data && items.length === 0 && filters.filtered);
-  const createTo = noteCreateHref(bottleId);
   const filterEmptyMessage = filters.q
     ? "一致するノートがありません"
     : "該当するノートがありません";
@@ -87,15 +85,9 @@ function LoadedNoteList() {
         <EmptyState
           pose="default"
           message="テイスティングノートはまだありません"
-          detail={
-            guide.interceptNotesCreate
-              ? undefined
-              : showNotesHint
-                ? "味や感想は、ノートに残します"
-                : "気になるお酒の味わいを記録してみましょう"
-          }
-          actionLabel="ノートを作成"
-          actionTo={createTo}
+          detail="味や感想は、記録するときに残せます"
+          actionLabel={guide.interceptNotesCreate ? undefined : "記録する"}
+          actionTo={guide.interceptNotesCreate ? undefined : logCreateHref()}
         />
       ) : null}
       {emptyFilter ? (

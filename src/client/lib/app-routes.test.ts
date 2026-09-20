@@ -249,20 +249,17 @@ describe("summary hrefs", () => {
 });
 
 describe("note hrefs", () => {
-  it("bottleId があるとき作成と一覧に引き継ぐ", () => {
+  it("作成は記録フォームへ寄せ、一覧だけ bottleId を引き継ぐ", () => {
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-    expect(noteCreateHref(id)).toBe(`/notes/new?bottleId=${id}`);
+    expect(noteCreateHref(id)).toBe(`/logs/new?bottleId=${id}`);
     expect(notesListHref(id)).toBe(`/notes?bottleId=${id}`);
-    expect(noteCreateHref()).toBe("/notes/new");
+    expect(noteCreateHref()).toBe("/logs/new");
     const header = resolveAppRoute("/notes", NOW, `?bottleId=${id}`).header;
     expect(header.left).toEqual({ kind: "back", fallback: `/cellar/${id}` });
     expect(header.right).toEqual({ kind: "spacer" });
-    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toEqual({
-      to: `/notes/new?bottleId=${id}`,
-      label: "＋ ノート作成",
-    });
+    expect(addFabForRoute("/notes", `?bottleId=${id}`)).toBeNull();
     expect(resolveAppRoute("/notes", NOW).header.right).toEqual({ kind: "spacer" });
-    expect(addFabForRoute("/notes")).toEqual({ to: "/notes/new", label: "＋ ノート作成" });
+    expect(addFabForRoute("/notes")).toBeNull();
     expect(resolveAppRoute("/notes/new", NOW, `?bottleId=${id}`).header.left).toEqual({
       kind: "back",
       fallback: `/notes?bottleId=${id}`,
@@ -271,8 +268,8 @@ describe("note hrefs", () => {
       kind: "back",
       fallback: `/cellar/${id}`,
     });
-    expect(noteCreateHref(id, "opened")).toBe(`/notes/new?bottleId=${id}&from=opened`);
-    expect(noteFromLogHref(id)).toBe(`/notes/new?fromLog=${id}`);
+    expect(noteCreateHref(id, "opened")).toBe(`/logs/new?bottleId=${id}&from=opened`);
+    expect(noteFromLogHref(id)).toBe(`/logs/entries/${id}/edit`);
   });
 });
 
