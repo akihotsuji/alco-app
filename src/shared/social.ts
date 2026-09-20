@@ -25,7 +25,12 @@ export const SOCIAL_POST_KINDS = [
 ] as const;
 export type SocialPostKind = (typeof SOCIAL_POST_KINDS)[number];
 
-export const SOCIAL_SOURCE_KINDS = ["drink_log", "bottle", "opening_event", "tasting_note"] as const;
+export const SOCIAL_SOURCE_KINDS = [
+  "drink_log",
+  "bottle",
+  "opening_event",
+  "tasting_note",
+] as const;
 export type SocialSourceKind = (typeof SOCIAL_SOURCE_KINDS)[number];
 
 export const FRIEND_REQUEST_STATUSES = ["pending", "accepted", "declined", "cancelled"] as const;
@@ -75,7 +80,8 @@ export const SOCIAL_COPY = {
   skipShare: "共有しない",
   shareFollowsEdit: "変更は友達への共有内容にも反映されます",
   deleteWithShare: "友達への共有とリアクションも削除されます",
-  deleteBatchPartial: "まとめ共有に含まれる場合、残りの本数だけ更新されます。0本になると共有も削除されます",
+  deleteBatchPartial:
+    "まとめ共有に含まれる場合、残りの本数だけ更新されます。0本になると共有も削除されます",
   reshareConfirm: "現在の友達に、新しい近況として共有します",
   kindDrinkLog: "飲んだ一杯",
   kindCellarAdd: "セラーに仲間入り",
@@ -86,10 +92,24 @@ export function socialBatchKindLabel(count: number): string {
   return `セラーに${count}本追加`;
 }
 
-const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
+function stripControlChars(value: string): string {
+  return [...value]
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return code > 31 && code !== 127;
+    })
+    .join("");
+}
+
+function hasControlChars(value: string): boolean {
+  return [...value].some((char) => {
+    const code = char.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
+}
 
 export function normalizeNickname(value: string): string {
-  return value.replace(CONTROL_CHARS, "").trim();
+  return stripControlChars(value).trim();
 }
 
 export function isMascotColor(value: string): boolean {
@@ -106,7 +126,10 @@ export function mascotLightColor(hex: string): string {
   const g = Number.parseInt(raw.slice(2, 4), 16);
   const b = Number.parseInt(raw.slice(4, 6), 16);
   const mix = (channel: number) => Math.min(255, Math.round(channel + (255 - channel) * 0.35));
-  return `#${[mix(r), mix(g), mix(b)].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+  return `#${[mix(r), mix(g), mix(b)]
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()}`;
 }
 
 export const nicknameSchema = z
@@ -115,7 +138,7 @@ export const nicknameSchema = z
   .refine((value) => value.length >= SOCIAL_NICKNAME_MIN && value.length <= SOCIAL_NICKNAME_MAX, {
     error: SOCIAL_MESSAGES.nickname,
   })
-  .refine((value) => !CONTROL_CHARS.test(value) && !value.includes("\n"), {
+  .refine((value) => !hasControlChars(value) && !value.includes("\n"), {
     error: SOCIAL_MESSAGES.nicknameControl,
   });
 
@@ -150,6 +173,12 @@ export const inviteTokenQuerySchema = z
       .min(32, { error: SOCIAL_MESSAGES.invite })
       .max(128, { error: SOCIAL_MESSAGES.invite })
       .regex(/^[A-Za-z0-9_-]+$/, { error: SOCIAL_MESSAGES.invite }),
+  })
+  .strict();
+
+export const invitationOwnerQuerySchema = z
+  .object({
+    token: inviteTokenQuerySchema.shape.token.optional(),
   })
   .strict();
 
@@ -351,6 +380,8 @@ export const socialReactionSummarySchema = z
   })
   .strict();
 
+export type SocialReactionSummary = z.infer<typeof socialReactionSummarySchema>;
+
 export const socialTastingSchema = z
   .object({
     appearance: z.string().nullable(),
@@ -393,6 +424,7 @@ export const socialPostSchema = z
   })
   .strict();
 
+export type SocialPostItem = z.infer<typeof socialPostItemSchema>;
 export type SocialPost = z.infer<typeof socialPostSchema>;
 
 export const socialFeedSchema = z

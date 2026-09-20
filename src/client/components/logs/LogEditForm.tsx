@@ -9,12 +9,12 @@ import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
+import { ShareField } from "@/client/components/friends/ShareField.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import {
   usePhotoEdit,
   usePhotoFormSession,
 } from "@/client/components/layout/photo-edit-context.tsx";
-import { ShareField } from "@/client/components/friends/ShareField.tsx";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { AbvField } from "@/client/components/logs/AbvField.tsx";
 import { BottlePickerRow } from "@/client/components/logs/BottlePickerRow.tsx";
@@ -32,11 +32,11 @@ import {
   useDrinkLog,
   useUpdateDrinkLog,
 } from "@/client/hooks/use-drink-logs.ts";
-import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
-import { useCreateShare, useSocialSources, useUnsharePost } from "@/client/hooks/use-social.ts";
 import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
 import { useNotePhotos } from "@/client/hooks/use-note-photos.ts";
 import { deletePhoto, photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
+import { useCreateShare, useSocialSources, useUnsharePost } from "@/client/hooks/use-social.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
 import { drinkLogSavePhotoId, PHOTO_COPY_FAILED_MESSAGE } from "@/client/lib/copy-owned-photo.ts";
@@ -65,12 +65,12 @@ import {
 import type { MotionState } from "@/client/lib/motion.ts";
 import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
+import { newSocialOperationKey } from "@/client/lib/social-invite.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
-import { newSocialOperationKey } from "@/client/lib/social-invite.ts";
 import { DRINK_NAME_MAX_LENGTH, type DrinkLog } from "@/shared/drink-logs.ts";
-import { SOCIAL_COPY } from "@/shared/social.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 
 export function LogEditForm({ logId }: { logId: string | undefined }) {
   const query = useDrinkLog(logId);

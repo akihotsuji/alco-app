@@ -1,6 +1,6 @@
 import { Archive, ChevronLeft, ChevronRight, Images, Plus } from "lucide-react";
-import { FriendsHeaderActions } from "@/client/components/friends/FriendsHeaderActions.tsx";
 import { Link, useNavigate } from "react-router";
+import { FriendsHeaderActions } from "@/client/components/friends/FriendsHeaderActions.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { APP_HEADER_TITLE_ID } from "@/client/lib/a11y.ts";

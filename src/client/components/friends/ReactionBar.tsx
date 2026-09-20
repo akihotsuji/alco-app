@@ -26,6 +26,7 @@ export function ReactionBar({ postId, reactions, canReact }: ReactionBarProps) {
   }
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: 横並びのトグル群。fieldset だと flex が崩れる
     <div className="reaction-bar" role="group" aria-label="リアクション">
       {options.map((type) => {
         const summary = reactions.find((item) => item.typeId === type.id);

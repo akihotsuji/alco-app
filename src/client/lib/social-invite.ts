@@ -11,7 +11,10 @@ export function tokenFromInviteUrl(url: string): string | null {
   }
 }
 
-export function captureFriendJoinToken(hash: string, replaceUrl?: (url: string) => void): string | null {
+export function captureFriendJoinToken(
+  hash: string,
+  replaceUrl?: (url: string) => void,
+): string | null {
   const token = new URLSearchParams(hash.replace(/^#/, "")).get("t");
   if (token) {
     try {

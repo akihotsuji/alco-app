@@ -13,6 +13,7 @@ import { Shelf, ShelfSkeleton } from "@/client/components/cellar/Shelf.tsx";
 import { EmptyState } from "@/client/components/feedback/EmptyState.tsx";
 import { DetailSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
+import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
 import { useBottleListFilters } from "@/client/hooks/use-bottle-list-filters.ts";
@@ -26,6 +27,7 @@ import {
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
 import { useDrinkLogsByBottle } from "@/client/hooks/use-drink-logs.ts";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
 import { useTastingNotesByBottle } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
@@ -42,10 +44,8 @@ import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import type { Bottle, BottleItem } from "@/shared/bottles.ts";
 import { formatBottleCount } from "@/shared/bottles.ts";
-import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
-import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
-import { SOCIAL_COPY } from "@/shared/social.ts";
 import { CELLAR_COPY } from "@/shared/cellars.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 
 export function CellarPage() {
   return <CellarList />;
@@ -208,9 +208,9 @@ function NewBottlePage() {
           onShareOnChange={share.setShareOn}
           canShare={share.canShare}
           reason={share.reason}
-          preview={undefined}
         />
       }
+      formatSaveLabel={(fallback) => shareSaveLabel(share.shareOn, share.canShare, fallback)}
       onClearServer={() => {
         setFormError(null);
         setServerErrors({});

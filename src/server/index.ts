@@ -14,10 +14,10 @@ import { createCellarInvitationsRoute, createCellarsRoute } from "./routes/cella
 import { createConfigRoute } from "./routes/config.ts";
 import { createDrinkLogsRoute } from "./routes/drink-logs.ts";
 import { createFeedbackRoute } from "./routes/feedback.ts";
+import { createFriendsRoute } from "./routes/friends.ts";
 import { healthRoute } from "./routes/health.ts";
 import { createMeRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
-import { createFriendsRoute } from "./routes/friends.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
 import { createSocialRoute } from "./routes/social.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";

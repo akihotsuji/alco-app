@@ -1,9 +1,9 @@
 import { Link } from "react-router";
-import { SocialAvatar } from "@/client/components/friends/SocialAvatar.tsx";
 import { ReactionBar } from "@/client/components/friends/ReactionBar.tsx";
+import { SocialAvatar } from "@/client/components/friends/SocialAvatar.tsx";
 import { socialPhotoContentUrl } from "@/client/hooks/use-social.ts";
 import { formatRelativeShareTime } from "@/client/lib/social-time.ts";
-import { socialKindLabel, type SocialPost } from "@/shared/social.ts";
+import { type SocialPost, socialKindLabel } from "@/shared/social.ts";
 import { formatRatingX10 } from "@/shared/tasting-notes.ts";
 
 type PostCardProps = {
@@ -37,8 +37,12 @@ export function PostCard({ post, compact = false }: PostCardProps) {
           />
         ) : null}
         <h3 className="social-card-title">{first?.name ?? "お酒"}</h3>
-        {first?.ratingX10 != null ? <p className="social-card-rating">{formatRatingX10(first.ratingX10)}</p> : null}
-        {first?.comment && compact ? <p className="social-card-comment">{truncate(first.comment, 80)}</p> : null}
+        {first?.ratingX10 != null ? (
+          <p className="social-card-rating">{formatRatingX10(first.ratingX10)}</p>
+        ) : null}
+        {first?.comment && compact ? (
+          <p className="social-card-comment">{truncate(first.comment, 80)}</p>
+        ) : null}
         {first?.comment && !compact ? <p className="social-card-comment">{first.comment}</p> : null}
       </Link>
       <ReactionBar postId={post.id} reactions={post.reactions} canReact={post.canReact} />

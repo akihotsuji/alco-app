@@ -13,11 +13,10 @@ import {
   SOCIAL_AVATAR_MAX_BYTES,
   type SocialMe,
   type SocialPreferences,
-  type SocialProfilePatch,
 } from "@/shared/social.ts";
 import { ApiError } from "../errors.ts";
-import type { PhotoBucket } from "./photos.ts";
 import { ImageInspectFailure, inspectImageBytes } from "./image-inspect.ts";
+import type { PhotoBucket } from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
 import {
   fallbackProfile,
@@ -60,7 +59,9 @@ export async function updateSocialProfile(
       fields: { nickname: ["友達に表示する名前を入力してください"] },
     });
   }
-  const mascotColor = mascotColorSchema.parse(patch.mascotColor ?? current?.mascotColor ?? DEFAULT_MASCOT_COLOR);
+  const mascotColor = mascotColorSchema.parse(
+    patch.mascotColor ?? current?.mascotColor ?? DEFAULT_MASCOT_COLOR,
+  );
   let avatarMode = patch.avatarMode ?? current?.avatarMode ?? "mascot";
   let avatarId = current?.avatarId ?? null;
   if (avatarMode === "uploaded" && !avatarId) {
@@ -125,8 +126,8 @@ export async function uploadSocialAvatar(input: {
   now?: Date;
 }): Promise<SocialMe> {
   const now = input.now ?? new Date();
-  await requireCompletedOrCreatePlaceholder(input.db, input.userId, now);
-  let inspected;
+  await requireCompletedOrCreatePlaceholder(input.db, input.userId);
+  let inspected: ReturnType<typeof inspectImageBytes>;
   try {
     inspected = inspectImageBytes(input.bytes, {
       maxBytes: SOCIAL_AVATAR_MAX_BYTES,
@@ -221,7 +222,7 @@ async function retireAvatar(db: AppBatchDb, bucket: PhotoBucket, avatarId: strin
   }
 }
 
-async function requireCompletedOrCreatePlaceholder(db: AppBatchDb, userId: string, now: Date) {
+async function requireCompletedOrCreatePlaceholder(db: AppBatchDb, userId: string) {
   const current = await getSocialProfile(db, userId);
   if (current) {
     return current;
@@ -251,8 +252,14 @@ export async function canReadAvatar(
       and(
         eq(friendRequests.status, "pending"),
         or(
-          and(eq(friendRequests.requesterUserId, viewerId), eq(friendRequests.recipientUserId, ownerId)),
-          and(eq(friendRequests.requesterUserId, ownerId), eq(friendRequests.recipientUserId, viewerId)),
+          and(
+            eq(friendRequests.requesterUserId, viewerId),
+            eq(friendRequests.recipientUserId, ownerId),
+          ),
+          and(
+            eq(friendRequests.requesterUserId, ownerId),
+            eq(friendRequests.recipientUserId, viewerId),
+          ),
         ),
       ),
     );
@@ -277,7 +284,7 @@ export async function readAvatarContent(input: {
   bucket: PhotoBucket;
   viewerId: string;
   ownerId: string;
-}): Promise<{ body: Uint8Array; contentType: string }> {
+}): Promise<{ body: ArrayBuffer; contentType: string }> {
   if (!(await canReadAvatar(input.db, input.viewerId, input.ownerId))) {
     throw new ApiError("not_found");
   }
@@ -297,7 +304,7 @@ export async function readAvatarContent(input: {
     throw new ApiError("not_found");
   }
   return {
-    body: new Uint8Array(await object.arrayBuffer()),
+    body: await object.arrayBuffer(),
     contentType: avatar.contentType,
   };
 }

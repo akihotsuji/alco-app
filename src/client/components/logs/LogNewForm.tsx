@@ -6,6 +6,7 @@ import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { FieldLabel } from "@/client/components/form/FieldLabel.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { IdentityFields } from "@/client/components/form/IdentityFields.tsx";
+import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
 import {
   usePhotoEdit,
@@ -24,15 +25,14 @@ import { LogTastingSection } from "@/client/components/logs/LogTastingSection.ts
 import { MemoField } from "@/client/components/logs/MemoField.tsx";
 import { PlaceField } from "@/client/components/logs/PlaceField.tsx";
 import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
-import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottle } from "@/client/hooks/use-bottles.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
-import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
 import { useNotePhotos } from "@/client/hooks/use-note-photos.ts";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { logDayHref } from "@/client/lib/app-routes.ts";
 import {
   drinkLogSavePhotoId,
@@ -71,8 +71,8 @@ import { capturedAtToDrunkAt, shouldKeepQueryDrunkAt } from "@/client/lib/photo/
 import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { getRecordLocationPref } from "@/client/lib/preferences.ts";
 import { DRINK_LOG_MESSAGES, DRINK_NAME_MAX_LENGTH } from "@/shared/drink-logs.ts";
-import { SOCIAL_COPY } from "@/shared/social.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 
 const DISCARD_TITLE = "入力を破棄しますか";
 const DISCARD_BODY = "入力した内容は保存されません";

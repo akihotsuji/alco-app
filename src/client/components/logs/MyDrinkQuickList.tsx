@@ -1,16 +1,16 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
+import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { Chip } from "@/client/components/ui/Chip.tsx";
-import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
-import { SOCIAL_COPY } from "@/shared/social.ts";
 import { deleteDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { type MyDrink, useLogMyDrink } from "@/client/hooks/use-my-drinks.ts";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { haptic } from "@/client/lib/haptic.ts";
 import { MOTION_MS, type MotionState } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { TOAST_MESSAGES } from "@/client/lib/toast.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 
 type LoggedDrink = {
   id: string;

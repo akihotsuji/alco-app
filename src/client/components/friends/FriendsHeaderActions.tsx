@@ -9,7 +9,9 @@ export function FriendsHeaderActions() {
     <div className="friends-header-actions">
       <Link className="header-icon-link" to="/friends/notifications" aria-label="通知">
         <Bell size={20} />
-        {count > 0 ? <span className="friends-unread-badge">{count > 99 ? "99+" : count}</span> : null}
+        {count > 0 ? (
+          <span className="friends-unread-badge">{count > 99 ? "99+" : count}</span>
+        ) : null}
       </Link>
       <Link className="header-icon-link" to="/friends/list" aria-label="友達一覧">
         <Users size={20} />

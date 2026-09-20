@@ -10,10 +10,10 @@ import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/Cont
 import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Button } from "@/client/components/ui/button.tsx";
 import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
-import { useOpeningSource, useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { useOpeningSource, useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logCreateHref } from "@/client/lib/app-routes.ts";
 import {

@@ -41,4 +41,7 @@ export const socialReactionRateLimiter = createLimiter(
   SOCIAL_REACTION_RATE_MAX,
   SOCIAL_REACTION_RATE_WINDOW_MS,
 );
-export const socialShareRateLimiter = createLimiter(SOCIAL_SHARE_RATE_MAX, SOCIAL_SHARE_RATE_WINDOW_MS);
+export const socialShareRateLimiter = createLimiter(
+  SOCIAL_SHARE_RATE_MAX,
+  SOCIAL_SHARE_RATE_WINDOW_MS,
+);

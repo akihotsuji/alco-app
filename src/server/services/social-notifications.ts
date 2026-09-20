@@ -92,7 +92,10 @@ export async function deleteNotificationsForTarget(
   await db
     .delete(socialNotifications)
     .where(
-      and(eq(socialNotifications.targetKind, targetKind), eq(socialNotifications.targetId, targetId)),
+      and(
+        eq(socialNotifications.targetKind, targetKind),
+        eq(socialNotifications.targetId, targetId),
+      ),
     );
 }
 
@@ -104,7 +107,9 @@ export async function listNotifications(
 ): Promise<{ items: SocialNotification[]; nextCursor: string | null }> {
   const decoded = cursor ? decodeFeedCursor(cursor) : null;
   if (cursor && !decoded) {
-    throw new ApiError("validation_error", { fields: { cursor: ["ページ情報が正しくありません"] } });
+    throw new ApiError("validation_error", {
+      fields: { cursor: ["ページ情報が正しくありません"] },
+    });
   }
   const rows = await db
     .select()
@@ -144,11 +149,18 @@ export async function unreadNotificationCount(db: AppBatchDb, userId: string): P
   const [row] = await db
     .select({ n: sql<number>`count(*)` })
     .from(socialNotifications)
-    .where(and(eq(socialNotifications.recipientUserId, userId), isNull(socialNotifications.readAt)));
+    .where(
+      and(eq(socialNotifications.recipientUserId, userId), isNull(socialNotifications.readAt)),
+    );
   return Number(row?.n ?? 0);
 }
 
-export async function markNotificationRead(db: AppBatchDb, userId: string, id: string, now = new Date()) {
+export async function markNotificationRead(
+  db: AppBatchDb,
+  userId: string,
+  id: string,
+  now = new Date(),
+) {
   const updated = await db
     .update(socialNotifications)
     .set({ readAt: now, updatedAt: now })
@@ -163,7 +175,9 @@ export async function markAllNotificationsRead(db: AppBatchDb, userId: string, n
   await db
     .update(socialNotifications)
     .set({ readAt: now, updatedAt: now })
-    .where(and(eq(socialNotifications.recipientUserId, userId), isNull(socialNotifications.readAt)));
+    .where(
+      and(eq(socialNotifications.recipientUserId, userId), isNull(socialNotifications.readAt)),
+    );
 }
 
 async function toNotification(
@@ -234,8 +248,14 @@ export async function deleteNotificationsBetweenUsers(
     .delete(socialNotifications)
     .where(
       or(
-        and(eq(socialNotifications.recipientUserId, userA), eq(socialNotifications.actorUserId, userB)),
-        and(eq(socialNotifications.recipientUserId, userB), eq(socialNotifications.actorUserId, userA)),
+        and(
+          eq(socialNotifications.recipientUserId, userA),
+          eq(socialNotifications.actorUserId, userB),
+        ),
+        and(
+          eq(socialNotifications.recipientUserId, userB),
+          eq(socialNotifications.actorUserId, userA),
+        ),
       ),
     );
 }

@@ -1,10 +1,17 @@
 import type { CSSProperties } from "react";
 import { Mascot } from "@/client/components/mascot/Mascot.tsx";
 import { socialAvatarUrl } from "@/client/hooks/use-social.ts";
-import { DEFAULT_MASCOT_COLOR, mascotLightColor, type SocialPublicProfile } from "@/shared/social.ts";
+import {
+  DEFAULT_MASCOT_COLOR,
+  mascotLightColor,
+  type SocialPublicProfile,
+} from "@/shared/social.ts";
 
 type SocialAvatarProps = {
-  profile: Pick<SocialPublicProfile, "userId" | "avatarMode" | "mascotColor" | "hasCustomAvatar" | "nickname">;
+  profile: Pick<
+    SocialPublicProfile,
+    "userId" | "avatarMode" | "mascotColor" | "hasCustomAvatar" | "nickname"
+  >;
   size?: number;
 };
 

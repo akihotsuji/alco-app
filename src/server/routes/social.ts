@@ -8,6 +8,7 @@ import {
   putReactionSchema,
   SOCIAL_CONTENT_CACHE_CONTROL,
   SOCIAL_MESSAGES,
+  socialAvatarParamSchema,
   socialFeedQuerySchema,
   socialIdParamSchema,
   socialPostPhotoParamSchema,
@@ -17,9 +18,29 @@ import {
 } from "@/shared/social.ts";
 import type { AppEnv } from "../app-env.ts";
 import { ApiError, MALFORMED_REQUEST_MESSAGE } from "../errors.ts";
-import { matchesIfNoneMatch } from "../services/photos.ts";
-import type { PhotoBucket } from "../services/photos.ts";
 import { assertSameOrigin } from "../services/origin.ts";
+import type { PhotoBucket } from "../services/photos.ts";
+import { matchesIfNoneMatch } from "../services/photos.ts";
+import {
+  getSocialProfile,
+  listActiveFriendIds,
+  toPublicProfile,
+} from "../services/social-access.ts";
+import {
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  unreadNotificationCount,
+} from "../services/social-notifications.ts";
+import {
+  createSocialShare,
+  getAuthorVisiblePosts,
+  getSocialFeed,
+  getSocialPost,
+  lookupShareSources,
+  readSocialPostPhoto,
+  unsharePost,
+} from "../services/social-posts.ts";
 import {
   deleteSocialAvatar,
   getSocialMe,
@@ -29,15 +50,7 @@ import {
   updateSocialProfile,
   uploadSocialAvatar,
 } from "../services/social-profiles.ts";
-import { getAuthorVisiblePosts, getSocialFeed, getSocialPost, lookupShareSources, readSocialPostPhoto, unsharePost, createSocialShare } from "../services/social-posts.ts";
-import {
-  listNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-  unreadNotificationCount,
-} from "../services/social-notifications.ts";
 import { deleteReaction, listReactionTypes, putReaction } from "../services/social-reactions.ts";
-import { getSocialProfile, listActiveFriendIds, toPublicProfile } from "../services/social-access.ts";
 import { validate } from "../validation.ts";
 
 export type SocialRouteDeps = {
@@ -118,16 +131,12 @@ export function createSocialRoute(deps: SocialRouteDeps) {
         }),
       );
     })
-    .get("/avatars/:userId/content", async (c) => {
-      const ownerId = c.req.param("userId");
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ownerId)) {
-        throw new ApiError("not_found");
-      }
+    .get("/avatars/:userId/content", validate("param", socialAvatarParamSchema), async (c) => {
       const content = await readAvatarContent({
         db: deps.getDb(c),
         bucket: deps.getBucket(c),
         viewerId: c.get("user").id,
-        ownerId,
+        ownerId: c.req.valid("param").userId,
       });
       return c.body(content.body, 200, {
         "Content-Type": content.contentType,
@@ -155,20 +164,27 @@ export function createSocialRoute(deps: SocialRouteDeps) {
       noStore(c);
       return c.json(await getSocialFeed(deps.getDb(c), c.get("user").id, c.req.valid("query")));
     })
-    .get("/profiles/:id/posts", validate("param", socialIdParamSchema), validate("query", socialFeedQuerySchema), async (c) => {
-      noStore(c);
-      return c.json(
-        await getAuthorVisiblePosts(
-          deps.getDb(c),
-          c.get("user").id,
-          c.req.valid("param").id,
-          c.req.valid("query"),
-        ),
-      );
-    })
+    .get(
+      "/profiles/:id/posts",
+      validate("param", socialIdParamSchema),
+      validate("query", socialFeedQuerySchema),
+      async (c) => {
+        noStore(c);
+        return c.json(
+          await getAuthorVisiblePosts(
+            deps.getDb(c),
+            c.get("user").id,
+            c.req.valid("param").id,
+            c.req.valid("query"),
+          ),
+        );
+      },
+    )
     .get("/sources", validate("query", socialSourceLookupQuerySchema), async (c) => {
       noStore(c);
-      return c.json(await lookupShareSources(deps.getDb(c), c.get("user").id, c.req.valid("query")));
+      return c.json(
+        await lookupShareSources(deps.getDb(c), c.get("user").id, c.req.valid("query")),
+      );
     })
     .post("/shares", validate("json", createSocialShareSchema), async (c) => {
       assertSameOrigin(c);
@@ -260,7 +276,9 @@ export function createSocialRoute(deps: SocialRouteDeps) {
     .get("/notifications", validate("query", socialFeedQuerySchema), async (c) => {
       noStore(c);
       const query = c.req.valid("query");
-      return c.json(await listNotifications(deps.getDb(c), c.get("user").id, query.cursor, query.limit));
+      return c.json(
+        await listNotifications(deps.getDb(c), c.get("user").id, query.cursor, query.limit),
+      );
     })
     .get("/notifications/unread-count", async (c) => {
       noStore(c);

@@ -15,8 +15,8 @@ import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPr
 import { ThemePrefRow } from "@/client/components/settings/ThemePrefRow.tsx";
 import { Switch } from "@/client/components/ui/switch.tsx";
 import { useMe } from "@/client/hooks/use-me.ts";
-import { useSocialPreferences, useUpdateSocialPreferences } from "@/client/hooks/use-social.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
+import { useSocialPreferences, useUpdateSocialPreferences } from "@/client/hooks/use-social.ts";
 import { readClientBuildId } from "@/client/lib/app-version.ts";
 import { needsGuideFanReveal } from "@/client/lib/guide-spotlight-layout.ts";
 import {
@@ -29,8 +29,8 @@ import { formatAppVersionLabel } from "@/shared/app-version.ts";
 import { APP_VERSION } from "@/shared/constants.ts";
 import { FEEDBACK_COPY } from "@/shared/feedback.ts";
 import { legalHref } from "@/shared/legal.ts";
-import { SOCIAL_COPY } from "@/shared/social.ts";
 import { PWA_NAME } from "@/shared/pwa.ts";
+import { SOCIAL_COPY } from "@/shared/social.ts";
 
 export function SettingsPage() {
   const me = useMe();

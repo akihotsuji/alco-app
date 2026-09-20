@@ -6,10 +6,9 @@ import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { FieldWithAiMark } from "@/client/components/form/FieldWithAiMark.tsx";
 import { OriginCountryField } from "@/client/components/form/OriginCountryField.tsx";
+import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
 import { useSetHeaderOverride } from "@/client/components/layout/header-override-context.tsx";
 import { useLeaveGuard } from "@/client/components/layout/leave-guard-context.tsx";
-import { ShareField, shareSaveLabel } from "@/client/components/friends/ShareField.tsx";
-import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { SaveBar } from "@/client/components/layout/SaveBar.tsx";
 import { DrinkTypeChips } from "@/client/components/logs/DrinkTypeChips.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
@@ -17,6 +16,7 @@ import { IconButton } from "@/client/components/ui/IconButton.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
 import { useBottleBatch } from "@/client/hooks/use-bottle-batch.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
+import { useShareIntent } from "@/client/hooks/use-share-intent.ts";
 import { BACK_PHOTO_LABELS } from "@/client/lib/bottle-back-photo.ts";
 import {
   BOTTLE_BATCH_MESSAGES,
@@ -235,7 +235,11 @@ export function BottleBatchForm() {
         reason={share.reason}
       />
       <SaveBar
-        label={shareSaveLabel(share.shareOn, share.canShare, BOTTLE_SAVE_LABELS.arrange(savableCount))}
+        label={shareSaveLabel(
+          share.shareOn,
+          share.canShare,
+          BOTTLE_SAVE_LABELS.arrange(savableCount),
+        )}
         pending={batch.submitting}
         disabled={!canSubmit}
         state={batch.submitting ? "loading" : saveState}

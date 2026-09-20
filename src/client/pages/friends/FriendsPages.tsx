@@ -48,8 +48,14 @@ import {
 } from "@/client/lib/social-invite.ts";
 import { formatRelativeShareTime } from "@/client/lib/social-time.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
-import { DEFAULT_MASCOT_COLOR, MASCOT_COLOR_PRESETS, SOCIAL_COPY, socialKindLabel } from "@/shared/social.ts";
 import { PWA_NAME } from "@/shared/pwa.ts";
+import {
+  DEFAULT_MASCOT_COLOR,
+  MASCOT_COLOR_PRESETS,
+  SOCIAL_COPY,
+  SOCIAL_MESSAGES,
+  socialKindLabel,
+} from "@/shared/social.ts";
 import { formatRatingX10 } from "@/shared/tasting-notes.ts";
 
 export function FriendsFeedPage() {
@@ -174,22 +180,38 @@ export function FriendsInvitePage() {
     return <CardSkeleton />;
   }
   if (invitation.isError && !invitation.data) {
+    const incomplete = isApiClientError(invitation.error) && invitation.error.code === "conflict";
     return (
       <div className="friends-invite">
-        <Button type="button" onClick={() => create.mutate()}>
-          招待リンクを作る
-        </Button>
+        {incomplete ? (
+          <>
+            <p className="share-field-hint">{SOCIAL_MESSAGES.profileRequired}</p>
+            <Link className={buttonVariants()} to="/settings/profile">
+              プロフィールを設定
+            </Link>
+          </>
+        ) : (
+          <Button type="button" onClick={() => create.mutate()}>
+            招待リンクを作る
+          </Button>
+        )}
       </div>
     );
   }
   const data = invitation.data;
   return (
     <div className="friends-invite">
-      <p className="share-field-hint">同じリンクをコピーするか、QR を見せてください。有効期限は 7 日です。</p>
+      <p className="share-field-hint">
+        同じリンクをコピーするか、QR を見せてください。有効期限は 7 日です。
+      </p>
       {data ? (
         <>
           <p className="friends-invite-url">{data.url}</p>
-          <img className="friends-invite-qr" src={`data:image/svg+xml;utf8,${encodeURIComponent(data.qrSvg)}`} alt="招待QR" />
+          <img
+            className="friends-invite-qr"
+            src={`data:image/svg+xml;utf8,${encodeURIComponent(data.qrSvg)}`}
+            alt="招待QR"
+          />
           <Button
             type="button"
             onClick={() => {
@@ -203,12 +225,20 @@ export function FriendsInvitePage() {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => void navigator.share({ title: SOCIAL_COPY.inviteShareText, url: data.url, text: SOCIAL_COPY.inviteShareText })}
+              onClick={() =>
+                void navigator.share({
+                  title: SOCIAL_COPY.inviteShareText,
+                  url: data.url,
+                  text: SOCIAL_COPY.inviteShareText,
+                })
+              }
             >
               端末の共有
             </Button>
           ) : null}
-          <p className="share-field-caption">期限 {new Date(data.expiresAt).toLocaleString("ja-JP")}</p>
+          <p className="share-field-caption">
+            期限 {new Date(data.expiresAt).toLocaleString("ja-JP")}
+          </p>
         </>
       ) : null}
       <Button type="button" variant="ghost" onClick={() => reissue.mutate()}>
@@ -233,7 +263,9 @@ export function FriendsJoinPage() {
   const me = useSocialMe();
 
   if (boot.kind === "loading" || boot.kind === "slow") {
-    return <AuthBoot variant={boot.variant ?? undefined} onRetry={boot.retry} retrying={boot.retrying} />;
+    return (
+      <AuthBoot variant={boot.variant ?? undefined} onRetry={boot.retry} retrying={boot.retrying} />
+    );
   }
   if (boot.kind !== "authenticated") {
     return (
@@ -281,9 +313,17 @@ export function FriendsJoinPage() {
       ) : null}
       {preview.data?.alreadyFriends ? <p>すでに友達です。</p> : null}
       {preview.data?.alreadyRequested ? <p>申請済みです。相手の承認を待っています。</p> : null}
-      {preview.data?.reversePending ? <p>相手からの申請が届いています。友達一覧で確認してください。</p> : null}
-      {!preview.data?.alreadyFriends && !preview.data?.alreadyRequested && !preview.data?.reversePending ? (
-        <Button type="button" onClick={() => token && request.mutate(token)} disabled={request.isPending}>
+      {preview.data?.reversePending ? (
+        <p>相手からの申請が届いています。友達一覧で確認してください。</p>
+      ) : null}
+      {!preview.data?.alreadyFriends &&
+      !preview.data?.alreadyRequested &&
+      !preview.data?.reversePending ? (
+        <Button
+          type="button"
+          onClick={() => token && request.mutate(token)}
+          disabled={request.isPending}
+        >
           友達申請を送る
         </Button>
       ) : null}
@@ -344,15 +384,24 @@ export function FriendsPostPage() {
         <div>
           <p className="social-card-name">{post.author.nickname}</p>
           <p className="social-card-meta">
-            {formatRelativeShareTime(post.publishedAt)} · {socialKindLabel(post.kind, post.items.length)}
+            {formatRelativeShareTime(post.publishedAt)} ·{" "}
+            {socialKindLabel(post.kind, post.items.length)}
             {post.edited ? " · 編集済み" : ""}
           </p>
         </div>
       </header>
       {post.items.map((item) => (
-        <section key={`${item.name}-${item.drunkOn ?? item.openedOn ?? ""}`} className="social-post-item">
+        <section
+          key={`${item.name}-${item.drunkOn ?? item.openedOn ?? ""}`}
+          className="social-post-item"
+        >
           {item.photoIds.map((photoId) => (
-            <img key={photoId} className="social-card-photo" src={socialPhotoContentUrl(post.id, photoId)} alt="" />
+            <img
+              key={photoId}
+              className="social-card-photo"
+              src={socialPhotoContentUrl(post.id, photoId)}
+              alt=""
+            />
           ))}
           <h2>{item.name}</h2>
           {item.producer ? <p>{item.producer}</p> : null}
@@ -365,15 +414,39 @@ export function FriendsPostPage() {
           {item.comment ? <p>{item.comment}</p> : null}
           {item.tasting ? (
             <div>
-              <Button type="button" variant="ghost" onClick={() => setTastingOpen((value) => !value)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setTastingOpen((value) => !value)}
+              >
                 詳しく見る
               </Button>
               {tastingOpen ? (
                 <dl className="social-tasting">
-                  {item.tasting.appearance ? <><dt>外観</dt><dd>{item.tasting.appearance}</dd></> : null}
-                  {item.tasting.aroma ? <><dt>香り</dt><dd>{item.tasting.aroma}</dd></> : null}
-                  {item.tasting.taste ? <><dt>味わい</dt><dd>{item.tasting.taste}</dd></> : null}
-                  {item.tasting.finish ? <><dt>余韻</dt><dd>{item.tasting.finish}</dd></> : null}
+                  {item.tasting.appearance ? (
+                    <>
+                      <dt>外観</dt>
+                      <dd>{item.tasting.appearance}</dd>
+                    </>
+                  ) : null}
+                  {item.tasting.aroma ? (
+                    <>
+                      <dt>香り</dt>
+                      <dd>{item.tasting.aroma}</dd>
+                    </>
+                  ) : null}
+                  {item.tasting.taste ? (
+                    <>
+                      <dt>味わい</dt>
+                      <dd>{item.tasting.taste}</dd>
+                    </>
+                  ) : null}
+                  {item.tasting.finish ? (
+                    <>
+                      <dt>余韻</dt>
+                      <dd>{item.tasting.finish}</dd>
+                    </>
+                  ) : null}
                 </dl>
               ) : null}
             </div>
@@ -382,12 +455,18 @@ export function FriendsPostPage() {
       ))}
       <ReactionBar postId={post.id} reactions={post.reactions} canReact={post.canReact} />
       {post.isAuthor && post.sourceDrinkLogId ? (
-        <Link className={buttonVariants({ variant: "secondary" })} to={`/logs/entries/${post.sourceDrinkLogId}/edit`}>
+        <Link
+          className={buttonVariants({ variant: "secondary" })}
+          to={`/logs/entries/${post.sourceDrinkLogId}/edit`}
+        >
           記録を編集
         </Link>
       ) : null}
       {post.isAuthor && post.sourceBottleId ? (
-        <Link className={buttonVariants({ variant: "secondary" })} to={`/cellar/${post.sourceBottleId}/edit`}>
+        <Link
+          className={buttonVariants({ variant: "secondary" })}
+          to={`/cellar/${post.sourceBottleId}/edit`}
+        >
           ボトルを編集
         </Link>
       ) : null}
@@ -445,7 +524,11 @@ export function FriendsNotificationsPage() {
               <Button type="button" onClick={() => accept.mutate(item.requestId ?? "")}>
                 承認
               </Button>
-              <Button type="button" variant="ghost" onClick={() => decline.mutate(item.requestId ?? "")}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => decline.mutate(item.requestId ?? "")}
+              >
                 辞退
               </Button>
             </div>
@@ -478,17 +561,22 @@ export function SettingsProfilePage() {
   }
   return (
     <div className="settings-profile">
-      {me.data ? <SocialAvatar profile={{ ...me.data, nickname: nickname || me.data.nickname }} size={72} /> : null}
-      <label className="field-label">
+      {me.data ? (
+        <SocialAvatar profile={{ ...me.data, nickname: nickname || me.data.nickname }} size={72} />
+      ) : null}
+      <label className="field-label" htmlFor="social-nickname">
         {SOCIAL_COPY.profileName}
         <Input
+          id="social-nickname"
           value={nickname}
           maxLength={30}
           autoComplete="off"
           onChange={(event) => setNickname(event.target.value)}
         />
       </label>
-      <p className="share-field-caption">本名は自動では入れません。友達に見せる名前だけを書いてください。</p>
+      <p className="share-field-caption">
+        本名は自動では入れません。友達に見せる名前だけを書いてください。
+      </p>
       <div className="mascot-color-row">
         {MASCOT_COLOR_PRESETS.map((preset) => (
           <button
@@ -552,7 +640,9 @@ export function SettingsBlocksPage() {
   }
   return (
     <div className="friends-list">
-      {blocks.data?.items.length === 0 ? <p className="share-field-hint">ブロックした相手はいません</p> : null}
+      {blocks.data?.items.length === 0 ? (
+        <p className="share-field-hint">ブロックした相手はいません</p>
+      ) : null}
       {blocks.data?.items.map((item) => (
         <div key={item.userId} className="friends-row">
           <SocialAvatar profile={item} />

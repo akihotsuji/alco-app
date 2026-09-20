@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { useCreateShare, useSocialMe, useSocialPreferences, useSocialSources } from "@/client/hooks/use-social.ts";
+import {
+  useCreateShare,
+  useSocialMe,
+  useSocialPreferences,
+  useSocialSources,
+} from "@/client/hooks/use-social.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { newSocialOperationKey } from "@/client/lib/social-invite.ts";
 import { SOCIAL_COPY, SOCIAL_MESSAGES, type SocialShareSource } from "@/shared/social.ts";
@@ -41,8 +46,7 @@ export function useShareIntent() {
     shareIfNeeded,
     sharing: createShare.isPending,
     shareFailedMessage: SOCIAL_COPY.shareFailedAfterSave,
-    isShareConflict: (error: unknown) =>
-      isApiClientError(error) && error.code === "conflict",
+    isShareConflict: (error: unknown) => isApiClientError(error) && error.code === "conflict",
   };
 }
 

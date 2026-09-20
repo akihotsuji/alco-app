@@ -4,6 +4,7 @@ import {
   bottleRegistrationBatches,
   bottles,
   drinkLogs,
+  friendshipEpochs,
   openingEvents,
   photos,
   socialOperationKeys,
@@ -12,8 +13,6 @@ import {
   socialPosts,
   tastingNotes,
 } from "@/db/schema.ts";
-import { hashRequestBody } from "./cellar-crypto.ts";
-import { requireAccessibleBottle } from "./cellar-access.ts";
 import {
   decodeFeedCursor,
   encodeFeedCursor,
@@ -24,6 +23,8 @@ import {
   type SocialSourceLookup,
 } from "@/shared/social.ts";
 import { ApiError } from "../errors.ts";
+import { requireAccessibleBottle } from "./cellar-access.ts";
+import { hashRequestBody } from "./cellar-crypto.ts";
 import type { PhotoBucket } from "./photos.ts";
 import { photoContentEtag, readOwnedPhotoContent } from "./photos.ts";
 import {
@@ -39,8 +40,8 @@ import {
   viewerIdOfEpoch,
 } from "./social-access.ts";
 import { deleteNotificationsForTarget } from "./social-notifications.ts";
-import { reactionSummariesForPosts } from "./social-reactions.ts";
 import { socialShareRateLimiter } from "./social-rate-limit.ts";
+import { reactionSummariesForPosts } from "./social-reactions.ts";
 
 function toIso(value: Date): string {
   return value.toISOString();
@@ -59,7 +60,12 @@ export async function createSocialShare(input: {
     throw new ApiError("rate_limited");
   }
   const requestHash = await hashRequestBody(input.source);
-  const cached = await readSocialOperation< { postId: string } >(input.db, input.userId, input.operationKey, requestHash);
+  const cached = await readSocialOperation<{ postId: string }>(
+    input.db,
+    input.userId,
+    input.operationKey,
+    requestHash,
+  );
   if (cached) {
     if (cached.cancelled) {
       throw new ApiError("conflict", {
@@ -68,13 +74,17 @@ export async function createSocialShare(input: {
       });
     }
     if (cached.result?.postId) {
-      return { post: await getSocialPost(input.db, input.userId, cached.result.postId), created: false };
+      return {
+        post: await getSocialPost(input.db, input.userId, cached.result.postId),
+        created: false,
+      };
     }
   }
 
   const prepared = await prepareShare(input.db, input.userId, input.source);
   const existing = await findExistingPost(input.db, prepared);
   if (existing) {
+    await mergePreparedIntoExisting(input.db, existing, prepared, now);
     await writeSocialOperation(input.db, {
       actorUserId: input.userId,
       operationKey: input.operationKey,
@@ -162,20 +172,19 @@ export async function getSocialFeed(
   const friendCount = (await listActiveFriendIds(db, viewerId)).length;
   const decoded = input.cursor ? decodeFeedCursor(input.cursor) : null;
   if (input.cursor && !decoded) {
-    throw new ApiError("validation_error", { fields: { cursor: ["ページ情報が正しくありません"] } });
+    throw new ApiError("validation_error", {
+      fields: { cursor: ["ページ情報が正しくありません"] },
+    });
   }
   const rows = await db
     .select({ post: socialPosts })
     .from(socialPostRecipients)
     .innerJoin(socialPosts, eq(socialPosts.id, socialPostRecipients.postId))
-    .innerJoin(
-      (await import("@/db/schema.ts")).friendshipEpochs,
-      eq((await import("@/db/schema.ts")).friendshipEpochs.id, socialPostRecipients.friendshipEpochId),
-    )
+    .innerJoin(friendshipEpochs, eq(friendshipEpochs.id, socialPostRecipients.friendshipEpochId))
     .where(
       and(
         eq(socialPostRecipients.viewerUserId, viewerId),
-        isNull((await import("@/db/schema.ts")).friendshipEpochs.endedAt),
+        isNull(friendshipEpochs.endedAt),
         decoded
           ? or(
               lt(socialPosts.publishedAt, new Date(decoded.publishedAtMs)),
@@ -248,7 +257,10 @@ export async function lookupShareSources(
   };
   if (query.drinkLogId) {
     const log = await ownedDrinkLog(db, userId, query.drinkLogId);
-    const [post] = await db.select({ id: socialPosts.id }).from(socialPosts).where(eq(socialPosts.drinkLogId, log.id));
+    const [post] = await db
+      .select({ id: socialPosts.id })
+      .from(socialPosts)
+      .where(eq(socialPosts.drinkLogId, log.id));
     result.drinkLogPostId = post?.id ?? null;
   }
   if (query.registrationBatchId) {
@@ -317,9 +329,59 @@ export async function getAuthorVisiblePosts(
       throw new ApiError("not_found");
     }
   }
-  const feed = await getSocialFeed(db, viewerId, input);
-  const items = feed.items.filter((item) => item.author.userId === authorId);
-  return { items, nextCursor: feed.nextCursor };
+  const decoded = input.cursor ? decodeFeedCursor(input.cursor) : null;
+  if (input.cursor && !decoded) {
+    throw new ApiError("validation_error", {
+      fields: { cursor: ["ページ情報が正しくありません"] },
+    });
+  }
+  const cursorWhere = decoded
+    ? or(
+        lt(socialPosts.publishedAt, new Date(decoded.publishedAtMs)),
+        and(
+          eq(socialPosts.publishedAt, new Date(decoded.publishedAtMs)),
+          lt(socialPosts.id, decoded.id),
+        ),
+      )
+    : undefined;
+  const rows =
+    viewerId === authorId
+      ? await db
+          .select()
+          .from(socialPosts)
+          .where(and(eq(socialPosts.authorUserId, authorId), cursorWhere))
+          .orderBy(desc(socialPosts.publishedAt), desc(socialPosts.id))
+          .limit(input.limit + 1)
+      : (
+          await db
+            .select({ post: socialPosts })
+            .from(socialPostRecipients)
+            .innerJoin(socialPosts, eq(socialPosts.id, socialPostRecipients.postId))
+            .innerJoin(
+              friendshipEpochs,
+              eq(friendshipEpochs.id, socialPostRecipients.friendshipEpochId),
+            )
+            .where(
+              and(
+                eq(socialPostRecipients.viewerUserId, viewerId),
+                eq(socialPosts.authorUserId, authorId),
+                isNull(friendshipEpochs.endedAt),
+                cursorWhere,
+              ),
+            )
+            .orderBy(desc(socialPosts.publishedAt), desc(socialPosts.id))
+            .limit(input.limit + 1)
+        ).map((row) => row.post);
+  const page = rows.slice(0, input.limit);
+  const items = await projectPosts(db, viewerId, page);
+  const last = page[page.length - 1];
+  return {
+    items,
+    nextCursor:
+      rows.length > input.limit && last
+        ? encodeFeedCursor(last.publishedAt.getTime(), last.id)
+        : null,
+  };
 }
 
 export async function unsharePost(input: {
@@ -417,10 +479,7 @@ export async function cancelOpeningEvent(db: AppBatchDb, bottleId: string, now =
   if (!event) {
     return;
   }
-  await db
-    .update(openingEvents)
-    .set({ cancelledAt: now })
-    .where(eq(openingEvents.id, event.id));
+  await db.update(openingEvents).set({ cancelledAt: now }).where(eq(openingEvents.id, event.id));
   await db.delete(socialPosts).where(eq(socialPosts.openingEventId, event.id));
 }
 
@@ -477,7 +536,10 @@ export async function touchPostsForBottle(db: AppBatchDb, bottleId: string, now 
 }
 
 export async function deletePostsForDrinkLog(db: AppBatchDb, drinkLogId: string) {
-  const rows = await db.select({ id: socialPosts.id }).from(socialPosts).where(eq(socialPosts.drinkLogId, drinkLogId));
+  const rows = await db
+    .select({ id: socialPosts.id })
+    .from(socialPosts)
+    .where(eq(socialPosts.drinkLogId, drinkLogId));
   for (const row of rows) {
     await deleteNotificationsForTarget(db, "social_post", row.id);
   }
@@ -502,13 +564,20 @@ export async function onBottleDeleted(db: AppBatchDb, bottleId: string) {
       await deleteNotificationsForTarget(db, "social_post", postId);
       await db.delete(socialPosts).where(eq(socialPosts.id, postId));
     } else {
-      await db.update(socialPosts).set({ contentUpdatedAt: new Date() }).where(eq(socialPosts.id, postId));
+      await db
+        .update(socialPosts)
+        .set({ contentUpdatedAt: new Date() })
+        .where(eq(socialPosts.id, postId));
     }
   }
   await cancelOpeningEvent(db, bottleId);
 }
 
-export async function invalidateCellarSourcedPosts(db: AppBatchDb, userId: string, cellarId: string) {
+export async function invalidateCellarSourcedPosts(
+  db: AppBatchDb,
+  userId: string,
+  cellarId: string,
+) {
   const events = await db
     .select({ id: openingEvents.id })
     .from(openingEvents)
@@ -554,7 +623,10 @@ type PreparedShare = {
   drinkLogId: string | null;
   openingEventId: string | null;
   registrationBatchId: string | null;
-  items: { sourceKind: "drink_log" | "bottle" | "opening_event" | "tasting_note"; sourceId: string }[];
+  items: {
+    sourceKind: "drink_log" | "bottle" | "opening_event" | "tasting_note";
+    sourceId: string;
+  }[];
 };
 
 async function prepareShare(
@@ -648,16 +720,71 @@ async function prepareShare(
   };
 }
 
-async function findExistingPost(db: AppBatchDb, prepared: PreparedShare) {
-  if (prepared.drinkLogId) {
-    const [row] = await db.select().from(socialPosts).where(eq(socialPosts.drinkLogId, prepared.drinkLogId));
-    return row ?? null;
+async function mergePreparedIntoExisting(
+  db: AppBatchDb,
+  existing: typeof socialPosts.$inferSelect,
+  prepared: PreparedShare,
+  now: Date,
+) {
+  const nextKind =
+    existing.kind === "opening_with_log" || prepared.kind === "opening_with_log"
+      ? "opening_with_log"
+      : existing.kind;
+  const nextDrinkLogId = existing.drinkLogId ?? prepared.drinkLogId;
+  const nextOpeningEventId = existing.openingEventId ?? prepared.openingEventId;
+  if (
+    nextKind !== existing.kind ||
+    nextDrinkLogId !== existing.drinkLogId ||
+    nextOpeningEventId !== existing.openingEventId
+  ) {
+    await db
+      .update(socialPosts)
+      .set({
+        kind: nextKind,
+        drinkLogId: nextDrinkLogId,
+        openingEventId: nextOpeningEventId,
+        contentUpdatedAt: now,
+      })
+      .where(eq(socialPosts.id, existing.id));
   }
+  const current = await db
+    .select()
+    .from(socialPostItems)
+    .where(eq(socialPostItems.postId, existing.id));
+  const have = new Set(current.map((item) => `${item.sourceKind}:${item.sourceId}`));
+  let sortOrder = current.length;
+  for (const item of prepared.items) {
+    const key = `${item.sourceKind}:${item.sourceId}`;
+    if (have.has(key)) {
+      continue;
+    }
+    await db.insert(socialPostItems).values({
+      id: crypto.randomUUID(),
+      postId: existing.id,
+      sortOrder,
+      sourceKind: item.sourceKind,
+      sourceId: item.sourceId,
+    });
+    sortOrder += 1;
+    have.add(key);
+  }
+}
+
+async function findExistingPost(db: AppBatchDb, prepared: PreparedShare) {
   if (prepared.openingEventId) {
     const [row] = await db
       .select()
       .from(socialPosts)
       .where(eq(socialPosts.openingEventId, prepared.openingEventId));
+    if (row) {
+      return row;
+    }
+  }
+  if (prepared.drinkLogId) {
+    const [row] = await db
+      .select()
+      .from(socialPosts)
+      .where(eq(socialPosts.drinkLogId, prepared.drinkLogId));
     return row ?? null;
   }
   if (prepared.registrationBatchId) {
@@ -668,14 +795,16 @@ async function findExistingPost(db: AppBatchDb, prepared: PreparedShare) {
     return row ?? null;
   }
   const first = prepared.items[0];
-  if (!first || first.sourceKind !== "bottle") {
+  if (first?.sourceKind !== "bottle") {
     return null;
   }
   const items = await db
     .select({ postId: socialPostItems.postId, kind: socialPosts.kind })
     .from(socialPostItems)
     .innerJoin(socialPosts, eq(socialPosts.id, socialPostItems.postId))
-    .where(and(eq(socialPostItems.sourceKind, "bottle"), eq(socialPostItems.sourceId, first.sourceId)));
+    .where(
+      and(eq(socialPostItems.sourceKind, "bottle"), eq(socialPostItems.sourceId, first.sourceId)),
+    );
   const match = items.find((item) => item.kind === "cellar_add");
   if (!match) {
     return null;
@@ -699,7 +828,13 @@ async function ownedOpening(db: AppBatchDb, userId: string, id: string) {
   const [row] = await db
     .select()
     .from(openingEvents)
-    .where(and(eq(openingEvents.id, id), eq(openingEvents.userId, userId), isNull(openingEvents.cancelledAt)));
+    .where(
+      and(
+        eq(openingEvents.id, id),
+        eq(openingEvents.userId, userId),
+        isNull(openingEvents.cancelledAt),
+      ),
+    );
   if (!row) {
     throw new ApiError("not_found");
   }
@@ -715,15 +850,26 @@ async function projectPosts(
     return [];
   }
   const postIds = posts.map((post) => post.id);
-  const items = await db.select().from(socialPostItems).where(inArray(socialPostItems.postId, postIds));
-  const drinkLogIds = items.filter((item) => item.sourceKind === "drink_log").map((item) => item.sourceId);
-  const bottleIds = items.filter((item) => item.sourceKind === "bottle").map((item) => item.sourceId);
-  const openingIds = items.filter((item) => item.sourceKind === "opening_event").map((item) => item.sourceId);
+  const items = await db
+    .select()
+    .from(socialPostItems)
+    .where(inArray(socialPostItems.postId, postIds));
+  const drinkLogIds = items
+    .filter((item) => item.sourceKind === "drink_log")
+    .map((item) => item.sourceId);
+  const bottleIds = items
+    .filter((item) => item.sourceKind === "bottle")
+    .map((item) => item.sourceId);
+  const openingIds = items
+    .filter((item) => item.sourceKind === "opening_event")
+    .map((item) => item.sourceId);
   const [logRows, bottleRows, openingRows, noteRows, photoRows, reactions] = await Promise.all([
     drinkLogIds.length
       ? db.select().from(drinkLogs).where(inArray(drinkLogs.id, drinkLogIds))
       : Promise.resolve([]),
-    bottleIds.length ? db.select().from(bottles).where(inArray(bottles.id, bottleIds)) : Promise.resolve([]),
+    bottleIds.length
+      ? db.select().from(bottles).where(inArray(bottles.id, bottleIds))
+      : Promise.resolve([]),
     openingIds.length
       ? db.select().from(openingEvents).where(inArray(openingEvents.id, openingIds))
       : Promise.resolve([]),
@@ -766,13 +912,19 @@ async function projectPosts(
       photosByLog.set(photo.drinkLogId, [...(photosByLog.get(photo.drinkLogId) ?? []), photo.id]);
     }
     if (photo.tastingNoteId) {
-      photosByNote.set(photo.tastingNoteId, [...(photosByNote.get(photo.tastingNoteId) ?? []), photo.id]);
+      photosByNote.set(photo.tastingNoteId, [
+        ...(photosByNote.get(photo.tastingNoteId) ?? []),
+        photo.id,
+      ]);
     }
     if (photo.bottleId) {
       photosByBottle.set(photo.bottleId, [...(photosByBottle.get(photo.bottleId) ?? []), photo.id]);
     }
   }
-  const authors = await loadProfiles(db, posts.map((post) => post.authorUserId));
+  const authors = await loadProfiles(
+    db,
+    posts.map((post) => post.authorUserId),
+  );
   const result: SocialPost[] = [];
   for (const post of posts) {
     const postItems = items
@@ -841,11 +993,11 @@ async function projectPosts(
     if (projectedItems.length === 0) {
       continue;
     }
-    const author =
-      authors.get(post.authorUserId) ??
-      (await getSocialProfile(db, post.authorUserId).then((row) =>
-        row ? toPublicProfile(row) : fallbackProfile(post.authorUserId),
-      ));
+    let author = authors.get(post.authorUserId);
+    if (!author) {
+      const row = await getSocialProfile(db, post.authorUserId);
+      author = row ? toPublicProfile(row) : fallbackProfile(post.authorUserId);
+    }
     result.push({
       id: post.id,
       kind: post.kind,
@@ -864,9 +1016,7 @@ async function projectPosts(
   return result;
 }
 
-function bottleIdsFromItems(
-  items: { sourceKind: string; sourceId: string }[],
-): string | null {
+function bottleIdsFromItems(items: { sourceKind: string; sourceId: string }[]): string | null {
   const bottle = items.find((item) => item.sourceKind === "bottle");
   return bottle?.sourceId ?? null;
 }
@@ -911,14 +1061,17 @@ async function writeSocialOperation(
     now: Date;
   },
 ) {
-  await db.insert(socialOperationKeys).values({
-    actorUserId: input.actorUserId,
-    operationKey: input.operationKey,
-    requestHash: input.requestHash,
-    resultJson: JSON.stringify(input.result),
-    cancelledAt: null,
-    createdAt: input.now,
-  }).onConflictDoNothing();
+  await db
+    .insert(socialOperationKeys)
+    .values({
+      actorUserId: input.actorUserId,
+      operationKey: input.operationKey,
+      requestHash: input.requestHash,
+      resultJson: JSON.stringify(input.result),
+      cancelledAt: null,
+      createdAt: input.now,
+    })
+    .onConflictDoNothing();
 }
 
 function socialOperationInsert(

@@ -4,11 +4,12 @@ import type { AppBatchDb } from "@/db/index.ts";
 import {
   createFriendRequestSchema,
   friendUserIdParamSchema,
+  invitationOwnerQuerySchema,
   inviteTokenQuerySchema,
+  SOCIAL_CONTENT_CACHE_CONTROL,
   socialIdParamSchema,
 } from "@/shared/social.ts";
 import type { AppEnv } from "../app-env.ts";
-import { assertSameOrigin } from "../services/origin.ts";
 import {
   acceptFriendRequest,
   blockUser,
@@ -24,7 +25,7 @@ import {
   unblockUser,
   unfriend,
 } from "../services/friends.ts";
-import { SOCIAL_CONTENT_CACHE_CONTROL } from "@/shared/social.ts";
+import { assertSameOrigin } from "../services/origin.ts";
 import { validate } from "../validation.ts";
 
 export type FriendsRouteDeps = {
@@ -45,15 +46,14 @@ export function createFriendsRoute(deps: FriendsRouteDeps) {
       noStore(c);
       return c.json(await listFriends(deps.getDb(c), c.get("user").id));
     })
-    .get("/invitations", async (c) => {
+    .get("/invitations", validate("query", invitationOwnerQuerySchema), async (c) => {
       noStore(c);
-      const token = c.req.query("token");
       return c.json(
         await currentInvitationForOwner({
           db: deps.getDb(c),
           userId: c.get("user").id,
           origin: originOf(c),
-          token: token || undefined,
+          token: c.req.valid("query").token,
         }),
       );
     })

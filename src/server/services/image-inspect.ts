@@ -298,7 +298,10 @@ export function inspectImageBytes(
   throw new ImageInspectFailure("unsupported_media_type");
 }
 
-function assertLongEdge(size: { width: number; height: number }, maxLongEdge = PHOTO_MAX_LONG_EDGE) {
+function assertLongEdge(
+  size: { width: number; height: number },
+  maxLongEdge = PHOTO_MAX_LONG_EDGE,
+) {
   if (Math.max(size.width, size.height) > maxLongEdge) {
     throw new ImageInspectFailure("invalid_dimensions");
   }

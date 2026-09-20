@@ -189,7 +189,9 @@ export const FriendsPostPage = lazy(async () => {
 });
 
 export const FriendsNotificationsPage = lazy(async () => {
-  const { FriendsNotificationsPage: Page } = await import("@/client/pages/friends/FriendsPages.tsx");
+  const { FriendsNotificationsPage: Page } = await import(
+    "@/client/pages/friends/FriendsPages.tsx"
+  );
   return { default: Page };
 });
 

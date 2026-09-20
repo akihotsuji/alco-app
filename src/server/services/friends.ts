@@ -1,7 +1,6 @@
 import { and, eq, isNull, or } from "drizzle-orm";
 import type { AppBatchDb } from "@/db/index.ts";
 import { friendInvitations, friendRequests, friendshipEpochs, socialBlocks } from "@/db/schema.ts";
-import { SOCIAL_INVITE_TTL_MS } from "@/shared/social.ts";
 import type {
   FriendInvitation,
   FriendRequest,
@@ -9,6 +8,7 @@ import type {
   InvitePreview,
   SocialPublicProfile,
 } from "@/shared/social.ts";
+import { SOCIAL_INVITE_TTL_MS } from "@/shared/social.ts";
 import { ApiError } from "../errors.ts";
 import {
   fallbackProfile,
@@ -22,18 +22,18 @@ import {
   toPublicProfile,
 } from "./social-access.ts";
 import {
+  friendInviteJoinUrl,
+  friendInviteQrSvg,
+  generateInviteToken,
+  hashInviteToken,
+} from "./social-crypto.ts";
+import {
   acceptedDedupKey,
   deleteNotificationsBetweenUsers,
   deleteNotificationsByDedup,
   requestDedupKey,
   upsertNotification,
 } from "./social-notifications.ts";
-import {
-  friendInviteJoinUrl,
-  friendInviteQrSvg,
-  generateInviteToken,
-  hashInviteToken,
-} from "./social-crypto.ts";
 import { socialInviteCreateRateLimiter, socialRequestRateLimiter } from "./social-rate-limit.ts";
 
 export async function createOrGetInvitation(input: {
@@ -91,7 +91,9 @@ export async function currentInvitationForOwner(input: {
   const [existing] = await input.db
     .select()
     .from(friendInvitations)
-    .where(and(eq(friendInvitations.ownerUserId, input.userId), isNull(friendInvitations.revokedAt)));
+    .where(
+      and(eq(friendInvitations.ownerUserId, input.userId), isNull(friendInvitations.revokedAt)),
+    );
   if (existing && existing.expiresAt.getTime() > now.getTime()) {
     if (!socialInviteCreateRateLimiter.consume(input.userId, now.getTime())) {
       throw new ApiError("rate_limited");
@@ -99,7 +101,9 @@ export async function currentInvitationForOwner(input: {
     await input.db
       .update(friendInvitations)
       .set({ revokedAt: now })
-      .where(and(eq(friendInvitations.ownerUserId, input.userId), isNull(friendInvitations.revokedAt)));
+      .where(
+        and(eq(friendInvitations.ownerUserId, input.userId), isNull(friendInvitations.revokedAt)),
+      );
   }
   return issueInvitation(input.db, input.userId, input.origin, now);
 }
@@ -118,7 +122,9 @@ export async function reissueInvitation(input: {
   await input.db
     .update(friendInvitations)
     .set({ revokedAt: now })
-    .where(and(eq(friendInvitations.ownerUserId, input.userId), isNull(friendInvitations.revokedAt)));
+    .where(
+      and(eq(friendInvitations.ownerUserId, input.userId), isNull(friendInvitations.revokedAt)),
+    );
   return issueInvitation(input.db, input.userId, input.origin, now);
 }
 
@@ -437,7 +443,11 @@ export async function blockUser(input: {
       .update(friendRequests)
       .set({ status: "cancelled", updatedAt: now, resolvedAt: now })
       .where(eq(friendRequests.id, pending.id));
-    await deleteNotificationsByDedup(input.db, pending.recipientUserId, requestDedupKey(pending.id));
+    await deleteNotificationsByDedup(
+      input.db,
+      pending.recipientUserId,
+      requestDedupKey(pending.id),
+    );
   }
   await deleteNotificationsBetweenUsers(input.db, input.userId, input.peerUserId);
   return { ok: true };
@@ -451,12 +461,18 @@ export async function unblockUser(input: {
   await input.db
     .delete(socialBlocks)
     .where(
-      and(eq(socialBlocks.blockerUserId, input.userId), eq(socialBlocks.blockedUserId, input.peerUserId)),
+      and(
+        eq(socialBlocks.blockerUserId, input.userId),
+        eq(socialBlocks.blockedUserId, input.peerUserId),
+      ),
     );
   return { ok: true };
 }
 
-export async function listBlocks(db: AppBatchDb, userId: string): Promise<{ items: SocialPublicProfile[] }> {
+export async function listBlocks(
+  db: AppBatchDb,
+  userId: string,
+): Promise<{ items: SocialPublicProfile[] }> {
   const rows = await db
     .select({ blockedUserId: socialBlocks.blockedUserId })
     .from(socialBlocks)

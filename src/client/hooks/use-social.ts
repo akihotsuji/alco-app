@@ -1,11 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
-import type {
-  SocialFeed,
-  SocialProfilePatch,
-  SocialShareSource,
-} from "@/shared/social.ts";
+import type { SocialFeed, SocialProfilePatch, SocialShareSource } from "@/shared/social.ts";
 
 function invalidateSocial(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.socialFeed });
@@ -145,7 +141,9 @@ export function useSocialSources(query: {
   registrationBatchId?: string;
   enabled?: boolean;
 }) {
-  const enabled = Boolean(query.enabled ?? (query.bottleId || query.drinkLogId || query.registrationBatchId));
+  const enabled = Boolean(
+    query.enabled ?? (query.bottleId || query.drinkLogId || query.registrationBatchId),
+  );
   return useQuery({
     queryKey: queryKeys.socialSources(query),
     queryFn: () =>
@@ -154,7 +152,9 @@ export function useSocialSources(query: {
           query: {
             ...(query.bottleId ? { bottleId: query.bottleId } : {}),
             ...(query.drinkLogId ? { drinkLogId: query.drinkLogId } : {}),
-            ...(query.registrationBatchId ? { registrationBatchId: query.registrationBatchId } : {}),
+            ...(query.registrationBatchId
+              ? { registrationBatchId: query.registrationBatchId }
+              : {}),
           },
         }),
       ),
@@ -220,8 +220,7 @@ export function useFriends() {
 export function useFriendInvitation(token?: string) {
   return useQuery({
     queryKey: [...queryKeys.friendInvitation, token ?? ""],
-    queryFn: () =>
-      unwrap(api.api.friends.invitations.$get({ query: token ? { token } : {} })),
+    queryFn: () => unwrap(api.api.friends.invitations.$get({ query: token ? { token } : {} })),
   });
 }
 
@@ -288,7 +287,8 @@ export function useCancelFriendRequest() {
 export function useUnfriend() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => unwrap(api.api.friends[":userId"].$delete({ param: { userId } })),
+    mutationFn: (userId: string) =>
+      unwrap(api.api.friends[":userId"].$delete({ param: { userId } })),
     onSuccess: () => invalidateSocial(queryClient),
   });
 }

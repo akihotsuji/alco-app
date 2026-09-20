@@ -31,7 +31,9 @@ export function ShareField({
           </span>
         </div>
       ) : (
-        <p className="share-field-hint">{reason ?? "今は共有できません。個人の記録は保存できます。"}</p>
+        <p className="share-field-hint">
+          {reason ?? "今は共有できません。個人の記録は保存できます。"}
+        </p>
       )}
       {canShare && shareOn && preview ? <p className="share-field-preview">{preview}</p> : null}
       <p className="share-field-caption">{SOCIAL_COPY.shareNoBackfill}</p>

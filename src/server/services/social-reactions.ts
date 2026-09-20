@@ -67,7 +67,9 @@ export async function putReaction(input: {
         reactionTypeId: type.id,
         updatedAt: now,
       })
-      .where(and(eq(socialReactions.postId, input.postId), eq(socialReactions.userId, input.userId)));
+      .where(
+        and(eq(socialReactions.postId, input.postId), eq(socialReactions.userId, input.userId)),
+      );
   } else {
     await input.db.insert(socialReactions).values({
       postId: input.postId,

@@ -6716,7 +6716,9 @@ html[data-reduce-motion="1"] .guide-fan-item {
 }
 
 .friends-notice.is-unread {
-  box-shadow: var(--shadow-outset-sm), inset 0 0 0 1.5px var(--primary);
+  box-shadow:
+    var(--shadow-outset-sm),
+    inset 0 0 0 1.5px var(--primary);
 }
 
 .share-field {
@@ -6844,7 +6846,9 @@ html[data-reduce-motion="1"] .guide-fan-item {
 }
 
 .reaction-chip.is-mine {
-  box-shadow: var(--shadow-outset-sm), inset 0 0 0 1.5px var(--primary);
+  box-shadow:
+    var(--shadow-outset-sm),
+    inset 0 0 0 1.5px var(--primary);
   color: var(--primary);
   font-weight: 600;
 }
@@ -6864,5 +6868,7 @@ html[data-reduce-motion="1"] .guide-fan-item {
 }
 
 .mascot-swatch.is-current {
-  box-shadow: var(--shadow-outset-sm), inset 0 0 0 3px var(--foreground);
+  box-shadow:
+    var(--shadow-outset-sm),
+    inset 0 0 0 3px var(--foreground);
 }

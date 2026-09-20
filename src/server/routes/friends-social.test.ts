@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { tokenFromInviteUrl } from "@/client/lib/social-invite.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { createBottlesResponseSchema } from "@/shared/bottles.ts";
 import { drinkLogSchema } from "@/shared/drink-logs.ts";
 import { photoMetaSchema } from "@/shared/photos.ts";
-import { SOCIAL_CONTENT_CACHE_CONTROL, SOCIAL_MESSAGES, socialPostSchema } from "@/shared/social.ts";
-import { tokenFromInviteUrl } from "@/client/lib/social-invite.ts";
+import {
+  SOCIAL_CONTENT_CACHE_CONTROL,
+  SOCIAL_MESSAGES,
+  socialPostSchema,
+} from "@/shared/social.ts";
 import { makeJpeg } from "../image-fixtures.ts";
 import { createTestApp, createTestUser, createUnverifiedTestUser } from "../test-helpers.ts";
 
@@ -123,7 +127,7 @@ describe("友達・近況 API の認可", () => {
     });
     const res = await app.request("/api/social/me", { headers: { Cookie: unverified.cookie } });
     expect(res.status).toBe(403);
-    expect((await res.json() as { error: string }).error).toBe("age_required");
+    expect(((await res.json()) as { error: string }).error).toBe("age_required");
   });
 
   it("プロフィール未設定・友達0では個人保存でき、共有は conflict", async () => {
@@ -307,12 +311,12 @@ describe("共有の可視性と世代", () => {
       headers: cookieHeaders(a.cookie),
     });
     expect(unshare.status).toBe(200);
-    expect((await app.request(`/api/social/posts/${postId}`, { headers: { Cookie: b.cookie } })).status).toBe(
-      404,
-    );
-    expect((await app.request(`/api/drink-logs/${log.id}`, { headers: { Cookie: a.cookie } })).status).toBe(
-      200,
-    );
+    expect(
+      (await app.request(`/api/social/posts/${postId}`, { headers: { Cookie: b.cookie } })).status,
+    ).toBe(404);
+    expect(
+      (await app.request(`/api/drink-logs/${log.id}`, { headers: { Cookie: a.cookie } })).status,
+    ).toBe(200);
 
     const log2 = await createLog(app, a.cookie, { drinkName: "二杯目" });
     const shared2 = await share(app, a.cookie, { kind: "drink_log", drinkLogId: log2.id });
@@ -321,9 +325,9 @@ describe("共有の可視性と世代", () => {
       method: "DELETE",
       headers: cookieHeaders(a.cookie),
     });
-    expect((await app.request(`/api/social/posts/${post2}`, { headers: { Cookie: b.cookie } })).status).toBe(
-      404,
-    );
+    expect(
+      (await app.request(`/api/social/posts/${post2}`, { headers: { Cookie: b.cookie } })).status,
+    ).toBe(404);
   });
 
   it("編集は内容だけ追い、公開時刻と受信者は維持する", async () => {
@@ -340,7 +344,10 @@ describe("共有の可視性と世代", () => {
     const patched = await app.request(`/api/drink-logs/${log.id}`, {
       method: "PATCH",
       headers: jsonHeaders(a.cookie),
-      body: JSON.stringify({ drinkName: "改名ワイン", tastingNote: { ratingX10: 48, taste: "更新ひとこと" } }),
+      body: JSON.stringify({
+        drinkName: "改名ワイン",
+        tastingNote: { ratingX10: 48, taste: "更新ひとこと" },
+      }),
     });
     expect(patched.status).toBe(200);
 
@@ -487,7 +494,9 @@ describe("開栓・まとめ登録・画像・リアクション", () => {
     expect(second.status).toBe(200);
 
     const viewed = socialPostSchema.parse(
-      await (await app.request(`/api/social/posts/${postId}`, { headers: { Cookie: a.cookie } })).json(),
+      await (
+        await app.request(`/api/social/posts/${postId}`, { headers: { Cookie: a.cookie } })
+      ).json(),
     );
     const mine = viewed.reactions.filter((item) => item.count > 0);
     expect(mine).toHaveLength(1);
@@ -498,9 +507,54 @@ describe("開栓・まとめ登録・画像・リアクション", () => {
     });
     const items = ((await notices.json()) as { items: { type: string }[] }).items;
     expect(items.map((item) => item.type)).toContain("reaction");
-    expect(items.every((item) => ["friend_request", "friend_accepted", "reaction"].includes(item.type))).toBe(
-      true,
-    );
+    expect(
+      items.every((item) => ["friend_request", "friend_accepted", "reaction"].includes(item.type)),
+    ).toBe(true);
+  });
+
+  it("プロフィール投稿は友達の閲覧可能な投稿だけ。非友達は 404", async () => {
+    const { app } = await createTestApp();
+    const a = await user(app, "a-profile@example.com");
+    const b = await user(app, "b-profile@example.com");
+    const c = await user(app, "c-profile@example.com");
+    await completeProfile(app, a.cookie, "アリス");
+    await completeProfile(app, b.cookie, "ボブ");
+    await completeProfile(app, c.cookie, "キャロル");
+    await becomeFriends(app, a.cookie, b.cookie);
+    const log = await createLog(app, a.cookie);
+    const shared = await share(app, a.cookie, { kind: "drink_log", drinkLogId: log.id });
+    expect(shared.status).toBe(201);
+    const postId = ((await shared.json()) as { post: { id: string } }).post.id;
+
+    const asB = await app.request(`/api/social/profiles/${a.id}/posts`, {
+      headers: { Cookie: b.cookie },
+    });
+    expect(asB.status).toBe(200);
+    const bBody = (await asB.json()) as { items: { id: string }[] };
+    expect(bBody.items.map((item) => item.id)).toEqual([postId]);
+
+    await becomeFriends(app, a.cookie, c.cookie);
+    const asC = await app.request(`/api/social/profiles/${a.id}/posts`, {
+      headers: { Cookie: c.cookie },
+    });
+    expect(((await asC.json()) as { items: unknown[] }).items).toEqual([]);
+
+    const stranger = await user(app, "d-profile@example.com");
+    await completeProfile(app, stranger.cookie, "デイブ");
+    expect(
+      (
+        await app.request(`/api/social/profiles/${a.id}/posts`, {
+          headers: { Cookie: stranger.cookie },
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await app.request(`/api/social/profiles/${a.id}`, {
+          headers: { Cookie: stranger.cookie },
+        })
+      ).status,
+    ).toBe(404);
   });
 
   it("ブロックすると旧投稿は見えず、フィードにも出ない", async () => {
@@ -519,8 +573,8 @@ describe("開栓・まとめ登録・画像・リアクション", () => {
       headers: cookieHeaders(a.cookie),
     });
     expect(blocked.status).toBe(200);
-    expect((await app.request(`/api/social/posts/${postId}`, { headers: { Cookie: b.cookie } })).status).toBe(
-      404,
-    );
+    expect(
+      (await app.request(`/api/social/posts/${postId}`, { headers: { Cookie: b.cookie } })).status,
+    ).toBe(404);
   });
 });

@@ -344,10 +344,20 @@ export function resolveAppRoute(
     if (segments[1] === "notifications" && segments.length === 2) {
       return found("friends-notifications", "friends", backHeader("通知", "/friends"));
     }
-    if (segments[1] === "profile" && segments.length === 3 && segments[2] && isUuidParam(segments[2])) {
+    if (
+      segments[1] === "profile" &&
+      segments.length === 3 &&
+      segments[2] &&
+      isUuidParam(segments[2])
+    ) {
       return found("friends-profile", "friends", backHeader("プロフィール", "/friends/list"));
     }
-    if (segments[1] === "posts" && segments.length === 3 && segments[2] && isUuidParam(segments[2])) {
+    if (
+      segments[1] === "posts" &&
+      segments.length === 3 &&
+      segments[2] &&
+      isUuidParam(segments[2])
+    ) {
       return found("friends-post", "friends", backHeader("共有", "/friends"));
     }
     return notFoundRoute();
@@ -373,7 +383,13 @@ export function resolveAppRoute(
       return formRoute("note-edit", notesParent, "ノートを編集", `/notes/${segments[1]}`);
     }
     if (segments.length === 2 && segments[1]) {
-      return detailRoute("note-detail", notesParent, "ノート", "/notes", `/notes/${segments[1]}/edit`);
+      return detailRoute(
+        "note-detail",
+        notesParent,
+        "ノート",
+        "/notes",
+        `/notes/${segments[1]}/edit`,
+      );
     }
     return notFoundRoute();
   }

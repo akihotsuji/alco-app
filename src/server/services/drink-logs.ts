@@ -44,7 +44,6 @@ import { takeLimitPlusOne } from "../lib/keyset-page.ts";
 import { photosRemovedByPatch } from "../lib/photo-patch.ts";
 import { requireOwnBottle } from "./bottles.ts";
 import { writtenOrigin } from "./origin-write.ts";
-import { deletePostsForDrinkLog, touchPostsForDrinkLog } from "./social-posts.ts";
 import {
   assertPhotoDailyLimit,
   duplicatePhotoObject,
@@ -52,6 +51,7 @@ import {
   toPhotoMeta,
 } from "./photos.ts";
 import { deletePhotoR2Objects } from "./r2-delete.ts";
+import { deletePostsForDrinkLog, touchPostsForDrinkLog } from "./social-posts.ts";
 import {
   deleteTastingNoteForLog,
   loadEmbeddedTastingNote,

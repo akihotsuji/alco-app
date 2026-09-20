@@ -529,7 +529,9 @@ export const socialProfiles = sqliteTable(
     profileCompletedAt: integer("profile_completed_at", { mode: "timestamp_ms" }).notNull(),
     ...timestampColumns(),
   },
-  (table) => [check("social_profiles_avatar_mode_check", sql`avatar_mode IN (${inList(AVATAR_MODES)})`)],
+  (_table) => [
+    check("social_profiles_avatar_mode_check", sql`avatar_mode IN (${inList(AVATAR_MODES)})`),
+  ],
 );
 
 export const socialPreferences = sqliteTable("social_preferences", {

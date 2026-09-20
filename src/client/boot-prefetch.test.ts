@@ -16,12 +16,12 @@ import { CELLAR_PREF_KEYS, DEFAULT_CELLAR_LIST_VIEW } from "@/shared/constants.t
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import {
   cellarDataPaths,
+  friendsDataPaths,
   GUEST_ONLY_PATHS,
   homeDataPaths,
   initialDataPaths,
   initialRouteChunkIds,
   ME_PATH,
-  friendsDataPaths,
   notesDataPaths,
   SESSION_PATH,
 } from "./boot-prefetch.ts";
