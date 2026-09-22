@@ -11,7 +11,7 @@ function allTexts(document: typeof TERMS_DOCUMENT): string[] {
 
 describe("法務文書", () => {
   it("版が現行と一致し、酒類と国外移転を含む", () => {
-    expect(LEGAL_VERSION).toBe("2026-09-21");
+    expect(LEGAL_VERSION).toBe("2026-09-22");
     expect(TERMS_DOCUMENT.version).toBe(LEGAL_VERSION);
     expect(PRIVACY_DOCUMENT.version).toBe(LEGAL_VERSION);
     const terms = allTexts(TERMS_DOCUMENT).join("\n");
@@ -83,19 +83,34 @@ describe("法務文書", () => {
     );
   });
 
-  it("公開プロフィールやDMを約束せず、権利侵害の申出は連絡先プレースホルダへ向ける", () => {
+  it("公開プロフィールやDMを約束せず、権利侵害の申出はご意見フォームへ向ける", () => {
     const terms = allTexts(TERMS_DOCUMENT).join("\n");
     const privacy = allTexts(PRIVACY_DOCUMENT).join("\n");
     expect(terms).toContain("公開プロフィール、公開フォロー、ユーザー検索は提供しません");
     expect(terms).toContain("ダイレクトメッセージ、コメント、返信は提供しません");
     expect(terms).toContain("権利侵害に関する申出");
+    expect(terms).toContain("ログインし年齢確認を終えたうえで");
+    expect(terms).toContain("ご意見・ご要望");
+    expect(terms).toContain("/settings/feedback");
+    expect(terms).toContain("その他");
     expect(terms).toContain("報告専用のボタンは設けません");
+    expect(terms).toContain("開示請求があれば遅滞なく開示");
+    expect(terms).toContain("改めての同意は求めません");
     expect(terms).toContain("他人の個人情報を無断でアップロードすること");
     expect(privacy).toContain("不特定多数への公開には使いません");
     expect(privacy).toContain("公開プロフィールや公開フォローもありません");
     expect(privacy).toContain("権利侵害に関する申出");
+    expect(privacy).toContain("/settings/feedback");
+    expect(privacy).toContain("その他");
+    expect(privacy).toContain("要配慮個人情報としては扱いません");
+    expect(privacy).toContain("開示請求があれば遅滞なく開示");
+    expect(privacy).toContain("改めての同意は求めません");
     expect(terms).toContain("存在しないメールアドレスは記載しません");
     expect(privacy).toContain("存在しないメールアドレスは記載しません");
+    expect(terms).not.toContain("専門家");
+    expect(privacy).not.toContain("専門家");
+    expect(terms).not.toContain("承認後");
+    expect(privacy).not.toContain("承認後");
     expect(terms).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
     expect(privacy).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   });
