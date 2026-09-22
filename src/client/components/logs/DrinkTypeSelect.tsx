@@ -37,7 +37,7 @@ export function DrinkTypeSelect({
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="log-form-section">
+    <section className="log-form-section log-form-field">
       <FieldLabel required={required}>種類</FieldLabel>
       <button
         type="button"

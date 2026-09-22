@@ -9,13 +9,13 @@ type MemoFieldProps = {
   onChange: (value: string) => void;
 };
 
-/** N9: ラベル上 + Textarea（0〜500 文字、残数表示） */
+/** N9: ラベル左 + Textarea（0〜500 文字、残数表示） */
 export function MemoField({ value, error, onChange }: MemoFieldProps) {
   const textareaId = useId();
   const remaining = MEMO_MAX_LENGTH - value.length;
 
   return (
-    <section className="log-form-section">
+    <section className="log-form-section log-form-field log-form-field-memo">
       <FieldLabel htmlFor={textareaId} optional>
         メモ
       </FieldLabel>

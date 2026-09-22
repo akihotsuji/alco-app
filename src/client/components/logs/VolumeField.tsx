@@ -30,10 +30,8 @@ export function VolumeField({ drinkType, value, error, guideTarget, onChange }: 
   const [extrasOpen, setExtrasOpen] = useState(extrasOpenNeeded);
 
   return (
-    <fieldset className="log-form-section" data-guide-target={guideTarget}>
-      <legend>
-        <FieldLabel htmlFor="log-volume-ml">飲んだ量</FieldLabel>
-      </legend>
+    <section className="log-form-section log-form-field" data-guide-target={guideTarget}>
+      <FieldLabel htmlFor="log-volume-ml">飲んだ量</FieldLabel>
       <div className="unit-field">
         <input
           id="log-volume-ml"
@@ -94,6 +92,6 @@ export function VolumeField({ drinkType, value, error, guideTarget, onChange }: 
         <p className="field-hint">手入力中</p>
       ) : null}
       <FieldError id="log-volume-ml" error={error} />
-    </fieldset>
+    </section>
   );
 }

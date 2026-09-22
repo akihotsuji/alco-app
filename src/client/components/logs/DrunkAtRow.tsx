@@ -13,7 +13,7 @@ type DrunkAtRowProps = {
 };
 
 /**
- * N7: ラベル上 + 行「今日 13:05 ›」。タップでネイティブ `datetime-local`。
+ * N7: ラベル左 + 行「今日 13:05 ›」。タップでネイティブ `datetime-local`。
  * 値は常に Asia/Tokyo として解釈し UTC ISO で保持する（端末 TZ 非依存。drink-log.md 3.7）。
  */
 export function DrunkAtRow({ value, now, error, onChange }: DrunkAtRowProps) {
@@ -21,7 +21,7 @@ export function DrunkAtRow({ value, now, error, onChange }: DrunkAtRowProps) {
   const max = instantToTokyoLocal(new Date(now.getTime() + DRUNK_AT_FUTURE_TOLERANCE_MS));
 
   return (
-    <section className="log-form-section">
+    <section className="log-form-section log-form-field">
       <FieldLabel>飲んだ日時</FieldLabel>
       <div className="form-row">
         <Calendar size={18} className="form-row-icon" aria-hidden />

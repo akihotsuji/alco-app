@@ -248,7 +248,7 @@ export function MyDrinkFormPage() {
           {errors.form}
         </p>
       ) : null}
-      <div className="log-form-section">
+      <div className="log-form-section log-form-field">
         <label className="field-label" htmlFor="mydrink-name">
           名前
         </label>

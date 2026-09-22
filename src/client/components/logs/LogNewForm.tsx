@@ -400,7 +400,7 @@ export function LogNewForm() {
         alt="記録写真"
         onClose={() => setPreviewOpen(false)}
       />
-      <section className="log-form-section">
+      <section className="log-form-section log-form-field">
         <FieldLabel htmlFor="log-drink-name" optional>
           {IDENTITY_FIELD_LABELS.drinkName}
         </FieldLabel>

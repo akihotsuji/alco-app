@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "LogNewForm.tsx"), "utf8");
 const edit = readFileSync(join(here, "LogEditForm.tsx"), "utf8");
+const styles = readFileSync(join(here, "..", "..", "styles.css"), "utf8");
 
 describe("LogNewForm 写真からの種類・量の先埋め", () => {
   it("新規と編集の空欄だけ推測し、触った欄とボトル由来は上書きしない", () => {
@@ -67,5 +68,53 @@ describe("LogNewForm 写真からの種類・量の先埋め", () => {
     }
     expect(edit).not.toContain("requestCurrentPosition");
     expect(edit).not.toContain("テイスティングノートをつける？");
+  });
+});
+
+describe("LogNewForm 横並び（ラベル左・入力右）", () => {
+  it("品名・種類・識別・量・度数・日時・場所・メモが log-form-field", () => {
+    for (const form of [source, edit]) {
+      expect(form).toContain("log-form-section log-form-field");
+    }
+    const components = [
+      "DrinkTypeSelect.tsx",
+      "DrunkAtRow.tsx",
+      "PlaceField.tsx",
+      "MemoField.tsx",
+      "VolumeField.tsx",
+      "AbvField.tsx",
+    ];
+    for (const file of components) {
+      const code = readFileSync(join(here, file), "utf8");
+      expect(code).toContain("log-form-field");
+    }
+    const identity = readFileSync(join(here, "..", "form", "IdentityFields.tsx"), "utf8");
+    expect(identity).toContain("log-form-field");
+    expect(identity).toContain("log-identity-pair");
+    expect(identity).not.toContain("bottle-details-pair");
+    const origin = readFileSync(join(here, "..", "form", "OriginCountryField.tsx"), "utf8");
+    expect(origin).toContain("log-form-field");
+  });
+
+  it("量・度数は grid のため section（fieldset/legend ではない）", () => {
+    for (const file of ["VolumeField.tsx", "AbvField.tsx"]) {
+      const code = readFileSync(join(here, file), "utf8");
+      expect(code).not.toContain("<fieldset");
+      expect(code).not.toContain("<legend");
+      expect(code).toContain("<section");
+    }
+  });
+
+  it("CSS が 2 列 grid で 360px/320px の折返しを持つ", () => {
+    expect(styles).toContain(".log-form-field {");
+    expect(styles).toContain("grid-template-columns: 6.5rem minmax(0, 1fr)");
+    expect(styles).toContain(".log-form-field > .field-label");
+    expect(styles).toContain(".log-form-field > :not(.field-label)");
+    expect(styles).toContain(".log-form-field .abv-cluster");
+    expect(styles).toContain(".log-form-field .unit-field-input");
+    expect(styles).toContain("@media (max-width: 360px)");
+    expect(styles).toContain("grid-template-columns: 5.5rem minmax(0, 1fr)");
+    expect(styles).toContain("@media (max-width: 320px)");
+    expect(styles).toContain(".log-identity-pair");
   });
 });

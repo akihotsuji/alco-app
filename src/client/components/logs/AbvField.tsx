@@ -61,10 +61,8 @@ export function AbvField({ value, volumeMl = null, error, onChange }: AbvFieldPr
   }
 
   return (
-    <fieldset className="log-form-section">
-      <legend>
-        <FieldLabel htmlFor="log-abv-percent">アルコール度数</FieldLabel>
-      </legend>
+    <section className="log-form-section log-form-field">
+      <FieldLabel htmlFor="log-abv-percent">アルコール度数</FieldLabel>
       <div className="abv-cluster">
         <IconButton
           label="度数を 0.5 減らす"
@@ -131,6 +129,6 @@ export function AbvField({ value, volumeMl = null, error, onChange }: AbvFieldPr
         純アルコール量 {formatGrams(grams)} g
       </p>
       <FieldError id="log-abv-percent" error={error} />
-    </fieldset>
+    </section>
   );
 }
