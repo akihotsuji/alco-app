@@ -11,6 +11,10 @@ import {
   canSubmitBottleForm,
   createEmptyBottleForm,
   describeBottleSaveFailure,
+  displayBottleDate,
+  displayBottleMemo,
+  displayBottlePrice,
+  displayBottleText,
   formatPriceJpy,
   hasBottleDetails,
   isBottleFormDirty,
@@ -175,9 +179,11 @@ describe("dirty / helpers", () => {
     expect(vintageLabel(null)).toBeNull();
     expect(vintageLabel(2020)).toBe("2020");
     expect(bottlePropLayout("品名")).toBe("inline");
-    expect(bottlePropLayout("生産者")).toBe("stack");
-    expect(bottlePropLayout("購入場所")).toBe("stack");
-    expect(bottlePropLayout("保管場所")).toBe("stack");
+    expect(bottlePropLayout("生産者")).toBe("inline");
+    expect(bottlePropLayout("購入場所")).toBe("inline");
+    expect(bottlePropLayout("保管場所")).toBe("inline");
+    expect(bottlePropLayout("品種")).toBe("inline");
+    expect(bottlePropLayout("生産国")).toBe("inline");
     expect(bottlePropLayout("メモ")).toBe("memo");
     expect(bottlePropLayout("メモ（参加者に共有）")).toBe("memo");
     expect(bottlePropLayout("価格")).toBe("inline");
@@ -195,8 +201,26 @@ describe("dirty / helpers", () => {
       consumed: false,
     });
     expect(formatPriceJpy(3800)).toBe("¥3,800");
+    expect(formatPriceJpy(0)).toBe("¥0");
     expect(isUuid("11111111-1111-4111-8111-111111111111")).toBe(true);
     expect(isUuid("not-a-uuid")).toBe(false);
+  });
+
+  it("未登録表示はnull・空文字を未登録にし、0と明示の不明を区別する", () => {
+    expect(displayBottleText(null)).toEqual({ text: "未登録", empty: true });
+    expect(displayBottleText("")).toEqual({ text: "未登録", empty: true });
+    expect(displayBottleText("   ")).toEqual({ text: "未登録", empty: true });
+    expect(displayBottleText("不明")).toEqual({ text: "不明", empty: false });
+    expect(displayBottleText("メルロ")).toEqual({ text: "メルロ", empty: false });
+    expect(displayBottleDate(null)).toEqual({ text: "未登録", empty: true });
+    expect(displayBottleDate("")).toEqual({ text: "未登録", empty: true });
+    expect(displayBottleDate("2026-09-08")).toEqual({ text: "2026年9月8日", empty: false });
+    expect(displayBottlePrice(null)).toEqual({ text: "未登録", empty: true });
+    expect(displayBottlePrice(0)).toEqual({ text: "¥0", empty: false });
+    expect(displayBottlePrice(3800)).toEqual({ text: "¥3,800", empty: false });
+    expect(displayBottleMemo(null)).toEqual({ text: "メモはありません", empty: true });
+    expect(displayBottleMemo("  ")).toEqual({ text: "メモはありません", empty: true });
+    expect(displayBottleMemo("短いメモ")).toEqual({ text: "短いメモ", empty: false });
   });
 
   it("ボトルからの初期値", () => {

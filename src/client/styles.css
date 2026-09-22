@@ -5211,9 +5211,10 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 }
 
 .bottle-prop {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  column-gap: var(--space-3);
+  align-items: start;
   margin: 0;
   min-width: 0;
   padding: var(--space-3) 0;
@@ -5228,33 +5229,72 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   color: var(--muted);
   font-size: var(--text-note);
   line-height: 1.5;
-  flex-shrink: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .bottle-prop dd {
   margin: 0;
-  text-align: right;
+  min-width: 0;
+  color: var(--foreground);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  text-align: start;
   overflow-wrap: anywhere;
   word-break: break-word;
-  min-width: 0;
   white-space: pre-wrap;
 }
 
-.bottle-prop.is-stack,
-.bottle-prop.is-memo {
+.bottle-prop dd.is-empty {
+  color: var(--muted);
+}
+
+.bottle-props-group {
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-1);
+  min-width: 0;
 }
 
-.bottle-prop.is-stack dd,
-.bottle-prop.is-memo dd {
-  text-align: start;
-  width: 100%;
+.bottle-memo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
-.bottle-prop.is-memo {
-  padding-top: var(--space-2);
+.bottle-memo-body {
+  margin: 0;
+  min-width: 0;
+  color: var(--foreground);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.bottle-memo-body.is-empty {
+  color: var(--muted);
+}
+
+.bottle-memo-share {
+  margin-left: var(--space-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+@media (max-width: 360px) {
+  .bottle-prop {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 320px) {
+  .bottle-prop {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-1);
+  }
 }
 
 .bottle-section {
@@ -6433,6 +6473,7 @@ html[data-reduce-motion="1"] .guide-fan-item {
 .bottle-basics {
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
   min-width: 0;
 }
 
