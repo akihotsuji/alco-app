@@ -492,18 +492,52 @@ export function vintageLabel(value: number | null): string | null {
   return value === null ? null : String(value);
 }
 
-export type BottlePropLayout = "inline" | "stack" | "memo";
-
-const STACK_PROP_LABELS = new Set(["生産者", "購入場所", "保管場所", "品種", "生産国"]);
+export type BottlePropLayout = "inline" | "memo";
 
 export function bottlePropLayout(label: string): BottlePropLayout {
   if (label.startsWith("メモ")) {
     return "memo";
   }
-  return STACK_PROP_LABELS.has(label) ? "stack" : "inline";
+  return "inline";
 }
 
 export const UNKNOWN_PROP_VALUE = "不明";
+export const UNREGISTERED_PROP_VALUE = "未登録";
+export const EMPTY_MEMO_VALUE = "メモはありません";
+
+export type BottlePropDisplay = { text: string; empty: boolean };
+
+function isBlankPropText(value: string | null | undefined): boolean {
+  return value === null || value === undefined || value.trim().length === 0;
+}
+
+export function displayBottleText(value: string | null | undefined): BottlePropDisplay {
+  if (isBlankPropText(value)) {
+    return { text: UNREGISTERED_PROP_VALUE, empty: true };
+  }
+  return { text: value as string, empty: false };
+}
+
+export function displayBottleDate(value: string | null | undefined): BottlePropDisplay {
+  if (isBlankPropText(value)) {
+    return { text: UNREGISTERED_PROP_VALUE, empty: true };
+  }
+  return { text: formatBottleDisplayDate(value as string), empty: false };
+}
+
+export function displayBottlePrice(value: number | null | undefined): BottlePropDisplay {
+  if (value === null || value === undefined) {
+    return { text: UNREGISTERED_PROP_VALUE, empty: true };
+  }
+  return { text: formatPriceJpy(value), empty: false };
+}
+
+export function displayBottleMemo(value: string | null | undefined): BottlePropDisplay {
+  if (isBlankPropText(value)) {
+    return { text: EMPTY_MEMO_VALUE, empty: true };
+  }
+  return { text: value as string, empty: false };
+}
 
 export function formatBottleDisplayDate(value: string): string {
   return formatLongJapaneseDate(value);

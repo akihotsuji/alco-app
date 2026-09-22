@@ -19,7 +19,11 @@ describe("BottleDetail 状態バッジ", () => {
       consumed: true,
     });
     expect(source).toContain("bottlePropLayout");
-    expect(source).toContain("formatBottleDisplayDate");
+    expect(source).toContain("displayBottleDate");
+    expect(source).toContain("displayBottlePrice");
+    expect(source).toContain("displayBottleText");
+    expect(source).toContain("displayBottleMemo");
+    expect(source).not.toContain("UNKNOWN_PROP_VALUE");
     expect(source).not.toContain('"NV"');
   });
 
@@ -52,10 +56,18 @@ describe("BottleDetail 状態バッジ", () => {
       source.indexOf("bottle-detail-photos"),
     );
     expect(source).toContain("bottle-cellar-meta");
-    expect(source).toContain("基本情報");
+    expect(source).toContain("ボトル情報");
+    expect(source).toContain("購入・保管");
+    expect(source).not.toContain("基本情報");
+    expect(source).toContain("bottle-props-group");
+    expect(source).toContain("bottle-memo-body");
+    expect(source).toContain("参加者に共有");
+    expect(source).toContain("is-empty");
+    expect(source).toContain("<dl");
+    expect(source).toContain("<dt>");
     expect(source).toContain("bottle-detail-actions");
     expect(source).toContain("has-back");
-    expect(source).toContain("UNKNOWN_PROP_VALUE");
+    expect(source).not.toContain("UNKNOWN_PROP_VALUE");
     expect(source).toContain("vintageLabel");
     expect(source).toContain("BOTTLE_FIELD_LABELS.variety");
     expect(source).toContain("BOTTLE_FIELD_LABELS.origin");
@@ -76,5 +88,13 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).not.toContain("bottle-hero-shelf");
     expect(source).not.toContain("shelf-board");
     expect(css).not.toContain(".bottle-hero-shelf");
+  });
+
+  it("項目行はラベル列を揃えた2列グリッドで、値は左揃え", () => {
+    expect(css).toContain(".bottle-prop {");
+    expect(css).toContain("grid-template-columns: 6.5rem minmax(0, 1fr)");
+    expect(css).toContain(".bottle-prop dd.is-empty");
+    expect(css).toContain(".bottle-memo-body");
+    expect(css).toContain("@media (max-width: 320px)");
   });
 });

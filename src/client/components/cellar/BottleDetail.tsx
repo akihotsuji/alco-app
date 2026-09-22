@@ -17,11 +17,13 @@ import { useOpeningSource, useShareIntent } from "@/client/hooks/use-share-inten
 import { isApiClientError } from "@/client/lib/api.ts";
 import { logCreateHref } from "@/client/lib/app-routes.ts";
 import {
+  type BottlePropDisplay,
   bottlePropLayout,
   bottleStatusPill,
-  formatBottleDisplayDate,
-  formatPriceJpy,
-  UNKNOWN_PROP_VALUE,
+  displayBottleDate,
+  displayBottleMemo,
+  displayBottlePrice,
+  displayBottleText,
   vintageLabel,
 } from "@/client/lib/bottle-form.ts";
 import { BOTTLE_PHOTO_ACTION_LABELS } from "@/client/lib/bottle-photo-actions.ts";
@@ -75,37 +77,37 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const summary = [DRINK_TYPE_LABELS[bottle.drinkType], vintage].filter((value): value is string =>
     Boolean(value),
   );
-  const rows: { label: string; value: string }[] = [
-    { label: BOTTLE_FIELD_LABELS.variety, value: bottle.variety || UNKNOWN_PROP_VALUE },
-    { label: BOTTLE_FIELD_LABELS.origin, value: bottle.origin || UNKNOWN_PROP_VALUE },
-    { label: "生産者", value: bottle.producer || UNKNOWN_PROP_VALUE },
+  type DetailRow = { label: string; display: BottlePropDisplay };
+  const bottleInfoRows: DetailRow[] = [
+    { label: BOTTLE_FIELD_LABELS.variety, display: displayBottleText(bottle.variety) },
+    { label: BOTTLE_FIELD_LABELS.origin, display: displayBottleText(bottle.origin) },
+    { label: "生産者", display: displayBottleText(bottle.producer) },
+  ];
+  const purchaseStorageRows: DetailRow[] = [
     {
       label: BOTTLE_FIELD_LABELS.purchasedOn,
-      value: bottle.purchasedOn ? formatBottleDisplayDate(bottle.purchasedOn) : UNKNOWN_PROP_VALUE,
+      display: displayBottleDate(bottle.purchasedOn),
     },
-    {
-      label: "価格",
-      value: bottle.priceJpy !== null ? formatPriceJpy(bottle.priceJpy) : UNKNOWN_PROP_VALUE,
-    },
-    { label: "購入場所", value: bottle.shop || UNKNOWN_PROP_VALUE },
+    { label: "価格", display: displayBottlePrice(bottle.priceJpy) },
+    { label: "購入場所", display: displayBottleText(bottle.shop) },
     {
       label: BOTTLE_FIELD_LABELS.storedOn,
-      value: bottle.storedOn ? formatBottleDisplayDate(bottle.storedOn) : UNKNOWN_PROP_VALUE,
+      display: displayBottleDate(bottle.storedOn),
     },
-    { label: BOTTLE_FIELD_LABELS.storage, value: bottle.storage || UNKNOWN_PROP_VALUE },
+    { label: BOTTLE_FIELD_LABELS.storage, display: displayBottleText(bottle.storage) },
     ...(bottle.updatedByName
       ? [
           {
             label: "最終更新",
-            value: `${bottle.updatedByName}・${formatTokyoTime(new Date(bottle.updatedAt))}`,
+            display: {
+              text: `${bottle.updatedByName}・${formatTokyoTime(new Date(bottle.updatedAt))}`,
+              empty: false,
+            } satisfies BottlePropDisplay,
           },
         ]
       : []),
-    {
-      label: shared ? CELLAR_COPY.sharedMemoLabel : "メモ",
-      value: bottle.memo || UNKNOWN_PROP_VALUE,
-    },
   ];
+  const memoDisplay = displayBottleMemo(bottle.memo);
 
   function failureMessage(): string {
     return navigator.onLine ? FORM_ERROR_MESSAGES.generic : FORM_ERROR_MESSAGES.offline;
@@ -259,15 +261,37 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         ) : null}
       </div>
       <section className="bottle-basics">
-        <h3 className="bottle-basics-title">基本情報</h3>
-        <dl className="bottle-props">
-          {rows.map((row) => (
-            <div className={`bottle-prop is-${bottlePropLayout(row.label)}`} key={row.label}>
-              <dt>{row.label}</dt>
-              <dd>{row.value}</dd>
-            </div>
-          ))}
-        </dl>
+        <div className="bottle-props-group">
+          <h3 className="bottle-basics-title">ボトル情報</h3>
+          <dl className="bottle-props">
+            {bottleInfoRows.map((row) => (
+              <div className={`bottle-prop is-${bottlePropLayout(row.label)}`} key={row.label}>
+                <dt>{row.label}</dt>
+                <dd className={row.display.empty ? "is-empty" : undefined}>{row.display.text}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className="bottle-props-group">
+          <h3 className="bottle-basics-title">購入・保管</h3>
+          <dl className="bottle-props">
+            {purchaseStorageRows.map((row) => (
+              <div className={`bottle-prop is-${bottlePropLayout(row.label)}`} key={row.label}>
+                <dt>{row.label}</dt>
+                <dd className={row.display.empty ? "is-empty" : undefined}>{row.display.text}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className="bottle-memo">
+          <h3 className="bottle-basics-title">
+            メモ
+            {shared ? <span className="bottle-memo-share">参加者に共有</span> : null}
+          </h3>
+          <p className={memoDisplay.empty ? "bottle-memo-body is-empty" : "bottle-memo-body"}>
+            {memoDisplay.text}
+          </p>
+        </div>
       </section>
       <BottleNotesSection
         bottleId={bottle.id}

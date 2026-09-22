@@ -49,9 +49,9 @@ async function pickBackFromLibrary(page: Page, file: string): Promise<void> {
   await (await chooserPromise).setFiles(file);
 }
 
-async function expectPropStackedStart(page: Page, label: string): Promise<void> {
+async function expectPropInlineStart(page: Page, label: string): Promise<void> {
   const row = page.locator(".bottle-prop", { has: page.locator("dt", { hasText: label }) });
-  await expect(row).toHaveClass(/is-stack/);
+  await expect(row).toHaveClass(/is-inline/);
   await expect(row.locator("dd")).toHaveCSS("text-align", "start");
 }
 
@@ -116,9 +116,9 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await expect(page.getByRole("heading", { name: BOTTLE_NAME })).toBeVisible();
   await expect(page.getByRole("button", { name: "裏ラベルの写真を拡大" })).toBeVisible();
   await expect(page.locator(".bottle-props dt", { hasText: "品名" })).toHaveCount(0);
-  await expectPropStackedStart(page, "生産者");
-  await expectPropStackedStart(page, "保管場所");
-  const props = page.locator(".bottle-props");
+  await expectPropInlineStart(page, "生産者");
+  await expectPropInlineStart(page, "保管場所");
+  const props = page.locator(".bottle-basics");
   await props.scrollIntoViewIfNeeded();
   await shot(page, "cellar_detail_props_right_align_scrolled");
   if (walkthroughDir) {
