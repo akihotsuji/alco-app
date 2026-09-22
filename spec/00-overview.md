@@ -34,7 +34,7 @@
 - ネイティブモバイルアプリ / アプリストア申請
 - オフラインでの記録（PWAの見た目対応まで）
 - バーコードスキャン・外部酒類DB連携
-- SNS的な共有機能・フォロー機能
+- 不特定多数向けの公開SNS・公開フォロー・外部SNS連携（相互承認した友達限定の近況フィードは対象。正本は [features/friends-social.md](features/friends-social.md)）
 - マーケティング・収益化
 
 ## 関連ドキュメント
@@ -50,6 +50,7 @@
 - [data-model.md](data-model.md) — ER図・Drizzleスキーマ設計
 - [api-design.md](api-design.md) — APIエンドポイント・認可ルール
 - [features/alcohol-calculation.md](features/alcohol-calculation.md) — 純アルコール量計算・グラスプリセット
-- [legal.md](legal.md) — 利用規約・プライバシーポリシー（草案。8-01。2026-09-13 更新）
+- [legal.md](legal.md) — 利用規約・プライバシーポリシー（草案。8-01。2026-09-21 に友達・近況を反映）
+- [features/friends-social.md](features/friends-social.md) — 友達限定の近況フィード
 - [../roadmap/README.md](../roadmap/README.md) — フェーズ・タスクごとの仕様書・手順書
 - [qa-devices.md](qa-devices.md) — iOS / Android 実機 QA（6-05）
