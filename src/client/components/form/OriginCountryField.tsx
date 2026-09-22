@@ -95,7 +95,7 @@ export function OriginCountryField({
   }
 
   return (
-    <section className="log-form-section origin-field">
+    <section className="log-form-section log-form-field origin-field">
       <FieldLabel htmlFor={id}>{IDENTITY_FIELD_LABELS.origin}</FieldLabel>
       <div className={aiStateClassName("origin-combobox", aiMarked, aiPending)}>
         <Input

@@ -1700,6 +1700,88 @@ img[data-state="loaded"] {
   flex: 1 0 100%;
 }
 
+/* 飲酒記録の横並び（spec/screen-designs/03-log.md）。ラベル左・入力右で縦スクロールを減らす */
+.log-form-field {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  align-items: center;
+}
+
+.log-form-field > .field-label {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  font-size: var(--text-note);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.log-form-field > :not(.field-label) {
+  grid-column: 2;
+  min-width: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* 度数ステッパー（−/入力/＋）が 242px に収まるよう縮小を許可 */
+.log-form-field .abv-cluster,
+.log-form-field .unit-field {
+  min-width: 0;
+}
+
+.log-form-field .abv-cluster .abv-input {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.log-form-field .unit-field-input {
+  min-width: 0;
+  width: 0;
+  flex: 1 1 0;
+}
+
+/* メモは複数行のためラベルを上寄せ */
+.log-form-field-memo {
+  align-items: start;
+}
+
+.log-form-field-memo > .field-label {
+  padding-top: 14px;
+}
+
+/* 識別ペア（log専用）。横並びの行を積み、入力幅を保つ */
+.log-identity-pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+@media (max-width: 360px) {
+  .log-form-field {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 320px) {
+  .log-form-field {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .log-form-field > .field-label {
+    grid-column: 1;
+    grid-row: auto;
+    padding-top: 0;
+  }
+
+  .log-form-field > :not(.field-label) {
+    grid-column: 1;
+  }
+}
+
 .bottle-details {
   display: flex;
   flex-direction: column;

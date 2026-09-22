@@ -37,7 +37,7 @@ export function IdentityFields({
 }: IdentityFieldsProps) {
   return (
     <div className="identity-fields">
-      <div className="bottle-details-pair">
+      <div className="log-identity-pair">
         <IdentityInput
           id={`${idPrefix}-vintage`}
           label={IDENTITY_FIELD_LABELS.vintage}
@@ -107,7 +107,7 @@ function IdentityInput({
   aiPending: boolean;
 }) {
   return (
-    <section className="log-form-section">
+    <section className="log-form-section log-form-field">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <FieldWithAiMark marked={aiMarked} pending={aiPending}>
         <Input

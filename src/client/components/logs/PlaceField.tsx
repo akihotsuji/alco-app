@@ -36,7 +36,7 @@ export function PlaceField({
   const recorded = hasPlaceCoords(place);
 
   return (
-    <section className="log-form-section">
+    <section className="log-form-section log-form-field">
       <FieldLabel htmlFor="log-place-name" optional>
         場所
       </FieldLabel>
