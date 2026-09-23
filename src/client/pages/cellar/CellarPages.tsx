@@ -85,30 +85,29 @@ export function ArchivePage() {
   const filtersActive = filteredOut;
   return (
     <div className="cellar-list">
-      {emptyInventory ? null : (
-        <div className="cellar-filter-disclosure">
-          <button
-            type="button"
-            className="cellar-filter-toggle"
-            aria-expanded={filtersOpen}
-            onClick={() => setFiltersOpen((current) => !current)}
-          >
-            表示・絞り込み{filtersActive ? "（設定中）" : ""}
-            <ChevronDown size={18} className="form-row-chevron" aria-hidden />
-          </button>
-          {filtersOpen ? (
-            <div className="cellar-filter-panel">
-              <CellarSwitcher />
-              <CellarToolbar
-                {...filters}
-                listView="list"
-                onListViewChange={() => undefined}
-                hideViewToggle
-              />
-            </div>
-          ) : null}
-        </div>
-      )}
+      {/* 空でも畳み表示は残す（一覧と入口を揃える） */}
+      <div className="cellar-filter-disclosure">
+        <button
+          type="button"
+          className="cellar-filter-toggle"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((current) => !current)}
+        >
+          表示・絞り込み{filtersActive ? "（設定中）" : ""}
+          <ChevronDown size={18} className="form-row-chevron" aria-hidden />
+        </button>
+        {filtersOpen ? (
+          <div className="cellar-filter-panel">
+            <CellarSwitcher />
+            <CellarToolbar
+              {...filters}
+              listView="list"
+              onListViewChange={() => undefined}
+              hideViewToggle
+            />
+          </div>
+        ) : null}
+      </div>
       {query.isPending ? <ShelfSkeleton columns={columns} /> : null}
       {query.isError ? (
         <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />

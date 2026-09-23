@@ -6,6 +6,7 @@ test("共有セラーを作り、招待リンクで参加できる", async ({ br
 
   await mainNav(page).getByRole("button", { name: "セラー" }).click();
   await expect(page.getByRole("heading", { name: "セラー" })).toBeVisible();
+  await page.getByRole("button", { name: /表示・絞り込み/ }).click();
   await expect(page.getByRole("button", { name: /自分のセラー/ })).toBeVisible();
   await expect(page.getByText("自分だけ")).toBeVisible();
 
@@ -46,6 +47,7 @@ test("共有セラーを作り、招待リンクで参加できる", async ({ br
   await memberPage.getByRole("button", { name: "参加する" }).click();
 
   await expect(memberPage.getByRole("heading", { name: "セラー" })).toBeVisible();
+  await memberPage.getByRole("button", { name: /表示・絞り込み/ }).click();
   await expect(memberPage.getByRole("button", { name: /ふたりのセラー/ })).toBeVisible();
   await expect(memberPage.getByText("2人")).toBeVisible();
 

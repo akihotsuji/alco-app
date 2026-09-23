@@ -369,30 +369,29 @@ export function CellarList() {
   const filtersActive = filteredOut;
   return (
     <div className="cellar-list">
-      {emptyInventory ? null : (
-        <div className="cellar-filter-disclosure">
-          <button
-            type="button"
-            className="cellar-filter-toggle"
-            aria-expanded={filtersOpen}
-            onClick={() => setFiltersOpen((current) => !current)}
-          >
-            表示・絞り込み{filtersActive ? "（設定中）" : ""}
-            <ChevronDown size={18} className="form-row-chevron" aria-hidden />
-          </button>
-          {filtersOpen ? (
-            <div className="cellar-filter-panel">
-              <CellarSwitcher />
-              <CellarToolbar
-                {...filters}
-                listView={view}
-                onListViewChange={setView}
-                hideTypeFilter={view === "type"}
-              />
-            </div>
-          ) : null}
-        </div>
-      )}
+      {/* 空でも畳み表示は残す。共有セラーの切替・作成の入口が消えないようにする */}
+      <div className="cellar-filter-disclosure">
+        <button
+          type="button"
+          className="cellar-filter-toggle"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((current) => !current)}
+        >
+          表示・絞り込み{filtersActive ? "（設定中）" : ""}
+          <ChevronDown size={18} className="form-row-chevron" aria-hidden />
+        </button>
+        {filtersOpen ? (
+          <div className="cellar-filter-panel">
+            <CellarSwitcher />
+            <CellarToolbar
+              {...filters}
+              listView={view}
+              onListViewChange={setView}
+              hideTypeFilter={view === "type"}
+            />
+          </div>
+        ) : null}
+      </div>
       {pending ? <ShelfSkeleton columns={columns} /> : null}
       {errored ? <QueryError onRetry={() => refetch()} retrying={fetching} /> : null}
       {emptyInventory ? (
