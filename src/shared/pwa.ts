@@ -54,6 +54,31 @@ export const PWA_ICON_MANIFEST = [
   },
 ] as const;
 
+/** ショートカットアイコンは中央タブを写す。ライトの --primary / --primary-fg */
+export const PWA_SHORTCUT_ICON_ACCENT = "#7A3538";
+export const PWA_SHORTCUT_ICON_GLYPH = "#FFF8F4";
+export const PWA_SHORTCUT_ICON_SIZE = 96;
+/** マスク可能セーフゾーン（内側 80%）に収める */
+export const PWA_SHORTCUT_ICON_CIRCLE_RATIO = 0.62;
+export const PWA_SHORTCUT_ICON_FILE = `${PWA_ICON_DIR}/pwa-shortcut-log-96x96.png`;
+
+/** アイコン長押しの「飲酒を記録」。中央タブと同じ文言・飛び先（spec/features/pwa.md 3.1） */
+export const PWA_SHORTCUTS = [
+  {
+    name: "飲酒を記録",
+    short_name: "飲酒を記録",
+    url: "/logs/new",
+    icons: [
+      {
+        src: `/${PWA_SHORTCUT_ICON_FILE}`,
+        sizes: `${PWA_SHORTCUT_ICON_SIZE}x${PWA_SHORTCUT_ICON_SIZE}`,
+        type: "image/png",
+        purpose: "any",
+      },
+    ],
+  },
+] as const;
+
 export const PWA_PRECACHE_GLOB = ["**/*.{js,css,html,ico,png,svg,webp,webmanifest}"] as const;
 /** 切り抜きモデルは既存の Cache API。SW precache に載せない */
 export const PWA_PRECACHE_IGNORE = ["**/models/**", "**/version.json", "**/sw-push.js"] as const;

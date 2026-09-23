@@ -16,6 +16,7 @@ import {
   PWA_PUSH_SW_FILENAME,
   PWA_SCOPE,
   PWA_SHORT_NAME,
+  PWA_SHORTCUTS,
   PWA_START_URL,
   PWA_SW_FILENAME,
   PWA_THEME_COLOR_LIGHT,
@@ -39,6 +40,7 @@ export const pwaOptions = {
     theme_color: PWA_THEME_COLOR_LIGHT,
     background_color: PWA_BACKGROUND_COLOR,
     icons: [...PWA_ICON_MANIFEST],
+    shortcuts: PWA_SHORTCUTS.map((shortcut) => ({ ...shortcut, icons: [...shortcut.icons] })),
   },
   workbox: {
     globPatterns: [...PWA_PRECACHE_GLOB],

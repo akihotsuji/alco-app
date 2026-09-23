@@ -2,7 +2,7 @@
 
 実装: Phase 6-01。要件は [01-requirements.md](../01-requirements.md) 非機能「PWA」、技術は [02-tech-stack.md](../02-tech-stack.md)、手順は [roadmap/phase-06-pwa-quality/01-vite-plugin-pwa.md](../../roadmap/phase-06-pwa-quality/01-vite-plugin-pwa.md)。アイコンの見た目は [character.md](../character.md)、色は [design-system.md](../design-system.md)。
 
-- 状態: **6-01 済み**（表示名は 酒のしおり。アイコン地はライトの地色。[custom-domain.md](custom-domain.md)）
+- 状態: **6-01 済み**（表示名は 酒のしおり。アイコン地はライトの地色。[custom-domain.md](custom-domain.md)）。アイコン長押しの「飲酒を記録」ショートカット（3.1）は 2026-09-23 オーナー指示で追加
 - 実機でのホーム追加確認は 6-05（[qa-devices.md](../qa-devices.md)。手順は README）
 
 ---
@@ -43,8 +43,34 @@
 | `background_color` | 同じ `#E6E0D6`（スプラッシュの地。アイコン地も同じクリーム） |
 | `icons` | 192 / 512（`any`）と 512（`maskable`）。PNG |
 | `id` | `/` |
+| `shortcuts` | 「飲酒を記録」1 件（3.1） |
 
 `display: standalone` により、ホーム追加後は OS / ブラウザのタブバーが消える。アプリ内の下部タブだけが残る（二重にならない）。確認手順は README。
+
+### 3.1 アイコン長押しのショートカット
+
+ホーム画面のアイコンを長押し（デスクトップはタスクバー / Dock の右クリック）すると、中央タブと同じ「飲酒を記録」を選べる。選ぶと `log-new`（`/logs/new`）を写真なしで開く。新しい画面・ルート・API は作らない。
+
+| キー | 値 | 理由 |
+|---|---|---|
+| `name` | `飲酒を記録` | 中央タブの下ラベルと同じ（[screens.md](../screens.md)）。飲酒を促す言い回しにしない |
+| `short_name` | `飲酒を記録` | 同上。ランチャーの幅に収まる |
+| `url` | `/logs/new` | 中央タブと同じ飛び先。クエリを付けない（`?camera=1` を付けない。撮影は開始しない） |
+| `icons` | 96×96 の PNG 1 枚（`purpose: any`）。5 章 | Chrome が推奨する最小。無いと端末によってはアプリアイコンで代用され区別しにくい |
+
+- ショートカットは 1 件だけ。セラー・ノートなどは足さない（記録の主導線は中央タブ。ショートカットはその入口の複製）
+- 未ログインで開いたときは既存の認証境界が `/login?redirect=%2Flogs%2Fnew` へ回し、ログイン後に記録入力へ戻す。年齢未確認も既存どおり `/age` を通る
+- 履歴の無い直開きになるため、ヘッダーの「←」は中央タブから直開きしたときと同じ規則で今日の日別記録（`log-day` `/logs`）へ戻る（`app-routes.ts` の `logNewFallback`）
+- 反映はインストール時のマニフェスト。既にホーム追加済みの端末は、ブラウザがマニフェストの更新を取り込むまで出ない（Android はホーム画面用アプリの再生成を待つ。すぐ見たいときは追加し直す）
+
+端末ごとの見え方（2026-09 時点の各ブラウザの公開情報。実機確認はオーナー。[qa-devices.md](../qa-devices.md) 4.8）:
+
+| 環境 | 見え方 |
+|---|---|
+| Android Chrome のインストール PWA | アイコン長押しのメニューに「飲酒を記録」。ホーム画面へのピン留めもできる |
+| Windows / macOS の Chrome・Edge でインストールした PWA | タスクバー / Dock のアイコンの右クリック（ジャンプリスト）に出る |
+| iPhone / iPad のホーム画面 PWA | 出ない（Safari はマニフェストの `shortcuts` を使わない）。長押しは OS 標準のメニューだけ |
+| ブラウザのタブ | 出ない（インストールしたアプリだけ） |
 
 ---
 
@@ -76,6 +102,15 @@
 | 出力 | `pwa-192x192.png` / `pwa-512x512.png`（`any`）、`pwa-512x512-maskable.png`（`maskable`）、`apple-touch-icon.png`（180） |
 
 生成は `sharp`（`vite-plugin-pwa` の assets generator と同じエンジン）。合成（キャラ + 地 + 線色）を自前で固定するため generator のプリセットは使わない。キャラのワイン色は変えない。
+
+ショートカット「飲酒を記録」（3.1）のアイコンは、中央タブの見た目を写す。キャラは載せない（アプリアイコンと区別する）。
+
+| 項目 | 値 |
+|---|---|
+| 地 | アプリアイコンと同じ `#E6E0D6` の正方形 |
+| 円 | ライトの `--primary` `#7A3538`。直径 = キャンバスの 62%（セーフゾーン 80% に収める） |
+| 記号 | lucide の Plus（24 グリッドの `M5 12h14` / `M12 5v14`、線幅 2、丸端）を円の中央に。色はライトの `--primary-fg` `#FFF8F4`。円の直径の 58% 角に収める |
+| 出力 | `pwa-shortcut-log-96x96.png`（96×96） |
 
 ---
 
@@ -230,6 +265,8 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 
 - [ ] ビルド成果に `manifest.webmanifest` があり、`display` が `standalone`
 - [ ] 192 / 512 / maskable / Apple touch の PNG がある
+- [ ] マニフェストの `shortcuts` が「飲酒を記録」1 件で、`url` は `/logs/new`（クエリなし）。96×96 のショートカットアイコンがある（3.1）
+- [ ] ショートカットで開くと記録入力が写真なしで開き、撮影は始まらない。未ログインならログイン後に記録入力へ戻る（[auth.md](auth.md)）。「←」は今日の日別記録（`/logs`）へ戻る
 - [ ] SW が `/api/` を NetworkOnly にし、`/models/` を precache しない
 - [ ] 存在しない `/assets/*.js` が HTML ではなく 404 を返す
 - [ ] `boot.css` が `data-theme` 付きの html/body に色を残さない。SW 登録は `updateViaCache: "none"`

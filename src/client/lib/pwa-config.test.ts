@@ -2,11 +2,14 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { TABS } from "@/client/lib/app-routes.ts";
 import {
   PWA_DISPLAY,
   PWA_NAME,
   PWA_PUSH_SW_FILENAME,
   PWA_SHORT_NAME,
+  PWA_SHORTCUT_ICON_FILE,
+  PWA_SHORTCUTS,
   PWA_SW_FILENAME,
   PWA_THEME_COLOR_DARK,
   PWA_THEME_COLOR_LIGHT,
@@ -58,6 +61,25 @@ describe("PWA 設定ファイル", () => {
       assetPattern?.({ request: scriptReq, url: new URL("https://example.test/assets/old.js") }),
     ).toBe(true);
     expect(assetPattern?.({ request: scriptReq, url: apiUrl })).toBe(false);
+  });
+
+  it("アイコン長押しのショートカットは中央タブと同じ「飲酒を記録」→ /logs/new の 1 件だけ", () => {
+    const shortcuts = pwaOptions.manifest.shortcuts;
+    expect(shortcuts).toHaveLength(1);
+    const [shortcut] = shortcuts;
+    const centerTab = TABS.find((tab) => tab.id === "log");
+    expect(shortcut?.name).toBe(centerTab?.label);
+    expect(shortcut?.short_name).toBe(centerTab?.label);
+    expect(shortcut?.url).toBe("/logs/new");
+    expect(shortcut?.icons).toEqual([
+      {
+        src: `/${PWA_SHORTCUT_ICON_FILE}`,
+        sizes: "96x96",
+        type: "image/png",
+        purpose: "any",
+      },
+    ]);
+    expect(PWA_SHORTCUTS).toHaveLength(1);
   });
 
   it("index.html に Apple メタとライト／ダークの theme-color がある", () => {
