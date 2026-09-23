@@ -23,6 +23,16 @@ import {
   seedOwnedBottle,
 } from "../test-helpers.ts";
 
+async function sharpJpeg(width: number, height: number): Promise<Uint8Array> {
+  return new Uint8Array(
+    await sharp({
+      create: { width, height, channels: 3, background: { r: 180, g: 40, b: 40 } },
+    })
+      .jpeg({ quality: 80 })
+      .toBuffer(),
+  );
+}
+
 async function session(app: Awaited<ReturnType<typeof createTestApp>>["app"], email: string) {
   const user = await createTestUser(app, {
     name: email.split("@")[0] ?? "user",
@@ -39,10 +49,14 @@ function postPhoto(
   fields: Record<string, string> = {},
   fileName = "shot.jpg",
   type = "image/jpeg",
+  thumb?: { bytes: Uint8Array; type: string },
 ) {
   const form = new FormData();
   const copy = Uint8Array.from(bytes);
   form.set("file", new File([copy], fileName, { type }));
+  if (thumb) {
+    form.set("thumb", new File([Uint8Array.from(thumb.bytes)], "thumb", { type: thumb.type }));
+  }
   for (const [key, value] of Object.entries(fields)) {
     form.set(key, value);
   }
@@ -271,20 +285,19 @@ describe("GET /api/photos/:id と content", () => {
     expect(other.status).toBe(404);
   });
 
-  it("variant=thumb は派生を返し、再検証は 304。他人は ETag を知っていても 404", async () => {
+  it("variant=thumb は端末が添えたサムネを返し、再検証は 304。他人は ETag を知っていても 404", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "thumb-a@example.com");
     const b = await session(ctx.app, "thumb-b@example.com");
-    const bytes = new Uint8Array(
-      await sharp({
-        create: { width: 800, height: 600, channels: 3, background: { r: 180, g: 40, b: 40 } },
-      })
-        .jpeg({ quality: 80 })
-        .toBuffer(),
-    );
-    const created = await postPhoto(ctx.app, a.cookie, bytes);
+    const bytes = await sharpJpeg(800, 600);
+    const thumbBytes = await sharpJpeg(400, 300);
+    const created = await postPhoto(ctx.app, a.cookie, bytes, {}, "shot.jpg", "image/jpeg", {
+      bytes: thumbBytes,
+      type: "image/jpeg",
+    });
     const meta = photoMetaSchema.parse(await created.json());
     const thumbEtag = `"${meta.id}:thumb"`;
+    expect(ctx.photos.keys()).toContain(photoThumbR2Key(`${meta.id}.jpg`, "photo"));
 
     const thumb = await ctx.app.request(`/api/photos/${meta.id}/content?variant=thumb`, {
       headers: { Cookie: a.cookie },
@@ -293,11 +306,9 @@ describe("GET /api/photos/:id と content", () => {
     expect(thumb.headers.get("content-type")).toBe("image/jpeg");
     expect(thumb.headers.get("cache-control")).toBe("private, no-cache");
     expect(thumb.headers.get("etag")).toBe(thumbEtag);
-    const thumbBytes = new Uint8Array(await thumb.arrayBuffer());
-    const inspected = inspectImageBytes(thumbBytes);
+    const inspected = inspectImageBytes(new Uint8Array(await thumb.arrayBuffer()));
     expect(inspected.width).toBe(400);
     expect(inspected.height).toBe(300);
-    expect(ctx.photos.keys()).toContain(photoThumbR2Key(`${meta.id}.jpg`, "photo"));
 
     const notModified = await ctx.app.request(`/api/photos/${meta.id}/content?variant=thumb`, {
       headers: { Cookie: a.cookie, "If-None-Match": thumbEtag },
@@ -326,40 +337,32 @@ describe("GET /api/photos/:id と content", () => {
     expect(ctx.photos.keys()).toEqual([]);
   });
 
-  it("サムネが無くても GET で作り、D1 行が消えたあとは書かない", async () => {
+  it("サムネが無い・合わないときは Worker で作らず、thumb は原本を返す", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "thumb-lazy@example.com");
-    const bytes = new Uint8Array(
-      await sharp({
-        create: { width: 800, height: 600, channels: 3, background: { r: 40, g: 80, b: 160 } },
-      })
-        .jpeg({ quality: 80 })
-        .toBuffer(),
+    const bytes = await sharpJpeg(800, 600);
+    const withoutThumb = photoMetaSchema.parse(
+      await (await postPhoto(ctx.app, a.cookie, bytes)).json(),
     );
-    const created = await postPhoto(ctx.app, a.cookie, bytes);
-    const meta = photoMetaSchema.parse(await created.json());
-    const thumbKey = photoThumbR2Key(`${meta.id}.jpg`, "photo");
-    expect(ctx.photos.keys()).toContain(thumbKey);
-    await ctx.photos.delete(thumbKey);
-    expect(ctx.photos.keys()).not.toContain(thumbKey);
-
-    const regenerated = await ctx.app.request(`/api/photos/${meta.id}/content?variant=thumb`, {
-      headers: { Cookie: a.cookie },
-    });
-    expect(regenerated.status).toBe(200);
-    expect(ctx.photos.keys()).toContain(thumbKey);
-
-    const [row] = await ctx.db.select().from(photos).where(eq(photos.id, meta.id));
-    if (!row) {
-      throw new Error("expected photo row");
+    const mismatched = photoMetaSchema.parse(
+      await (
+        await postPhoto(ctx.app, a.cookie, bytes, {}, "shot.jpg", "image/jpeg", {
+          bytes: await sharpJpeg(800, 600),
+          type: "image/jpeg",
+        })
+      ).json(),
+    );
+    for (const meta of [withoutThumb, mismatched]) {
+      const thumbKey = photoThumbR2Key(`${meta.id}.jpg`, "photo");
+      expect(ctx.photos.keys()).not.toContain(thumbKey);
+      const res = await ctx.app.request(`/api/photos/${meta.id}/content?variant=thumb`, {
+        headers: { Cookie: a.cookie },
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/jpeg");
+      expect(inspectImageBytes(new Uint8Array(await res.arrayBuffer())).width).toBe(800);
+      expect(ctx.photos.keys()).not.toContain(thumbKey);
     }
-    await ctx.photos.delete(thumbKey);
-    await ctx.db.delete(photos).where(eq(photos.id, meta.id));
-    const { readOwnedPhotoContent } = await import("../services/photos.ts");
-    const fallback = await readOwnedPhotoContent(ctx.db, ctx.photos, row, "thumb");
-    expect(fallback.contentType).toBe("image/jpeg");
-    expect((fallback.body as ArrayBuffer).byteLength).toBeGreaterThan(0);
-    expect(ctx.photos.keys()).not.toContain(thumbKey);
   });
 
   it("未認証の thumb は 401", async () => {

@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 import type { AppBatchDb } from "@/db/index.ts";
-import { PHOTO_MAX_BYTES } from "@/shared/constants.ts";
+import { PHOTO_MAX_BYTES, PHOTO_THUMB_MAX_BYTES } from "@/shared/constants.ts";
 import {
   photoContentQuerySchema,
   photoIdParamSchema,
@@ -64,12 +64,19 @@ export function createPhotosRoute(deps: PhotoRouteDeps) {
       if (bytes.byteLength > PHOTO_MAX_BYTES) {
         throw new ApiError("payload_too_large");
       }
+      // 一覧用サムネは端末が作って任意で添える。大きすぎるものは読まずに捨てる（検証は createPhoto）
+      const thumb = form.get("thumb");
+      const thumbBytes =
+        thumb instanceof File && thumb.size > 0 && thumb.size <= PHOTO_THUMB_MAX_BYTES
+          ? new Uint8Array(await thumb.arrayBuffer())
+          : null;
 
       const meta = await createPhoto({
         db: deps.getDb(c),
         bucket: deps.getBucket(c),
         userId: user.id,
         bytes,
+        thumbBytes,
         fields,
         dailyLimit: deps.dailyLimit,
       });
@@ -92,7 +99,7 @@ export function createPhotosRoute(deps: PhotoRouteDeps) {
             "Cache-Control": PHOTO_CONTENT_CACHE_CONTROL,
           });
         }
-        const content = await readOwnedPhotoContent(deps.getDb(c), deps.getBucket(c), row, variant);
+        const content = await readOwnedPhotoContent(deps.getBucket(c), row, variant);
         return c.body(content.body, 200, {
           "Content-Type": content.contentType,
           "Cache-Control": PHOTO_CONTENT_CACHE_CONTROL,

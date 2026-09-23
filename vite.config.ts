@@ -30,7 +30,7 @@ export default defineConfig(() => {
       alias: srcAlias,
     },
     optimizeDeps: {
-      exclude: ["onnxruntime-web", "@jsquash/webp"],
+      exclude: ["onnxruntime-web"],
     },
     ssr: {
       external: ["onnxruntime-web"],

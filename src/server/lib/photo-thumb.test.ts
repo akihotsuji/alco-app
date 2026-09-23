@@ -1,53 +1,30 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { PHOTO_THUMB_MAX_EDGE } from "@/shared/constants.ts";
-import { makeJpeg } from "../image-fixtures.ts";
-import { inspectImageBytes } from "../services/image-inspect.ts";
+import { PHOTO_THUMB_MAX_BYTES } from "@/shared/constants.ts";
+import { acceptClientThumb } from "../services/photos.ts";
 import {
-  generatePhotoThumb,
   photoDerivedR2Keys,
   photoR2KeysToDelete,
+  photoThumbContentType,
   photoThumbR2Key,
-  resizeRgba,
 } from "./photo-thumb.ts";
-import { decodePngToRgba } from "./png-rgba.ts";
 
-async function realJpeg(width: number, height: number): Promise<Uint8Array> {
+async function jpeg(width: number, height: number): Promise<Uint8Array> {
   return new Uint8Array(
     await sharp({
       create: { width, height, channels: 3, background: { r: 180, g: 40, b: 40 } },
     })
-      .jpeg({ quality: 80 })
+      .jpeg({ quality: 75 })
       .toBuffer(),
   );
 }
 
-async function realPng(width: number, height: number): Promise<Uint8Array> {
+async function png(width: number, height: number): Promise<Uint8Array> {
   return new Uint8Array(
     await sharp({
-      create: {
-        width,
-        height,
-        channels: 4,
-        background: { r: 10, g: 20, b: 30, alpha: 0.5 },
-      },
+      create: { width, height, channels: 4, background: { r: 10, g: 20, b: 30, alpha: 0.5 } },
     })
       .png()
-      .toBuffer(),
-  );
-}
-
-async function realWebp(width: number, height: number): Promise<Uint8Array> {
-  return new Uint8Array(
-    await sharp({
-      create: {
-        width,
-        height,
-        channels: 4,
-        background: { r: 10, g: 20, b: 30, alpha: 0.5 },
-      },
-    })
-      .webp({ quality: 80 })
       .toBuffer(),
   );
 }
@@ -62,70 +39,25 @@ describe("photo thumb keys", () => {
       "aaaa.thumb.jpg",
       "aaaa.thumb.png",
     ]);
+    expect(photoThumbContentType("photo")).toBe("image/jpeg");
+    expect(photoThumbContentType("cutout")).toBe("image/png");
   });
 });
 
-describe("resizeRgba", () => {
-  it("長辺が上限以下ならそのまま、超えたら比率を保つ", () => {
-    const small = {
-      width: 40,
-      height: 60,
-      data: new Uint8Array(40 * 60 * 4),
-    };
-    expect(resizeRgba(small, PHOTO_THUMB_MAX_EDGE)).toBe(small);
-    const large = {
-      width: 800,
-      height: 600,
-      data: new Uint8Array(800 * 600 * 4),
-    };
-    const resized = resizeRgba(large, PHOTO_THUMB_MAX_EDGE);
-    expect(resized.width).toBe(400);
-    expect(resized.height).toBe(300);
-  });
-});
-
-describe("generatePhotoThumb", () => {
-  it("最低限 JPEG はデコードできず null", async () => {
-    await expect(generatePhotoThumb(makeJpeg(80, 80), "image/jpeg", "photo")).resolves.toBeNull();
+describe("acceptClientThumb（端末が作ったサムネ）", () => {
+  it("種類に合う形式で長辺 400 以下なら受け取る", async () => {
+    expect(acceptClientThumb(await jpeg(400, 300), "photo")).toBe(true);
+    expect(acceptClientThumb(await png(267, 400), "cutout")).toBe(true);
   });
 
-  it("JPEG を長辺 400 の JPEG にする", async () => {
-    const thumb = await generatePhotoThumb(await realJpeg(800, 600), "image/jpeg", "photo");
-    expect(thumb).not.toBeNull();
-    if (!thumb) {
-      return;
-    }
-    expect(thumb.contentType).toBe("image/jpeg");
-    const inspected = inspectImageBytes(thumb.bytes);
-    expect(inspected.width).toBe(400);
-    expect(inspected.height).toBe(300);
-    expect(inspected.kind).toBe("photo");
-  });
-
-  it("PNG 切り抜きはアルファ付き PNG のまま縮小する", async () => {
-    const thumb = await generatePhotoThumb(await realPng(400, 600), "image/png", "cutout");
-    expect(thumb).not.toBeNull();
-    if (!thumb) {
-      return;
-    }
-    expect(thumb.contentType).toBe("image/png");
-    const inspected = inspectImageBytes(thumb.bytes);
-    expect(inspected.width).toBe(267);
-    expect(inspected.height).toBe(400);
-    expect(inspected.kind).toBe("cutout");
-    const decoded = await decodePngToRgba(thumb.bytes);
-    expect(decoded.data[3]).toBeLessThan(255);
-  });
-
-  it("WebP 切り抜きは PNG サムネにする", async () => {
-    const thumb = await generatePhotoThumb(await realWebp(400, 600), "image/webp", "cutout");
-    expect(thumb).not.toBeNull();
-    if (!thumb) {
-      return;
-    }
-    expect(thumb.contentType).toBe("image/png");
-    const inspected = inspectImageBytes(thumb.bytes);
-    expect(Math.max(inspected.width, inspected.height)).toBe(PHOTO_THUMB_MAX_EDGE);
-    expect(inspected.kind).toBe("cutout");
+  it("形式違い・大きすぎる寸法・容量超過・画像でないものは捨てる", async () => {
+    expect(acceptClientThumb(await png(267, 400), "photo")).toBe(false);
+    expect(acceptClientThumb(await jpeg(400, 300), "cutout")).toBe(false);
+    expect(acceptClientThumb(await jpeg(800, 600), "photo")).toBe(false);
+    const huge = new Uint8Array(PHOTO_THUMB_MAX_BYTES + 1);
+    huge.set(await jpeg(400, 300));
+    expect(acceptClientThumb(huge, "photo")).toBe(false);
+    expect(acceptClientThumb(new TextEncoder().encode("<svg/>"), "photo")).toBe(false);
+    expect(acceptClientThumb(null, "photo")).toBe(false);
   });
 });

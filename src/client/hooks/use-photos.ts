@@ -2,6 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { photoFileName } from "@/client/lib/photo/photo-file.ts";
 import { assertUploadableBlob } from "@/client/lib/photo/to-jpeg-blob.ts";
+import { makeUploadThumb } from "@/client/lib/photo/upload-thumb.ts";
+import { PHOTO_THUMB_MAX_BYTES } from "@/shared/constants.ts";
 import type { PhotoContentVariant } from "@/shared/photos.ts";
 
 export function photoContentUrl(id: string, variant?: PhotoContentVariant): string {
@@ -21,8 +23,10 @@ export async function uploadPhoto(
   signal?: AbortSignal,
 ) {
   assertUploadableBlob(file);
+  const thumb = await makeUploadThumb(file);
   const form: {
     file: File;
+    thumb?: File;
     bottleId?: string;
     tastingNoteId?: string;
     drinkLogId?: string;
@@ -32,6 +36,9 @@ export async function uploadPhoto(
       type: file.type || "image/jpeg",
     }),
   };
+  if (thumb && thumb.size <= PHOTO_THUMB_MAX_BYTES) {
+    form.thumb = new File([thumb], "thumb", { type: thumb.type });
+  }
   if (extras.bottleId) {
     form.bottleId = extras.bottleId;
   }

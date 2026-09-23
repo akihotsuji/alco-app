@@ -431,7 +431,7 @@ export async function readSocialPostPhoto(input: {
   if (!row) {
     throw new ApiError("not_found");
   }
-  const content = await readOwnedPhotoContent(input.db, input.bucket, row, input.variant);
+  const content = await readOwnedPhotoContent(input.bucket, row, input.variant);
   return {
     ...content,
     etag: photoContentEtag(row.id, input.variant),

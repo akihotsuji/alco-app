@@ -185,7 +185,7 @@ Vite が 500 kB 超を警告。ボトルネックは **初期 JS 1 本に全画�
 
 - 一覧写真は `GET /api/photos/:id/content?variant=thumb`（長辺 400。`photo` は JPEG、`cutout` は PNG）
 - 配信は `private, no-cache` + 派生別 ETag。再訪は 304。1 年 immutable には戻さない
-- 有料の画像 CDN / Cloudflare Images は使わない。JPEG は `jpeg-js`、PNG は Worker の CompressionStream、WebP 切り抜きは `@jsquash/webp` でデコードして PNG サムネにする
+- 有料の画像 CDN / Cloudflare Images は使わない。サムネは端末の Canvas で作ってアップロード時に添える。Worker では画像をデコードしない（旧実装の `jpeg-js` / `@jsquash/webp` によるデコードは 1 枚 40〜120ms の CPU を使い、無料枠 10ms/起動を超えてアップロードが 503 になっていたため廃止。2026-09-23）
 
 実装済み（P1 / P3。2026-09-12）:
 

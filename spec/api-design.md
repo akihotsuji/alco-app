@@ -774,6 +774,7 @@ DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{
 | パート | 必須 | 説明 |
 |---|---|---|
 | `file` | 必須 | 画像本体。ファイル名はキーに使わない |
+| `thumb` | 任意 | 端末で作った一覧用サムネ（長辺 ≦400px。`kind=photo` なら JPEG、`cutout` なら透過 PNG。≦512KB）。magic bytes と寸法ヘッダだけ検査し、合わなければ黙って捨てる（アップロードは失敗させない） |
 | `bottleId` | 任意 | 参照可能なボトル（個人または参加中の共有）。不可は 404 |
 | `tastingNoteId` | 任意 | 自分のノート。他人は 404 |
 | `drinkLogId` | 任意 | 自分の記録。他人は 404 |
@@ -789,6 +790,7 @@ DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{
 4. `user_id` はセッションから付与
 5. 紐付け先の枚数上限（記録 1 / ボトル 1 / ノート 6）を超えるなら 400
 6. 同一ユーザーの JST 当日枚数が上限なら 429 `rate_limited`（R2 には書かない。数値は UI に出さない。8-05）
+7. **画像をデコードしない**。`thumb` が検査に通れば `{photoId}.thumb.jpg|png` に保存するだけ（Workers 無料枠の CPU 10ms/起動を超えると 1102 → 503 になり、同じ画像の再試行も失敗し続けるため）
 
 成功: 201 とメタ。
 
@@ -802,11 +804,11 @@ DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{
 
 | クエリ | 必須 | 説明 |
 |---|---|---|
-| `variant` | 任意 | `thumb` のみ。長辺 400px の派生。省略時は保存原本。それ以外は 400 |
+| `variant` | 任意 | `thumb` のみ。長辺 400px の派生（アップロード時に端末が添えたもの。無い写真は原本をそのまま返し、ここでも作らない）。省略時は保存原本。それ以外は 400 |
 
 | ヘッダ | 値 |
 |---|---|
-| Content-Type | 原本は保存した `contentType`。`thumb` は `kind=photo` なら `image/jpeg`、`cutout` なら `image/png` |
+| Content-Type | 原本は保存した `contentType`。`thumb` は `kind=photo` なら `image/jpeg`、`cutout` なら `image/png`（派生が無く原本を返すときは原本の `contentType`） |
 | Cache-Control | `private, no-cache` |
 | ETag | 原本 `"{photoId}"`、サムネ `"{photoId}:thumb"` |
 | Content-Disposition | `inline` |
