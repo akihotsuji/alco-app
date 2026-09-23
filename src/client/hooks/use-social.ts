@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type { SocialFeed, SocialProfilePatch, SocialShareSource } from "@/shared/social.ts";
@@ -322,7 +323,8 @@ export function useUnblockUser() {
 }
 
 export function useSocialNotifications() {
-  return useInfiniteQuery({
+  const queryClient = useQueryClient();
+  const query = useInfiniteQuery({
     queryKey: queryKeys.socialNotifications,
     queryFn: ({ pageParam }: { pageParam?: string }) =>
       unwrap(
@@ -333,6 +335,14 @@ export function useSocialNotifications() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
+  const fetchedAt = query.dataUpdatedAt;
+  // 一覧を取り直したら未読数（F2・アイコンのバッジ）も揃える
+  useEffect(() => {
+    if (fetchedAt > 0) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.socialUnread });
+    }
+  }, [fetchedAt, queryClient]);
+  return query;
 }
 
 export function socialUnreadQueryOptions() {

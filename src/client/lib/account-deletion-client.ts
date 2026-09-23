@@ -1,3 +1,4 @@
+import { clearAppBadge } from "@/client/lib/app-badge.ts";
 import { JOIN_TOKEN_STORAGE_KEY } from "@/client/lib/cellar-share.ts";
 import {
   FRIEND_JOIN_TOKEN_KEY,
@@ -28,8 +29,9 @@ function removeMatchingKeys(storage: Storage, shouldRemove: (key: string) => boo
   }
 }
 
-/** アカウントに紐づく下書き・ガイド進捗・切り抜き診断だけ捨てる。テーマ等は残す。 */
+/** アカウントに紐づく下書き・ガイド進捗・切り抜き診断・アイコンの未読バッジだけ捨てる。テーマ等は残す。 */
 export function discardAccountScopedClientData(): void {
+  void clearAppBadge();
   try {
     localStorage.removeItem(GUIDE_PREF_KEY);
     localStorage.removeItem(CELLAR_PREF_KEYS.selectedId);

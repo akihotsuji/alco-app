@@ -1,3 +1,4 @@
+import { clearAppBadge } from "@/client/lib/app-badge.ts";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { clearFriendSessionArtifacts } from "@/client/lib/social-invite.ts";
 
@@ -6,6 +7,8 @@ export type EndSessionDeps = {
   signOut: () => Promise<{ error: unknown }>;
   /** サインアウトが失敗しても（Cookie 消失など）セッション store を再取得させる。 */
   refreshSession: () => void;
+  /** ホーム画面アイコンの未読バッジを消す。次のユーザーに前の件数を見せない。 */
+  clearBadge: () => void;
 };
 
 /**
@@ -19,6 +22,7 @@ export function createEndSessionHandler(deps: EndSessionDeps): () => Promise<voi
 
   const run = async () => {
     clearFriendSessionArtifacts();
+    deps.clearBadge();
     const result = await deps.signOut().catch((error: unknown) => ({ error }));
     if (result.error) {
       deps.refreshSession();
@@ -38,4 +42,5 @@ export function createEndSessionHandler(deps: EndSessionDeps): () => Promise<voi
 export const endSession = createEndSessionHandler({
   signOut: () => authClient.signOut(),
   refreshSession: () => authClient.$store.notify("$sessionSignal"),
+  clearBadge: () => void clearAppBadge(),
 });

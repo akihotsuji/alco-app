@@ -5,7 +5,7 @@ describe("createEndSessionHandler", () => {
   it("signOut が成功したら store の再取得は signOut 側に任せる", async () => {
     const signOut = vi.fn(async () => ({ error: null }));
     const refreshSession = vi.fn();
-    const endSession = createEndSessionHandler({ signOut, refreshSession });
+    const endSession = createEndSessionHandler({ signOut, refreshSession, clearBadge: vi.fn() });
 
     await endSession();
     expect(signOut).toHaveBeenCalledTimes(1);
@@ -15,7 +15,7 @@ describe("createEndSessionHandler", () => {
   it("signOut がエラー応答（Cookie 消失など）でもセッション store を再取得させる", async () => {
     const signOut = vi.fn(async () => ({ error: { status: 400 } }));
     const refreshSession = vi.fn();
-    const endSession = createEndSessionHandler({ signOut, refreshSession });
+    const endSession = createEndSessionHandler({ signOut, refreshSession, clearBadge: vi.fn() });
 
     await endSession();
     expect(refreshSession).toHaveBeenCalledTimes(1);
@@ -26,7 +26,7 @@ describe("createEndSessionHandler", () => {
       throw new TypeError("Failed to fetch");
     });
     const refreshSession = vi.fn();
-    const endSession = createEndSessionHandler({ signOut, refreshSession });
+    const endSession = createEndSessionHandler({ signOut, refreshSession, clearBadge: vi.fn() });
 
     await expect(endSession()).resolves.toBeUndefined();
     expect(refreshSession).toHaveBeenCalledTimes(1);
@@ -41,7 +41,11 @@ describe("createEndSessionHandler", () => {
           resolveSignOut = resolve;
         }),
     );
-    const endSession = createEndSessionHandler({ signOut, refreshSession: vi.fn() });
+    const endSession = createEndSessionHandler({
+      signOut,
+      refreshSession: vi.fn(),
+      clearBadge: vi.fn(),
+    });
 
     const first = endSession();
     const second = endSession();
@@ -54,5 +58,35 @@ describe("createEndSessionHandler", () => {
     // 完了後の呼び出しは改めて処理する
     await endSession();
     expect(signOut).toHaveBeenCalledTimes(2);
+  });
+
+  it("ログアウト（401 の自動ログアウトを含む）ではサインアウト前にアイコンのバッジを消す", async () => {
+    const order: string[] = [];
+    const signOut = vi.fn(async () => {
+      order.push("signOut");
+      return { error: null };
+    });
+    const clearBadge = vi.fn(() => {
+      order.push("clearBadge");
+    });
+    const endSession = createEndSessionHandler({ signOut, refreshSession: vi.fn(), clearBadge });
+
+    await endSession();
+    expect(clearBadge).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["clearBadge", "signOut"]);
+  });
+
+  it("サインアウトが失敗してもバッジは消えている", async () => {
+    const clearBadge = vi.fn();
+    const endSession = createEndSessionHandler({
+      signOut: vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+      refreshSession: vi.fn(),
+      clearBadge,
+    });
+
+    await endSession();
+    expect(clearBadge).toHaveBeenCalledTimes(1);
   });
 });
