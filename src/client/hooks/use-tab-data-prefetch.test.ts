@@ -18,7 +18,7 @@ const TODAY = "2026-09-10";
 
 describe("tabPrefetchEntries", () => {
   it("ホーム（日・週サマリー・マイドリンク）、セラー、友達フィードの初期一覧を対象にする", () => {
-    const entries = tabPrefetchEntries({ cellarView: "one", viewportWidth: 390, today: TODAY });
+    const entries = tabPrefetchEntries({ cellarView: "list", viewportWidth: 390, today: TODAY });
     expect(entries.map((e) => e.queryKey)).toEqual([
       drinkLogSummaryQueryOptions("day", TODAY).queryKey,
       drinkLogSummaryQueryOptions("week", TODAY).queryKey,
@@ -41,7 +41,7 @@ describe("tabPrefetchEntries", () => {
   });
 
   it("広い画面では 4 列 × 2 行分を先読みする", () => {
-    const entries = tabPrefetchEntries({ cellarView: "one", viewportWidth: 480, today: TODAY });
+    const entries = tabPrefetchEntries({ cellarView: "list", viewportWidth: 480, today: TODAY });
     expect(entries[4]?.queryKey).toEqual(
       bottlesInfiniteQueryOptions({ view: "cellar", limit: 8 }).queryKey,
     );
@@ -62,7 +62,7 @@ describe("tabPrefetchEntries", () => {
   it("保存済み cellarId をボトル先読みに載せる", () => {
     const cellarId = "11111111-1111-4111-8111-111111111111";
     const one = tabPrefetchEntries({
-      cellarView: "one",
+      cellarView: "list",
       viewportWidth: 390,
       today: TODAY,
       cellarId,
@@ -87,7 +87,7 @@ describe("tabPrefetchEntries", () => {
   });
 
   it("キーは各画面の hook が使うものと一致する（キャッシュが当たる）", () => {
-    const entries = tabPrefetchEntries({ cellarView: "one", viewportWidth: 390, today: TODAY });
+    const entries = tabPrefetchEntries({ cellarView: "list", viewportWidth: 390, today: TODAY });
     expect(entries[0]?.queryKey).toEqual(queryKeys.drinkLogSummary("day", TODAY));
     expect(entries[2]?.queryKey).toEqual(queryKeys.myDrinks);
     expect(entries[3]?.queryKey).toEqual(queryKeys.cellarsList);
@@ -112,7 +112,7 @@ describe("prefetchTabData", () => {
     const prefetchInfiniteQuery = vi
       .spyOn(queryClient, "prefetchInfiniteQuery")
       .mockResolvedValue(undefined);
-    const entries = tabPrefetchEntries({ cellarView: "one", viewportWidth: 390, today: TODAY });
+    const entries = tabPrefetchEntries({ cellarView: "list", viewportWidth: 390, today: TODAY });
 
     prefetchTabData(queryClient, entries);
 
@@ -131,7 +131,7 @@ describe("prefetchTabData", () => {
       pages: [],
       pageParams: [],
     });
-    const entries = tabPrefetchEntries({ cellarView: "one", viewportWidth: 390, today: TODAY });
+    const entries = tabPrefetchEntries({ cellarView: "list", viewportWidth: 390, today: TODAY });
 
     prefetchTabData(queryClient, entries);
 

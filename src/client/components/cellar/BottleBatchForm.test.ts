@@ -15,8 +15,12 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain("<DrinkTypeChips");
     expect(source).toContain('label="本数を増やす"');
     expect(source).toContain('label="この行を外す"');
-    expect(source).toContain("RECOGNIZE_BANNER[row.recognize]");
+    expect(source).toContain("RECOGNIZE_BANNER[recognize.status]");
     expect(source).toContain("RECOGNIZE_WITH_BACK_LABEL");
+    // 読み取り帯は行の上部（写真・入力より前）。裏面を付けたら上ですぐ押せる
+    expect(source.indexOf("bottle-batch-recognize is-")).toBeLessThan(
+      source.indexOf("bottle-batch-row-main"),
+    );
     expect(source).toContain('label="生産者"');
     expect(source).toContain("<OriginCountryField");
     expect(source).toContain("BOTTLE_FIELD_LABELS.name");

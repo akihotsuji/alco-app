@@ -76,13 +76,14 @@ describe("shelfPageLimit / list view / type shelf", () => {
     expect(shelfPageLimit(4)).toBe(8);
   });
 
-  it("?view= が不正なら localStorage、それも無ければ one", () => {
+  it("?view= が不正なら localStorage、それも無ければ type。廃止の one は list に読む", () => {
     expect(parseCellarListView("type")).toBe("type");
     expect(parseCellarListView("list")).toBe("list");
+    expect(parseCellarListView("one")).toBe("list");
     expect(parseCellarListView("foo")).toBeNull();
     expect(resolveCellarListView("foo", "type")).toBe("type");
-    expect(resolveCellarListView(null, null)).toBe("one");
-    expect(resolveCellarListView("one", "type")).toBe("one");
+    expect(resolveCellarListView(null, null)).toBe("type");
+    expect(resolveCellarListView("one", "type")).toBe("list");
   });
 
   it("未知の drinkType はフィルタなし", () => {
@@ -119,10 +120,10 @@ describe("applyCellarToolbarParams", () => {
       item({ id: "2", name: "別の白", drinkType: "wine", status: "sealed" }),
       item({ id: "3", name: "ラガー", drinkType: "beer", status: "sealed" }),
     ];
-    let params = new URLSearchParams("view=one");
+    let params = new URLSearchParams("view=list");
     const wine = applyCellarToolbarParams(params, { type: "selectDrinkType", drinkType: "wine" });
     expect(wine?.get("drinkType")).toBe("wine");
-    expect(wine?.get("view")).toBe("one");
+    expect(wine?.get("view")).toBe("list");
     params = wine ?? params;
     expect(itemsMatchingToolbar(items, params).map((row) => row.id)).toEqual(["1", "2"]);
 
@@ -137,7 +138,7 @@ describe("applyCellarToolbarParams", () => {
     expect(itemsMatchingToolbar(items, params).map((row) => row.id)).toEqual(["1"]);
 
     const cleared = applyCellarToolbarParams(params, { type: "clearFilters" });
-    expect(cleared?.toString()).toBe("view=one");
+    expect(cleared?.toString()).toBe("view=list");
     expect(itemsMatchingToolbar(items, cleared ?? params).map((row) => row.id)).toEqual([
       "1",
       "2",

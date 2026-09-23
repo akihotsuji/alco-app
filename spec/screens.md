@@ -123,7 +123,7 @@ Phase 1-01 の成果物（2026-09-05 に 1-07 で改訂。2026-09-06 に中央�
 
 | ID | 画面 | パス | 親タブ | タブバー | 備考 |
 |---|---|---|---|---|---|
-| bottle-list | セラー（棚） | `/cellar` | cellar | 表示 | 在庫（`sealed`）を棚 / 1本ずつ / 管理一覧で表示。種類・検索はクエリ。棚の見出しから `bottle-type-grid` |
+| bottle-list | セラー（棚） | `/cellar` | cellar | 表示 | 在庫（`sealed`）を棚 / 管理一覧で表示。種類・検索はクエリ。棚の見出しから `bottle-type-grid` |
 | bottle-archive | 貯蔵庫 | `/cellar/archive` | cellar | 表示 | 開栓済み（`consumed`）。月ごと。`/cellar/:bottleId` より静的ルートを優先 |
 | bottle-new | ボトルを追加 | `/cellar/new` | cellar | 隠す | 保存先の次に主写真 1 枠。「撮影」「ライブラリ」を同じ大きさで並べる。表裏の空枠は並べない。アプリ内導線は `?camera=1` を付けない。ディープリンクの `?camera=1` だけ撮影から。本数 N で N 行 |
 | bottle-batch | まとめて追加 | `/cellar/batch` | cellar | 隠す | 撮影とライブラリ（複数枚）を同じ行で並べる。アプリ内導線は `?camera=1` を付けない。1 本ずつ撮って行に積み、最後に 1 回で棚に並べる（≦20 行）。Phase 5.5 #56 |

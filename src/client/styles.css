@@ -1841,6 +1841,34 @@ img[data-state="loaded"] {
   color: var(--foreground);
 }
 
+/* 単体追加・編集の詳細欄（04-cellar）。ボトル詳細 T5 と同じくラベル左・入力右の 2 列 */
+.bottle-details-field.is-inline {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  column-gap: var(--space-3);
+  align-items: center;
+}
+
+.bottle-details-field.is-inline > .field-with-ai {
+  min-width: 0;
+}
+
+.bottle-details-field.is-inline .field-hint,
+.bottle-details-field.is-inline .field-error {
+  grid-column: 2;
+}
+
+@media (max-width: 320px) {
+  .bottle-details-field.is-inline {
+    grid-template-columns: 1fr;
+  }
+
+  .bottle-details-field.is-inline .field-hint,
+  .bottle-details-field.is-inline .field-error {
+    grid-column: 1;
+  }
+}
+
 .bottle-details-pair {
   display: flex;
   flex-direction: column;
@@ -2614,9 +2642,21 @@ img[data-state="loaded"] {
   align-items: center;
   gap: var(--space-2);
   margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
   font-size: 13px;
   font-weight: 600;
   color: var(--muted);
+  background: var(--surface);
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.bottle-batch-recognize.is-failure {
+  color: var(--danger);
+}
+
+.bottle-batch-recognize.is-offer {
+  color: var(--primary);
 }
 
 .bottle-batch-recognize .recognize-spinner {
@@ -4470,6 +4510,39 @@ html[data-reduce-motion="1"] .app-dialog-scrim[data-state="closed"] {
   gap: var(--space-3);
 }
 
+/* セラー上部の絞り込み開閉（04-cellar C4b）。普段は畳み、開いたときだけ切替・検索を出す */
+.cellar-filter-disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cellar-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  align-self: flex-end;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cellar-filter-toggle[aria-expanded="true"] .form-row-chevron {
+  transform: rotate(180deg);
+}
+
+.cellar-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .cellar-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -5075,7 +5148,7 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 
 .bottle-tile-frame.is-archived .bottle-tile-img,
 .bottle-tile-frame.is-archived .bottle-tile-silhouette {
-  filter: saturate(0.5) brightness(0.9);
+  filter: none;
 }
 
 .bottle-tile-date {

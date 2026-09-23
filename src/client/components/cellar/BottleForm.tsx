@@ -887,6 +887,7 @@ function DetailField({
   max,
   hint,
   aiMarked = false,
+  layout = "inline",
 }: {
   id: string;
   label: string;
@@ -900,9 +901,12 @@ function DetailField({
   max?: string;
   hint?: string;
   aiMarked?: boolean;
+  layout?: "stack" | "inline";
 }) {
   return (
-    <div className="bottle-details-field">
+    <div
+      className={layout === "inline" ? "bottle-details-field is-inline" : "bottle-details-field"}
+    >
       <label className="field-label" htmlFor={id}>
         {label}
       </label>

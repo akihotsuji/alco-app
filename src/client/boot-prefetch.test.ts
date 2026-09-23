@@ -103,7 +103,7 @@ describe("boot-prefetch の経路", () => {
         cellarId,
       },
     });
-    expect(DEFAULT_CELLAR_LIST_VIEW).toBe("one");
+    expect(DEFAULT_CELLAR_LIST_VIEW).toBe("type");
     expect(CELLAR_PREF_KEYS.listView).toBe("cellar.listView");
     expect(CELLAR_PREF_KEYS.selectedId).toBe("cellar.selectedId");
     expect(SHELF_WIDE_MIN_PX).toBe(480);
@@ -116,21 +116,37 @@ describe("boot-prefetch の経路", () => {
       typeGrouped,
     ]);
     expect(
-      cellarDataPaths({ search: "?view=type", storedView: "one", viewportWidth: 390 }),
+      cellarDataPaths({ search: "?view=type", storedView: "list", viewportWidth: 390 }),
     ).toEqual([cellars, typeGrouped]);
-    // 1 本ずつ（既定。列数は幅で変わる）
+    // 管理一覧（廃止の one は list に読む。列数は幅で変わる）
     expect(cellarDataPaths({ search: "", storedView: null, viewportWidth: 390 })).toEqual([
       cellars,
-      narrow,
+      typeGrouped,
     ]);
     expect(cellarDataPaths({ search: "", storedView: "bogus", viewportWidth: 390 })).toEqual([
       cellars,
-      narrow,
+      typeGrouped,
     ]);
+    expect(cellarDataPaths({ search: "?view=list", storedView: null, viewportWidth: 480 })).toEqual(
+      [cellars, wide],
+    );
     expect(cellarDataPaths({ search: "?view=one", storedView: null, viewportWidth: 480 })).toEqual([
       cellars,
       wide,
     ]);
+    // 廃止の one は list（平たい一覧）に読み替える
+    expect(cellarDataPaths({ search: "?view=one", storedView: null, viewportWidth: 390 })).toEqual([
+      cellars,
+      narrow,
+    ]);
+    expect(
+      cellarDataPaths({
+        search: "",
+        storedView: "one",
+        viewportWidth: 390,
+        storedCellarId: cellarId,
+      }),
+    ).toEqual([cellars, narrowWithCellar]);
     expect(
       cellarDataPaths({
         search: "",
@@ -138,11 +154,11 @@ describe("boot-prefetch の経路", () => {
         viewportWidth: 390,
         storedCellarId: cellarId,
       }),
-    ).toEqual([cellars, narrowWithCellar]);
+    ).toEqual([cellars, typeWithCellar]);
     expect(
       cellarDataPaths({
         search: "?view=type",
-        storedView: "one",
+        storedView: "list",
         viewportWidth: 390,
         storedCellarId: cellarId,
       }),
@@ -154,13 +170,17 @@ describe("boot-prefetch の経路", () => {
         viewportWidth: 390,
         storedCellarId: "not-a-uuid",
       }),
-    ).toEqual([cellars, narrow]);
+    ).toEqual([cellars, typeGrouped]);
     // 絞り込み中はボトルを先読みしない（cellars は取る）
     expect(cellarDataPaths({ search: "?q=abc", storedView: null, viewportWidth: 390 })).toEqual([
       cellars,
     ]);
     expect(
-      cellarDataPaths({ search: "?view=one&drinkType=wine", storedView: null, viewportWidth: 390 }),
+      cellarDataPaths({
+        search: "?view=list&drinkType=wine",
+        storedView: null,
+        viewportWidth: 390,
+      }),
     ).toEqual([cellars]);
     expect(SHELF_TYPE_PAGE_LIMIT).toBe(12);
   });

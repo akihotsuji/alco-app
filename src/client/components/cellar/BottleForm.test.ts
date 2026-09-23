@@ -27,7 +27,9 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain("購入情報");
     expect(source).toContain('id="bottle-variety"');
     expect(source).not.toContain("ボトル情報");
-    expect(source).not.toContain('layout="inline"');
+    // 詳細欄はボトル詳細 T5 と同じくラベル左・入力右（既定 inline）
+    expect(source).toContain("bottle-details-field is-inline");
+    expect(source).toContain('layout = "inline"');
     expect(source).toContain('type="date"');
     expect(source).toContain("visibleFieldErrors");
     expect(source).toContain("firstBottleDetailsErrorField");
