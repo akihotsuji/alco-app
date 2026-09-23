@@ -105,6 +105,8 @@ export const PHOTO_MAX_BYTES = 1_048_576;
 export const PHOTO_MAX_LONG_EDGE = 1600;
 /** 一覧サムネの長辺。棚 100×150・ノートカード 160×200 の 2x */
 export const PHOTO_THUMB_MAX_EDGE = 400;
+/** 端末が作って原本と一緒に送る一覧用サムネの上限（`kind=cutout` は透過 PNG なので大きめ） */
+export const PHOTO_THUMB_MAX_BYTES = 512 * 1024;
 export const PHOTO_OUTPUT_LONG_EDGE = 1280;
 /** 認識用 JPEG の長辺。表示用より小さくして入力トークンと転送量を減らす（ai-recognition.md 9） */
 export const PHOTO_RECOGNIZE_LONG_EDGE = 1024;

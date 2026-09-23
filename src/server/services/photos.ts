@@ -13,6 +13,8 @@ import { PHOTO_RESERVATION_LEASE_MS } from "@/shared/account-deletion.ts";
 import {
   PHOTO_CONTENT_TYPES,
   PHOTO_OWNER_LIMITS,
+  PHOTO_THUMB_MAX_BYTES,
+  PHOTO_THUMB_MAX_EDGE,
   PHOTO_UPLOAD_DAILY_LIMIT,
   type PhotoContentType,
   type PhotoKind,
@@ -26,12 +28,7 @@ import {
 } from "@/shared/photos.ts";
 import { tokyoDayStartMs, tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
-import {
-  type GeneratedPhotoThumb,
-  generatePhotoThumb,
-  photoThumbContentType,
-  photoThumbR2Key,
-} from "../lib/photo-thumb.ts";
+import { photoThumbContentType, photoThumbR2Key } from "../lib/photo-thumb.ts";
 import {
   type AccessibleBottle,
   bumpCellarRevision,
@@ -144,6 +141,20 @@ export async function duplicatePhotoObject(
   await bucket.put(r2Key, bytes, {
     httpMetadata: { contentType: asContentType(source.contentType) },
   });
+  const thumb = await bucket.get(photoThumbR2Key(source.r2Key, source.kind));
+  if (thumb) {
+    try {
+      await bucket.put(
+        photoThumbR2Key(r2Key, source.kind),
+        new Uint8Array(await thumb.arrayBuffer()),
+        {
+          httpMetadata: { contentType: photoThumbContentType(source.kind) },
+        },
+      );
+    } catch {
+      // サムネが無ければ一覧は原本を返す
+    }
+  }
   return {
     id,
     r2Key,
@@ -338,6 +349,8 @@ export async function createPhoto(input: {
   bucket: PhotoBucket;
   userId: string;
   bytes: Uint8Array;
+  /** 端末が作った一覧用サムネ（任意）。検証に通らなければ捨てる */
+  thumbBytes?: Uint8Array | null;
   fields: PhotoUploadFields;
   dailyLimit?: number;
   now?: Date;
@@ -445,14 +458,11 @@ export async function createPhoto(input: {
     throw error;
   }
 
-  await persistPhotoThumb({
-    db: input.db,
-    photoId: id,
+  await storeClientThumb({
     bucket: input.bucket,
     r2Key,
     kind: inspected.kind,
-    contentType: inspected.contentType,
-    bytes: input.bytes,
+    bytes: input.thumbBytes ?? null,
   });
 
   if (owners.bottleId && bottle) {
@@ -635,47 +645,45 @@ export function matchesIfNoneMatch(header: string | undefined, etag: string): bo
   });
 }
 
-function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  const copy = new Uint8Array(bytes.byteLength);
-  copy.set(bytes);
-  return copy.buffer;
+/**
+ * 端末が作ったサムネを受け取れるか。ヘッダの magic bytes と寸法だけを見る（Worker で画像をデコードしない。
+ * 無料枠の CPU 10ms を超えるとアップロード自体が 503 になるため）。合わなければ使わない
+ */
+export function acceptClientThumb(bytes: Uint8Array | null, kind: PhotoKind): boolean {
+  if (!bytes || bytes.byteLength === 0 || bytes.byteLength > PHOTO_THUMB_MAX_BYTES) {
+    return false;
+  }
+  try {
+    const inspected = inspectImageBytes(bytes);
+    return (
+      inspected.contentType === photoThumbContentType(kind) &&
+      Math.max(inspected.width, inspected.height) <= PHOTO_THUMB_MAX_EDGE
+    );
+  } catch {
+    return false;
+  }
 }
 
-async function persistPhotoThumb(input: {
-  db?: AppSqliteDb | AppBatchDb;
-  photoId?: string;
+async function storeClientThumb(input: {
   bucket: PhotoBucket;
   r2Key: string;
   kind: PhotoKind;
-  contentType: PhotoContentType;
-  bytes: Uint8Array;
-}): Promise<GeneratedPhotoThumb | null> {
-  const thumb = await generatePhotoThumb(input.bytes, input.contentType, input.kind);
-  if (!thumb) {
-    return null;
-  }
-  if (input.db && input.photoId) {
-    const [row] = await input.db
-      .select({ id: photos.id })
-      .from(photos)
-      .where(eq(photos.id, input.photoId));
-    if (!row) {
-      return null;
-    }
+  bytes: Uint8Array | null;
+}): Promise<void> {
+  if (!input.bytes || !acceptClientThumb(input.bytes, input.kind)) {
+    return;
   }
   try {
-    await input.bucket.put(photoThumbR2Key(input.r2Key, input.kind), thumb.bytes, {
-      httpMetadata: { contentType: thumb.contentType },
+    await input.bucket.put(photoThumbR2Key(input.r2Key, input.kind), input.bytes, {
+      httpMetadata: { contentType: photoThumbContentType(input.kind) },
     });
   } catch {
-    // 初回 GET で作り直す
+    // サムネが無ければ一覧は原本を返す
   }
-  return thumb;
 }
 
 /** `getOwnPhoto` で所有確認した行の本文を R2 から読む。行を渡す側が userId 一致を保証する */
 export async function readOwnedPhotoContent(
-  db: AppSqliteDb | AppBatchDb,
   bucket: PhotoBucket,
   row: Pick<typeof photos.$inferSelect, "id" | "r2Key" | "contentType" | "kind">,
   variant?: "thumb",
@@ -702,29 +710,13 @@ export async function readOwnedPhotoContent(
     };
   }
 
+  // 旧クライアントや複製でサムネが無い写真は原本を返す（ここでデコード・縮小はしない）
   const original = await bucket.get(row.r2Key);
   if (!original) {
     throw new ApiError("not_found");
   }
-  const bytes = new Uint8Array(await original.arrayBuffer());
-  const thumb = await persistPhotoThumb({
-    db,
-    photoId: row.id,
-    bucket,
-    r2Key: row.r2Key,
-    kind: row.kind,
-    contentType: asContentType(row.contentType),
-    bytes,
-  });
-  if (thumb) {
-    return {
-      body: toArrayBuffer(thumb.bytes),
-      contentType: thumb.contentType,
-      kind: row.kind,
-    };
-  }
   return {
-    body: toArrayBuffer(bytes),
+    body: await original.arrayBuffer(),
     contentType: row.contentType,
     kind: row.kind,
   };

@@ -22,4 +22,10 @@ describe("uploadPhoto", () => {
     expect(source).toContain("assertUploadableBlob(file)");
     expect(source).toContain("signal ? { init: { signal } } : undefined");
   });
+
+  it("一覧用サムネを端末で作って原本と一緒に送る（Worker でデコードさせない）", () => {
+    expect(source).toContain("await makeUploadThumb(file)");
+    expect(source).toContain("thumb.size <= PHOTO_THUMB_MAX_BYTES");
+    expect(source).toContain('form.thumb = new File([thumb], "thumb", { type: thumb.type })');
+  });
 });
