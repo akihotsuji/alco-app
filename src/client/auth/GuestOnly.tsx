@@ -1,13 +1,14 @@
 import { Suspense, useEffect, useRef } from "react";
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useSearchParams } from "react-router";
 import { useSessionBoot } from "@/client/hooks/use-session-boot.ts";
 import { clearReloadGuard } from "@/client/lib/app-reload.ts";
 import { clearAssetRecoveryGuard } from "@/client/lib/asset-recovery.ts";
 import { AuthBoot } from "./AuthBoot.tsx";
-import { resolveGuestOnlyContent } from "./guest-only-content.ts";
+import { guestOnlyRedirectPath, resolveGuestOnlyContent } from "./guest-only-content.ts";
 
 export function GuestOnly() {
   const boot = useSessionBoot();
+  const [searchParams] = useSearchParams();
   const settledAsGuestRef = useRef(false);
   if (boot.kind === "guest") {
     settledAsGuestRef.current = true;
@@ -31,7 +32,7 @@ export function GuestOnly() {
     );
   }
   if (content === "redirect") {
-    return <Navigate to="/" replace />;
+    return <Navigate to={guestOnlyRedirectPath(searchParams.get("redirect"))} replace />;
   }
   return (
     <Suspense fallback={<AuthBoot />}>
