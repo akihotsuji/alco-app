@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { navigateAfterSignIn } from "@/client/auth/after-sign-in.ts";
 import { ageGatePath } from "@/client/auth/age-path.ts";
 import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
 import { hrefWithRedirect } from "@/client/auth/login-path.ts";
@@ -25,6 +26,7 @@ import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 export function SignupPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const session = authClient.useSession();
   const redirectQuery = searchParams.get("redirect");
   const loginHref = hrefWithRedirect("/login", redirectQuery);
 
@@ -82,8 +84,8 @@ export function SignupPage() {
         headers: turnstileRequestHeaders(turnstile.token),
       },
     });
-    setSubmitting(false);
     if (result.error) {
+      setSubmitting(false);
       refreshTurnstile();
       setError(
         authClientErrorMessage(
@@ -94,7 +96,9 @@ export function SignupPage() {
       );
       return;
     }
-    navigate(ageGatePath(redirectQuery), { replace: true });
+    await navigateAfterSignIn(session.refetch, () =>
+      navigate(ageGatePath(redirectQuery), { replace: true }),
+    );
   }
 
   return (

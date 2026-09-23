@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { navigateAfterSignIn } from "@/client/auth/after-sign-in.ts";
 import { authClientErrorMessage } from "@/client/auth/auth-error.ts";
 import { hrefWithRedirect } from "@/client/auth/login-path.ts";
 import { hasOAuthErrorQuery, stripOAuthErrorParams } from "@/client/auth/oauth.ts";
@@ -24,6 +25,7 @@ import { turnstileRequestHeaders } from "@/shared/turnstile.ts";
 export function LoginPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const session = authClient.useSession();
   const redirectQuery = searchParams.get("redirect");
   const signupHref = hrefWithRedirect("/signup", redirectQuery);
   const resetNotice = loginNoticeFromSearch(searchParams);
@@ -70,15 +72,17 @@ export function LoginPage() {
         headers: turnstileRequestHeaders(turnstile.token),
       },
     });
-    setSubmitting(false);
     if (result.error) {
+      setSubmitting(false);
       refreshTurnstile();
       setError(
         authClientErrorMessage(result.error.status, "メールまたはパスワードが正しくありません"),
       );
       return;
     }
-    navigate(resolveSafeRedirect(redirectQuery), { replace: true });
+    await navigateAfterSignIn(session.refetch, () =>
+      navigate(resolveSafeRedirect(redirectQuery), { replace: true }),
+    );
   }
 
   return (

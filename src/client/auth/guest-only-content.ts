@@ -1,3 +1,4 @@
+import { resolveSafeRedirect } from "@/shared/auth.ts";
 import type { SessionBootKind } from "./session-boot.ts";
 
 export type GuestOnlyContent = "boot" | "redirect" | "outlet";
@@ -18,4 +19,9 @@ export function resolveGuestOnlyContent(input: {
     return "boot";
   }
   return "outlet";
+}
+
+/** ログイン済みで `/login` `/signup` に来たときの行き先。ログイン成功後の遷移先と揃える */
+export function guestOnlyRedirectPath(redirectQuery: string | null): string {
+  return resolveSafeRedirect(redirectQuery);
 }

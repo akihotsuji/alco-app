@@ -18,6 +18,11 @@ export function browserEarlyFetchStore(): EarlyFetchStore | undefined {
   return window.__alcoEarlyFetch;
 }
 
+/**
+ * 先読みの 401 は渡さない（reject して呼び出し側の live fetch に切り替えさせる）。
+ * 未ログインで開いてからログインすると、使われずに残った起動時の 401 がログイン後の
+ * 最初の query に渡り、セッション切れと判定されてサインアウトされるため。
+ */
 export function takeEarlyFetch(
   input: RequestInfo | URL,
   init?: RequestInit,
@@ -31,5 +36,10 @@ export function takeEarlyFetch(
   if (!pending) {
     return undefined;
   }
-  return pending.then((response) => response.clone());
+  return pending.then((response) => {
+    if (response.status === 401) {
+      throw new Error("early fetch was unauthorized");
+    }
+    return response.clone();
+  });
 }

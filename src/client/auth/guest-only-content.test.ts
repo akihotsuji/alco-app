@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveGuestOnlyContent } from "./guest-only-content.ts";
+import { guestOnlyRedirectPath, resolveGuestOnlyContent } from "./guest-only-content.ts";
 
 describe("resolveGuestOnlyContent", () => {
   it("初期ロード中は起動画面", () => {
@@ -39,7 +39,7 @@ describe("resolveGuestOnlyContent", () => {
     ).toBe("outlet");
   });
 
-  it("認証済みはホームへ", () => {
+  it("認証済みはフォームを出さず移す", () => {
     expect(
       resolveGuestOnlyContent({
         kind: "authenticated",
@@ -47,5 +47,20 @@ describe("resolveGuestOnlyContent", () => {
         settledAsGuest: true,
       }),
     ).toBe("redirect");
+  });
+});
+
+describe("guestOnlyRedirectPath", () => {
+  it("安全な redirect があればそこへ、無ければホームへ", () => {
+    expect(guestOnlyRedirectPath("/logs/new")).toBe("/logs/new");
+    expect(guestOnlyRedirectPath("/logs/new?date=2026-09-01")).toBe("/logs/new?date=2026-09-01");
+    expect(guestOnlyRedirectPath(null)).toBe("/");
+  });
+
+  it("外部 URL・認証画面自身には移さない（ループ・オープンリダイレクト対策）", () => {
+    expect(guestOnlyRedirectPath("//evil.example")).toBe("/");
+    expect(guestOnlyRedirectPath("https://evil.example/")).toBe("/");
+    expect(guestOnlyRedirectPath("/login")).toBe("/");
+    expect(guestOnlyRedirectPath("/signup?redirect=%2F")).toBe("/");
   });
 });
