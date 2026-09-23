@@ -9,7 +9,7 @@
 
 ## 1. 目的
 
-ホーム画面に追加すると、ブラウザのタブバーが無いスタンドアロンで起動する。オフライン記録・Background Sync・プッシュは作らない。
+ホーム画面に追加すると、ブラウザのタブバーが無いスタンドアロンで起動する。アイコンにはアプリ内通知の未読数をバッジで出す（6.2。アプリが動いている間だけ更新）。オフライン記録・Background Sync・プッシュは作らない。
 
 ---
 
@@ -150,6 +150,33 @@ S18 の手順:
 
 ---
 
+## 6.2 アプリアイコンのバッジ（段階 1）
+
+ホーム画面に追加したアプリのアイコンに、友達ヘッダー F2 の未読バッジと同じ件数を出す。W3C Badging API（`navigator.setAppBadge` / `navigator.clearAppBadge`）だけを使う。プッシュ・通知許可の要求・SW の `push` ハンドラ・購読・VAPID は作らない（段階 2。未着手・別仕様）。SW の `/api/*` NetworkOnly は変えない。
+
+| 項目 | 値 |
+|---|---|
+| 件数 | `GET /api/social/notifications/unread-count` の `count`（[api-design.md](../api-design.md) 4.12）。セッションの userId 宛て `social_notifications` のうち `read_at` が空の行（`friend_request` / `friend_accepted` / `reaction`）。F2 と同じ query（`queryKeys.socialUnread`）を共有する。新しいデータは保存しない |
+| 表示 | 1 以上は `setAppBadge(n)`。0 は `clearAppBadge()`。99 超の丸めはしない（見た目は OS が決める） |
+| 取得条件 | 認証後シェル（`AppShell`）で、`GET /api/me` が年齢確認済みのときだけ。未確認では 403 になるため取りに行かない |
+| 更新契機 | シェルの初回表示、前面復帰（`visibilitychange` が `visible` で未読数を取り直す）、通知一覧の取得後、既読化（1 件 / すべて）の成功後。申請・承認などほかの友達操作は既存の invalidate で追従する |
+| 消す | ログアウト（`endSession`。API の 401 による自動ログアウトも同じ経路）、セッション確認で未ログインと判定したとき（`RequireAuth`）、アカウント削除の受付（当該タブと BroadcastChannel で受けた他タブ。`discardAccountScopedClientData`）。前のユーザーの件数を残さない |
+| 非対応・失敗 | 機能検出。メソッドが無ければ何もしない。同期例外・reject は握りつぶし、画面を止めない。未読数の取得に失敗したときはバッジを変えない |
+| 実装 | `src/client/lib/app-badge.ts`（`syncAppBadge` / `clearAppBadge`）、`src/client/hooks/use-app-badge.ts`（`useAppBadgeSync`。`AppShell` で 1 回） |
+
+端末ごとの見え方（2026-09 時点の各ブラウザの公開情報。実機確認はオーナー。[qa-devices.md](../qa-devices.md) 4.6）:
+
+| 環境 | 見え方 |
+|---|---|
+| iPhone / iPad のホーム画面 PWA（iOS 16.4+。サポート最小は 17） | API はある。**通知が許可されているときだけ数字が出る**（WebKit の仕様）。段階 1 は許可を求めないので、通常は見えない。許可が付いた時点で直前に設定した件数が出る |
+| Android Chrome のインストール PWA | Badging API は表示されない（メソッドがあっても何も出ない端末がある）。Android のドットは OS が「未読の通知」に付けるもので、プッシュ（段階 2）が無い段階 1 では出ない |
+| Windows / macOS の Chrome・Edge でインストールした PWA | タスクバー / Dock のアイコンに数字 |
+| ブラウザのタブ | 出ない（インストールしたアプリだけ） |
+
+アプリが動いている間しか更新しない。閉じている間に届いた通知や、別の端末で既読にした分は、次に開くか前面に戻るまでアイコンに反映されない（古い件数が残ることがある）。閉じている間の更新は段階 2（プッシュ）で扱う。
+
+---
+
 ## 7. iOS / Apple
 
 | 項目 | 値 |
@@ -167,7 +194,7 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 
 - オフラインでの記録作成・編集・同期
 - Background Sync / Periodic Background Sync
-- プッシュ通知
+- プッシュ通知（Web Push・購読・VAPID・SW の `push` ハンドラ・通知許可の要求）。アイコンのバッジ（6.2）は作るが、閉じている間の更新はしない
 - ストア申請
 - iOS 向け `apple-touch-startup-image` の全解像度（6-05 で作らないと確定。スプラッシュは `background_color` + アイコン）
 
@@ -179,6 +206,7 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 - `/api/*` を CacheFirst / StaleWhileRevalidate にしない（Cookie 付き JSON・写真）
 - SW 登録スクリプトを HTML インラインにしない（CSP）。起動ガードは `/boot-guard.js`（`'self'`）
 - ログにセッショントークン・Cookie・個人の記録を出さない（既存どおり）
+- アイコンのバッジは件数だけ。通知本文・相手の名前は OS に渡さない。ログアウト・未ログイン判定・アカウント削除で消す
 
 ---
 
@@ -195,5 +223,7 @@ iOS の SW 対応は限定的。ホーム追加は manifest + Apple メタが主
 - [ ] `/version.json` が JSON で、HTML の SPA fallback にならない
 - [ ] 設定「最新の状態にする」で再読み込みできる。オフラインでは再読み込みしない。接続エラーページ（`ERR_FAILED`）には出ず、設定のまま戻る
 - [ ] 表示名は 酒のしおり。アイコン地はライトの地色。キャラのワイン色は変えない
+- [ ] アイコンのバッジは F2 と同じ未読数。0 で消える。前面復帰・既読化で追従する。非対応環境で例外を出さない
+- [ ] ログアウト・アカウント削除でバッジが消え、次のユーザーに前の件数が残らない。通知許可を求めない
 - [ ] lint / typecheck / test がパスする
 - [ ] 監査: SW が秘密・認可レスポンスをキャッシュしない
