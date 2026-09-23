@@ -152,6 +152,7 @@
 | M-33 | 種類グリッド 追従 | つかんだ | 長押し成立で追従レイヤーをその場に出す（内側だけ `translateY(-4px)`）。指の相対位置を毎フレーム `translate3d`。拡大・揺れ・追従の補間は置かない。離すと目的セルへ着地（`--dur-type-grid-settle`） | `bottle-type-grid` で長押し（約 400ms） | ドラッグ中。着地は 1 回 | 同じマス内でも指に付く。無限アニメにしない | 中 |
 | M-34 | 種類グリッド マス移動 | 詰まる | 挿入先が変わったとき、他タイルが空きマスへ FLIP（`--dur-state` `--ease-out`）。ドラッグ中の元セルは穴。段またぎでも同じ DOM | 持ち上げ後の挿入先変化 | `--dur-state` | ドロップ前に着地先が見える | 中 |
 | M-37 | 使い方扇メニュー | 開いた | 「使い方を見る」の上に機能名 3 つが扇状に現れる。backdrop で閉じる。回転は `--dur-fan`。reduced motion では縦に積む | 設定 S11 のタップ | `--dur-fan` | 記録以外のガイドへ迷わず行ける | 低 |
+| M-38 | 裏面の取り込み方法 | 出てきた | まとめて追加の行で「+ 裏面」を押すと、撮る（`camera`）／選ぶ（`images`）の丸ボタン 2 つが下へ `translateY(-8px)` → 0・不透明 0 → 1 で出る。2 つ目は `--dur-stagger` 遅れ（1 段だけ）。外側タップ・Escape・選択で閉じる（閉じる演出なし） | 「+ 裏面」タップ | `--dur-enter` `--ease-out` | 撮影だけでなくライブラリからも選べると分かる | 低 |
 
 ---
 
@@ -339,6 +340,7 @@ html[data-reduce-motion="1"] .log-row-enter {
 | M-31 | Chip 選択 | タップ | 影 `::after opacity`、`color`、`font-weight` | `--dur-press` | 即時 |
 | M-33 | `bottle-type-grid` 追従レイヤー | 長押し成立 | 内側 `translateY(-4px)`。位置は指へ即時 `translate3d`（transition なし）。着地だけ `--dur-type-grid-settle` `--ease-out`。拡大なし。影は静的切替 | ドラッグ中維持。着地 1 回 | 追従は残す。持ち上げ・着地は即時 |
 | M-34 | 同グリッドの他タイル外枠 | ヒットマス変化 | 空きマスへの FLIP `transform` | `--dur-state` `--ease-out` | 即時差し替え |
+| M-38 | `.bottle-batch-back-source`（丸ボタン 2 つ） | 「+ 裏面」で開く | `opacity 0→1`、`translateY(-8px→0)`。2 つ目は `animation-delay: var(--dur-stagger)` | `--dur-enter` `--ease-out`、1 回 | 即時表示 |
 
 ---
 

@@ -13,7 +13,7 @@ import { processBackPhotoFile } from "@/client/lib/photo/process-file.ts";
 
 /**
  * ボトル裏面 1 枚のローカル状態（04-cellar B1b）。
- * 撮影 / ライブラリ → 2:3 中央トリミング JPEG → 未紐付け `POST /api/photos`。photo-edit は開かない。
+ * 撮影 / ライブラリ → ラベル部分を切り出した JPEG → 未紐付け `POST /api/photos`。photo-edit は開かない。
  * 保存済みの裏面（編集）は `existingPhotoId` で受け取り、「削除」で表面と同じく即 `DELETE`。
  */
 export function useBackPhoto(existingPhotoId: string | null = null) {
@@ -48,17 +48,25 @@ export function useBackPhoto(existingPhotoId: string | null = null) {
     }
   }, []);
 
+  /**
+   * 変換（ラベルの切り出し）が終わった時点で下書きを返す。アップロードは待たない
+   * （読み取りは下書きの `recognizeJpeg` で始められる）。キャンセル・失敗は null。
+   */
   const pick = useCallback(
-    async (source: ImagePickSource) => {
+    async (source: ImagePickSource): Promise<BackPhotoState | null> => {
       const file = await pickImage(source);
       if (!file) {
-        return;
+        return null;
       }
       setProcessing(true);
       const generation = generationRef.current + 1;
       generationRef.current = generation;
       try {
         const processed = await processBackPhotoFile(file);
+        if (generationRef.current !== generation) {
+          URL.revokeObjectURL(processed.previewUrl);
+          return null;
+        }
         const previousId = releaseBackPhoto(attachmentRef.current);
         if (previousId) {
           void deletePhoto(previousId).catch(() => {});
@@ -67,9 +75,12 @@ export function useBackPhoto(existingPhotoId: string | null = null) {
           void deletePhoto(keptPhotoId).catch(() => {});
           setKeptPhotoId(null);
         }
-        await upload(backPhotoDraft(processed), generation);
+        const draft = backPhotoDraft(processed);
+        void upload(draft, generation);
+        return draft;
       } catch {
         // decode 失敗などは何も付けない（表面と同じく静かに戻す）
+        return null;
       } finally {
         if (generationRef.current === generation) {
           setProcessing(false);

@@ -2681,6 +2681,40 @@ img[data-state="loaded"] {
   position: relative;
 }
 
+.bottle-batch-back-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bottle-batch-back-sources {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* M-38: 「+ 裏面」の下から撮る／選ぶの丸ボタンが 1 段ずらしで出る */
+.bottle-batch-back-source {
+  animation: back-source-in var(--dur-enter) var(--ease-out) both;
+}
+
+.bottle-batch-back-source + .bottle-batch-back-source {
+  animation-delay: var(--dur-stagger);
+}
+
+@keyframes back-source-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .bottle-batch-back-thumb {
   width: 40px;
   height: 60px;
@@ -2732,6 +2766,12 @@ img[data-state="loaded"] {
   width: 64px;
   height: 96px;
   border-radius: 8px;
+}
+
+/* 裏ラベルはラベル部分だけを切り出すので縦横比が決まらない。欠けないよう contain */
+.bottle-back-thumb-frame .photo-thumb-img,
+.bottle-batch-back-thumb .photo-thumb-img {
+  object-fit: contain;
 }
 
 .bottle-back-thumb:focus-visible {
@@ -5745,6 +5785,10 @@ html[data-reduce-motion="1"] .photo-tile-progress::after {
   padding: var(--space-4);
 }
 
+.back-offer-sheet .app-btn {
+  gap: var(--space-2);
+}
+
 .form-target-chip {
   margin: 0;
   font-size: 13px;
@@ -6239,12 +6283,6 @@ html[data-reduce-motion="1"] .guide-fan-item {
   line-height: 1.6;
 }
 
-.bottle-photo-pair-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
 .bottle-photo-drop {
   display: flex;
   flex-direction: column;
@@ -6268,41 +6306,63 @@ html[data-reduce-motion="1"] .guide-fan-item {
   outline-offset: 2px;
 }
 
+/* bottle-new / bottle-edit B1: ボトル詳細 T1 / T1b と同じ並び（主写真 240px の脇に 64×96） */
 .bottle-photo-filled {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   gap: var(--space-3);
-  align-items: end;
 }
 
-.bottle-photo-filled.has-back {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.bottle-photo-preview {
+.bottle-photo-hero {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  min-height: 128px;
-  max-height: 140px;
-  overflow: hidden;
-  border-radius: var(--radius);
-  border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
-  background: var(--surface);
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
 }
 
-.bottle-photo-preview-img {
-  width: auto;
-  height: 140px;
+.bottle-photo-filled.has-back .bottle-photo-hero {
+  max-width: calc(100% - 80px);
+}
+
+.bottle-photo-hero-frame {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
   max-width: 100%;
-  object-fit: contain;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bottle-photo-back {
+  position: relative;
+  align-self: center;
+}
+
+.bottle-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 var(--space-3);
+}
+
+@media (max-width: 360px) {
+  .bottle-photo-filled {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .bottle-photo-filled.has-back .bottle-photo-hero {
+    max-width: none;
+    width: 100%;
+  }
 }
 
 .bottle-photo-preview-placeholder {
   display: block;
-  width: 100%;
-  height: 128px;
+  width: 160px;
+  height: 240px;
 }
 
 .bottle-photo-add-back {
@@ -6314,27 +6374,6 @@ html[data-reduce-motion="1"] .guide-fan-item {
   font: inherit;
   font-weight: 600;
   text-align: start;
-}
-
-.bottle-photo-slot {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.bottle-photo-slot.is-compact .bottle-photo-thumb {
-  width: 64px;
-  height: 96px;
-}
-
-.bottle-photo-empty {
-  width: 100%;
-  max-width: 100px;
-  height: 150px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-inset-sm);
-  background: var(--surface);
 }
 
 .bottle-photo-action {
@@ -7139,7 +7178,87 @@ html[data-reduce-motion="1"] .guide-fan-item {
 .social-post-item {
   display: flex;
   flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* 写真はボトル詳細と同じ主 240px + 脇の小サムネ。複数あるときは主写真の高さで縦スクロール */
+.social-post-thumbs {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.social-post-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.social-post-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.social-post-meta,
+.social-post-comment {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-note);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.social-post-comment {
+  color: var(--foreground);
+}
+
+.social-post-item.is-compact {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+}
+
+.social-post-compact-photo {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 108px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.social-post-compact-photo img,
+.social-post-compact-silhouette {
+  width: 72px;
+  height: 108px;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.social-post-compact-photo:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.social-post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.social-post-actions > .app-btn {
+  flex: 1 1 auto;
+  width: auto;
+  height: var(--tap-min);
+  padding-inline: var(--space-3);
 }
 
 .social-avatar-image,

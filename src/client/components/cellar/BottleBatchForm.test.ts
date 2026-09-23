@@ -10,7 +10,7 @@ const header = readFileSync(join(here, "../layout/AppHeader.tsx"), "utf8");
 describe("BottleBatchForm（04-cellar bottle-batch）", () => {
   it("保存ラベルは保存対象本数、行ごとに品名・種類・本数・詳細・読み取り帯・×", () => {
     expect(source).toContain("BOTTLE_SAVE_LABELS.arrange(savableCount)");
-    expect(source).toContain("batchSavableCount(batch.rows)");
+    expect(source).toContain("batchSubmitCount(batch.rows)");
     expect(source).toContain("batchTotalCount(batch.rows)");
     expect(source).toContain("<DrinkTypeChips");
     expect(source).toContain('label="本数を増やす"');
@@ -50,6 +50,23 @@ describe("BottleBatchForm（04-cellar bottle-batch）", () => {
     expect(source).toContain("arrangedToastMessage(result.created.length)");
     expect(source).toContain('kind: "placed"');
     expect(source).toContain("BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount)");
+    expect(source).toContain("result.leftoverMessage");
+  });
+
+  it("行の「再試行」は失敗した工程をまとめてやり直す（写真のオーバーレイも同じ）", () => {
+    expect(source).toContain("batch.retryRow(row.key)");
+    expect(source.match(/onClick=\{onRetryRow\}/g)?.length).toBe(2);
+    expect(source).not.toContain("onRetryPhoto");
+  });
+
+  it("「+ 裏面」で撮る／選ぶの丸ボタンが出て、選んだ方法で取り込む（G2b / M-38）", () => {
+    expect(source).toContain("aria-expanded={open}");
+    expect(source).toContain("bottle-batch-back-sources");
+    expect(source).toContain("label={BACK_PHOTO_LABELS.capture}");
+    expect(source).toContain("label={BACK_PHOTO_LABELS.library}");
+    expect(source).toContain('pick("camera")');
+    expect(source).toContain('pick("library")');
+    expect(source).toContain("batch.addBackPhoto(row.key, source)");
   });
 
   it("戻るは確認して未紐付けの写真を消す", () => {

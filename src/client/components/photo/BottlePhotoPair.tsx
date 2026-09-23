@@ -1,5 +1,5 @@
 import { Camera, Images } from "lucide-react";
-import { type RefObject, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { PhotoAttachment } from "@/client/components/layout/photo-edit-context.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import {
@@ -107,46 +107,61 @@ export function BottlePhotoPair({
   return (
     <section className="log-form-section bottle-photo-pair">
       {hasFront ? (
-        <div className={hasBack ? "bottle-photo-filled has-back" : "bottle-photo-filled"}>
-          <FilledSlot
-            heading={BOTTLE_PHOTO_ACTION_LABELS.frontHeading}
-            previewUrl={frontUrl}
-            alt={BOTTLE_PHOTO_ACTION_LABELS.frontThumbAlt}
-            status={frontStatus}
-            processingLabel={BOTTLE_PHOTO_ACTION_LABELS.frontProcessing}
-            actionLabel={BOTTLE_PHOTO_ACTION_LABELS.editFrontPhoto}
-            disabled={disabled}
-            triggerRef={frontTrigger}
-            onRetry={frontStatus === "error" ? onFrontRetry : undefined}
-            onOpenPanel={() => setPanel("front")}
-          />
-          {hasBack ? (
-            <FilledSlot
-              heading={BOTTLE_PHOTO_ACTION_LABELS.backHeading}
-              previewUrl={backUrl}
-              alt={BOTTLE_PHOTO_ACTION_LABELS.backThumbAlt}
-              status={backStatus}
-              processing={backProcessing}
-              processingLabel={BOTTLE_PHOTO_ACTION_LABELS.backProcessing}
-              actionLabel={BOTTLE_PHOTO_ACTION_LABELS.editBackPhoto}
-              compact
+        <>
+          <div className={hasBack ? "bottle-photo-filled has-back" : "bottle-photo-filled"}>
+            <FrontHero
+              previewUrl={frontUrl}
+              alt={BOTTLE_PHOTO_ACTION_LABELS.frontThumbAlt}
+              status={frontStatus}
               disabled={disabled}
-              triggerRef={backTrigger}
-              onRetry={backStatus === "error" ? onBackRetry : undefined}
-              onOpenPanel={() => setPanel("back")}
+              onRetry={frontStatus === "error" ? onFrontRetry : undefined}
+              onOpenPanel={() => setPanel("front")}
             />
-          ) : (
+            {hasBack ? (
+              <BackThumb
+                previewUrl={backUrl}
+                alt={BOTTLE_PHOTO_ACTION_LABELS.backThumbAlt}
+                status={backStatus}
+                processing={backProcessing}
+                disabled={disabled}
+                onRetry={backStatus === "error" ? onBackRetry : undefined}
+                onOpenPanel={() => setPanel("back")}
+              />
+            ) : null}
+          </div>
+          {frontStatus === "uploading" ? (
+            <p className="field-hint" role="status">
+              {BOTTLE_PHOTO_ACTION_LABELS.frontProcessing}
+            </p>
+          ) : null}
+          {hasBack && (backStatus === "uploading" || backProcessing) ? (
+            <p className="field-hint" role="status">
+              {BOTTLE_PHOTO_ACTION_LABELS.backProcessing}
+            </p>
+          ) : null}
+          <div className="bottle-photo-actions">
+            <button
+              ref={frontTrigger}
+              type="button"
+              className="bottle-photo-action"
+              disabled={disabled}
+              onClick={() => setPanel("front")}
+            >
+              {BOTTLE_PHOTO_ACTION_LABELS.editFrontPhoto}
+            </button>
             <button
               ref={backTrigger}
               type="button"
-              className="bottle-photo-add-back"
+              className={hasBack ? "bottle-photo-action" : "bottle-photo-add-back"}
               disabled={disabled}
               onClick={() => setPanel("back")}
             >
-              {BOTTLE_PHOTO_ACTION_LABELS.addBack}
+              {hasBack
+                ? BOTTLE_PHOTO_ACTION_LABELS.editBackPhoto
+                : BOTTLE_PHOTO_ACTION_LABELS.addBack}
             </button>
-          )}
-        </div>
+          </div>
+        </>
       ) : (
         <>
           <button
@@ -204,75 +219,103 @@ export function BottlePhotoPair({
   );
 }
 
-function FilledSlot({
-  heading,
+/** 表面。ボトル詳細 T1 と同じ中央 contain（高さ 240px） */
+function FrontHero({
+  previewUrl,
+  alt,
+  status,
+  disabled,
+  onRetry,
+  onOpenPanel,
+}: {
+  previewUrl: string | null;
+  alt: string;
+  status: PhotoSaveStatus;
+  disabled?: boolean;
+  onRetry?: () => void;
+  onOpenPanel: () => void;
+}) {
+  return (
+    <div className="bottle-photo-hero">
+      <button
+        type="button"
+        className="bottle-hero"
+        aria-label={alt}
+        disabled={disabled}
+        onClick={onOpenPanel}
+      >
+        <span className="bottle-photo-hero-frame">
+          {previewUrl ? (
+            <ContentPhoto
+              src={previewUrl}
+              className="bottle-hero-img is-photo"
+              size={PHOTO_DISPLAY_SIZE.bottleHero}
+              loading="eager"
+              alt={alt}
+            />
+          ) : (
+            <span className="bottle-photo-preview-placeholder" />
+          )}
+          {status === "uploading" ? <span className="photo-tile-progress" aria-hidden /> : null}
+        </span>
+      </button>
+      {onRetry ? <RetryOverlay onRetry={onRetry} /> : null}
+    </div>
+  );
+}
+
+/** 裏ラベル。ボトル詳細 T1b と同じ脇の 64×96 サムネ + 「裏ラベル」 */
+function BackThumb({
   previewUrl,
   alt,
   status,
   processing,
-  processingLabel,
-  actionLabel,
-  compact = false,
   disabled,
-  triggerRef,
   onRetry,
   onOpenPanel,
 }: {
-  heading: string;
   previewUrl: string | null;
   alt: string;
   status: PhotoSaveStatus;
   processing?: boolean;
-  processingLabel: string;
-  actionLabel: string;
-  compact?: boolean;
   disabled?: boolean;
-  triggerRef: RefObject<HTMLButtonElement | null>;
   onRetry?: () => void;
   onOpenPanel: () => void;
 }) {
   const busy = status === "uploading" || processing;
   return (
-    <div className={compact ? "bottle-photo-slot is-compact" : "bottle-photo-slot"}>
-      <p className="field-label">{heading}</p>
-      <div
-        className={
-          compact ? "photo-thumb photo-thumb-bottle bottle-photo-thumb" : "bottle-photo-preview"
-        }
-      >
-        {previewUrl ? (
-          <ContentPhoto
-            src={previewUrl}
-            className={compact ? "photo-thumb-img" : "bottle-photo-preview-img"}
-            size={PHOTO_DISPLAY_SIZE.bottleTile}
-            loading="eager"
-            alt={alt}
-          />
-        ) : (
-          <span className="bottle-photo-preview-placeholder" />
-        )}
-        {busy ? <span className="photo-tile-progress" aria-hidden /> : null}
-        {status === "error" && onRetry ? (
-          <button type="button" className="photo-tile-retry" onClick={onRetry}>
-            <span aria-hidden>!</span>
-            <span>再試行</span>
-          </button>
-        ) : null}
-      </div>
-      {busy ? (
-        <p className="field-hint" role="status">
-          {processingLabel}
-        </p>
-      ) : null}
+    <div className="bottle-photo-back">
       <button
-        ref={triggerRef}
         type="button"
-        className="bottle-photo-action"
+        className="bottle-back-thumb"
+        aria-label={alt}
         disabled={disabled}
         onClick={onOpenPanel}
       >
-        {actionLabel}
+        <span className="photo-thumb bottle-back-thumb-frame">
+          {previewUrl ? (
+            <ContentPhoto
+              src={previewUrl}
+              className="photo-thumb-img"
+              size={PHOTO_DISPLAY_SIZE.bottleTile}
+              loading="eager"
+              alt={alt}
+            />
+          ) : null}
+          {busy ? <span className="photo-tile-progress" aria-hidden /> : null}
+        </span>
+        <span className="bottle-back-thumb-label">{BOTTLE_PHOTO_ACTION_LABELS.backHeading}</span>
       </button>
+      {onRetry ? <RetryOverlay onRetry={onRetry} /> : null}
     </div>
+  );
+}
+
+function RetryOverlay({ onRetry }: { onRetry: () => void }) {
+  return (
+    <button type="button" className="photo-tile-retry" onClick={onRetry}>
+      <span aria-hidden>!</span>
+      <span>再試行</span>
+    </button>
   );
 }

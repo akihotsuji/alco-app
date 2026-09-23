@@ -1,8 +1,14 @@
+import { cropToLabel, detectBackLabel } from "@/client/lib/photo/back-label.ts";
 import { capturedAtFromFile } from "@/client/lib/photo/captured-at.ts";
 import { pickMascotPose } from "@/client/lib/photo/compose-mascot.ts";
 import { decodeImage } from "@/client/lib/photo/decode-image.ts";
 import { fitToLongEdge, resizeKeepAspect } from "@/client/lib/photo/geometry.ts";
-import { type ProcessedPhoto, processLogPhoto, processPhoto } from "@/client/lib/photo/process.ts";
+import {
+  type ProcessedPhoto,
+  processLogPhoto,
+  processPhoto,
+  toRecognizeJpeg,
+} from "@/client/lib/photo/process.ts";
 import { supportsBackgroundRemoval } from "@/client/lib/photo/remove-background.ts";
 import { toJpegBlobWithinLimit } from "@/client/lib/photo/to-jpeg-blob.ts";
 import { getComposeMascotPref, getCutoutPref } from "@/client/lib/preferences.ts";
@@ -37,8 +43,10 @@ export async function processCellarFile(
 }
 
 /**
- * ボトル裏面用（04-cellar B1b / G2b）。photo-edit を挟まず、中央・拡縮 1 で 2:3 に切った JPEG にする。
- * 切り抜き・キャラ合成は掛けない（常に `kind = photo`）。読み取り用 JPEG も表面と同じ規格で作る。
+ * ボトル裏面用（04-cellar B1b / G2b）。photo-edit を挟まず、ラベル部分を自動で切り出した JPEG にする。
+ * ラベルが分けられなければ瓶の外接矩形、瓶も見つからない（または切り抜き OFF・非対応）なら
+ * 従来どおり中央・拡縮 1 の 2:3。背景除去・キャラ合成は掛けない（常に `kind = photo`）。
+ * 読み取り用 JPEG も同じ切り出しから作る（ラベルの文字を大きく渡す）。
  */
 export async function processBackPhotoFile(
   file: File,
@@ -47,6 +55,17 @@ export async function processBackPhotoFile(
   const capturedAt = (await capturedAtFromFile(file)) ?? undefined;
   const source = await decodeImage(file);
   try {
+    const label =
+      getCutoutPref() && supportsBackgroundRemoval()
+        ? await detectBackLabel(source, source.width, source.height)
+        : null;
+    if (label) {
+      const canvas = cropToLabel(source, source.width, source.height, label);
+      const recognizeJpeg = await toRecognizeJpeg(canvas);
+      onRecognizeJpeg?.(recognizeJpeg);
+      const blob = await toJpegBlobWithinLimit(canvas);
+      return { blob, previewUrl: URL.createObjectURL(blob), recognizeJpeg, capturedAt };
+    }
     const processed = await processPhoto({
       source,
       sourceWidth: source.width,

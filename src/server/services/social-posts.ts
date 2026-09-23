@@ -903,7 +903,7 @@ async function projectPosts(
   const photosByLog = new Map<string, string[]>();
   const photosByNote = new Map<string, string[]>();
   const photosByBottle = new Map<string, string[]>();
-  for (const photo of photoRows) {
+  for (const photo of [...photoRows].sort((a, b) => a.sortOrder - b.sortOrder)) {
     if (photo.drinkLogId) {
       photosByLog.set(photo.drinkLogId, [...(photosByLog.get(photo.drinkLogId) ?? []), photo.id]);
     }
@@ -926,7 +926,7 @@ async function projectPosts(
     const postItems = items
       .filter((item) => item.postId === post.id)
       .sort((a, b) => a.sortOrder - b.sortOrder);
-    const projectedItems: SocialPostItem[] = [];
+    const projected: ProjectedSourceItem[] = [];
     const seenBottles = new Set<string>();
     for (const item of postItems) {
       if (item.sourceKind === "drink_log") {
@@ -944,7 +944,8 @@ async function projectPosts(
                 finish: note.finish,
               }
             : null;
-        projectedItems.push({
+        projected.push({
+          sourceKind: "drink_log",
           name: log.drinkName ?? note?.drinkName ?? "お酒",
           producer: null,
           origin: null,
@@ -971,7 +972,8 @@ async function projectPosts(
           continue;
         }
         const opening = [...openingById.values()].find((event) => event.bottleId === bottle.id);
-        projectedItems.push({
+        projected.push({
+          sourceKind: "bottle",
           name: bottle.name,
           producer: bottle.producer,
           origin: bottle.origin,
@@ -986,6 +988,10 @@ async function projectPosts(
         });
       }
     }
+    const projectedItems =
+      post.kind === "opening_with_log"
+        ? collapseOpeningWithLog(projected)
+        : projected.map(({ sourceKind: _sourceKind, ...rest }) => rest);
     if (projectedItems.length === 0) {
       continue;
     }
@@ -1006,6 +1012,33 @@ async function projectPosts(
     });
   }
   return result;
+}
+
+type ProjectedSourceItem = SocialPostItem & { sourceKind: "bottle" | "drink_log" };
+
+/**
+ * 開栓→記録は 1 本の開栓として見せる。写真はセラー登録の写真だけにし、
+ * 記録の写真は出さない（一覧の「＋N本」にも数えない）。評価・ひとこと・飲んだ日は記録から引き継ぐ。
+ */
+export function collapseOpeningWithLog(items: readonly ProjectedSourceItem[]): SocialPostItem[] {
+  const bottle = items.find((item) => item.sourceKind === "bottle");
+  const log = items.find((item) => item.sourceKind === "drink_log");
+  if (!bottle) {
+    return items.map(({ sourceKind: _sourceKind, ...rest }) => rest);
+  }
+  const { sourceKind: _sourceKind, ...base } = bottle;
+  if (!log) {
+    return [base];
+  }
+  return [
+    {
+      ...base,
+      drunkOn: log.drunkOn,
+      ratingX10: log.ratingX10,
+      comment: log.comment,
+      tasting: log.tasting,
+    },
+  ];
 }
 
 function bottleIdsFromItems(items: { sourceKind: string; sourceId: string }[]): string | null {
