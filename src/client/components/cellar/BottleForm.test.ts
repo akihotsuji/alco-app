@@ -70,7 +70,7 @@ describe("BottleForm バリデーション表示", () => {
     );
   });
 
-  it("読み取りは pendingRecognizeJpeg で先に始め、attachment 側は同じ Blob の結果に相乗りする", () => {
+  it("編集の差し替えは pendingRecognizeJpeg で先に始め、attachment 側は同じ Blob の結果に相乗りする", () => {
     expect(source).toContain("startLabelRecognition(pendingRecognize.jpeg)");
     expect(source).toContain("startLabelRecognition(jpeg, undefined, { back, force })");
     expect(source).toContain("runRecognition(jpeg, null, false)");
@@ -89,5 +89,18 @@ describe("BottleForm バリデーション表示", () => {
     expect(source).toContain('status={recognizeStatus ?? "offer"}');
     expect(source).toContain("runRecognition(jpeg, back, true)");
     expect(source).not.toContain("runRecognition(jpeg, backRecognizeJpeg, false)");
+  });
+
+  it("新規は表面のあと B1c で裏ラベルを聞き、答えが出てから読み取る（先に表面だけで投げない）", () => {
+    expect(source).toContain('mode === "new" ||');
+    expect(source).toContain('if (mode === "new" && !hasBackPhotoRef.current) {');
+    expect(source).toContain("setBackOfferJpeg(jpeg);");
+    expect(source).toContain("<BackPhotoOfferSheet");
+    // いいえ: 表面だけで読む / はい: 裏面の変換が終わったら表 + 裏で読む
+    expect(source).toContain("function skipBackOffer()");
+    expect(source).toContain("const back = await backPhoto.pick(source);");
+    expect(source).toContain("runRecognition(jpeg, back?.recognizeJpeg ?? null, false);");
+    // 両面で読んだあとは同じ組の「裏面も含めて読み取る」を出さない
+    expect(source).toContain("backRecognizeJpeg !== recognizedBack");
   });
 });
