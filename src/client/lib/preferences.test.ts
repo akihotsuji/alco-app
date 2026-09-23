@@ -71,13 +71,13 @@ describe("flag preferences", () => {
     expect(getCellarRecognizePref()).toBe(false);
   });
 
-  it("棚の表示切替は cellar.listView、既定 one", () => {
+  it("棚の表示切替は cellar.listView、既定 type", () => {
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
       value: localStorageStub,
     });
     expect(CELLAR_PREF_KEYS.listView).toBe("cellar.listView");
-    expect(getCellarListViewPref()).toBe("one");
+    expect(getCellarListViewPref()).toBe("type");
     setCellarListViewPref("type");
     expect(memory.get(CELLAR_PREF_KEYS.listView)).toBe("type");
     expect(getCellarListViewPref()).toBe("type");

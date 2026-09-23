@@ -39,7 +39,14 @@ export function shelfPageLimit(columns: number): number {
 }
 
 export function parseCellarListView(raw: string | null | undefined): CellarListView | null {
-  return raw === "one" || raw === "type" || raw === "list" ? raw : null;
+  if (raw === "type" || raw === "list") {
+    return raw;
+  }
+  // 廃止した「1 本ずつ」は管理一覧に読み替える（ブックマーク・履歴の `?view=one` 救済）
+  if (raw === "one") {
+    return "list";
+  }
+  return null;
 }
 
 /** URL の drinkType。未知値はフィルタなし（404 にしない） */

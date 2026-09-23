@@ -302,11 +302,57 @@ function BatchRowCard({
     row.phase === "queued" || row.phase === "converting" || row.phase === "uploading";
   const failed = row.phase === "error";
 
+  const recognize =
+    row.recognize === "loading" || row.recognize === "failure"
+      ? { status: row.recognize, withBack: false }
+      : row.recognize === "success" && row.backPhoto?.recognizeJpeg
+        ? { status: "offer" as const, withBack: true }
+        : null;
+
   return (
     <li
       className={failed ? "bottle-batch-row is-error" : "bottle-batch-row"}
       aria-label={`${index + 1} 本目`}
     >
+      {recognize ? (
+        <p
+          className={
+            recognize.status === "failure"
+              ? "bottle-batch-recognize is-failure"
+              : recognize.status === "loading"
+                ? "bottle-batch-recognize is-loading"
+                : "bottle-batch-recognize is-offer"
+          }
+          role="status"
+        >
+          {recognize.status === "loading" ? (
+            <span className="recognize-spinner" aria-hidden />
+          ) : (
+            <Sparkles size={14} aria-hidden />
+          )}
+          <span className="recognize-banner-text">{RECOGNIZE_BANNER[recognize.status]}</span>
+          {recognize.status === "failure" ? (
+            <button
+              type="button"
+              className="header-text-link recognize-retry"
+              disabled={disabled}
+              onClick={onRecognizeRetry}
+            >
+              {RECOGNIZE_RETRY_LABEL}
+            </button>
+          ) : null}
+          {recognize.withBack ? (
+            <button
+              type="button"
+              className="header-text-link recognize-retry"
+              disabled={disabled}
+              onClick={onRecognizeRetry}
+            >
+              {RECOGNIZE_WITH_BACK_LABEL}
+            </button>
+          ) : null}
+        </p>
+      ) : null}
       <div className="bottle-batch-row-main">
         <div className="bottle-batch-photos">
           <div
@@ -435,6 +481,7 @@ function BatchRowCard({
             label="生産者"
             value={row.form.producer}
             maxLength={BOTTLE_TEXT_MAX_LENGTH}
+            layout="inline"
             disabled={disabled}
             error={errors.producer}
             aiMarked={marks.has("producer")}
@@ -465,6 +512,7 @@ function BatchRowCard({
             label={BOTTLE_FIELD_LABELS.variety}
             value={row.form.variety}
             maxLength={BOTTLE_TEXT_MAX_LENGTH}
+            layout="inline"
             disabled={disabled}
             error={errors.variety}
             aiMarked={marks.has("variety")}
@@ -499,38 +547,6 @@ function BatchRowCard({
             {BOTTLE_BATCH_MESSAGES.pickAgain}
           </button>
         </div>
-      ) : null}
-      {row.recognize === "loading" || row.recognize === "failure" ? (
-        <p className="bottle-batch-recognize" role="status">
-          {row.recognize === "loading" ? (
-            <span className="recognize-spinner" aria-hidden />
-          ) : (
-            <Sparkles size={14} aria-hidden />
-          )}
-          <span className="recognize-banner-text">{RECOGNIZE_BANNER[row.recognize]}</span>
-          {row.recognize === "failure" ? (
-            <button
-              type="button"
-              className="header-text-link recognize-retry"
-              disabled={disabled}
-              onClick={onRecognizeRetry}
-            >
-              {RECOGNIZE_RETRY_LABEL}
-            </button>
-          ) : null}
-        </p>
-      ) : row.recognize === "success" && row.backPhoto?.recognizeJpeg ? (
-        <p className="bottle-batch-recognize" role="status">
-          <Sparkles size={14} aria-hidden />
-          <button
-            type="button"
-            className="header-text-link recognize-retry"
-            disabled={disabled}
-            onClick={onRecognizeRetry}
-          >
-            {RECOGNIZE_WITH_BACK_LABEL}
-          </button>
-        </p>
       ) : null}
       {row.error ? (
         <p className="field-error" role="alert">

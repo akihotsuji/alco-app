@@ -48,7 +48,7 @@ export const GUEST_ONLY_PATHS: readonly string[] = [
 const CELLAR_LIST_VIEW_PREF_KEY = "cellar.listView";
 const CELLAR_SELECTED_ID_PREF_KEY = "cellar.selectedId";
 const CELLARS_PATH = "/api/cellars";
-const DEFAULT_CELLAR_LIST_VIEW = "one";
+const DEFAULT_CELLAR_LIST_VIEW = "type";
 const SHELF_WIDE_MIN_PX = 480;
 const SHELF_COLUMNS_NARROW = 3;
 const SHELF_COLUMNS_WIDE = 4;
@@ -79,7 +79,11 @@ function bootCellarId(raw: string | null | undefined): string | undefined {
   return undefined;
 }
 
-function cellarBottlesPath(view: "one" | "type", viewportWidth: number, cellarId?: string): string {
+function cellarBottlesPath(
+  view: "list" | "type",
+  viewportWidth: number,
+  cellarId?: string,
+): string {
   const query = new URLSearchParams({ view: "cellar" });
   if (view === "type") {
     query.set("limit", String(SHELF_TYPE_PAGE_LIMIT));
@@ -103,11 +107,15 @@ export function cellarDataPaths(input: CellarBootInput): readonly string[] {
   }
   const urlView = params.get("view");
   const view =
-    urlView === "one" || urlView === "type"
+    urlView === "type"
       ? urlView
-      : input.storedView === "one" || input.storedView === "type"
-        ? input.storedView
-        : DEFAULT_CELLAR_LIST_VIEW;
+      : urlView === "list" || urlView === "one"
+        ? "list"
+        : input.storedView === "type"
+          ? input.storedView
+          : input.storedView === "list" || input.storedView === "one"
+            ? "list"
+            : DEFAULT_CELLAR_LIST_VIEW;
   return [CELLARS_PATH, cellarBottlesPath(view, input.viewportWidth, cellarId)];
 }
 

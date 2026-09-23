@@ -22,7 +22,7 @@ describe("CellarToolbar", () => {
     }
   });
 
-  it("選択中の種類は「ワイン ×」になり、表示切替は棚 / 1本ずつ / 管理一覧", () => {
+  it("選択中の種類は「ワイン ×」になり、表示切替は棚 / 管理一覧", () => {
     expect(toolbar).toContain("DRINK_TYPE_LABELS[drinkType]} ×");
     expect(toolbar).toContain("CELLAR_LIST_VIEW_LABELS[view]");
     expect(toolbar).toContain("aria-pressed={listView === view}");

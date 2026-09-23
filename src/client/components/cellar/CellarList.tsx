@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { BottleManageList } from "@/client/components/cellar/BottleManageList.tsx";
@@ -174,6 +175,7 @@ export function CellarList() {
   const [enterId, setEnterId] = useState<string | null>(null);
 
   const { selected, storedId, isPending: cellarsPending } = useCellarSelection();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const cellarId = bottlesQueryCellarId(selected, storedId);
   const optimisticCellarPending = cellarsPending && Boolean(usableStoredCellarId(storedId));
   const pageLimit = shelfPageLimit(columns);
@@ -185,7 +187,7 @@ export function CellarList() {
       ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
       ...(cellarId ? { cellarId } : {}),
     },
-    view === "one" || view === "list",
+    view === "list",
   );
   const typeMeta = useBottles(
     {
@@ -364,16 +366,32 @@ export function CellarList() {
 
   const typeShelves = typeMeta.data?.typeShelves ?? [];
 
+  const filtersActive = filteredOut;
   return (
     <div className="cellar-list">
-      <CellarSwitcher />
       {emptyInventory ? null : (
-        <CellarToolbar
-          {...filters}
-          listView={view}
-          onListViewChange={setView}
-          hideTypeFilter={view === "type"}
-        />
+        <div className="cellar-filter-disclosure">
+          <button
+            type="button"
+            className="cellar-filter-toggle"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((current) => !current)}
+          >
+            表示・絞り込み{filtersActive ? "（設定中）" : ""}
+            <ChevronDown size={18} className="form-row-chevron" aria-hidden />
+          </button>
+          {filtersOpen ? (
+            <div className="cellar-filter-panel">
+              <CellarSwitcher />
+              <CellarToolbar
+                {...filters}
+                listView={view}
+                onListViewChange={setView}
+                hideTypeFilter={view === "type"}
+              />
+            </div>
+          ) : null}
+        </div>
       )}
       {pending ? <ShelfSkeleton columns={columns} /> : null}
       {errored ? <QueryError onRetry={() => refetch()} retrying={fetching} /> : null}
@@ -417,25 +435,6 @@ export function CellarList() {
             フィルタを解除
           </Chip>
         </div>
-      ) : null}
-      {view === "one" && oneItems.length > 0 ? (
-        <>
-          <Shelf
-            items={oneItems}
-            columns={columns}
-            mode="cellar"
-            highlightRow={highlightRow}
-            enterId={enterId}
-          />
-          {oneQuery.hasNextPage ? (
-            <LoadMoreSentinel
-              enabled={oneQuery.hasNextPage && !oneQuery.isFetchingNextPage}
-              onVisible={() => {
-                void oneQuery.fetchNextPage();
-              }}
-            />
-          ) : null}
-        </>
       ) : null}
       {view === "list" && oneItems.length > 0 ? (
         <>

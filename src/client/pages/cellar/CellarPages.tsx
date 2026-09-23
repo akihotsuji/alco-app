@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { BottleBatchForm } from "@/client/components/cellar/BottleBatchForm.tsx";
@@ -58,6 +59,7 @@ export function BottleBatchPage() {
 export function ArchivePage() {
   const filters = useBottleListFilters();
   const columns = useShelfColumns();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const { selected } = useCellarSelection();
   const query = useInfiniteBottles(
     {
@@ -80,16 +82,32 @@ export function ArchivePage() {
     titleMuted: totalCount === undefined ? undefined : formatBottleCount(totalCount),
   });
 
+  const filtersActive = filteredOut;
   return (
     <div className="cellar-list">
-      <CellarSwitcher />
       {emptyInventory ? null : (
-        <CellarToolbar
-          {...filters}
-          listView="one"
-          onListViewChange={() => undefined}
-          hideViewToggle
-        />
+        <div className="cellar-filter-disclosure">
+          <button
+            type="button"
+            className="cellar-filter-toggle"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((current) => !current)}
+          >
+            表示・絞り込み{filtersActive ? "（設定中）" : ""}
+            <ChevronDown size={18} className="form-row-chevron" aria-hidden />
+          </button>
+          {filtersOpen ? (
+            <div className="cellar-filter-panel">
+              <CellarSwitcher />
+              <CellarToolbar
+                {...filters}
+                listView="list"
+                onListViewChange={() => undefined}
+                hideViewToggle
+              />
+            </div>
+          ) : null}
+        </div>
       )}
       {query.isPending ? <ShelfSkeleton columns={columns} /> : null}
       {query.isError ? (
