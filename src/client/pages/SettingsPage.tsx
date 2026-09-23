@@ -10,6 +10,7 @@ import { GuideFanMenu } from "@/client/components/guide/GuideFanMenu.tsx";
 import { AppRefreshRow } from "@/client/components/settings/AppRefreshRow.tsx";
 import { DisplayNameRow } from "@/client/components/settings/DisplayNameRow.tsx";
 import { HapticPrefRow } from "@/client/components/settings/HapticPrefRow.tsx";
+import { PushNotificationPrefRow } from "@/client/components/settings/PushNotificationPrefRow.tsx";
 import { RecordLocationPrefRow } from "@/client/components/settings/RecordLocationPrefRow.tsx";
 import { ReduceMotionPrefRow } from "@/client/components/settings/ReduceMotionPrefRow.tsx";
 import { ThemePrefRow } from "@/client/components/settings/ThemePrefRow.tsx";
@@ -161,6 +162,7 @@ export function SettingsPage() {
       <section className="settings-section">
         <h2 className="settings-heading">友達</h2>
         <div className="settings-group">
+          <PushNotificationPrefRow />
           <Link className="settings-row" to="/settings/blocks">
             <span>ブロックした相手</span>
             <ChevronRight size={20} className="settings-chevron" aria-hidden />

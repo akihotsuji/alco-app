@@ -5,7 +5,12 @@ describe("createEndSessionHandler", () => {
   it("signOut が成功したら store の再取得は signOut 側に任せる", async () => {
     const signOut = vi.fn(async () => ({ error: null }));
     const refreshSession = vi.fn();
-    const endSession = createEndSessionHandler({ signOut, refreshSession, clearBadge: vi.fn() });
+    const endSession = createEndSessionHandler({
+      signOut,
+      refreshSession,
+      clearBadge: vi.fn(),
+      clearPush: vi.fn(),
+    });
 
     await endSession();
     expect(signOut).toHaveBeenCalledTimes(1);
@@ -15,7 +20,12 @@ describe("createEndSessionHandler", () => {
   it("signOut がエラー応答（Cookie 消失など）でもセッション store を再取得させる", async () => {
     const signOut = vi.fn(async () => ({ error: { status: 400 } }));
     const refreshSession = vi.fn();
-    const endSession = createEndSessionHandler({ signOut, refreshSession, clearBadge: vi.fn() });
+    const endSession = createEndSessionHandler({
+      signOut,
+      refreshSession,
+      clearBadge: vi.fn(),
+      clearPush: vi.fn(),
+    });
 
     await endSession();
     expect(refreshSession).toHaveBeenCalledTimes(1);
@@ -26,7 +36,12 @@ describe("createEndSessionHandler", () => {
       throw new TypeError("Failed to fetch");
     });
     const refreshSession = vi.fn();
-    const endSession = createEndSessionHandler({ signOut, refreshSession, clearBadge: vi.fn() });
+    const endSession = createEndSessionHandler({
+      signOut,
+      refreshSession,
+      clearBadge: vi.fn(),
+      clearPush: vi.fn(),
+    });
 
     await expect(endSession()).resolves.toBeUndefined();
     expect(refreshSession).toHaveBeenCalledTimes(1);
@@ -45,6 +60,7 @@ describe("createEndSessionHandler", () => {
       signOut,
       refreshSession: vi.fn(),
       clearBadge: vi.fn(),
+      clearPush: vi.fn(),
     });
 
     const first = endSession();
@@ -69,7 +85,12 @@ describe("createEndSessionHandler", () => {
     const clearBadge = vi.fn(() => {
       order.push("clearBadge");
     });
-    const endSession = createEndSessionHandler({ signOut, refreshSession: vi.fn(), clearBadge });
+    const endSession = createEndSessionHandler({
+      signOut,
+      refreshSession: vi.fn(),
+      clearBadge,
+      clearPush: vi.fn(),
+    });
 
     await endSession();
     expect(clearBadge).toHaveBeenCalledTimes(1);
@@ -84,9 +105,27 @@ describe("createEndSessionHandler", () => {
       }),
       refreshSession: vi.fn(),
       clearBadge,
+      clearPush: vi.fn(),
     });
 
     await endSession();
     expect(clearBadge).toHaveBeenCalledTimes(1);
+  });
+
+  it("ログアウトでは端末のプッシュ購読もサインアウト前に解除し、待たない", async () => {
+    const order: string[] = [];
+    const endSession = createEndSessionHandler({
+      signOut: vi.fn(async () => {
+        order.push("signOut");
+        return { error: null };
+      }),
+      refreshSession: vi.fn(),
+      clearBadge: vi.fn(),
+      clearPush: vi.fn(() => {
+        order.push("clearPush");
+      }),
+    });
+    await endSession();
+    expect(order).toEqual(["clearPush", "signOut"]);
   });
 });

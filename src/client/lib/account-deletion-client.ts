@@ -7,6 +7,7 @@ import {
   FRIEND_OWN_INVITE_TOKEN_KEY,
   FRIEND_SUCCESS_TOAST_KEY,
 } from "@/client/lib/social-invite.ts";
+import { clearDevicePushSubscription } from "@/client/lib/web-push.ts";
 import {
   ACCOUNT_DELETION_CHANNEL,
   ACCOUNT_DELETION_PENDING_USER_KEY,
@@ -29,9 +30,10 @@ function removeMatchingKeys(storage: Storage, shouldRemove: (key: string) => boo
   }
 }
 
-/** アカウントに紐づく下書き・ガイド進捗・切り抜き診断・アイコンの未読バッジだけ捨てる。テーマ等は残す。 */
+/** アカウントに紐づく下書き・ガイド進捗・切り抜き診断・アイコンの未読バッジ・端末のプッシュ購読だけ捨てる。テーマ等は残す。 */
 export function discardAccountScopedClientData(): void {
   void clearAppBadge();
+  void clearDevicePushSubscription();
   try {
     localStorage.removeItem(GUIDE_PREF_KEY);
     localStorage.removeItem(CELLAR_PREF_KEYS.selectedId);

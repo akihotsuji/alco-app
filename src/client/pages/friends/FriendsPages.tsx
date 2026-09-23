@@ -7,6 +7,7 @@ import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { PostCard } from "@/client/components/friends/PostCard.tsx";
 import { PostDetailItem } from "@/client/components/friends/PostDetailItem.tsx";
+import { PushPromptCard } from "@/client/components/friends/PushPromptCard.tsx";
 import { ReactionBar } from "@/client/components/friends/ReactionBar.tsx";
 import { SocialAvatar } from "@/client/components/friends/SocialAvatar.tsx";
 import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
@@ -395,6 +396,7 @@ export function FriendsNotificationsPage() {
   }
   return (
     <div className="friends-notifications">
+      <PushPromptCard />
       <Button type="button" variant="ghost" onClick={() => markAll.mutate()}>
         すべて既読
       </Button>

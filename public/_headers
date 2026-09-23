@@ -45,6 +45,12 @@
   Content-Type: application/javascript
   X-Content-Type-Options: nosniff
 
+# Web Push の SW 部分。sw.js が importScripts で読む。SW と同じく HTTP キャッシュさせない
+/sw-push.js
+  Cache-Control: no-cache
+  Content-Type: application/javascript
+  X-Content-Type-Options: nosniff
+
 /boot.css
   Cache-Control: no-cache
   Content-Type: text/css

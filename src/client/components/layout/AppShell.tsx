@@ -24,6 +24,7 @@ import { useAppBadgeSync } from "@/client/hooks/use-app-badge.ts";
 import { useListScrollRestore } from "@/client/hooks/use-list-scroll-restore.ts";
 import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { useTabDataPrefetch } from "@/client/hooks/use-tab-data-prefetch.ts";
+import { usePushResync } from "@/client/hooks/use-web-push.ts";
 import {
   addFabForRoute,
   hidesTabBar,
@@ -61,6 +62,7 @@ function AppShellFrame() {
   const contentRef = useRef<HTMLDivElement>(null);
   useTabDataPrefetch();
   useAppBadgeSync();
+  usePushResync();
   useListScrollRestore(contentRef, location.pathname, location.search);
   const route = resolveAppRoute(location.pathname, new Date(), location.search);
   const typeGridVisible = typeGrid.open && location.pathname === "/cellar";

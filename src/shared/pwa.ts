@@ -29,6 +29,8 @@ export const PWA_ICON_SIZE = 512;
 export const PWA_ICON_MASCOT_HEIGHT_RATIO = 0.62;
 
 export const PWA_SW_FILENAME = "sw.js";
+/** Web Push の `push` / `notificationclick`（public/sw-push.js）。sw.js が importScripts で読む */
+export const PWA_PUSH_SW_FILENAME = "sw-push.js";
 /** Cloudflare Vite の worker 環境には SW を出さない */
 export const PWA_VITE_ENVIRONMENT = "client";
 
@@ -54,7 +56,7 @@ export const PWA_ICON_MANIFEST = [
 
 export const PWA_PRECACHE_GLOB = ["**/*.{js,css,html,ico,png,svg,webp,webmanifest}"] as const;
 /** 切り抜きモデルは既存の Cache API。SW precache に載せない */
-export const PWA_PRECACHE_IGNORE = ["**/models/**", "**/version.json"] as const;
+export const PWA_PRECACHE_IGNORE = ["**/models/**", "**/version.json", "**/sw-push.js"] as const;
 export const PWA_NAVIGATE_FALLBACK = "index.html";
 export const PWA_NAVIGATE_FALLBACK_DENYLIST = [
   /^\/api(?:\/|$)/,
