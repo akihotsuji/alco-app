@@ -36,7 +36,7 @@
 | 構造化 | Gemini `responseMimeType` + `responseSchema`。平坦な JSON（文字列・数値だけ）も業務層で `{ value, confidence }` に直す。Llama の `guided_json` は流用しない |
 | 検索 | `tools: [{ googleSearch: {} }]`。プロファイルが `supportsSearch` のときだけ送る |
 | 思考量 | プロファイルの `thinkingLevel` を `thinkingConfig.thinkingLevel` に送る。3.7 Flash（既定）は `low`。3.5 Flash-Lite は `minimal`。3.7 Flash が受け付けるのは `low` / `medium` / `high` のみで、`minimal` は 400（Gateway `7003: User Input Error`）になる |
-| 出力上限 | 抽出 JSON は数百トークンなので `maxOutputTokens` は Flash-Lite 1024 / 3.7 Flash 2048（思考トークンを含み得るため 3.7 は余裕を持つ）。照合は 1536。`finishReason=MAX_TOKENS` が出たら `[drink-recognize] parse` で分かる |
+| 出力上限 | 抽出 JSON は数百トークンなので `maxOutputTokens` は Flash-Lite 1024 / 3.7 Flash 2048（思考トークンを含み得るため 3.7 は余裕を持つ）。照合は 1536。**画像 2 枚（セラーの表 + 裏）の抽出は別枠** `multiImageMaxOutputTokens`（Flash-Lite 2048 / 3.7 Flash 4096 / Llama 500）。2026-09-23 本番で 3.7 Flash の表 + 裏が `ok=true providerMs=14609 fieldCount=0` になり、思考で 2048 を使い切って JSON が出ていなかった（§14）。`finishReason=MAX_TOKENS` が出たら `[drink-recognize] parse` / `[recognize] parse` で分かる |
 | 検証区分 | Gemini プロファイルは `mock-only`。Llama は既存本番経路 `production-llama` |
 
 公式: [Cloudflare Models: 3.5 Flash-Lite](https://developers.cloudflare.com/ai/models/google/gemini-3.5-flash-lite/)、[3.7 Flash](https://developers.cloudflare.com/ai/models/google/gemini-3.7-flash/)、[Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/)、[Google Gemini 3.7 Flash](https://ai.google.dev/gemini-api/docs/models)。
@@ -146,7 +146,8 @@
 - セラー編集でも、そのセッションで新規 JPEG を足したときだけ同じ補完を適用する（開いただけでは走らない）
 - 同じ利用者・同じ画像ハッシュ・同じモデル設定・同じプロンプト版 / スキーマ版 / 検索有無の同時リクエストは重複排除する。label / note も同じキー設計のキャッシュを使う
 - 1 回の処理は開始時のモデル設定を最後まで使う
-- タイムアウト・429・5xx・クレジット不足・出力不正でも手入力を継続。再試行は有限（1 回）。全体タイムアウトあり。ラベル読み取りのアプリ側打ち切りはアダプタへ `AbortSignal` を渡す（リトライ待ちの中断と、次の `ai.run` 前の中止）。上流 `ai.run` 自体の中断は binding 非対応のため保証しない（上流課金は残り得る）。タイムアウト秒数を延ばして完了扱いにはしない
+- タイムアウト・429・5xx・クレジット不足・出力不正でも手入力を継続。再試行は有限（1 回）。全体タイムアウトあり。ラベル読み取りのアプリ側打ち切りはアダプタへ `AbortSignal` を渡す（リトライ待ちの中断と、次の `ai.run` 前の中止）。上流 `ai.run` 自体の中断は binding 非対応のため保証しない（上流課金は残り得る）。タイムアウト秒数を延ばして完了扱いにはしない。例外は画像 2 枚の抽出で、出力上限を上げた分だけ生成時間が延びるため打ち切りも別枠 `multiImageTimeoutMs`（3.7 Flash 40 秒 / Flash-Lite 25 秒 / Llama 20 秒。3.7 Flash の実測は約 2000 トークンで 14.6 秒なので、4096 を出し切る約 30 秒に余裕を足した値）
+- 抽出が 0 件（`fields` 空）の結果は TTL キャッシュに残さない（同時リクエストの重複排除だけ効く）。空を覚えると、押し直しても上流を呼ばずに同じ空が 10 分返り続ける。現状はセラー（`[recognize]`）だけ。記録・ノートは同じ問題が見えたら揃える
 
 ## 9. 認識用画像
 
@@ -155,7 +156,7 @@
 - 長辺は **1024px**（`PHOTO_RECOGNIZE_LONG_EDGE`。表示用 1280 より小さい。入力トークンと転送量を減らす。2026-09-10）。`PHOTO_MAX_BYTES` / MIME 検証と整合
 - 位置情報等のメタデータは Canvas 再エンコードで落とす
 - R2 の写真は非公開のまま。AI にはリクエスト内の JPEG バイトだけを送る
-- セラーのラベル読み取りは **表面 + 任意の裏面の 2 枚**を 1 回のモデル呼び出しに渡せる（`POST /api/bottles/recognize` の `file` / `back`）。Gemini は `inlineData` パートを 2 つ、Workers AI は `image_url` パートを 2 つ並べ、プロンプトで「1 枚目が表、2 枚目が裏」と明示する。回数は 1 回。キャッシュキーは 2 枚を連結したハッシュ（1 枚のときと衝突しない）。裏面は 2:3 中央トリミングの JPEG（長辺 1024）で、加工は掛けない
+- セラーのラベル読み取りは **表面 + 任意の裏面の 2 枚**を 1 回のモデル呼び出しに渡せる（`POST /api/bottles/recognize` の `file` / `back`）。Gemini は `inlineData` パートを 2 つ、Workers AI は `image_url` パートを 2 つ並べ、プロンプトで「1 枚目が表、2 枚目が裏」と明示する。回数は 1 回。キャッシュキーは 2 枚を連結したハッシュ（1 枚のときと衝突しない）。裏面は 2:3 中央トリミングの JPEG（長辺 1024）で、加工は掛けない。2 枚のときの出力上限・打ち切りは §3 / §8 の別枠
 
 ## 10. 料金・ログ
 
@@ -164,6 +165,7 @@
 - アプリログに写真本体・Base64・認証情報を出さない。件数・時間・フィールド数・profile 名だけ
 - 失敗時は `[drink-recognize] ok=false reason=` に status と短いメッセージだけ出す（写真・Base64・Cookie は落とす）。クライアント応答は `upstream_error`
 - `ok=true fieldCount=0` のときは `[drink-recognize] parse` に subject / extractCount / finishReason / payloadKeys / トークン数だけ出す（値は出さない）
+- セラーは `[recognize] ok= durationMs= providerMs= parseMs= fieldCount= images=1|2 profile= reason=`。失敗時の `reason` は記録と同じ `summarizeAiError`。上流の応答を読んだとき（キャッシュ命中以外）は `[recognize] parse images= fieldCount= finishReason= payloadKeys= inputTokens= outputTokens= thinkingTokens=` を 1 行出す（値は出さない）。2 枚のときの思考トークンの実測にも使う
 - Gateway 本文ログは既定 OFF（`AI_GATEWAY_COLLECT_LOG=0`）
 
 ## 11. モデル切替手順
@@ -204,7 +206,9 @@ Flash-Lite を試す: 対象タスクのキーを `gemini-3.5-flash-lite` にす
 - 照合は `[drink-lookup] ok= durationMs= matched= profile= reason=` に出る（抽出とは別行）
 - Gateway にリクエストは届きトークン 0 なら、モデル実行前の失敗（課金・形式・認可）
 - 切り分けは Workers Logs の `[drink-recognize]` / `[recognize]` / `[note-recognize]`。クライアントは `upstream_error` だけ
-- `ok=true fieldCount=0` は課金成功のあと JSON が業務形に落ちたとき。`[drink-recognize] parse` の finishReason / payloadKeys / thinkingTokens を見る
+- `ok=true fieldCount=0` は課金成功のあと JSON が業務形に落ちたとき。`[drink-recognize] parse` / `[recognize] parse` の finishReason / payloadKeys / thinkingTokens を見る
+- `finishReason=MAX_TOKENS` で `thinkingTokens` が出力上限に近いなら、思考で上限を使い切って JSON が出ていない（または途中で切れた）。途中で切れた JSON は項目が書き終わっていても 0 件になる。`profiles.ts` の上限（2 枚なら `multiImageMaxOutputTokens`）と打ち切りを見直す
+- `providerMs` が普段（3.7 Flash の 1 枚は 2〜3 秒台）より大きく長いのに 0 件なら、同じく上限到達を疑う
 - `reason=AiGatewayError:2021: Insufficient AI Gateway credits` は Unified Billing のクレジット不足。ダッシュボードで補充する
 - `reason=AiGatewayError:7003: User Input Error` は Gemini がリクエスト本文を 400 で拒否したとき（モデルが受け付けない `thinkingLevel`、`responseSchema` に未対応キーなど）。`profiles.ts` の値を公式表と照合する
 - 応急は対象タスクのプロファイルを `workers-ai-llama` にして再デプロイ（手入力は継続できる）

@@ -40,6 +40,16 @@ export function normalizeTokenUsage(output: unknown): TokenUsage {
   return { ...unknownTokenUsage };
 }
 
+/** Gemini の終了理由（`STOP` / `MAX_TOKENS` / `SAFETY` など）。Gemini 形式でなければ "-" */
+export function readFinishReason(output: unknown): string {
+  const candidates = asRecord(output)?.candidates;
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return "-";
+  }
+  const first = asRecord(candidates[0]);
+  return first && typeof first.finishReason === "string" ? first.finishReason : "-";
+}
+
 export function mergeUsage(left: TokenUsage, right: TokenUsage): TokenUsage {
   return {
     inputTokens: addNullable(left.inputTokens, right.inputTokens),

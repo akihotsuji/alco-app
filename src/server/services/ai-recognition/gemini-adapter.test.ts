@@ -54,6 +54,10 @@ describe("buildGeminiBody", () => {
         ],
       },
     ]);
+    expect(body.generationConfig).toMatchObject({
+      maxOutputTokens: profile.multiImageMaxOutputTokens,
+    });
+    expect(profile.multiImageMaxOutputTokens).toBeGreaterThan(profile.maxOutputTokens);
   });
 
   it("検索照合は googleSearch を付け、画像は送らない", () => {

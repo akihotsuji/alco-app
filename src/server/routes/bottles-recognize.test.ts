@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { aiUsage } from "@/db/schema.ts";
 import { apiErrorBodySchema } from "@/shared/api-error.ts";
 import { AI_RECOGNIZE_DAILY_LIMIT, PHOTO_MAX_BYTES } from "@/shared/constants.ts";
@@ -121,6 +121,102 @@ describe("POST /api/bottles/recognize", () => {
       { front: front.byteLength, back: back.byteLength },
     ]);
     expect(await usageCount(ctx, a.userId)).toBe(2);
+  });
+
+  it("表 + 裏で出力上限に届いた空の結果はキャッシュせず、押し直すと上流を呼び直す", async () => {
+    const maxTokens = {
+      candidates: [{ content: { role: "model" }, finishReason: "MAX_TOKENS" }],
+      usageMetadata: { promptTokenCount: 620, candidatesTokenCount: 0, thoughtsTokenCount: 2040 },
+    };
+    const recovered = {
+      candidates: [
+        {
+          content: {
+            role: "model",
+            parts: [{ text: '{"name":{"value":"裏面で読めた","confidence":0.9}}' }],
+          },
+          finishReason: "STOP",
+        },
+      ],
+    };
+    const outputs: unknown[] = [maxTokens, recovered];
+    let calls = 0;
+    const ctx = await createTestApp({
+      labelRecognizer: createStubLabelRecognizer(async () => {
+        calls += 1;
+        return outputs.shift() ?? recovered;
+      }),
+    });
+    const a = await session(ctx.app, "a@example.com");
+    const front = makeJpeg(320, 480);
+    const back = makeJpeg(300, 450);
+    const postBoth = () => {
+      const form = new FormData();
+      form.set("file", new File([Uint8Array.from(front)], "front.jpg", { type: "image/jpeg" }));
+      form.set("back", new File([Uint8Array.from(back)], "back.jpg", { type: "image/jpeg" }));
+      return ctx.app.request("/api/bottles/recognize", {
+        method: "POST",
+        headers: { Cookie: a.cookie },
+        body: form,
+      });
+    };
+    const logs: string[] = [];
+    const spy = vi.spyOn(console, "info").mockImplementation((...args: unknown[]) => {
+      logs.push(args.map(String).join(" "));
+    });
+    try {
+      const empty = await postBoth();
+      expect(empty.status).toBe(200);
+      expect(recognizeResponseSchema.parse(await empty.json()).fields).toEqual({});
+
+      const retried = await postBoth();
+      expect(recognizeResponseSchema.parse(await retried.json()).fields.name?.value).toBe(
+        "裏面で読めた",
+      );
+
+      const cached = await postBoth();
+      expect(recognizeResponseSchema.parse(await cached.json()).fields.name?.value).toBe(
+        "裏面で読めた",
+      );
+    } finally {
+      spy.mockRestore();
+    }
+    expect(calls).toBe(2);
+    expect(logs).toContain(
+      "[recognize] parse images=2 fieldCount=0 finishReason=MAX_TOKENS payloadKeys=candidates,usageMetadata inputTokens=620 outputTokens=0 thinkingTokens=2040",
+    );
+    expect(logs).toContain(
+      "[recognize] parse images=2 fieldCount=1 finishReason=STOP payloadKeys=name inputTokens=- outputTokens=- thinkingTokens=-",
+    );
+    const summaries = logs.filter((line) => line.startsWith("[recognize] ok="));
+    expect(summaries).toHaveLength(3);
+    for (const line of summaries) {
+      expect(line).toContain("images=2 profile=workers-ai-llama reason=-");
+    }
+    expect(logs.join("\n")).not.toContain("裏面で読めた");
+  });
+
+  it("失敗の理由をログに出す（写真・Base64 は出さない）", async () => {
+    const ctx = await createTestApp({
+      labelRecognizer: createStubLabelRecognizer(async () => {
+        throw Object.assign(new Error("7003: User Input Error"), { name: "AiGatewayError" });
+      }),
+    });
+    const a = await session(ctx.app, "a@example.com");
+    const logs: string[] = [];
+    const spy = vi.spyOn(console, "info").mockImplementation((...args: unknown[]) => {
+      logs.push(args.map(String).join(" "));
+    });
+    try {
+      const res = await postRecognize(ctx.app, a.cookie, makeJpeg(200, 300));
+      expect(res.status).toBe(502);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatch(
+      /^\[recognize\] ok=false .* fieldCount=0 images=1 profile=workers-ai-llama reason=AiGatewayError:7003: User Input Error/,
+    );
   });
 
   it("back パートも表面と同じ検証（PNG は 415、1MB 超は 413）。回数は加算しない", async () => {

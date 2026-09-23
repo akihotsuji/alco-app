@@ -95,7 +95,15 @@ export function setInflightRecognition<T>(key: string, promise: Promise<T>): voi
     });
 }
 
-export async function withRecognitionCache<T>(key: string, compute: () => Promise<T>): Promise<T> {
+/**
+ * 同じキーの同時リクエストは 1 回にまとめる。`shouldCache` が false の結果は TTL キャッシュに残さない
+ * （空の抽出を覚えると、押し直しても上流を呼ばずに同じ空が返り続ける）
+ */
+export async function withRecognitionCache<T>(
+  key: string,
+  compute: () => Promise<T>,
+  options: { shouldCache?: (value: T) => boolean } = {},
+): Promise<T> {
   const cached = getCachedRecognition<T>(key);
   if (cached !== null) {
     return cached;
@@ -107,7 +115,9 @@ export async function withRecognitionCache<T>(key: string, compute: () => Promis
   const promise = compute();
   setInflightRecognition(key, promise);
   const value = await promise;
-  setCachedRecognition(key, value);
+  if (options.shouldCache?.(value) ?? true) {
+    setCachedRecognition(key, value);
+  }
   return value;
 }
 

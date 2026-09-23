@@ -17,7 +17,7 @@ import {
 import { extractModelPayload } from "@/shared/label-recognize.ts";
 import { normalizeOriginToJa } from "@/shared/origin-countries.ts";
 import { countryFromVerifiedAppellation } from "@/shared/verified-origin.ts";
-import { normalizeTokenUsage } from "./usage.ts";
+import { normalizeTokenUsage, readFinishReason } from "./usage.ts";
 
 const DEFAULT_LOOSE_CONFIDENCE = 0.8;
 
@@ -306,16 +306,6 @@ function coercePrintedField(value: unknown): unknown {
     return { value: value.trim() };
   }
   return value;
-}
-
-function readFinishReason(output: unknown): string {
-  const record = asRecord(output);
-  const candidates = record?.candidates;
-  if (!Array.isArray(candidates) || candidates.length === 0) {
-    return "-";
-  }
-  const first = asRecord(candidates[0]);
-  return first && typeof first.finishReason === "string" ? first.finishReason : "-";
 }
 
 export type LookupResult = {

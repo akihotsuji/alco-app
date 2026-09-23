@@ -1,7 +1,7 @@
 import { AI_RECOGNIZE_RETRY_LIMIT } from "@/shared/constants.ts";
 import type { RecognitionAdapter } from "./adapter.ts";
 import { bytesToBase64 } from "./bytes.ts";
-import { type ModelProfile, RecognitionConfigError } from "./profiles.ts";
+import { type ModelProfile, maxOutputTokensFor, RecognitionConfigError } from "./profiles.ts";
 import { extractGroundingSources, normalizeTokenUsage } from "./usage.ts";
 
 type GeminiCall = {
@@ -56,18 +56,14 @@ export function createGeminiGatewayAdapter(ai: Ai): RecognitionAdapter {
 
 export function buildGeminiBody(request: GeminiCall): Record<string, unknown> {
   const parts: Array<Record<string, unknown>> = [];
-  if (request.jpegBytes) {
-    for (const bytes of [request.jpegBytes, ...(request.extraJpegBytes ?? [])]) {
-      parts.push({ inlineData: { mimeType: "image/jpeg", data: bytesToBase64(bytes) } });
-    }
+  const images = request.jpegBytes ? [request.jpegBytes, ...(request.extraJpegBytes ?? [])] : [];
+  for (const bytes of images) {
+    parts.push({ inlineData: { mimeType: "image/jpeg", data: bytesToBase64(bytes) } });
   }
   parts.push({ text: request.userPrompt });
   const generationConfig: Record<string, unknown> = {
     temperature: request.profile.temperature,
-    maxOutputTokens:
-      request.kind === "lookup"
-        ? request.profile.lookupMaxOutputTokens
-        : request.profile.maxOutputTokens,
+    maxOutputTokens: maxOutputTokensFor(request.profile, request.kind, images.length),
   };
   if (request.profile.supportsStructuredOutput && request.schema) {
     generationConfig.responseMimeType = "application/json";
