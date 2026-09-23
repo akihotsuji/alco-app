@@ -16,6 +16,8 @@ const INVENTORY_KEYS = [
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
   "TURNSTILE_SECRET_KEY",
+  "VAPID_PUBLIC_KEY",
+  "VAPID_PRIVATE_KEY",
 ] as const;
 
 const SKIP_SUFFIX = [
@@ -101,6 +103,9 @@ describe("secret inventory", () => {
     expect(example).not.toMatch(/^TURNSTILE_SITE_KEY=.+$/m);
     expect(example).toMatch(/^TURNSTILE_SECRET_KEY=$/m);
     expect(example).not.toMatch(/^TURNSTILE_SECRET_KEY=.+$/m);
+    expect(example).toMatch(/^VAPID_PUBLIC_KEY=$/m);
+    expect(example).toMatch(/^VAPID_PRIVATE_KEY=$/m);
+    expect(example).not.toMatch(/^VAPID_PRIVATE_KEY=.+$/m);
     expect(example).not.toContain("CLOUDFLARE_API_TOKEN");
     expect(example).not.toContain("CLOUDFLARE_ACCOUNT_ID");
   });
@@ -136,12 +141,16 @@ describe("secret inventory", () => {
           "RESEND_API_KEY",
           "GOOGLE_CLIENT_SECRET",
           "TURNSTILE_SECRET_KEY",
+          "VAPID_PRIVATE_KEY",
         ] as const) {
           const value = assignmentValue(line, key);
           if (value === undefined || isPlaceholder(value)) {
             continue;
           }
-          if (looksLikeSecretValue(value)) {
+          if (
+            looksLikeSecretValue(value) ||
+            (key === "VAPID_PRIVATE_KEY" && /^[A-Za-z0-9_-]{40,}$/.test(value))
+          ) {
             hits.push(`${file}:${index + 1}`);
           }
         }
