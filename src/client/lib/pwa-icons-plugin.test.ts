@@ -4,7 +4,13 @@ import { join } from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { LIGHT_COLOR_TOKENS } from "@/client/lib/design-tokens.ts";
-import { PWA_ICON_BACKGROUND, PWA_ICON_FILES } from "@/shared/pwa.ts";
+import {
+  PWA_ICON_BACKGROUND,
+  PWA_ICON_FILES,
+  PWA_SHORTCUT_ICON_ACCENT,
+  PWA_SHORTCUT_ICON_FILE,
+  PWA_SHORTCUT_ICON_GLYPH,
+} from "@/shared/pwa.ts";
 import { generatePwaIcons } from "../../../vite.pwa-icons.ts";
 
 function basename(relativePath: string): string {
@@ -53,7 +59,7 @@ function hasNearColor(
 }
 
 describe("generatePwaIcons", () => {
-  it("192 / 512 / maskable / Apple touch の PNG を書く", async () => {
+  it("192 / 512 / maskable / Apple touch / ショートカットの PNG を書く", async () => {
     const outDir = await mkdtemp(join(tmpdir(), "alco-pwa-icons-"));
     await generatePwaIcons(outDir);
     const names = [
@@ -61,6 +67,7 @@ describe("generatePwaIcons", () => {
       PWA_ICON_FILES.any512,
       PWA_ICON_FILES.maskable512,
       PWA_ICON_FILES.appleTouch,
+      PWA_SHORTCUT_ICON_FILE,
     ].map(basename);
     for (const name of names) {
       const bytes = await readFile(join(outDir, name));
@@ -84,5 +91,25 @@ describe("generatePwaIcons", () => {
     expect(isNear(corner, cream, 2)).toBe(true);
     expect(isNear(corner, primary, 8)).toBe(false);
     expect(hasNearColor(data, info.channels, wine, 10)).toBe(true);
+  });
+
+  it("ショートカットは 96×96 で、中央タブと同じ primary の円に primary-fg の Plus", async () => {
+    expect(PWA_SHORTCUT_ICON_ACCENT.toLowerCase()).toBe(LIGHT_COLOR_TOKENS["--primary"]);
+    expect(PWA_SHORTCUT_ICON_GLYPH.toLowerCase()).toBe(LIGHT_COLOR_TOKENS["--primary-fg"]);
+    const outDir = await mkdtemp(join(tmpdir(), "alco-pwa-icons-shortcut-"));
+    await generatePwaIcons(outDir);
+    const { data, info } = await sharp(join(outDir, basename(PWA_SHORTCUT_ICON_FILE)))
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    expect(info.width).toBe(96);
+    expect(info.height).toBe(96);
+    const at = (x: number, y: number): [number, number, number] => {
+      const i = (y * info.width + x) * info.channels;
+      return [data[i] ?? -1, data[i + 1] ?? -1, data[i + 2] ?? -1];
+    };
+    expect(isNear(at(0, 0), hexToRgb(PWA_ICON_BACKGROUND), 2)).toBe(true);
+    expect(isNear(at(48, 48), hexToRgb(PWA_SHORTCUT_ICON_GLYPH), 8)).toBe(true);
+    expect(isNear(at(68, 48), hexToRgb(PWA_SHORTCUT_ICON_ACCENT), 8)).toBe(true);
   });
 });

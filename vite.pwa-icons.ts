@@ -3,8 +3,13 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import type { Plugin } from "vite";
-import { PWA_ICON_BACKGROUND, PWA_ICON_DIR, PWA_ICON_FILES } from "./src/shared/pwa.ts";
-import { buildPwaIconSvg } from "./src/shared/pwa-icon.ts";
+import {
+  PWA_ICON_BACKGROUND,
+  PWA_ICON_DIR,
+  PWA_ICON_FILES,
+  PWA_SHORTCUT_ICON_FILE,
+} from "./src/shared/pwa.ts";
+import { buildPwaIconSvg, buildPwaShortcutIconSvg } from "./src/shared/pwa-icon.ts";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const mascotPath = join(root, "spec/assets/character/mascot-default.svg");
@@ -38,6 +43,9 @@ export async function generatePwaIcons(outDir = pwaIconOutputDir()): Promise<voi
       .flatten({ background: { r, g, b } })
       .png()
       .toFile(join(outDir, basename(PWA_ICON_FILES.maskable512))),
+    sharp(Buffer.from(buildPwaShortcutIconSvg()))
+      .png()
+      .toFile(join(outDir, basename(PWA_SHORTCUT_ICON_FILE))),
   ]);
 }
 
