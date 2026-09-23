@@ -6,11 +6,11 @@ import { CardSkeleton, ListSkeleton } from "@/client/components/feedback/Loading
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { PostCard } from "@/client/components/friends/PostCard.tsx";
+import { PostDetailItem } from "@/client/components/friends/PostDetailItem.tsx";
 import { ReactionBar } from "@/client/components/friends/ReactionBar.tsx";
 import { SocialAvatar } from "@/client/components/friends/SocialAvatar.tsx";
 import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
 import {
-  socialPhotoContentUrl,
   useAcceptFriendRequest,
   useBlocks,
   useCancelFriendRequest,
@@ -49,7 +49,6 @@ import {
   socialBecameFriendsMessage,
   socialKindLabel,
 } from "@/shared/social.ts";
-import { formatRatingX10 } from "@/shared/tasting-notes.ts";
 
 export { FriendsJoinPage } from "./FriendsJoinPage.tsx";
 
@@ -306,7 +305,6 @@ export function FriendsPostPage() {
   const unshare = useUnsharePost();
   const navigate = useNavigate();
   const [confirm, setConfirm] = useState(false);
-  const [tastingOpen, setTastingOpen] = useState(false);
   if (query.isPending) {
     return <CardSkeleton />;
   }
@@ -332,89 +330,36 @@ export function FriendsPostPage() {
         </div>
       </header>
       {post.items.map((item) => (
-        <section
-          key={`${item.name}-${item.drunkOn ?? item.openedOn ?? ""}`}
-          className="social-post-item"
-        >
-          {item.photoIds.map((photoId) => (
-            <img
-              key={photoId}
-              className="social-card-photo"
-              src={socialPhotoContentUrl(post.id, photoId)}
-              alt=""
-            />
-          ))}
-          <h2>{item.name}</h2>
-          {item.producer ? <p>{item.producer}</p> : null}
-          {item.origin ? <p>{item.origin}</p> : null}
-          {item.variety ? <p>{item.variety}</p> : null}
-          {item.vintage ? <p>{item.vintage}</p> : null}
-          {item.drunkOn ? <p>飲んだ日 {item.drunkOn}</p> : null}
-          {item.openedOn ? <p>開栓した日 {item.openedOn}</p> : null}
-          {item.ratingX10 != null ? <p>{formatRatingX10(item.ratingX10)}</p> : null}
-          {item.comment ? <p>{item.comment}</p> : null}
-          {item.tasting ? (
-            <div>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setTastingOpen((value) => !value)}
-              >
-                詳しく見る
-              </Button>
-              {tastingOpen ? (
-                <dl className="social-tasting">
-                  {item.tasting.appearance ? (
-                    <>
-                      <dt>外観</dt>
-                      <dd>{item.tasting.appearance}</dd>
-                    </>
-                  ) : null}
-                  {item.tasting.aroma ? (
-                    <>
-                      <dt>香り</dt>
-                      <dd>{item.tasting.aroma}</dd>
-                    </>
-                  ) : null}
-                  {item.tasting.taste ? (
-                    <>
-                      <dt>味わい</dt>
-                      <dd>{item.tasting.taste}</dd>
-                    </>
-                  ) : null}
-                  {item.tasting.finish ? (
-                    <>
-                      <dt>余韻</dt>
-                      <dd>{item.tasting.finish}</dd>
-                    </>
-                  ) : null}
-                </dl>
-              ) : null}
-            </div>
-          ) : null}
-        </section>
+        <PostDetailItem
+          key={`${item.name}-${item.drunkOn ?? item.openedOn ?? ""}-${item.photoIds[0] ?? ""}`}
+          postId={post.id}
+          item={item}
+          compact={post.items.length > 1}
+        />
       ))}
       <ReactionBar postId={post.id} reactions={post.reactions} canReact={post.canReact} />
-      {post.isAuthor && post.sourceDrinkLogId ? (
-        <Link
-          className={buttonVariants({ variant: "secondary" })}
-          to={`/logs/entries/${post.sourceDrinkLogId}/edit`}
-        >
-          記録を編集
-        </Link>
-      ) : null}
-      {post.isAuthor && post.sourceBottleId ? (
-        <Link
-          className={buttonVariants({ variant: "secondary" })}
-          to={`/cellar/${post.sourceBottleId}/edit`}
-        >
-          ボトルを編集
-        </Link>
-      ) : null}
       {post.isAuthor ? (
-        <Button type="button" variant="ghost" onClick={() => setConfirm(true)}>
-          共有を取り消す
-        </Button>
+        <div className="social-post-actions">
+          {post.sourceDrinkLogId ? (
+            <Link
+              className={buttonVariants({ variant: "secondary" })}
+              to={`/logs/entries/${post.sourceDrinkLogId}/edit`}
+            >
+              記録を編集
+            </Link>
+          ) : null}
+          {post.sourceBottleId ? (
+            <Link
+              className={buttonVariants({ variant: "secondary" })}
+              to={`/cellar/${post.sourceBottleId}/edit`}
+            >
+              ボトルを編集
+            </Link>
+          ) : null}
+          <Button type="button" variant="ghost" onClick={() => setConfirm(true)}>
+            共有を取り消す
+          </Button>
+        </div>
       ) : null}
       <Dialog
         open={confirm}
