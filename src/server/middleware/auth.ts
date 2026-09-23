@@ -74,6 +74,7 @@ export function createAuthGuard(resolveAuth: AuthResolver) {
       email: result.response.user.email,
       name: result.response.user.name,
     });
+    c.set("sessionId", result.response.session?.id ?? "");
     const createdAt = result.response.session?.createdAt;
     c.set("sessionCreatedAt", createdAt ? new Date(createdAt) : new Date(0));
     await next();

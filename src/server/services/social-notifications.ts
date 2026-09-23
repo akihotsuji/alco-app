@@ -15,6 +15,9 @@ function toIso(value: Date): string {
   return value.toISOString();
 }
 
+/** 通知が新しく未読になったとき（新規、または既読が未読に戻ったとき）に呼ぶ。プッシュ送信用 */
+export type SocialUnreadSink = (recipientUserId: string, type: SocialNotificationType) => void;
+
 export async function upsertNotification(input: {
   db: AppBatchDb;
   recipientUserId: string;
@@ -25,6 +28,7 @@ export async function upsertNotification(input: {
   targetId?: string | null;
   now?: Date;
   refreshUnread?: boolean;
+  onUnread?: SocialUnreadSink;
 }) {
   const now = input.now ?? new Date();
   const [existing] = await input.db
@@ -40,6 +44,7 @@ export async function upsertNotification(input: {
     const recentlyTouched =
       existing.updatedAt.getTime() > now.getTime() - 30_000 ||
       (existing.readAt !== null && now.getTime() - existing.updatedAt.getTime() < 60_000);
+    const readAt = input.refreshUnread === false || recentlyTouched ? existing.readAt : null;
     await input.db
       .update(socialNotifications)
       .set({
@@ -47,10 +52,13 @@ export async function upsertNotification(input: {
         type: input.type,
         targetKind: input.targetKind ?? existing.targetKind,
         targetId: input.targetId ?? existing.targetId,
-        readAt: input.refreshUnread === false || recentlyTouched ? existing.readAt : null,
+        readAt,
         updatedAt: now,
       })
       .where(eq(socialNotifications.id, existing.id));
+    if (existing.readAt !== null && readAt === null) {
+      input.onUnread?.(input.recipientUserId, input.type);
+    }
     return existing.id;
   }
   const id = crypto.randomUUID();
@@ -66,6 +74,7 @@ export async function upsertNotification(input: {
     createdAt: now,
     updatedAt: now,
   });
+  input.onUnread?.(input.recipientUserId, input.type);
   return id;
 }
 

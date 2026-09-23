@@ -7,6 +7,7 @@ import { canViewSocialPost } from "./social-access.ts";
 import {
   deleteNotificationsByDedup,
   reactionDedupKey,
+  type SocialUnreadSink,
   upsertNotification,
 } from "./social-notifications.ts";
 import { socialReactionRateLimiter } from "./social-rate-limit.ts";
@@ -35,6 +36,7 @@ export async function putReaction(input: {
   postId: string;
   reactionTypeId: string;
   now?: Date;
+  onUnread?: SocialUnreadSink;
 }): Promise<{ ok: true }> {
   const now = input.now ?? new Date();
   if (!socialReactionRateLimiter.consume(input.userId, now.getTime())) {
@@ -88,6 +90,7 @@ export async function putReaction(input: {
     targetKind: "social_post",
     targetId: input.postId,
     now,
+    onUnread: input.onUnread,
   });
   return { ok: true };
 }

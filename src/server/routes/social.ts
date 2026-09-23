@@ -26,6 +26,7 @@ import {
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  type SocialUnreadSink,
   unreadNotificationCount,
 } from "../services/social-notifications.ts";
 import {
@@ -52,6 +53,7 @@ import { validate } from "../validation.ts";
 export type SocialRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppBatchDb;
   getBucket: (c: Context<AppEnv>) => PhotoBucket;
+  notifyUnread?: (c: Context<AppEnv>) => SocialUnreadSink;
 };
 
 function noStore(c: Context<AppEnv>) {
@@ -254,6 +256,7 @@ export function createSocialRoute(deps: SocialRouteDeps) {
             userId: c.get("user").id,
             postId: c.req.valid("param").id,
             reactionTypeId: c.req.valid("json").reactionTypeId,
+            onUnread: deps.notifyUnread?.(c),
           }),
         );
       },

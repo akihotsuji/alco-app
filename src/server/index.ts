@@ -6,6 +6,7 @@ import { createD1Db } from "@/db/index.ts";
 import type { AppEnv } from "./app-env.ts";
 import { type Auth, createAuthFromEnv } from "./auth.ts";
 import { canonicalRedirectResponse } from "./canonical-redirect.ts";
+import { readVapidConfig, type VapidConfig } from "./env.ts";
 import { createAgeGuard } from "./middleware/age.ts";
 import { type AuthResolver, createAuthGuard } from "./middleware/auth.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
@@ -19,6 +20,7 @@ import { healthRoute } from "./routes/health.ts";
 import { createMeRoute } from "./routes/me.ts";
 import { createMyDrinksRoute } from "./routes/my-drinks.ts";
 import { createPhotosRoute } from "./routes/photos.ts";
+import { createPushRoute } from "./routes/push.ts";
 import { createSocialRoute } from "./routes/social.ts";
 import { createTastingNotesRoute } from "./routes/tasting-notes.ts";
 import { runAccountDeletionJobs } from "./services/account-deletion-jobs.ts";
@@ -34,6 +36,7 @@ import { purgeExpiredIdempotency } from "./services/idempotency.ts";
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import { runDailyGc } from "./services/photo-gc.ts";
 import { type PhotoBucket, wrapR2Bucket } from "./services/photos.ts";
+import { createSocialPushNotifier, type PushFetch } from "./services/web-push.ts";
 import { envAssets, isHashedAssetPath, serveHashedAsset } from "./static-assets.ts";
 
 export type CreateAppOptions = {
@@ -49,6 +52,9 @@ export type CreateAppOptions = {
   turnstileSiteKey?: string | null;
   photoDailyLimit?: number;
   sendFeedback?: SendFeedbackEmail;
+  /** テスト用。`undefined` なら env の VAPID 鍵、`null` は鍵なし */
+  vapid?: VapidConfig | null;
+  pushFetch?: PushFetch;
 };
 
 /**
@@ -132,6 +138,13 @@ export function createApp(options: CreateAppOptions = {}) {
     recognizeTimeoutMs: options.recognizeTimeoutMs,
   });
   const tastingNotesRoute = createTastingNotesRoute(routeDeps);
+  const getVapid = (c: { env: Env }) =>
+    options.vapid !== undefined ? options.vapid : readVapidConfig(c.env);
+  const notifyUnread = createSocialPushNotifier({
+    getDb,
+    getVapid,
+    fetch: options.pushFetch ?? ((url, init) => fetch(url, init)),
+  });
 
   // RPC（2-04）に型を出すため、業務ルートはチェーンして返す。固定パスは `:id` より前に置く
   return app
@@ -145,8 +158,9 @@ export function createApp(options: CreateAppOptions = {}) {
     .route("/api/tasting-notes", tastingNotesRoute)
     .route("/api/cellars", createCellarsRoute(routeDeps))
     .route("/api/cellar-invitations", createCellarInvitationsRoute(routeDeps))
-    .route("/api/social", createSocialRoute(routeDeps))
-    .route("/api/friends", createFriendsRoute(routeDeps))
+    .route("/api/social", createSocialRoute({ ...routeDeps, notifyUnread }))
+    .route("/api/friends", createFriendsRoute({ ...routeDeps, notifyUnread }))
+    .route("/api/push", createPushRoute({ getDb, getVapid }))
     .route(
       "/api/feedback",
       createFeedbackRoute({

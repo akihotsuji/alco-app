@@ -15,7 +15,7 @@ import {
 } from "@/shared/constants.ts";
 import { LEGAL_VERSION } from "@/shared/legal.ts";
 import { createAuth } from "./auth.ts";
-import type { GoogleOAuthConfig } from "./env.ts";
+import type { GoogleOAuthConfig, VapidConfig } from "./env.ts";
 import { createApp } from "./index.ts";
 import { createMemoryR2 } from "./memory-r2.ts";
 import { ensurePersonalCellar } from "./services/cellar-access.ts";
@@ -24,6 +24,7 @@ import type { FeedbackMail, SendFeedbackEmail } from "./services/feedback-mail.t
 import type { LabelRecognizer } from "./services/label-recognizer/index.ts";
 import type { ResetPasswordMail, SendResetPasswordEmail } from "./services/reset-password-mail.ts";
 import type { VerifyTurnstile } from "./services/turnstile.ts";
+import type { PushFetch } from "./services/web-push.ts";
 
 const TEST_AUTH_SECRET = "test-only-not-a-production-secret!!";
 const TEST_ORIGIN = "http://localhost";
@@ -129,6 +130,8 @@ export async function createTestApp(
     turnstileSiteKey?: string | null;
     photoDailyLimit?: number;
     signupsClosed?: boolean;
+    vapid?: VapidConfig | null;
+    pushFetch?: PushFetch;
   } = {},
 ) {
   const client = createClient({ url: ":memory:" });
@@ -180,6 +183,8 @@ export async function createTestApp(
     lookupTimeoutMs: options.lookupTimeoutMs,
     turnstileSiteKey: options.turnstileSiteKey,
     photoDailyLimit: options.photoDailyLimit,
+    vapid: options.vapid ?? null,
+    pushFetch: options.pushFetch,
     sendFeedback:
       options.sendFeedback ??
       (async (mail) => {

@@ -30,6 +30,7 @@ import {
   deleteNotificationsBetweenUsers,
   deleteNotificationsByDedup,
   requestDedupKey,
+  type SocialUnreadSink,
   upsertNotification,
 } from "./social-notifications.ts";
 import { socialInviteCreateRateLimiter, socialRequestRateLimiter } from "./social-rate-limit.ts";
@@ -199,6 +200,7 @@ export async function createFriendRequest(input: {
   requesterUserId: string;
   token: string;
   now?: Date;
+  onUnread?: SocialUnreadSink;
 }): Promise<{ request: FriendRequest }> {
   const now = input.now ?? new Date();
   if (!socialRequestRateLimiter.consume(input.requesterUserId, now.getTime())) {
@@ -251,6 +253,7 @@ export async function createFriendRequest(input: {
     targetKind: "friend_request",
     targetId: id,
     now,
+    onUnread: input.onUnread,
   });
   const request = await loadRequest(input.db, id, input.requesterUserId);
   return { request };
@@ -261,6 +264,7 @@ export async function acceptFriendRequest(input: {
   userId: string;
   requestId: string;
   now?: Date;
+  onUnread?: SocialUnreadSink;
 }): Promise<{ ok: true }> {
   const now = input.now ?? new Date();
   const request = await loadRawRequest(input.db, input.requestId);
@@ -308,6 +312,7 @@ export async function acceptFriendRequest(input: {
     targetKind: "user",
     targetId: request.recipientUserId,
     now,
+    onUnread: input.onUnread,
   });
   return { ok: true };
 }

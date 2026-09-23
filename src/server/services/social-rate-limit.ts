@@ -8,6 +8,7 @@ import {
   SOCIAL_SHARE_RATE_MAX,
   SOCIAL_SHARE_RATE_WINDOW_MS,
 } from "@/shared/constants.ts";
+import { PUSH_SUBSCRIBE_RATE_MAX, PUSH_SUBSCRIBE_RATE_WINDOW_MS } from "@/shared/web-push.ts";
 
 function createLimiter(max: number, windowMs: number) {
   const hits = new Map<string, number[]>();
@@ -44,4 +45,8 @@ export const socialReactionRateLimiter = createLimiter(
 export const socialShareRateLimiter = createLimiter(
   SOCIAL_SHARE_RATE_MAX,
   SOCIAL_SHARE_RATE_WINDOW_MS,
+);
+export const pushSubscribeRateLimiter = createLimiter(
+  PUSH_SUBSCRIBE_RATE_MAX,
+  PUSH_SUBSCRIBE_RATE_WINDOW_MS,
 );
