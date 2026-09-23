@@ -1,7 +1,7 @@
 import { unknownTokenUsage } from "@/shared/ai-recognition.ts";
 import type { RecognitionAdapter } from "./adapter.ts";
 import { bytesToBase64 } from "./bytes.ts";
-import { RecognitionConfigError } from "./profiles.ts";
+import { maxOutputTokensFor, RecognitionConfigError } from "./profiles.ts";
 import { normalizeTokenUsage } from "./usage.ts";
 
 export function createWorkersAiAdapter(ai: Ai): RecognitionAdapter {
@@ -30,7 +30,7 @@ export function createWorkersAiAdapter(ai: Ai): RecognitionAdapter {
           },
         ],
         guided_json: request.schema,
-        max_tokens: request.profile.maxOutputTokens,
+        max_tokens: maxOutputTokensFor(request.profile, request.kind, imageParts.length),
         temperature: request.profile.temperature,
       });
       throwIfAborted(request.signal);

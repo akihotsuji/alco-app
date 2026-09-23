@@ -45,6 +45,12 @@ export type ModelProfile = {
   lookupTimeoutMs: number;
   maxOutputTokens: number;
   lookupMaxOutputTokens: number;
+  /**
+   * 画像 2 枚（セラーの表 + 裏）の抽出。思考が伸びて 1 枚用の上限では JSON まで届かず
+   * `MAX_TOKENS` で空になるため別枠にする。上限を上げた分だけ生成時間も延びるので打ち切りも別枠
+   */
+  multiImageMaxOutputTokens: number;
+  multiImageTimeoutMs: number;
   temperature: number;
   verification: "mock-only" | "production-llama";
 };
@@ -67,6 +73,8 @@ export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
     lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_BUDGET_MS,
     maxOutputTokens: 1024,
     lookupMaxOutputTokens: 1536,
+    multiImageMaxOutputTokens: 2048,
+    multiImageTimeoutMs: 25_000,
     temperature: 0,
     verification: "mock-only",
   },
@@ -87,6 +95,8 @@ export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
     lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_BUDGET_MS,
     maxOutputTokens: 2048,
     lookupMaxOutputTokens: 1536,
+    multiImageMaxOutputTokens: 4096,
+    multiImageTimeoutMs: 40_000,
     temperature: 0,
     verification: "mock-only",
   },
@@ -106,6 +116,8 @@ export const MODEL_PROFILES: Record<AiRecognitionProfileKey, ModelProfile> = {
     lookupTimeoutMs: AI_RECOGNIZE_LOOKUP_BUDGET_MS,
     maxOutputTokens: 500,
     lookupMaxOutputTokens: 400,
+    multiImageMaxOutputTokens: 500,
+    multiImageTimeoutMs: AI_RECOGNIZE_TIMEOUT_MS,
     temperature: 0,
     verification: "production-llama",
   },
@@ -123,15 +135,32 @@ export const DEFAULT_PROFILE_BY_TASK: Record<AiRecognitionTask, AiRecognitionPro
   note: "gemini-3.7-flash",
 };
 
-/** 経路ごとのアプリ側打ち切り。未指定ならそのプロファイルの timeoutMs */
-export function timeoutMsForRecognizer(recognizer: { profile: string }, override?: number): number {
+/** 経路ごとのアプリ側打ち切り。未指定ならそのプロファイルの timeoutMs（画像 2 枚なら multiImageTimeoutMs） */
+export function timeoutMsForRecognizer(
+  recognizer: { profile: string },
+  override?: number,
+  options: { multiImage?: boolean } = {},
+): number {
   if (override !== undefined) {
     return override;
   }
   if (isAiRecognitionProfileKey(recognizer.profile)) {
-    return MODEL_PROFILES[recognizer.profile].timeoutMs;
+    const profile = MODEL_PROFILES[recognizer.profile];
+    return options.multiImage ? profile.multiImageTimeoutMs : profile.timeoutMs;
   }
   return AI_RECOGNIZE_TIMEOUT_MS;
+}
+
+/** 抽出の出力上限。照合は lookupMaxOutputTokens、画像 2 枚以上は multiImageMaxOutputTokens */
+export function maxOutputTokensFor(
+  profile: ModelProfile,
+  kind: "extract" | "lookup",
+  imageCount: number,
+): number {
+  if (kind === "lookup") {
+    return profile.lookupMaxOutputTokens;
+  }
+  return imageCount > 1 ? profile.multiImageMaxOutputTokens : profile.maxOutputTokens;
 }
 
 export class RecognitionConfigError extends Error {

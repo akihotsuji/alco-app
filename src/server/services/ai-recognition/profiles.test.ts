@@ -8,6 +8,8 @@ import {
 } from "@/shared/constants.ts";
 import { recognitionCacheKey } from "./cache.ts";
 import {
+  MODEL_PROFILES,
+  maxOutputTokensFor,
   RecognitionConfigError,
   readAiRecognizeDailyLimit,
   readProfileKey,
@@ -74,6 +76,29 @@ describe("resolveModelProfile", () => {
     expect(timeoutMsForRecognizer({ profile: "gemini-3.5-flash-lite" })).toBe(20_000);
     expect(timeoutMsForRecognizer({ profile: "workers-ai-llama" })).toBe(20_000);
     expect(timeoutMsForRecognizer({ profile: "gemini-3.7-flash" }, 20)).toBe(20);
+  });
+
+  it("画像 2 枚は別枠の打ち切り時間。3.7 Flash は 4096 トークンを出し切れる 40 秒", () => {
+    expect(
+      timeoutMsForRecognizer({ profile: "gemini-3.7-flash" }, undefined, { multiImage: true }),
+    ).toBe(40_000);
+    expect(
+      timeoutMsForRecognizer({ profile: "gemini-3.5-flash-lite" }, undefined, { multiImage: true }),
+    ).toBe(25_000);
+    expect(timeoutMsForRecognizer({ profile: "gemini-3.7-flash" }, 20, { multiImage: true })).toBe(
+      20,
+    );
+  });
+});
+
+describe("maxOutputTokensFor", () => {
+  it("抽出は 1 枚なら maxOutputTokens、2 枚以上なら multiImageMaxOutputTokens。照合は lookup 用", () => {
+    const flash = MODEL_PROFILES["gemini-3.7-flash"];
+    expect(maxOutputTokensFor(flash, "extract", 1)).toBe(2048);
+    expect(maxOutputTokensFor(flash, "extract", 2)).toBe(4096);
+    expect(maxOutputTokensFor(flash, "lookup", 0)).toBe(flash.lookupMaxOutputTokens);
+    const lite = MODEL_PROFILES["gemini-3.5-flash-lite"];
+    expect(maxOutputTokensFor(lite, "extract", 2)).toBe(2048);
   });
 });
 
