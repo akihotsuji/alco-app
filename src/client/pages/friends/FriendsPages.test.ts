@@ -44,3 +44,28 @@ describe("FriendsPages 一覧の名前", () => {
     expect(nameBlock).toContain("text-overflow: ellipsis");
   });
 });
+
+describe("FriendsPostPage 共有詳細", () => {
+  const detail = readFileSync(join(here, "../../components/friends/PostDetailItem.tsx"), "utf8");
+
+  it("写真はボトル詳細と同じ主写真 + 脇の小サムネで、全幅の大きな写真を積まない", () => {
+    expect(source).toContain("PostDetailItem");
+    expect(source.slice(source.indexOf("export function FriendsPostPage"))).not.toContain(
+      "social-card-photo",
+    );
+    expect(detail).toContain("bottle-detail-photos");
+    expect(detail).toContain("bottle-hero-img is-photo");
+    expect(detail).toContain("bottle-back-thumb");
+    expect(detail).toContain("PhotoViewer");
+    expect(css).toContain(".social-post-thumbs");
+    expect(css).toContain("max-height: 240px");
+  });
+
+  it("複数アイテムは小さな写真の横並び。作者の操作は 1 行にまとめる", () => {
+    expect(source).toContain("compact={post.items.length > 1}");
+    expect(detail).toContain("social-post-item is-compact");
+    expect(css).toContain(".social-post-item.is-compact");
+    expect(source).toContain("social-post-actions");
+    expect(css).toContain(".social-post-actions > .app-btn");
+  });
+});
