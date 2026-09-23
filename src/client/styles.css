@@ -7178,7 +7178,87 @@ html[data-reduce-motion="1"] .guide-fan-item {
 .social-post-item {
   display: flex;
   flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* 写真はボトル詳細と同じ主 240px + 脇の小サムネ。複数あるときは主写真の高さで縦スクロール */
+.social-post-thumbs {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.social-post-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.social-post-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.social-post-meta,
+.social-post-comment {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-note);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.social-post-comment {
+  color: var(--foreground);
+}
+
+.social-post-item.is-compact {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+}
+
+.social-post-compact-photo {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 108px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.social-post-compact-photo img,
+.social-post-compact-silhouette {
+  width: 72px;
+  height: 108px;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.social-post-compact-photo:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.social-post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.social-post-actions > .app-btn {
+  flex: 1 1 auto;
+  width: auto;
+  height: var(--tap-min);
+  padding-inline: var(--space-3);
 }
 
 .social-avatar-image,
