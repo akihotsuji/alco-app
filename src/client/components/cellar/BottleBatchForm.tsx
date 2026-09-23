@@ -24,7 +24,7 @@ import {
   batchIngestProgress,
   batchRowErrors,
   batchRowStageLabel,
-  batchSavableCount,
+  batchSubmitCount,
   batchTotalCount,
   canSubmitBatch,
   remainingBatchRows,
@@ -40,7 +40,7 @@ import {
 } from "@/client/lib/label-recognize.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { isCutoutBlobType } from "@/client/lib/photo/photo-file.ts";
-import { IMAGE_PICK_LABELS } from "@/client/lib/photo/pick-image.ts";
+import { IMAGE_PICK_LABELS, type ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import {
   arrangedToastMessage,
   BOTTLE_COUNT_MAX,
@@ -68,7 +68,7 @@ export function BottleBatchForm() {
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const total = batchTotalCount(batch.rows);
-  const savableCount = batchSavableCount(batch.rows);
+  const savableCount = batchSubmitCount(batch.rows);
   const progress = batchIngestProgress(batch.rows);
   const formBusy = batch.submitting;
   const canSubmit = canSubmitBatch(batch.rows) && !formBusy;
@@ -126,12 +126,12 @@ export function BottleBatchForm() {
       }
     }
     if (result.failedCount > 0 || result.leftoverCount > 0) {
-      if (result.failedCount > 0) {
-        setSaveState("error");
-        setFormError(BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount));
-      } else {
-        setSaveState("idle");
-      }
+      setSaveState(result.failedCount > 0 ? "error" : "idle");
+      setFormError(
+        result.failedCount > 0
+          ? BOTTLE_BATCH_MESSAGES.partialFailure(result.failedCount)
+          : result.leftoverMessage,
+      );
       if (result.created.length > 0) {
         showToast({
           message: arrangedToastMessage(result.created.length),
@@ -187,11 +187,11 @@ export function BottleBatchForm() {
             onPatch={(patch) => batch.patchRow(row.key, patch)}
             onToggleDetails={() => batch.toggleDetails(row.key)}
             onEditPhoto={() => void batch.editPhoto(row.key)}
-            onRetryPhoto={() => void batch.retryPhoto(row.key)}
+            onRetryRow={() => void batch.retryRow(row.key)}
             onReplacePhoto={() => void batch.replacePhoto(row.key)}
             onRemove={() => void batch.removeRow(row.key)}
             onRecognizeRetry={() => batch.recognizeRow(row.key)}
-            onAddBackPhoto={() => void batch.addBackPhoto(row.key, "camera")}
+            onAddBackPhoto={(source) => void batch.addBackPhoto(row.key, source)}
             onRetryBackPhoto={() => void batch.retryBackPhoto(row.key)}
             onRemoveBackPhoto={() => batch.removeBackPhoto(row.key)}
           />
@@ -268,7 +268,7 @@ function BatchRowCard({
   onPatch,
   onToggleDetails,
   onEditPhoto,
-  onRetryPhoto,
+  onRetryRow,
   onReplacePhoto,
   onRemove,
   onRecognizeRetry,
@@ -282,11 +282,11 @@ function BatchRowCard({
   onPatch: (patch: Partial<BottleFormState>) => void;
   onToggleDetails: () => void;
   onEditPhoto: () => void;
-  onRetryPhoto: () => void;
+  onRetryRow: () => void;
   onReplacePhoto: () => void;
   onRemove: () => void;
   onRecognizeRetry: () => void;
-  onAddBackPhoto: () => void;
+  onAddBackPhoto: (source: ImagePickSource) => void;
   onRetryBackPhoto: () => void;
   onRemoveBackPhoto: () => void;
 }) {
@@ -340,7 +340,7 @@ function BatchRowCard({
               </span>
             ) : null}
             {failed ? (
-              <button type="button" className="photo-tile-retry" onClick={onRetryPhoto}>
+              <button type="button" className="photo-tile-retry" onClick={onRetryRow}>
                 <span aria-hidden>!</span>
                 <span>再試行</span>
               </button>
@@ -486,7 +486,7 @@ function BatchRowCard({
             type="button"
             className="header-text-link"
             disabled={disabled}
-            onClick={onRetryPhoto}
+            onClick={onRetryRow}
           >
             再試行
           </button>
@@ -541,7 +541,10 @@ function BatchRowCard({
   );
 }
 
-/** 行の裏面（04-cellar G2b）。「+ 裏面」→ 40×60 サムネ + × */
+/**
+ * 行の裏面（04-cellar G2b）。「+ 裏面」を押すと撮る／選ぶの丸ボタンが下へ出る（M-38）。
+ * 付けたら 40×60 サムネ + ×
+ */
 function BatchBackPhoto({
   row,
   disabled,
@@ -551,10 +554,37 @@ function BatchBackPhoto({
 }: {
   row: BottleBatchRow;
   disabled: boolean;
-  onAdd: () => void;
+  onAdd: (source: ImagePickSource) => void;
   onRetry: () => void;
   onRemove: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const sourcesId = useId();
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && rootRef.current?.contains(event.target)) {
+        return;
+      }
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   if (row.backProcessing) {
     return (
       <span className="bottle-batch-back-processing" role="status">
@@ -563,15 +593,49 @@ function BatchBackPhoto({
     );
   }
   if (!row.backPhoto) {
+    const pick = (source: ImagePickSource) => {
+      setOpen(false);
+      onAdd(source);
+    };
     return (
-      <button
-        type="button"
-        className="header-text-link bottle-batch-back-add"
-        disabled={disabled}
-        onClick={onAdd}
-      >
-        {BACK_PHOTO_LABELS.add}
-      </button>
+      <div ref={rootRef} className="bottle-batch-back-picker">
+        <button
+          type="button"
+          className="header-text-link bottle-batch-back-add"
+          aria-expanded={open}
+          aria-controls={sourcesId}
+          disabled={disabled}
+          onClick={() => setOpen((current) => !current)}
+        >
+          {BACK_PHOTO_LABELS.add}
+        </button>
+        {open ? (
+          // biome-ignore lint/a11y/useSemanticElements: 丸ボタン 2 つの縦並び。fieldset だと余白と枠が崩れる
+          <div
+            id={sourcesId}
+            className="bottle-batch-back-sources"
+            role="group"
+            aria-label={BACK_PHOTO_LABELS.heading}
+          >
+            <IconButton
+              label={BACK_PHOTO_LABELS.capture}
+              className="bottle-batch-back-source"
+              disabled={disabled}
+              onClick={() => pick("camera")}
+            >
+              <Camera size={18} />
+            </IconButton>
+            <IconButton
+              label={BACK_PHOTO_LABELS.library}
+              className="bottle-batch-back-source"
+              disabled={disabled}
+              onClick={() => pick("library")}
+            >
+              <Images size={18} />
+            </IconButton>
+          </div>
+        ) : null}
+      </div>
     );
   }
   return (

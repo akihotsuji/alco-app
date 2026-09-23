@@ -38,4 +38,17 @@ describe("takeFilesForBatch", () => {
     expect(fn).not.toContain("getComposeMascotPref");
     expect(fn).not.toContain("mascotOn");
   });
+
+  it("裏面はラベル部分を自動で切り出し、見つからないときだけ中央 2:3 に戻す（B1b / G2b）", () => {
+    const fn = source.slice(
+      source.indexOf("export async function processBackPhotoFile"),
+      source.indexOf("export async function processNoteFile"),
+    );
+    expect(fn).toContain("getCutoutPref() && supportsBackgroundRemoval()");
+    expect(fn).toContain("detectBackLabel(source, source.width, source.height)");
+    expect(fn).toContain("cropToLabel(source, source.width, source.height, label)");
+    expect(fn).toContain("toRecognizeJpeg(canvas)");
+    expect(fn.indexOf("if (label)")).toBeLessThan(fn.indexOf("processPhoto({"));
+    expect(fn).toContain("cutoutOn: false");
+  });
 });

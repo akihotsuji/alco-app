@@ -42,6 +42,27 @@ async function pickFrontFromLibrary(page: Page, file: string): Promise<void> {
   await confirmCellarPhotoEdit(page);
 }
 
+/** B1c: 表面の直後に出る「裏ラベルも登録しますか？」 */
+function backOfferSheet(page: Page) {
+  return page.getByRole("dialog", { name: "裏ラベルも登録しますか？" });
+}
+
+async function pickBackFromOffer(page: Page, file: string): Promise<void> {
+  const sheet = backOfferSheet(page);
+  await expect(sheet).toBeVisible();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await sheet.getByRole("button", { name: "裏ラベルを選ぶ" }).click();
+  await (await chooserPromise).setFiles(file);
+  await expect(sheet).toHaveCount(0);
+}
+
+async function skipBackOffer(page: Page): Promise<void> {
+  const sheet = backOfferSheet(page);
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole("button", { name: "表面だけで読み取る" }).click();
+  await expect(sheet).toHaveCount(0);
+}
+
 async function pickBackFromLibrary(page: Page, file: string): Promise<void> {
   await page.getByRole("button", { name: "＋ 裏ラベルを追加（任意）" }).click();
   const chooserPromise = page.waitForEvent("filechooser");
@@ -90,20 +111,21 @@ test("単体追加で裏面を付けて保存すると詳細に残り、棚に�
   await expect(page.getByText("裏面（任意）")).toHaveCount(0);
 
   await pickFrontFromLibrary(page, frontJpeg);
-  await expect(page.getByRole("button", { name: "＋ 裏ラベルを追加（任意）" })).toBeVisible();
-
-  await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible({ timeout: 30_000 });
-  await shot(page, "cellar_new_front_retry");
-  await clickRecognizeRetry(page);
-
-  await pickBackFromLibrary(page, backJpeg);
-  await expect(page.getByRole("dialog", { name: "写真を編集" })).toHaveCount(0);
-  await expect(page.getByRole("img", { name: "裏ラベルの写真" })).toBeVisible();
-  await expect(page.getByText("アップロード中")).toHaveCount(0);
+  // 裏ラベルを聞いている間は読み取りを始めない
+  await expect(backOfferSheet(page)).toBeVisible();
   await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible();
+  await shot(page, "cellar_new_back_offer");
+  await pickBackFromOffer(page, backJpeg);
+  await expect(page.getByRole("dialog", { name: "写真を編集" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "裏ラベルの写真", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "裏ラベルの写真を編集" })).toBeVisible();
+
+  // 両面がそろってから読み取る。同じ組の「裏面も含めて読み取る」は出さない
+  await expect(page.getByRole("button", { name: "再読み取り" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("アップロード中")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "裏面も含めて読み取る" })).toHaveCount(0);
   await shot(page, "cellar_new_front_and_back");
+  await clickRecognizeRetry(page);
 
   await page.getByLabel("品名").fill(BOTTLE_NAME);
   await page.getByRole("button", { name: "お酒の詳細（任意）" }).click();
@@ -157,8 +179,11 @@ test("まとめて追加の行に裏面と再読み取りを付けられる", as
   await shot(page, "cellar_batch_retry");
   await clickRecognizeRetry(page);
 
-  const backChooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "+ 裏面" }).click();
+  await expect(page.getByRole("button", { name: "裏面を撮る" })).toBeVisible();
+  await shot(page, "cellar_batch_back_sources");
+  const backChooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "裏面を選ぶ" }).click();
   await (await backChooser).setFiles(backJpeg);
   await expect(page.getByRole("img", { name: "裏面の写真" })).toBeVisible();
   await expect(page.getByRole("button", { name: "裏面を外す" })).toBeVisible();
@@ -184,6 +209,8 @@ test("表面だけのボトルに裏面を足すと案内帯から表と裏で�
   await mainNav(page).getByRole("button", { name: "セラー" }).click();
   await page.getByRole("link", { name: "ボトルを追加" }).click();
   await pickFrontFromLibrary(page, frontJpeg);
+  await skipBackOffer(page);
+  await expect(page.getByRole("button", { name: "＋ 裏ラベルを追加（任意）" })).toBeVisible();
   await page.getByLabel("品名").fill(EDIT_BOTTLE_NAME);
   const arrange = page.getByRole("button", { name: "棚に並べる（1 本）" });
   await expect(arrange).toBeEnabled({ timeout: 30_000 });
@@ -198,7 +225,7 @@ test("表面だけのボトルに裏面を足すと案内帯から表と裏で�
   await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
 
   await pickBackFromLibrary(page, backJpeg);
-  await expect(page.getByRole("img", { name: "裏ラベルの写真" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "裏ラベルの写真", exact: true })).toBeVisible();
   await expect(page.getByText("ラベルを読み取り中…")).toHaveCount(0);
   await expect(page.getByText("裏面も使ってラベルを読み取れます")).toBeVisible();
   const withBack = page.getByRole("button", { name: "裏面も含めて読み取る" });

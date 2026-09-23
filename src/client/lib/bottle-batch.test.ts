@@ -8,14 +8,17 @@ import {
   BOTTLE_BATCH_MESSAGES,
   type BottleBatchRow,
   batchIngestProgress,
+  batchLeftoverMessage,
   batchRowBody,
   batchRowPhotoStatus,
   batchSavableCount,
+  batchSubmitCount,
   batchTotalCount,
   batchUnlinkedPhotoIds,
   canAddBatchRow,
   canReserveBatchRow,
   canSubmitBatch,
+  isBatchRowRetryable,
   isBatchRowSavable,
   newBatchRow,
   newQueuedBatchRow,
@@ -263,7 +266,7 @@ describe("裏面（G2b）", () => {
     expect(revoke).toHaveBeenCalled();
   });
 
-  it("裏面の処理中・アップロード中・失敗は行の保存を止める", () => {
+  it("裏面の処理中・アップロード中は保存を止め、送信失敗は保存時に送り直す対象にする", () => {
     const processing = { ...readyRow("a"), backProcessing: true };
     expect(batchRowPhotoStatus(processing)).toBe("uploading");
     expect(canSubmitBatch([processing])).toBe(false);
@@ -278,7 +281,9 @@ describe("裏面（G2b）", () => {
       "a",
       photo({ photoId: null, status: "error" }),
     );
-    expect(canSubmitBatch(failed)).toBe(false);
+    expect(savableBatchRows(failed)).toHaveLength(0);
+    expect(isBatchRowRetryable(failed[0] as BottleBatchRow)).toBe(true);
+    expect(canSubmitBatch(failed)).toBe(true);
     const ready = setBatchBackPhoto([readyRow("a")], "a", photo({ photoId: "back-a" }));
     expect(canSubmitBatch(ready)).toBe(true);
   });
@@ -316,5 +321,49 @@ describe("送信結果の反映", () => {
     });
     expect(next.map((row) => row.key)).toEqual(["b"]);
     expect(next[0]?.saveOperationKey).toBe("op-b");
+  });
+});
+
+describe("写真の送り直し（G9 / #④）", () => {
+  function uploadFailedRow(key: string, name = "サンプル赤"): BottleBatchRow {
+    const row = readyRow(key, name);
+    return {
+      ...row,
+      photo: photo({ photoId: null, status: "error", blob: new Blob(["x"]) }),
+      phase: "error",
+      failure: { code: "network", message: "通信できませんでした", stage: "upload" },
+    };
+  }
+
+  it("アップロードだけ失敗した行は保存時に送り直す対象で、ボタンの本数に数える", () => {
+    const rows = [readyRow("a", "赤", 2), uploadFailedRow("b")];
+    expect(isBatchRowSavable(rows[1] as BottleBatchRow)).toBe(false);
+    expect(isBatchRowRetryable(rows[1] as BottleBatchRow)).toBe(true);
+    expect(batchSubmitCount(rows)).toBe(3);
+    expect(canSubmitBatch([uploadFailedRow("c")])).toBe(true);
+  });
+
+  it("変換失敗・画像なし・品名が空の行は送り直しの対象にしない", () => {
+    const convert: BottleBatchRow = {
+      ...uploadFailedRow("a"),
+      failure: { code: "convert_failed", message: "画像の変換に失敗しました", stage: "convert" },
+    };
+    const empty: BottleBatchRow = {
+      ...uploadFailedRow("b"),
+      photo: photo({ photoId: null, status: "error", blob: new Blob() }),
+    };
+    expect(isBatchRowRetryable(convert)).toBe(false);
+    expect(isBatchRowRetryable(empty)).toBe(false);
+    expect(isBatchRowRetryable(uploadFailedRow("c", ""))).toBe(false);
+    expect(canSubmitBatch([convert, empty])).toBe(false);
+  });
+
+  it("残った行の理由をまとめて伝える", () => {
+    const processing: BottleBatchRow = { ...readyRow("p"), phase: "uploading" };
+    const noName = readyRow("n", "");
+    expect(batchLeftoverMessage([uploadFailedRow("a"), processing, noName])).toBe(
+      "並べられなかった行を残しました（写真を送れなかった行 1・写真を処理中の行 1・品名が空の行 1）",
+    );
+    expect(batchLeftoverMessage([])).toBeNull();
   });
 });

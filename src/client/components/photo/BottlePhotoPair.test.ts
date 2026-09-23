@@ -4,10 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { BOTTLE_PHOTO_ACTION_LABELS } from "@/client/lib/bottle-photo-actions.ts";
 
-const source = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "BottlePhotoPair.tsx"),
-  "utf8",
-);
+const here = dirname(fileURLToPath(import.meta.url));
+const source = readFileSync(join(here, "BottlePhotoPair.tsx"), "utf8");
+const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
 describe("BottlePhotoPair", () => {
   it("表面は切り抜き調整を含み、裏面は切り抜き調整を出さない", () => {
@@ -33,5 +32,17 @@ describe("BottlePhotoPair", () => {
     expect(BOTTLE_PHOTO_ACTION_LABELS.addBack).toBe("＋ 裏ラベルを追加（任意）");
     expect(BOTTLE_PHOTO_ACTION_LABELS.captureShort).toBe("撮影");
     expect(BOTTLE_PHOTO_ACTION_LABELS.libraryShort).toBe("ライブラリ");
+  });
+
+  it("表面と裏ラベルはボトル詳細と同じ横並び（主 240px の脇に 64×96）", () => {
+    expect(source).toContain("bottle-photo-filled has-back");
+    expect(source).toContain('className="bottle-hero-img is-photo"');
+    expect(source).toContain("PHOTO_DISPLAY_SIZE.bottleHero");
+    expect(source).toContain('className="bottle-back-thumb"');
+    expect(source).toContain("photo-thumb bottle-back-thumb-frame");
+    expect(source).not.toContain("FilledSlot");
+    expect(css).toMatch(/\.bottle-photo-filled \{\s*display: flex;/);
+    expect(css).toContain(".bottle-photo-filled.has-back .bottle-photo-hero");
+    expect(css).toContain(".bottle-back-thumb-frame .photo-thumb-img");
   });
 });

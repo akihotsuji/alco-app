@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { BackPhotoOfferSheet } from "@/client/components/cellar/BackPhotoOfferSheet.tsx";
 import { RecognizeBanner } from "@/client/components/cellar/RecognizeBanner.tsx";
 import { Dialog } from "@/client/components/feedback/Dialog.tsx";
 import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
@@ -52,6 +53,7 @@ import {
 import type { PhotoSaveStatus } from "@/client/lib/log-form.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
 import { capturedAtToCalendarDate } from "@/client/lib/photo/captured-at.ts";
+import type { ImagePickSource } from "@/client/lib/photo/pick-image.ts";
 import { toRecognizeJpegFromBlob } from "@/client/lib/photo/process.ts";
 import { offerMatchesSession } from "@/client/lib/photo-recognize-offer.ts";
 import { getCellarRecognizePref } from "@/client/lib/preferences.ts";
@@ -154,6 +156,10 @@ export function BottleFormFields({
   const [discardOpen, setDiscardOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [recognizeStatus, setRecognizeStatus] = useState<RecognizeBannerStatus | null>(null);
+  /** B1c を開いている間の表面 JPEG。答えが出るまで読み取りを始めない */
+  const [backOfferJpeg, setBackOfferJpeg] = useState<Blob | null>(null);
+  /** 直近の読み取りに載せた裏面 JPEG。同じ組なら「裏面も含めて読み取る」を出さない */
+  const [recognizedBack, setRecognizedBack] = useState<Blob | null>(null);
   const [aiMarks, setAiMarks] = useState<Set<RecognizeMarkField>>(new Set());
   const [drinkTypeTouched, setDrinkTypeTouched] = useState(false);
   const [touched, setTouched] = useState<Partial<Record<BottleFormField, boolean>>>({});
@@ -269,19 +275,25 @@ export function BottleFormFields({
     }
   }
 
-  // 「使う」直後、切り抜き・アップロードを待たずに読み取りを始める（Issue #48 D-1）。
-  // 結果は attachment 側の effect が同じ Blob で受け取る（1 リクエストにまとまる）
+  // 編集で表面を差し替えたときは「使う」直後、切り抜き・アップロードを待たずに読み取りを始める（Issue #48 D-1）。
+  // 結果は attachment 側の effect が同じ Blob で受け取る（1 リクエストにまとまる）。
+  // 新規は裏ラベルの有無を聞いてから読むので先に投げない（両面で読むと表面だけの呼び出しが無駄になる）
   useEffect(() => {
-    if (!getCellarRecognizePref() || !offerMatchesSession(pendingRecognize, session)) {
+    if (
+      mode === "new" ||
+      !getCellarRecognizePref() ||
+      !offerMatchesSession(pendingRecognize, session)
+    ) {
       return;
     }
     startLabelRecognition(pendingRecognize.jpeg).catch(() => {});
-  }, [pendingRecognize, session]);
+  }, [mode, pendingRecognize, session]);
 
   const runRecognition = useCallback((jpeg: Blob, back: Blob | null, force: boolean) => {
     const requestId = recognizeRequestRef.current + 1;
     recognizeRequestRef.current = requestId;
     setRecognizeStatus("loading");
+    setRecognizedBack(back);
     void startLabelRecognition(jpeg, undefined, { back, force })
       .then((result) => {
         if (ignoreRecognizeRef.current || requestId !== recognizeRequestRef.current) {
@@ -315,18 +327,22 @@ export function BottleFormFields({
   }, []);
 
   const backRecognizeJpeg = hasFront ? (backPhoto.attachment?.recognizeJpeg ?? null) : null;
+  const hasBackPhoto = backPhoto.status !== "none";
+  const hasBackPhotoRef = useRef(hasBackPhoto);
+  hasBackPhotoRef.current = hasBackPhoto;
 
   // 裏面 JPEG は手動再判定用にだけ保持する。追加だけではリクエストしない（cellar.md 3.3 B2）。
   useEffect(() => {
     recognizeBackJpegRef.current = backRecognizeJpeg;
   }, [backRecognizeJpeg]);
 
-  // 表面の JPEG が新しく付いたときだけ自動で読む（裏面は渡さない）。
+  // 表面の JPEG が新しく付いたときだけ自動で読む。
+  // 新規で裏ラベルがまだ無ければ、先に B1c で裏ラベルも付けるかを聞き、答えが出てから読む。
   // 編集で保存済み表面だけのときは走らせない（cellar.md 3.5）。
   useEffect(() => {
-    if (!getCellarRecognizePref()) {
+    const recognizeOn = getCellarRecognizePref();
+    if (!recognizeOn) {
       setRecognizeStatus(null);
-      return;
     }
     if (mode !== "new" && !attachment?.recognizeJpeg) {
       return;
@@ -335,6 +351,7 @@ export function BottleFormFields({
     if (!jpeg) {
       if (!attachment) {
         setRecognizeStatus(null);
+        setBackOfferJpeg(null);
         recognizeJpegRef.current = null;
         recognizeBackJpegRef.current = null;
       }
@@ -344,8 +361,36 @@ export function BottleFormFields({
       return;
     }
     recognizeJpegRef.current = jpeg;
-    runRecognition(jpeg, null, false);
+    if (mode === "new" && !hasBackPhotoRef.current) {
+      setBackOfferJpeg(jpeg);
+      return;
+    }
+    if (recognizeOn) {
+      runRecognition(jpeg, mode === "new" ? recognizeBackJpegRef.current : null, false);
+    }
   }, [attachment, mode, runRecognition]);
+
+  function skipBackOffer() {
+    const jpeg = backOfferJpeg;
+    setBackOfferJpeg(null);
+    if (jpeg && jpeg === recognizeJpegRef.current && getCellarRecognizePref()) {
+      runRecognition(jpeg, null, false);
+    }
+  }
+
+  async function pickBackFromOffer(source: ImagePickSource) {
+    const jpeg = backOfferJpeg;
+    setBackOfferJpeg(null);
+    const recognizeOn = getCellarRecognizePref();
+    if (jpeg && recognizeOn) {
+      setRecognizeStatus("loading");
+    }
+    const back = await backPhoto.pick(source);
+    if (!jpeg || !recognizeOn || jpeg !== recognizeJpegRef.current) {
+      return;
+    }
+    runRecognition(jpeg, back?.recognizeJpeg ?? null, false);
+  }
 
   // 表面をユーザーが消したときだけ裏面も外す（E41）。
   // hasFront の変化を見て自動削除しないこと。保存成功後の releaseAttachment で
@@ -562,7 +607,9 @@ export function BottleFormFields({
           status={recognizeStatus ?? "offer"}
           onRetry={retryRecognition}
           onRecognizeWithBack={
-            (recognizeStatus === "success" || !recognizeStatus) && backRecognizeJpeg
+            (recognizeStatus === "success" || !recognizeStatus) &&
+            backRecognizeJpeg &&
+            backRecognizeJpeg !== recognizedBack
               ? () => void recognizeWithBack()
               : undefined
           }
@@ -773,6 +820,12 @@ export function BottleFormFields({
           このボトルを削除
         </button>
       ) : null}
+      <BackPhotoOfferSheet
+        open={backOfferJpeg !== null}
+        recognize={getCellarRecognizePref()}
+        onPick={(source) => void pickBackFromOffer(source)}
+        onSkip={skipBackOffer}
+      />
       <Dialog
         open={discardOpen}
         title={DISCARD_TITLE}
