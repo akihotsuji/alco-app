@@ -15,17 +15,19 @@ import {
   type BatchSubmitOutcome,
   BOTTLE_BATCH_MESSAGES,
   type BottleBatchRow,
+  batchLeftoverMessage,
   batchRowBody,
+  batchSubmitCount,
   batchUnlinkedPhotoIds,
   canAddBatchRow,
   canReserveBatchRow,
+  isBatchRowRetryable,
   isBatchRowSavable,
   newQueuedBatchRow,
   patchBatchRowForm,
   remainingBatchRows,
   removeBatchRow,
   revokeBatchPreviewUrls,
-  savableBatchRows,
   setBatchBackPhoto,
   updateBatchRow,
   updateExistingBatchPhoto,
@@ -64,8 +66,19 @@ export type BatchSubmitResult = {
   created: Bottle[];
   failedCount: number;
   leftoverCount: number;
+  /** 残った行の理由（写真の送信失敗・処理中・品名が空など）。残りが無ければ null */
+  leftoverMessage: string | null;
   registrationBatchId: string | null;
 };
+
+/** 一時的な失敗（通信断・5xx）は間を空けて送り直す。4xx はそのまま返す */
+function uploadWithRetry(blob: Blob): Promise<{ id: string }> {
+  return retryTransient(() => uploadPhoto(blob), {
+    retries: BATCH_TRANSIENT_RETRY_LIMIT,
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    online: navigator.onLine,
+  });
+}
 
 function attachmentFromProcessed(
   processed: ProcessedPhoto,
@@ -134,7 +147,7 @@ export function useBottleBatch(autoCapture: boolean) {
             if (!isActive(key)) {
               throw new DOMException("aborted", "AbortError");
             }
-            return uploadPhoto(blob);
+            return uploadWithRetry(blob);
           }),
         onUpdate: (attachment, error) => {
           if (discardedRef.current.has(key)) {
@@ -315,7 +328,7 @@ export function useBottleBatch(autoCapture: boolean) {
         upload: async (job) => {
           const started = performance.now();
           try {
-            const meta = await uploadPhoto(job.blob);
+            const meta = await uploadWithRetry(job.blob);
             traceBatchEvent({
               ingestId: job.ingestId,
               rowKey: job.key,
@@ -530,7 +543,7 @@ export function useBottleBatch(autoCapture: boolean) {
       const draft = backPhotoDraft(processed);
       setRows((current) => setBatchBackPhoto(current, key, draft));
       try {
-        const meta = await uploadQueueRef.current.run(() => uploadPhoto(draft.blob));
+        const meta = await uploadQueueRef.current.run(() => uploadWithRetry(draft.blob));
         if (!rowsRef.current.some((item) => item.key === key && item.backPhoto === draft)) {
           void deletePhoto(meta.id).catch(() => {});
           return;
@@ -546,23 +559,26 @@ export function useBottleBatch(autoCapture: boolean) {
     }
   }, []);
 
-  const retryBackPhoto = useCallback(async (key: string) => {
+  /** 裏面の送り直し。成功したら photo id を返す（保存前の送り直しで使う） */
+  const retryBackPhoto = useCallback(async (key: string): Promise<string | null> => {
     const current = rowsRef.current.find((row) => row.key === key)?.backPhoto;
     if (current?.status !== "error" || retryLockRef.current.has(`back:${key}`)) {
-      return;
+      return null;
     }
     retryLockRef.current.add(`back:${key}`);
     const draft: PhotoAttachment = { ...current, status: "uploading" };
     setRows((items) => setBatchBackPhoto(items, key, draft));
     try {
-      const meta = await uploadQueueRef.current.run(() => uploadPhoto(draft.blob));
+      const meta = await uploadQueueRef.current.run(() => uploadWithRetry(draft.blob));
       if (!rowsRef.current.some((item) => item.key === key && item.backPhoto === draft)) {
         void deletePhoto(meta.id).catch(() => {});
-        return;
+        return null;
       }
       setRows((items) => setBatchBackPhoto(items, key, backPhotoReady(draft, meta.id)));
+      return meta.id;
     } catch {
       setRows((items) => setBatchBackPhoto(items, key, backPhotoFailed(draft)));
+      return null;
     } finally {
       retryLockRef.current.delete(`back:${key}`);
     }
@@ -597,11 +613,15 @@ export function useBottleBatch(autoCapture: boolean) {
     [bindKey, editFromBlob],
   );
 
+  /**
+   * 表面の送り直し。変換から失敗した行はもう一度変換する（完了は待たない）。
+   * アップロードだけ失敗した行は同じ画像を送り、成功したら photo id を返す
+   */
   const retryPhoto = useCallback(
-    async (key: string) => {
+    async (key: string): Promise<string | null> => {
       const current = rowsRef.current.find((row) => row.key === key);
       if (current?.phase !== "error" || retryLockRef.current.has(key)) {
-        return;
+        return null;
       }
       retryLockRef.current.add(key);
       try {
@@ -609,15 +629,16 @@ export function useBottleBatch(autoCapture: boolean) {
         if (file && (current.failure?.stage === "convert" || !current.photo?.blob.size)) {
           bumpToken(key);
           enqueueJobs([{ key, ingestId: current.ingestId, file }]);
-          return;
+          return null;
         }
         if (current.photo?.blob.size) {
           const token = bumpToken(key);
+          let uploadedId: string | null = null;
           setRows((items) =>
             updateBatchRow(items, key, (row) => ({
               photo: row.photo ? { ...row.photo, status: "uploading" } : row.photo,
               phase: "uploading",
-              failure: null,
+              failure: row.failure?.stage === "recognize" ? row.failure : null,
             })),
           );
           await runBatchUploadJob(
@@ -625,16 +646,18 @@ export function useBottleBatch(autoCapture: boolean) {
             {
               uploadQueue: uploadQueueRef.current,
               isActive: (rowKey) => isCurrentToken(rowKey, token),
-              upload: async (job) => uploadPhoto(job.blob),
+              upload: async (job) => uploadWithRetry(job.blob),
               onUploadDone: (rowKey, photoId) => {
                 if (!isCurrentToken(rowKey, token)) {
                   void deletePhoto(photoId).catch(() => {});
                   return;
                 }
+                uploadedId = photoId;
                 setRows((items) =>
                   updateBatchRow(items, rowKey, (row) => ({
                     photo: row.photo ? { ...row.photo, photoId, status: "ready" } : row.photo,
                     phase: "ready",
+                    failure: row.failure?.stage === "recognize" ? row.failure : null,
                   })),
                 );
               },
@@ -652,14 +675,37 @@ export function useBottleBatch(autoCapture: boolean) {
               },
             },
           );
-          return;
+          return uploadedId;
         }
         await retryCollectedUpload(current.photo as PhotoAttachment, bindKey(key));
+        return null;
       } finally {
         retryLockRef.current.delete(key);
       }
     },
     [bindKey, bumpToken, enqueueJobs, isCurrentToken, retryCollectedUpload],
+  );
+
+  /** 行の「再試行」。失敗している工程（表面・裏面・読み取り）をまとめてやり直す */
+  const retryRow = useCallback(
+    async (key: string) => {
+      const row = rowsRef.current.find((item) => item.key === key);
+      if (!row) {
+        return;
+      }
+      const jobs: Promise<unknown>[] = [];
+      if (row.phase === "error") {
+        jobs.push(retryPhoto(key));
+      }
+      if (row.backPhoto?.status === "error") {
+        jobs.push(retryBackPhoto(key));
+      }
+      if (row.recognize === "failure") {
+        recognizeRow(key);
+      }
+      await Promise.all(jobs);
+    },
+    [recognizeRow, retryBackPhoto, retryPhoto],
   );
 
   const replacePhoto = useCallback(
@@ -746,8 +792,35 @@ export function useBottleBatch(autoCapture: boolean) {
       const outcome: BatchSubmitOutcome = { succeeded: [], failed: [] };
       const created: Bottle[] = [];
       const registrationBatchId = crypto.randomUUID();
+      // 写真の送信だけ失敗した行は、ここで送り直してから保存する（押しても何も起きない状態にしない）。
+      // 送り直しの結果は再描画前の rowsRef にまだ載らないので、行ごとの上書きとして持つ
+      const retried = new Map<string, Partial<BottleBatchRow>>();
+      const currentRows = () =>
+        rowsRef.current.map((row) => ({ ...row, ...(retried.get(row.key) ?? {}) }));
       try {
-        for (const row of rowsRef.current) {
+        await Promise.all(
+          rowsRef.current.filter(isBatchRowRetryable).map(async (row) => {
+            const patch: Partial<BottleBatchRow> = {};
+            if (row.phase === "error" && row.photo) {
+              const photoId = await retryPhoto(row.key);
+              if (!photoId) {
+                return;
+              }
+              patch.photo = { ...row.photo, photoId, status: "ready" };
+              patch.phase = "ready";
+              patch.failure = null;
+            }
+            if (row.backPhoto?.status === "error") {
+              const backId = await retryBackPhoto(row.key);
+              if (!backId) {
+                return;
+              }
+              patch.backPhoto = { ...row.backPhoto, photoId: backId, status: "ready" };
+            }
+            retried.set(row.key, patch);
+          }),
+        );
+        for (const row of currentRows()) {
           if (!isBatchRowSavable(row)) {
             continue;
           }
@@ -814,18 +887,17 @@ export function useBottleBatch(autoCapture: boolean) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
         void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
       }
-      const leftoverCount = rowsRef.current.filter(
-        (row) => !outcome.succeeded.includes(row.key),
-      ).length;
+      const leftover = currentRows().filter((row) => !outcome.succeeded.includes(row.key));
       setRows((current) => applyBatchOutcome(current, outcome));
       return {
         created,
         failedCount: outcome.failed.length,
-        leftoverCount,
+        leftoverCount: leftover.length,
+        leftoverMessage: batchLeftoverMessage(leftover),
         registrationBatchId: created.length > 0 ? registrationBatchId : null,
       };
     },
-    [queryClient],
+    [queryClient, retryBackPhoto, retryPhoto],
   );
 
   return {
@@ -834,11 +906,12 @@ export function useBottleBatch(autoCapture: boolean) {
     picking,
     notice,
     canAdd: canAddBatchRow(rows) && !picking,
-    savableCount: savableBatchRows(rows).reduce((sum, row) => sum + row.form.count, 0),
+    savableCount: batchSubmitCount(rows),
     addPhoto,
     addLibraryPhotos,
     editPhoto,
     retryPhoto,
+    retryRow,
     replacePhoto,
     removeRow,
     recognizeRow,

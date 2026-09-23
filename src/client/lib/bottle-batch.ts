@@ -35,6 +35,11 @@ export const BOTTLE_BATCH_MESSAGES = {
   libraryProgress: (current: number, total: number) => `${current} / ${total} 枚を変換しています`,
   burstProcessing: (count: number) => `${count} 本を裏で処理しています`,
   discardBody: "入力した内容は保存されず、撮った写真も削除されます",
+  leftover: (parts: readonly string[]) => `並べられなかった行を残しました（${parts.join("・")}）`,
+  leftoverPhotoFailed: (n: number) => `写真を送れなかった行 ${n}`,
+  leftoverProcessing: (n: number) => `写真を処理中の行 ${n}`,
+  leftoverNameMissing: (n: number) => `品名が空の行 ${n}`,
+  leftoverSaveFailed: (n: number) => `保存に失敗した行 ${n}`,
 } as const;
 
 /** 1 枚の写真 = 1 行 = 1 銘柄（本数 N 可） */
@@ -328,9 +333,68 @@ export function batchIngestProgress(rows: readonly BottleBatchRow[]): {
   return { total: rows.length, done, failed, processing };
 }
 
-/** 無効: 保存対象行が 0。失敗・処理中の行は対象外（他の完了行は保存できる） */
+/**
+ * 写真（表面・裏面）のアップロードだけが失敗した行。変換済みの画像は手元にあるので、
+ * 「棚に並べる」で送り直してから保存する（G9）。変換失敗・品名不足は含めない
+ */
+export function isBatchRowRetryable(row: BottleBatchRow): boolean {
+  const frontRetry =
+    row.phase === "error" &&
+    row.failure?.stage === "upload" &&
+    row.photo?.status === "error" &&
+    (row.photo.blob.size ?? 0) > 0;
+  const frontReady =
+    row.phase === "ready" && Boolean(row.photo?.photoId) && row.photo?.status === "ready";
+  const backRetry = row.backPhoto?.status === "error";
+  const backReady = !row.backProcessing && (!row.backPhoto || row.backPhoto.status === "ready");
+  if (!frontRetry && !backRetry) {
+    return false;
+  }
+  if (!(frontRetry || frontReady) || !(backRetry || backReady)) {
+    return false;
+  }
+  return canSubmitBottleForm(row.form, batchRowErrors(row), "ready");
+}
+
+/** 「棚に並べる」を押したときに送る行（保存できる行 + 送り直せば保存できる行） */
+export function batchSubmitRows(rows: readonly BottleBatchRow[]): BottleBatchRow[] {
+  return rows.filter((row) => isBatchRowSavable(row) || isBatchRowRetryable(row));
+}
+
+/** 「棚に並べる（N 本）」の N */
+export function batchSubmitCount(rows: readonly BottleBatchRow[]): number {
+  return batchSubmitRows(rows).reduce((sum, row) => sum + row.form.count, 0);
+}
+
+/** 無効: 送る行が 0。変換失敗・処理中・品名が空の行は対象外（他の行は保存できる） */
 export function canSubmitBatch(rows: readonly BottleBatchRow[]): boolean {
-  return savableBatchRows(rows).length > 0;
+  return batchSubmitRows(rows).length > 0;
+}
+
+/** 保存後に残った行の理由（G9 一部失敗・未対象）。無ければ null */
+export function batchLeftoverMessage(rows: readonly BottleBatchRow[]): string | null {
+  let photoFailed = 0;
+  let processing = 0;
+  let nameMissing = 0;
+  let saveFailed = 0;
+  for (const row of rows) {
+    if (row.phase === "error" || row.backPhoto?.status === "error") {
+      photoFailed += 1;
+    } else if (row.phase !== "ready" || batchRowPhotoStatus(row) === "uploading") {
+      processing += 1;
+    } else if (batchRowErrors(row).name) {
+      nameMissing += 1;
+    } else {
+      saveFailed += 1;
+    }
+  }
+  const parts = [
+    photoFailed > 0 ? BOTTLE_BATCH_MESSAGES.leftoverPhotoFailed(photoFailed) : null,
+    processing > 0 ? BOTTLE_BATCH_MESSAGES.leftoverProcessing(processing) : null,
+    nameMissing > 0 ? BOTTLE_BATCH_MESSAGES.leftoverNameMissing(nameMissing) : null,
+    saveFailed > 0 ? BOTTLE_BATCH_MESSAGES.leftoverSaveFailed(saveFailed) : null,
+  ].filter((part): part is string => part !== null);
+  return parts.length > 0 ? BOTTLE_BATCH_MESSAGES.leftover(parts) : null;
 }
 
 export function batchRowBody(row: BottleBatchRow): CreateBottleInput | null {
