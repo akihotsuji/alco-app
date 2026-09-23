@@ -905,7 +905,7 @@ DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{
 | 操作 | 内容 |
 |---|---|
 | `GET /api/push/config` | `{ "available": boolean, "publicKey": string \| null }`。VAPID の公開鍵と秘密鍵が揃い形式が正しいときだけ `available: true` と公開鍵（base64url）。秘密鍵は返さない |
-| `PUT /api/push/subscription` | ボディは `PushSubscription.toJSON()` と同じ `{ endpoint, expirationTime?, keys: { p256dh, auth } }`（未知キーは 400）。`endpoint` は許可リストのホストの `https:` URL（2048 文字以下）。`p256dh` は P-256 の非圧縮点 65 バイト、`auth` は 16 バイトの base64url。`userId` はセッションのみ。`Origin` 必須。成功 200 `{ "ok": true }`。他人の行と同じ `endpoint` で鍵が一致しないときは 404。1 時間 20 回超は 429 |
+| `PUT /api/push/subscription` | ボディは `PushSubscription.toJSON()` と同じ `{ endpoint, expirationTime?, keys: { p256dh, auth } }`（未知キーは 400）。`endpoint` は許可リストのホストの `https:` URL（2048 文字以下）。`p256dh` は P-256 の非圧縮点 65 バイト、`auth` は 16 バイトの base64url。`userId` はセッションのみ。`Origin` 必須。成功 200 `{ "ok": true }`。他人の行と同じ `endpoint` は 404（書き換えない）。1 時間 20 回超は 429 |
 | `DELETE /api/push/subscription` | ボディ `{ endpoint }`。`endpoint + user_id` が一致する行だけ消す。無い・他人でも 200 `{ "ok": true }`（存在を示さない）。`Origin` 必須 |
 
 鍵が無いときも `PUT` / `DELETE` は受ける（送信だけしない）。未認証 401、年齢未確認 403 `age_required`。

@@ -184,10 +184,22 @@ describe("enablePushOnDevice", () => {
     expect(subscribe).toHaveBeenCalledTimes(1);
   });
 
-  it("保存に失敗したら端末の購読を解除して failed", async () => {
-    const { browser, current } = fakeBrowser();
+  it("保存に 1 回失敗したら購読を作り直して再登録する（別アカウントに残った endpoint など）", async () => {
+    const stale = fakeSubscription("https://fcm.googleapis.com/fcm/send/stale");
+    const { browser, subscribe } = fakeBrowser({ permission: "granted", existing: stale });
+    const { api, saved } = fakeApi();
+    vi.mocked(api.save).mockRejectedValueOnce(new Error("not_found"));
+    expect(await enablePushOnDevice({ publicKey: PUBLIC_KEY, api, browser })).toBe("enabled");
+    expect(stale.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(subscribe).toHaveBeenCalledTimes(1);
+    expect(saved).toHaveLength(1);
+  });
+
+  it("作り直しても保存できなければ端末の購読を解除して failed", async () => {
+    const { browser, current, subscribe } = fakeBrowser();
     const { api } = fakeApi({ saveFails: true });
     expect(await enablePushOnDevice({ publicKey: PUBLIC_KEY, api, browser })).toBe("failed");
+    expect(subscribe).toHaveBeenCalledTimes(2);
     expect(current()?.unsubscribe).toHaveBeenCalledTimes(1);
   });
 

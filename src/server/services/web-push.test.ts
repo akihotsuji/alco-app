@@ -200,6 +200,7 @@ describe("プッシュ送信（申請・承認・リアクション）", () => {
     const [call] = sent;
     expect(call?.url).toBe(dev.endpoint);
     expect(call?.init.method).toBe("POST");
+    expect(call?.init.redirect).toBe("manual");
     expect(headerValue(call?.init ?? {}, "Content-Encoding")).toBe("aes128gcm");
     expect(headerValue(call?.init ?? {}, "TTL")).toBe("86400");
     expect(headerValue(call?.init ?? {}, "Topic")).toBe("social");

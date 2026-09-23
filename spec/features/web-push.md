@@ -73,7 +73,7 @@
 2. `granted` 以外は購読しない。`denied` は S23 / N1 に OS 設定の案内を出す。`default`（閉じた）は何も出さない
 3. SW 登録（`navigator.serviceWorker.ready`。3 秒で打ち切り）の `pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })`。既存購読の鍵が現在の公開鍵と違えば解除してから作り直す
 4. `PUT /api/push/subscription` に `subscription.toJSON()` を送る
-5. 失敗したら購読を解除して元に戻す（端末だけ購読が残らない）
+5. 保存に失敗したら購読を解除して作り直し、1 回だけ登録し直す（他アカウントに同じ `endpoint` が残っているときの 404 を含む）。それでも失敗したら購読を解除して元に戻す（端末だけ購読が残らない）
 
 ### 4.2 オフにする
 
@@ -95,7 +95,7 @@
 
 - 1 行 = 1 端末の購読。`endpoint` は全体で一意
 - `user_id` はセッションのユーザー、`session_id` は登録したセッション。`session` の削除（ログアウト・失効の掃除・パスワード変更による他セッション失効）で CASCADE。ユーザー削除でも CASCADE
-- 同じ端末で別アカウントが購読したとき（`endpoint` が他人の行）は、`p256dh` と `auth` が一致する場合だけ所有者を付け替える（端末を実際に持っている証明。前の人の通知はその端末へ行かなくなる）。一致しなければ 404（他人の行は変えない・存在も示さない）
+- `endpoint` が他人の行と同じときは 404（他人の行は書き換えない・存在も示さない）。通常はログアウトでセッションごと行が消えるため起きない。起きたときはクライアントが端末の購読を解除して作り直し（別の `endpoint`）、1 回だけ登録し直す。前の人の古い `endpoint` は配信サービスが 410 を返した時点で消える
 - 1 ユーザー最大 10 端末。超えたら `updated_at` が最も古い行から消す
 - User-Agent は保存しない
 
@@ -106,7 +106,7 @@
 1. VAPID 鍵が無ければ何もしない
 2. 受信者の購読のうち、`session.expires_at` が未来の行だけに送る。期限切れセッションの行は消す
 3. 未読数を数え、ペイロード `{ v: 1, type, unread }` を端末ごとに暗号化（`aes128gcm`、レコード 4096、パディングなし）
-4. `POST <endpoint>`。ヘッダー `TTL: 86400` / `Urgency: normal` / `Topic: social` / `Content-Encoding: aes128gcm` / `Authorization: vapid t=<JWT>, k=<公開鍵>`。JWT は ES256、`aud` = エンドポイントのオリジン、`exp` = 12 時間後、`sub` = `VAPID_SUBJECT`（未設定なら `https://sake-shiori.com`）。10 秒で打ち切る
+4. `POST <endpoint>`。ヘッダー `TTL: 86400` / `Urgency: normal` / `Topic: social` / `Content-Encoding: aes128gcm` / `Authorization: vapid t=<JWT>, k=<公開鍵>`。JWT は ES256、`aud` = エンドポイントのオリジン、`exp` = 12 時間後、`sub` = `VAPID_SUBJECT`（未設定なら `https://sake-shiori.com`）。10 秒で打ち切る。リダイレクトは追わない（3xx は失敗）
 5. `404` / `410` はその行を消す。その他の失敗は `[push] send failed` と状態コードと配信サービスのホストだけをログに出して行は残す
 
 ### 5.3 レート制限
@@ -170,6 +170,6 @@
 - [ ] SW の `push` でアイコンのバッジが未読数になり、0 で消える
 - [ ] オフ・ログアウト・アカウント削除・配信サービスの 404/410 で購読が消える
 - [ ] 鍵が無い環境で落ちず、S23 は「現在は使えません」
-- [ ] 他人の購読を消せない・奪えない。未認証 401、年齢未確認 403
+- [ ] 他人の購読を消せない・書き換えられない（同じ `endpoint` でも 404）。未認証 401、年齢未確認 403
 - [ ] ペイロードは RFC 8291 のベクタどおりに暗号化され、中身は種別と未読数だけ
 - [ ] lint / typecheck / test / E2E がパスする

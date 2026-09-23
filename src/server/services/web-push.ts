@@ -47,23 +47,21 @@ export async function savePushSubscription(input: {
     .from(pushSubscriptions)
     .where(eq(pushSubscriptions.endpoint, endpoint));
   if (existing) {
-    // 同じ端末を別アカウントが使うときだけ付け替える。鍵の一致が端末を持っている証明
-    if (
-      existing.userId !== input.userId &&
-      (existing.p256dh !== keys.p256dh || existing.authSecret !== keys.auth)
-    ) {
+    // 他人の行は書き換えない（存在も示さない）。端末側は購読を作り直して別 endpoint で登録し直す
+    if (existing.userId !== input.userId) {
       throw new ApiError("not_found");
     }
     await input.db
       .update(pushSubscriptions)
       .set({
-        userId: input.userId,
         sessionId: input.sessionId,
         p256dh: keys.p256dh,
         authSecret: keys.auth,
         updatedAt: now,
       })
-      .where(eq(pushSubscriptions.id, existing.id));
+      .where(
+        and(eq(pushSubscriptions.id, existing.id), eq(pushSubscriptions.userId, input.userId)),
+      );
   } else {
     await input.db.insert(pushSubscriptions).values({
       id: crypto.randomUUID(),
@@ -220,6 +218,8 @@ export async function sendSocialPush(input: {
             Topic: PUSH_TOPIC,
           },
           body,
+          // 許可リスト外へ転送させない（SSRF）。3xx は失敗として扱う
+          redirect: "manual",
           signal: AbortSignal.timeout(input.timeoutMs ?? PUSH_SEND_TIMEOUT_MS),
         });
         await response.body?.cancel().catch(() => undefined);

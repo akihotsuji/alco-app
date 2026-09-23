@@ -207,7 +207,7 @@ describe("PUT / DELETE /api/push/subscription", () => {
     expect(row).toMatchObject({ userId: a.id, p256dh: body.keys.p256dh });
   });
 
-  it("同じ端末（endpoint と鍵が一致）で別アカウントが購読すると所有者が付け替わる", async () => {
+  it("同じ endpoint と鍵でも他人の行は付け替えず 404（別端末扱いで作り直させる）", async () => {
     const { app, db } = await createTestApp();
     const [a, b] = await createTestUserPair(app, [
       { name: "A", email: "shared-a@example.com", password: "password1" },
@@ -215,10 +215,13 @@ describe("PUT / DELETE /api/push/subscription", () => {
     ]);
     const body = await subscriptionBody();
     expect((await putSubscription(app, a.cookie, body)).status).toBe(200);
-    expect((await putSubscription(app, b.cookie, body)).status).toBe(200);
+    const res = await putSubscription(app, b.cookie, body);
+    expect(res.status).toBe(404);
     const rows = await db.select().from(pushSubscriptions);
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.userId).toBe(b.id);
+    expect(rows[0]?.userId).toBe(a.id);
+    const other = await subscriptionBody();
+    expect((await putSubscription(app, b.cookie, other)).status).toBe(200);
   });
 
   it("1 ユーザーの端末は上限まで。超えたら古い順に消える", async () => {

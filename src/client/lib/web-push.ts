@@ -190,7 +190,14 @@ export async function enablePushOnDevice(input: {
   let subscription: DevicePushSubscription | null = null;
   try {
     subscription = await subscribeWithKey(manager, await manager.getSubscription(), key);
-    await saveOrThrow(input.api, subscription);
+    try {
+      await saveOrThrow(input.api, subscription);
+    } catch {
+      // 同じ endpoint が別アカウントに残っている（404）などは、購読を作り直して 1 回だけ再登録する
+      await subscription.unsubscribe().catch(() => false);
+      subscription = await manager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      await saveOrThrow(input.api, subscription);
+    }
     return "enabled";
   } catch {
     // サーバーに保存できない購読を端末に残さない
