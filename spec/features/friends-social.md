@@ -19,7 +19,7 @@
 | 記録写真 | `photos.drink_log_id`（1）と `photos.tasting_note_id`（≦6）。共有画像は投稿に現に含まれる ID だけ |
 | セラー登録 | `POST /api/bottles`。`count` 展開と `/cellar/batch` は `registration_batch_id` で 1 投稿に集約 |
 | 開栓 | `POST /api/bottles/:id/consume`。サーバーが `opening_events` を採番。sessionStorage は導線用のみ |
-| 開栓→記録 | `log-new?from=opened&bottleId=&openingEventId=`。共有は最終選択後に `opening_with_log` 1 件 |
+| 開栓→記録 | `log-new?from=opened&bottleId=&openingEventId=`。共有は最終選択後に `opening_with_log` 1 件。表示は 1 アイテム（ボトル）にまとめ、写真は **セラー登録の写真だけ**（記録・ノートの写真は投稿に含めず、友達からも取得できない。一覧の「＋N本」に数えない）。評価・ひとこと・詳細テイスティング・飲んだ日は記録から引き継ぐ |
 | 写真配信 | 既存 `GET /api/photos/:id/content` は所有者専用のまま。友達は `GET /api/social/posts/:postId/photos/:photoId/content` |
 | ノート一覧 | `/notes` は残す。タブは友達に置換。設定「テイスティングノート」とボトル詳細 T6 から入る |
 | 表示名 | 友達への表示名の正本は Better Auth の `user.name`（設定の表示名）。`social_profiles.nickname` は互換のため残すが表示には使わない。空なら表示だけ「ユーザー」。メールや Google プロフィールは埋めない |

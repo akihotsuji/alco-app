@@ -488,6 +488,76 @@ describe("開栓・まとめ登録・画像・リアクション", () => {
     expect(((await again.json()) as { post: { id: string } }).post.id).toBe(batchPost.id);
   });
 
+  it("開栓→記録の投稿はセラー登録の写真だけ。記録の写真は出さず、評価とひとことは残す", async () => {
+    const { app } = await createTestApp();
+    const a = await user(app, "a@example.com");
+    const b = await user(app, "b@example.com");
+    await completeProfile(app, a.cookie, "アリス");
+    await completeProfile(app, b.cookie, "ボブ");
+    await becomeFriends(app, a.cookie, b.cookie);
+
+    async function upload() {
+      const form = new FormData();
+      form.set(
+        "file",
+        new File([Uint8Array.from(makeJpeg(320, 480))], "shot.jpg", { type: "image/jpeg" }),
+      );
+      const res = await app.request("/api/photos", {
+        method: "POST",
+        headers: { Cookie: a.cookie, Origin: ORIGIN },
+        body: form,
+      });
+      expect(res.status).toBe(201);
+      return photoMetaSchema.parse(await res.json()).id;
+    }
+
+    const front = await upload();
+    const back = await upload();
+    const bottleId = await createBottle(app, a.cookie, "開栓ボトル", { photoIds: [front, back] });
+    await app.request(`/api/bottles/${bottleId}/consume`, {
+      method: "POST",
+      headers: cookieHeaders(a.cookie),
+    });
+    const sources = await app.request(`/api/social/sources?bottleId=${bottleId}`, {
+      headers: { Cookie: a.cookie },
+    });
+    const openingEventId = ((await sources.json()) as { openingEventId: string | null })
+      .openingEventId;
+    const logPhoto = await upload();
+    const log = await createLog(app, a.cookie, {
+      bottleId,
+      drinkName: "開栓の一杯",
+      photoIds: [logPhoto],
+      tastingNote: { ratingX10: 42, taste: "華やか" },
+    });
+    const combined = await share(app, a.cookie, {
+      kind: "opening_with_log",
+      openingEventId,
+      drinkLogId: log.id,
+    });
+    expect(combined.status).toBe(201);
+    const postId = ((await combined.json()) as { post: { id: string } }).post.id;
+
+    const seen = socialPostSchema.parse(
+      await (
+        await app.request(`/api/social/posts/${postId}`, { headers: { Cookie: b.cookie } })
+      ).json(),
+    );
+    expect(seen.kind).toBe("opening_with_log");
+    expect(seen.items).toHaveLength(1);
+    expect(seen.items[0]?.name).toBe("開栓ボトル");
+    expect(seen.items[0]?.photoIds).toEqual([front, back]);
+    expect(seen.items[0]?.ratingX10).toBe(42);
+    expect(seen.items[0]?.comment).toBe("華やか");
+    expect(seen.items[0]?.openedOn).toBeTruthy();
+
+    const logPhotoRes = await app.request(
+      `/api/social/posts/${postId}/photos/${logPhoto}/content`,
+      { headers: { Cookie: b.cookie } },
+    );
+    expect(logPhotoRes.status).toBe(404);
+  });
+
   it("投稿画像は受信者だけ見え、Cache-Control は no-store。他人は 404", async () => {
     const { app } = await createTestApp();
     const a = await user(app, "a@example.com");
