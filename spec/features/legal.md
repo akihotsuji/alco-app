@@ -2,7 +2,7 @@
 
 実装: Phase 8-01。画面は [screen-designs/09-legal.md](../screen-designs/09-legal.md) / [01-auth.md](../screen-designs/01-auth.md) / [06-settings.md](../screen-designs/06-settings.md)。文面の正本は [legal.md](../legal.md)。データマップは同ファイル 2 章。手順は [roadmap/phase-08-public-launch/01-terms-privacy.md](../../roadmap/phase-08-public-launch/01-terms-privacy.md)。
 
-- 状態: **草案**（2026-09-22。再同意は求めない。電気通信事業法はこの段階では届出しない。飲酒記録は要配慮個人情報としない。氏名・住所は非掲載。権利侵害の申出は設定のご意見。友達・近況、共有セラー、退会、ご意見、AI 照合、PWA を含む）。法律意見ではなく、一般公開の法的確定でもない。エージェントは構成・実装フック・個人情報の棚卸しまで
+- 状態: **草案**（2026-09-22。2026-09-23 にプッシュ通知（任意・既定オフ）を追加し版を `2026-09-23` に上げた。再同意は求めない。電気通信事業法はこの段階では届出しない。飲酒記録は要配慮個人情報としない。氏名・住所は非掲載。権利侵害の申出は設定のご意見。友達・近況、共有セラー、退会、ご意見、AI 照合、PWA を含む）。法律意見ではなく、一般公開の法的確定でもない。エージェントは構成・実装フック・個人情報の棚卸しまで
 - 対象地域: **日本**（EU Cookie バナーは対象外）
 
 ---
@@ -109,7 +109,7 @@
 
 ## 8. 関連
 
-- [legal.md](../legal.md) — データマップと草案（版 `2026-09-22`）
+- [legal.md](../legal.md) — データマップと草案（版 `2026-09-23`）
 - [auth.md](auth.md)
 - [friends-social.md](friends-social.md)
 - [shared-cellar.md](shared-cellar.md)

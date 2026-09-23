@@ -1,4 +1,6 @@
 import { isSignupsClosedFlag } from "@/shared/auth.ts";
+import { decodeBase64Url } from "@/shared/base64url.ts";
+import { PROD_CANONICAL_ORIGIN } from "@/shared/prod-canonical.ts";
 import { TURNSTILE_SITE_KEY_RE } from "@/shared/turnstile.ts";
 import { readCanonicalOrigin } from "./canonical-redirect.ts";
 
@@ -67,4 +69,34 @@ export function resolveAuthBaseURL(env: object, requestUrl: string): string {
     return canonical;
   }
   return new URL(requestUrl).origin;
+}
+
+const VAPID_PUBLIC_KEY_KEY = "VAPID_PUBLIC_KEY";
+const VAPID_PRIVATE_KEY_KEY = "VAPID_PRIVATE_KEY";
+const VAPID_SUBJECT_KEY = "VAPID_SUBJECT";
+
+export type VapidConfig = {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+};
+
+/** 2 つの鍵が揃い形式が正しいときだけ有効（spec/features/web-push.md 7 章）。値はログに出さない */
+export function readVapidConfig(env: object): VapidConfig | null {
+  const publicKey = readOptionalString(env, VAPID_PUBLIC_KEY_KEY)?.trim();
+  const privateKey = readOptionalString(env, VAPID_PRIVATE_KEY_KEY)?.trim();
+  if (!publicKey || !privateKey) {
+    return null;
+  }
+  const publicRaw = decodeBase64Url(publicKey);
+  const privateD = decodeBase64Url(privateKey);
+  if (publicRaw?.length !== 65 || publicRaw[0] !== 0x04 || privateD?.length !== 32) {
+    return null;
+  }
+  const subject = readOptionalString(env, VAPID_SUBJECT_KEY)?.trim();
+  return {
+    publicKey,
+    privateKey,
+    subject: subject && /^(https:\/\/|mailto:)\S+$/.test(subject) ? subject : PROD_CANONICAL_ORIGIN,
+  };
 }

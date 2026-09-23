@@ -25,7 +25,7 @@
 | 手順 | コマンド | 備考 |
 |---|---|---|
 | 依存 | `pnpm install` | Cloud Agent の `install` |
-| 秘密 | `pnpm dev:vars` | `.dev.vars` が無いか `BETTER_AUTH_SECRET` が空のときだけ生成。既存は上書きしない |
+| 秘密 | `pnpm dev:vars` | `.dev.vars` が無いか `BETTER_AUTH_SECRET` が空のときだけ生成。Web Push の `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` も 2 つが揃っていないときだけ 1 組生成（[web-push.md](web-push.md)）。既存は上書きしない。値は出力しない |
 | DB | `pnpm db:migrate:local` | ローカル D1。冪等 |
 | アプリ | `pnpm dev` | Vite + Cloudflare プラグイン。`CLOUDFLARE_VITE_FORCE_LOCAL=true` を推奨 |
 | ユーザー | `pnpm dev:seed` | health 後。資格情報は `.local-dev-user.json`（gitignore） |

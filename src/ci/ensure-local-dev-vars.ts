@@ -9,3 +9,8 @@ if (result.created) {
 } else {
   console.log(".dev.vars already has BETTER_AUTH_SECRET.");
 }
+if (result.wroteVapidKeys) {
+  console.log(
+    "wrote .dev.vars (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY). do not commit or print the values.",
+  );
+}

@@ -58,6 +58,7 @@ export const queryKeys = {
   friendInvitation: ["friend-invitation"] as const,
   friendBlocks: ["friend-blocks"] as const,
   socialNotifications: ["social-notifications"] as const,
+  pushConfig: ["push-config"] as const,
   socialUnread: ["social-unread"] as const,
   reactionTypes: ["reaction-types"] as const,
 } as const;

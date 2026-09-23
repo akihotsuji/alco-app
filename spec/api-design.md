@@ -286,6 +286,9 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | PATCH | `/api/photos/:id` | 必須 | 紐付け・並び |
 | DELETE | `/api/photos/:id` | 必須 | メタと R2 を削除 |
 | POST | `/api/feedback` | 必須 | ご意見・ご要望（本文 + 任意画像）。一覧 GET は無い |
+| GET | `/api/push/config` | 必須 | プッシュが使えるかと VAPID 公開鍵 |
+| PUT | `/api/push/subscription` | 必須 | この端末の購読を保存（upsert） |
+| DELETE | `/api/push/subscription` | 必須 | この端末の購読を削除（`endpoint`） |
 
 `GET /api/drink-logs/summary` と **`POST /api/drink-logs/recognize`** は `GET /api/drink-logs/:id` より**先に登録**する（`summary` / `recognize` を id と誤認しない）。同様に **`POST /api/bottles/recognize` と `PUT /api/bottles/order` は `/api/bottles/:id/*` より先**に登録する。`consume` / `restore` は `:id` の配下なので順序の問題はない。
 
@@ -895,6 +898,18 @@ DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{
 
 `POST /api/bottles/:id/consume` は既存 Bottle に `openingEventId` を足して返す。`POST /api/bottles` は任意 `registrationBatchId`。
 
+### 4.13 push（Web Push）
+
+正本は [features/web-push.md](features/web-push.md)。認証必須・年齢ゲート対象。公開エンドポイントは増やさない。購読の一覧 API は作らない。
+
+| 操作 | 内容 |
+|---|---|
+| `GET /api/push/config` | `{ "available": boolean, "publicKey": string \| null }`。VAPID の公開鍵と秘密鍵が揃い形式が正しいときだけ `available: true` と公開鍵（base64url）。秘密鍵は返さない |
+| `PUT /api/push/subscription` | ボディは `PushSubscription.toJSON()` と同じ `{ endpoint, expirationTime?, keys: { p256dh, auth } }`（未知キーは 400）。`endpoint` は許可リストのホストの `https:` URL（2048 文字以下）。`p256dh` は P-256 の非圧縮点 65 バイト、`auth` は 16 バイトの base64url。`userId` はセッションのみ。`Origin` 必須。成功 200 `{ "ok": true }`。他人の行と同じ `endpoint` は 404（書き換えない）。1 時間 20 回超は 429 |
+| `DELETE /api/push/subscription` | ボディ `{ endpoint }`。`endpoint + user_id` が一致する行だけ消す。無い・他人でも 200 `{ "ok": true }`（存在を示さない）。`Origin` 必須 |
+
+鍵が無いときも `PUT` / `DELETE` は受ける（送信だけしない）。未認証 401、年齢未確認 403 `age_required`。
+
 ---
 
 ## 5. ルート登録順（Hono / RPC）
@@ -920,6 +935,7 @@ src/server/
   routes/feedback.ts
   routes/social.ts
   routes/friends.ts
+  routes/push.ts        # Web Push の設定・購読
   services/             # 複数ルートで共有する業務ロジック
 ```
 

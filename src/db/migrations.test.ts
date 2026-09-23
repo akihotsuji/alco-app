@@ -16,6 +16,7 @@ const USER_SCOPED_TABLES = [
   "ai_usage",
   "legal_consents",
   "age_verifications",
+  "push_subscriptions",
 ];
 
 const CELLAR_TABLES = [
@@ -464,7 +465,7 @@ describe("Drizzle スキーマとマイグレーションの同期", () => {
 
   it("schema.ts の全テーブルについて列名・NOT NULL・インデックスが DB と一致する（generate 忘れ検知）", () => {
     const db = openMigratedDb();
-    expect(tables.length).toBe(41);
+    expect(tables.length).toBe(42);
     for (const table of tables) {
       const config = getTableConfig(table);
       const info = db.prepare(`PRAGMA table_info("${config.name}")`).all() as {
@@ -807,5 +808,38 @@ describe("制約の挙動", () => {
     ).toBe("p-shared");
     expect(db.prepare("SELECT id FROM bottles WHERE id = 'b-u1'").get()).toBeUndefined();
     expect(db.prepare("SELECT id FROM photos WHERE id = 'p-note'").get()).toBeUndefined();
+  });
+
+  it("0015 の push_subscriptions は endpoint が一意で、セッションとユーザーの削除で消える", () => {
+    const db = openMigratedDb();
+    insertUser(db, "u1");
+    const insertSession = db.prepare(
+      "INSERT INTO session (id, expires_at, token, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?, 'u1')",
+    );
+    insertSession.run("s1", NOW + 1000, "t1", NOW, NOW);
+    insertSession.run("s2", NOW + 1000, "t2", NOW, NOW);
+    const insertSub = db.prepare(
+      "INSERT INTO push_subscriptions (id, user_id, session_id, endpoint, p256dh, auth_secret, created_at, updated_at) VALUES (?, 'u1', ?, ?, 'k', 'a', ?, ?)",
+    );
+    insertSub.run("ps1", "s1", "https://fcm.googleapis.com/fcm/send/1", NOW, NOW);
+    insertSub.run("ps2", "s2", "https://fcm.googleapis.com/fcm/send/2", NOW, NOW);
+    expect(() =>
+      insertSub.run("ps3", "s2", "https://fcm.googleapis.com/fcm/send/1", NOW, NOW),
+    ).toThrow();
+    const fks = db.prepare("PRAGMA foreign_key_list('push_subscriptions')").all() as {
+      table: string;
+      from: string;
+      on_delete: string;
+    }[];
+    expect(fks.find((fk) => fk.from === "session_id")).toMatchObject({
+      table: "session",
+      on_delete: "CASCADE",
+    });
+
+    db.prepare("DELETE FROM session WHERE id = 's1'").run();
+    expect(count(db, "push_subscriptions")).toBe(1);
+    db.prepare("DELETE FROM user WHERE id = 'u1'").run();
+    expect(count(db, "push_subscriptions")).toBe(0);
+    db.close();
   });
 });

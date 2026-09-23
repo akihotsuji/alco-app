@@ -730,6 +730,25 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 
 公開用ひとことは `tasting_notes.taste`。`drink_logs.memo` は投影しない。受信対象は `social_post_recipients`（`friendship_epoch_id`）に固定する。友達への表示名の正本は `user.name`。`social_profiles.nickname` は互換列として残し、表示には使わない。行がなくても友達機能は使える。
 
+### 6.16 push_subscriptions（Web Push。2026-09-23）
+
+正本は [web-push.md](features/web-push.md)。1 行 = 1 端末（ブラウザ）の購読。クライアントに一覧を返さない。
+
+| プロパティ | 列 | 型 | NULL | 制約 | 備考 |
+|---|---|---|---|---|---|
+| id | id | text | NO | PK | UUID |
+| userId | user_id | text | NO | FK `user.id` CASCADE | セッションのユーザー |
+| sessionId | session_id | text | NO | FK `session.id` CASCADE | 登録したセッション。ログアウト・セッション削除で行が消える |
+| endpoint | endpoint | text | NO | UNIQUE | 配信サービスの URL（許可リストの `https:` のみ。Zod） |
+| p256dh | p256dh | text | NO | | 端末の公開鍵（base64url、65 バイト） |
+| authSecret | auth_secret | text | NO | | 端末の認証秘密（base64url、16 バイト） |
+| createdAt | created_at | integer | NO | | |
+| updatedAt | updated_at | integer | NO | | 同期（再 PUT）で更新。上限超過時に古い順で消す |
+
+- 1 ユーザー最大 10 行（アプリが古い順に消す）
+- 配信サービスが 404 / 410 を返した行、送信時にセッションが期限切れの行はアプリが消す
+- User-Agent・端末名は持たない
+
 ---
 
 ## 7. インデックス
@@ -771,6 +790,9 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | `social_notifications_recipient_idx` | social_notifications | `recipient_user_id`, `created_at` | 通知一覧 |
 | `social_reactions_post_type_idx` | social_reactions | `post_id`, `reaction_type_id` | 件数 |
 | `social_post_items_source_idx` | social_post_items | `source_kind`, `source_id` | 元データ連動 |
+| `push_subscriptions_endpoint_uidx` | push_subscriptions | `endpoint` UNIQUE | 1 端末 1 行 |
+| `push_subscriptions_user_idx` | push_subscriptions | `user_id`, `updated_at` | 送信先の列挙・上限超過の削除 |
+| `push_subscriptions_session_idx` | push_subscriptions | `session_id` | セッション削除の CASCADE |
 
 名前検索（銘柄・生産者）は個人規模では `user_id` 絞り込み + `LIKE` で足りる。全文検索インデックスは作らない。
 
@@ -786,6 +808,7 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 |---|---|---|---|
 | `user.id` | 個人所有テーブル（`ai_usage` / `legal_consents` / `age_verifications` / `cellar_members` / `user_cellar_slots` 含む）の `user_id` | CASCADE | アカウント削除で残党を出さない。共有ボトルは CASCADE しない |
 | `user.id` | `feedbacks.user_id` | **SET NULL** | ご意見は匿名化して残す。メールは持たない |
+| `session.id` | `push_subscriptions.session_id` | CASCADE | ログアウトした端末へプッシュを送らない |
 | `feedbacks.id` | `feedback_photos.feedback_id` | CASCADE | 本文を消すときだけ画像メタも消す（通常の退会では消さない） |
 | `user.id` | `cellars.owner_user_id` | **RESTRICT** | 他メンバーがいる共有セラーは移譲または削除が先 |
 | `cellars.id` | `bottles.cellar_id` / ボトル写真の `photos.cellar_id` | CASCADE | 共有セラー削除で在庫とボトル写真が消える |

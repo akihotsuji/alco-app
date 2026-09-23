@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { encodeBase64Url } from "@/shared/base64url.ts";
 import {
   readAuthSecret,
   readGoogleOAuthConfig,
   readSignupsClosed,
   readTurnstileConfig,
+  readVapidConfig,
   resolveAuthBaseURL,
 } from "./env.ts";
 
@@ -122,5 +124,40 @@ describe("resolveAuthBaseURL", () => {
         "https://other.example/",
       ),
     ).toBe("https://override.example");
+  });
+});
+
+describe("readVapidConfig", () => {
+  const publicKey = encodeBase64Url(new Uint8Array([4, ...new Array(64).fill(9)]));
+  const privateKey = encodeBase64Url(new Uint8Array(32).fill(5));
+
+  it("公開鍵と秘密鍵が揃い形式が正しいときだけ返す。subject は既定で本番オリジン", () => {
+    expect(readVapidConfig({ VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_KEY: privateKey })).toEqual(
+      { publicKey, privateKey, subject: "https://sake-shiori.com" },
+    );
+    expect(
+      readVapidConfig({
+        VAPID_PUBLIC_KEY: publicKey,
+        VAPID_PRIVATE_KEY: privateKey,
+        VAPID_SUBJECT: "mailto:ops@example.com",
+      })?.subject,
+    ).toBe("mailto:ops@example.com");
+    expect(
+      readVapidConfig({
+        VAPID_PUBLIC_KEY: publicKey,
+        VAPID_PRIVATE_KEY: privateKey,
+        VAPID_SUBJECT: "http://insecure.example",
+      })?.subject,
+    ).toBe("https://sake-shiori.com");
+  });
+
+  it("欠ける・片方だけ・形式不正は null（プッシュ無効。起動は止めない）", () => {
+    expect(readVapidConfig({})).toBeNull();
+    expect(readVapidConfig({ VAPID_PUBLIC_KEY: publicKey })).toBeNull();
+    expect(readVapidConfig({ VAPID_PRIVATE_KEY: privateKey })).toBeNull();
+    expect(
+      readVapidConfig({ VAPID_PUBLIC_KEY: privateKey, VAPID_PRIVATE_KEY: privateKey }),
+    ).toBeNull();
+    expect(readVapidConfig({ VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_KEY: "x+y" })).toBeNull();
   });
 });

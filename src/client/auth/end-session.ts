@@ -1,6 +1,7 @@
 import { clearAppBadge } from "@/client/lib/app-badge.ts";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { clearFriendSessionArtifacts } from "@/client/lib/social-invite.ts";
+import { clearDevicePushSubscription } from "@/client/lib/web-push.ts";
 
 export type EndSessionDeps = {
   /** Better Auth のサインアウト。成功すればクライアントのセッション store が自動で再取得される。 */
@@ -9,6 +10,8 @@ export type EndSessionDeps = {
   refreshSession: () => void;
   /** ホーム画面アイコンの未読バッジを消す。次のユーザーに前の件数を見せない。 */
   clearBadge: () => void;
+  /** この端末のプッシュ購読を解除する（待たない）。サーバー行はセッション削除の CASCADE で消える。 */
+  clearPush: () => void;
 };
 
 /**
@@ -23,6 +26,7 @@ export function createEndSessionHandler(deps: EndSessionDeps): () => Promise<voi
   const run = async () => {
     clearFriendSessionArtifacts();
     deps.clearBadge();
+    deps.clearPush();
     const result = await deps.signOut().catch((error: unknown) => ({ error }));
     if (result.error) {
       deps.refreshSession();
@@ -43,4 +47,5 @@ export const endSession = createEndSessionHandler({
   signOut: () => authClient.signOut(),
   refreshSession: () => authClient.$store.notify("$sessionSignal"),
   clearBadge: () => void clearAppBadge(),
+  clearPush: () => void clearDevicePushSubscription(),
 });

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   PWA_DISPLAY,
   PWA_NAME,
+  PWA_PUSH_SW_FILENAME,
   PWA_SHORT_NAME,
   PWA_SW_FILENAME,
   PWA_THEME_COLOR_DARK,
@@ -27,6 +28,8 @@ describe("PWA 設定ファイル", () => {
     expect(pwaOptions.workbox.skipWaiting).toBe(true);
     expect(pwaOptions.workbox.clientsClaim).toBe(true);
     expect(pwaOptions.workbox.inlineWorkboxRuntime).toBe(true);
+    expect(pwaOptions.workbox.importScripts).toEqual([PWA_PUSH_SW_FILENAME]);
+    expect(pwaOptions.workbox.globIgnores).toContain("**/sw-push.js");
     expect(pwaOptions.workbox.navigateFallbackDenylist.map(String).join(" ")).toContain("assets");
     expect(pwaOptions.workbox.runtimeCaching).toEqual([
       expect.objectContaining({ handler: "NetworkOnly" }),
@@ -79,6 +82,7 @@ describe("PWA 設定ファイル", () => {
     const headers = readFileSync(join(root, "public/_headers"), "utf8");
     expect(headers).toContain("/sw.js");
     expect(headers).toContain("/boot-guard.js");
+    expect(headers).toMatch(/\/sw-push\.js\n {2}Cache-Control: no-cache/);
     expect(headers).toContain("/boot.css");
     expect(headers).toContain("/version.json");
     expect(headers).toContain("Cache-Control: no-cache");

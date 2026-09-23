@@ -26,10 +26,12 @@ import {
   unfriend,
 } from "../services/friends.ts";
 import { assertSameOrigin } from "../services/origin.ts";
+import type { SocialUnreadSink } from "../services/social-notifications.ts";
 import { validate } from "../validation.ts";
 
 export type FriendsRouteDeps = {
   getDb: (c: Context<AppEnv>) => AppBatchDb;
+  notifyUnread?: (c: Context<AppEnv>) => SocialUnreadSink;
 };
 
 function originOf(c: Context<AppEnv>): string {
@@ -93,6 +95,7 @@ export function createFriendsRoute(deps: FriendsRouteDeps) {
         db: deps.getDb(c),
         requesterUserId: c.get("user").id,
         token: c.req.valid("json").token,
+        onUnread: deps.notifyUnread?.(c),
       });
       return c.json(created, 201);
     })
@@ -104,6 +107,7 @@ export function createFriendsRoute(deps: FriendsRouteDeps) {
           db: deps.getDb(c),
           userId: c.get("user").id,
           requestId: c.req.valid("param").id,
+          onUnread: deps.notifyUnread?.(c),
         }),
       );
     })

@@ -13,6 +13,7 @@ import {
   PWA_NAVIGATE_FALLBACK_DENYLIST,
   PWA_PRECACHE_GLOB,
   PWA_PRECACHE_IGNORE,
+  PWA_PUSH_SW_FILENAME,
   PWA_SCOPE,
   PWA_SHORT_NAME,
   PWA_START_URL,
@@ -44,6 +45,8 @@ export const pwaOptions = {
     globIgnores: [...PWA_PRECACHE_IGNORE],
     navigateFallback: PWA_NAVIGATE_FALLBACK,
     navigateFallbackDenylist: [...PWA_NAVIGATE_FALLBACK_DENYLIST],
+    // push / notificationclick（spec/features/web-push.md 6 章）。/api/* の NetworkOnly は下の runtimeCaching のまま
+    importScripts: [PWA_PUSH_SW_FILENAME],
     runtimeCaching: [
       {
         // SW に閉じた関数にする。外部 import 名だけ残すと実行時に未定義になる

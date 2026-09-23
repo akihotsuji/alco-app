@@ -28,7 +28,7 @@ import {
   SOCIAL_POST_KINDS,
   SOCIAL_SOURCE_KINDS,
 } from "../shared/social.ts";
-import { user } from "./auth-schema.ts";
+import { session, user } from "./auth-schema.ts";
 
 export * from "./auth-schema.ts";
 
@@ -808,5 +808,26 @@ export const socialOperationKeys = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.actorUserId, table.operationKey] }),
     index("social_operation_keys_created_idx").on(table.createdAt),
+  ],
+);
+
+/** Web Push の購読（spec/data-model.md 6.16）。1 行 = 1 端末。登録したセッションの削除で消える */
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: text("id").primaryKey(),
+    userId: userIdColumn(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => session.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    authSecret: text("auth_secret").notNull(),
+    ...timestampColumns(),
+  },
+  (table) => [
+    uniqueIndex("push_subscriptions_endpoint_uidx").on(table.endpoint),
+    index("push_subscriptions_user_idx").on(table.userId, table.updatedAt),
+    index("push_subscriptions_session_idx").on(table.sessionId),
   ],
 );

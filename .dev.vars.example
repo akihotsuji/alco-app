@@ -15,6 +15,11 @@ GOOGLE_CLIENT_SECRET=
 # Turnstile（8-05）。両方揃ったときだけ有効。サイトキーは公開値。シークレットはチャットに貼らない
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
+# Web Push の VAPID 鍵（P-256。2 つで 1 組）。pnpm dev:vars が空のときだけ生成する。値はチャットに貼らない
+# 本番・dev の Workers へは pnpm vapid:put -- --env <dev|production>（spec/secrets.md）
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+# VAPID_SUBJECT=https://sake-shiori.com
 # EMAIL_FROM=酒のしおり <noreply@sake-shiori.com>
 # 認識モデル。未設定なら wrangler.jsonc の vars（3機能とも gemini-3.7-flash。gemini-3.5-flash-lite / workers-ai-llama に切り替え可）
 # AI_RECOGNITION_PROFILE=gemini-3.7-flash
