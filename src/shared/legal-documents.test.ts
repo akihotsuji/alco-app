@@ -11,7 +11,7 @@ function allTexts(document: typeof TERMS_DOCUMENT): string[] {
 
 describe("法務文書", () => {
   it("版が現行と一致し、酒類と国外移転を含む", () => {
-    expect(LEGAL_VERSION).toBe("2026-09-22");
+    expect(LEGAL_VERSION).toBe("2026-09-23");
     expect(TERMS_DOCUMENT.version).toBe(LEGAL_VERSION);
     expect(PRIVACY_DOCUMENT.version).toBe(LEGAL_VERSION);
     const terms = allTexts(TERMS_DOCUMENT).join("\n");
@@ -81,6 +81,32 @@ describe("法務文書", () => {
     expect(privacy).not.toContain(
       "飲酒記録、ノート、評価、マイドリンク、位置情報、メールアドレスは共有しません",
     );
+  });
+
+  it("プッシュ通知を任意とし、購読情報・配信サービス・中身・止め方・削除を書く", () => {
+    const terms = allTexts(TERMS_DOCUMENT).join("\n");
+    const privacy = allTexts(PRIVACY_DOCUMENT).join("\n");
+    expect(TERMS_DOCUMENT.sections.some((section) => section.heading === "プッシュ通知")).toBe(
+      true,
+    );
+    expect(PRIVACY_DOCUMENT.sections.some((section) => section.heading === "プッシュ通知")).toBe(
+      true,
+    );
+    expect(terms).toContain("プッシュ通知は任意です。既定はオフ");
+    expect(terms).toContain("利用者どうしのメッセージ機能ではありません");
+    expect(terms).toContain("広告・宣伝の通知は送りません");
+    expect(terms).toContain("プッシュ通知の到達や時刻");
+    expect(privacy).toContain("配信先URL");
+    expect(privacy).toContain("暗号化のための端末の公開鍵と認証用の値");
+    expect(privacy).toContain("Apple、Google、Mozilla");
+    expect(privacy).toContain("種別と未読の件数だけを暗号化して送り");
+    expect(privacy).toContain("友達の名前、お酒の名前や種類、リアクションの種類、写真は含めません");
+    expect(privacy).toContain("設定のスイッチをオフにするか、端末の設定で通知を止めてください");
+    expect(privacy).toContain("その端末でログアウトしたとき");
+    expect(privacy).toContain("配信サービスが無効と返したとき");
+    expect(privacy).toContain("プッシュ通知の配信サービス（Apple、Google、Mozilla");
+    expect(privacy).toContain("プッシュ通知の購読");
+    expect(privacy).toContain("日本国外");
   });
 
   it("公開プロフィールやDMを約束せず、権利侵害の申出はご意見フォームへ向ける", () => {

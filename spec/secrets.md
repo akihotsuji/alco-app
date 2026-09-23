@@ -42,6 +42,8 @@
 | `GOOGLE_CLIENT_ID` | 省略可（`.dev.vars`）。未設定なら Google ログインは失敗する | wrangler secret（8-04。公開時は必須） | wrangler secret（8-04。公開時は必須） | 置かない |
 | `GOOGLE_CLIENT_SECRET` | 省略可（`.dev.vars`）。未設定なら Google ログインは失敗する | wrangler secret（8-04。公開時は必須） | wrangler secret（8-04。公開時は必須） | 置かない |
 | `TURNSTILE_SECRET_KEY` | 省略可（`.dev.vars`）。サイトキーと両方揃ったときだけ有効 | wrangler secret（8-05。公開時は必須） | wrangler secret（8-05。公開時は必須） | 置かない |
+| `VAPID_PUBLIC_KEY` | `.dev.vars`（`pnpm dev:vars` が無いときだけ生成） | wrangler secret（`pnpm vapid:put -- --env dev`） | wrangler secret（`pnpm vapid:put -- --env production`） | 置かない |
+| `VAPID_PRIVATE_KEY` | `.dev.vars`（同上。表示しない） | wrangler secret（同上） | wrangler secret（同上） | 置かない |
 | `CLOUDFLARE_API_TOKEN` | 使わない（`wrangler login`） | — | — | Actions（`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml`） |
 | `CLOUDFLARE_ACCOUNT_ID` | 使わない | — | — | Actions（同上） |
 
@@ -56,6 +58,7 @@
 - ローカル開発ユーザーのパスワードは `.local-dev-user.json`（gitignore）のみ。固定パスワードをコードに置かない
 - アプリコードは `src/server/env.ts` と `src/server/services/error-alert.ts` のキー名だけで読む。値は `.dev.vars` / wrangler secret から入る
 - `ALERT_WEBHOOK_URL` は `https:` のみ。トピック名や URL をチャット・spec に書かない（[monitoring.md](features/monitoring.md)）
+- Web Push の VAPID 鍵は 2 つで 1 組（P-256）。片方だけ・形式不正はプッシュ無効（アプリは起動する）。公開鍵はクライアントへ返すが、置き場は秘密と同じにする。`VAPID_SUBJECT` は wrangler `vars`（任意。秘密ではない。未設定は `https://sake-shiori.com`）。[web-push.md](features/web-push.md)
 
 ---
 
@@ -136,6 +139,17 @@ pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env dev
 pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env production
 ```
 
+### Web Push（VAPID）
+
+未設定ならアプリは起動し、設定の「友達のお知らせを通知する」は「現在は使えません」になる。鍵は手で作らない。次のコマンドが端末内で P-256 の鍵を 1 組作り、標準入力で `wrangler secret put` に渡す。**秘密鍵は画面・ファイル・クリップボードに出さない**（公開鍵だけ表示する）。先に `pnpm exec wrangler login` を済ませる。
+
+```powershell
+pnpm vapid:put -- --env dev
+pnpm vapid:put -- --env production
+```
+
+内部で実行する順は `VAPID_PRIVATE_KEY` → `VAPID_PUBLIC_KEY`。途中で失敗したら同じコマンドをやり直す（毎回新しい 1 組を入れ直すので、片方だけ古い組み合わせは残らない）。投入後に対象 env をデプロイし直す必要はない（secret は次の要求から読まれる）。
+
 ### GitHub
 
 Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` のみ。`deploy-dev.yml` / `deploy-prod.yml` / `backup-d1.yml` が同じ名前を読む。トークン権限は [dev-deploy-ci.md](features/dev-deploy-ci.md) のとおり（Account 全権限は付けない）。
@@ -153,6 +167,7 @@ Settings → Secrets and variables → Actions。キー名は `CLOUDFLARE_API_TO
 | `FEEDBACK_TO` | 新しい宛先を対象 env だけ `wrangler secret put`（local は `.dev.vars`） | 旧アドレスへのご意見通知は止まる |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud でクライアントを再発行し、対象 env だけ `wrangler secret put`（local は `.dev.vars`）。旧クライアントは無効化 | 旧クライアントでの Google ログインは止まる |
 | `TURNSTILE_SECRET_KEY` | 対象 env だけ `wrangler secret put`（local は `.dev.vars`）。サイトキーは wrangler `vars` を合わせて更新 | 片方だけだとボット対策は無効のまま |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | 対象 env で `pnpm vapid:put -- --env <env>`（2 つを同時に入れ替える。local は `.dev.vars` の 2 行を消して `pnpm dev:vars`） | 既存の購読は配信サービスに拒否される。各端末は次の起動時に購読を作り直す（許可は再要求しない） |
 | `CLOUDFLARE_ACCOUNT_ID` | アカウントを変えない限りローテーションしない | — |
 
 Auth secret は **env 単位**で回す。dev を回しても本番は変えない。
@@ -181,7 +196,7 @@ git log --all --pretty=format: --name-only -- ".dev.vars" ".env" ":!.dev.vars.ex
 
 ```powershell
 git ls-files "*.dev.vars" ".env"
-rg -n "BEGIN PRIVATE|sk_live_|sk_test_|ghp_|re_|BETTER_AUTH_SECRET=|RESEND_API_KEY=|FEEDBACK_TO=|GOOGLE_CLIENT_SECRET=|TURNSTILE_SECRET_KEY=" --glob "!roadmap/**" --glob "!spec/**"
+rg -n "BEGIN PRIVATE|sk_live_|sk_test_|ghp_|re_|BETTER_AUTH_SECRET=|RESEND_API_KEY=|FEEDBACK_TO=|GOOGLE_CLIENT_SECRET=|TURNSTILE_SECRET_KEY=|VAPID_PRIVATE_KEY=" --glob "!roadmap/**" --glob "!spec/**"
 ```
 
 ヒットしたら値かどうか目視する。`.dev.vars.example` の空キー、CI の `openssl rand`、テストの短いダミーは可。

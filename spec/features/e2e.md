@@ -26,6 +26,7 @@
 | I | 設定の版と最新化 | 版表記にビルド ID があり、「最新の状態にする」で設定へ戻る |
 | J | 種類グリッド並べ替え | 同じ種類を複数本置き、種類見出しから 4 列グリッドを開く。タッチ長押しで追従レイヤーが指に付き、ドロップ後に順が変わる。短いタップは詳細。補助モードの前へ／次へ／決定が使える |
 | L | アイコンのバッジ（[pwa.md](pwa.md) 6.2） | Badging API を差し替えた A に、API の無い B が友達申請する。A の前面復帰で `setAppBadge(1)`、「すべて既読」とログアウトで `clearAppBadge()`。B は非対応でも登録・申請できる |
+| M | プッシュ通知の許可と購読（[web-push.md](web-push.md)） | 通知許可・`PushManager` を差し替える。起動・画面遷移では許可を求めない。設定 S23 を押すと許可 → 購読 → `PUT` で ON、もう一度押すと `DELETE` と解除で OFF。拒否では無効 + 案内。通知画面 N1 は「今はしない」で以後出ない |
 
 写真アップロードはファイルchooser。初期は写真なしでも両シナリオを満たす（ボトルは必須。ロードマップどおり）。
 
@@ -161,6 +162,16 @@
 3. A で `visibilitychange` を送ると最後の呼び出しが `setAppBadge(1)`
 4. A の友達 → 通知 →「すべて既読」で最後の呼び出しが `clearAppBadge()`
 5. A が設定からログアウトすると `clearAppBadge()` が増え、`/login` へ戻る
+
+### 3.13 シナリオ M（プッシュ通知の許可と購読）
+
+Vite 開発では SW を登録しないため、`addInitScript` で `Notification.requestPermission` と `navigator.serviceWorker.ready`（偽の `pushManager`）を差し替える。CI の `.dev.vars` に VAPID 鍵は無いので、`GET /api/push/config` だけ `page.route` でテスト用の公開鍵を返す。`PUT` / `DELETE` は実サーバーに通す（鍵が無くても受ける）。
+
+1. サインアップ後、ホーム・友達・通知・設定を開いても `requestPermission` は 0 回
+2. 通知画面の N1 で「今はしない」→ 再読み込み後も出ない
+3. 設定 S23 を押すと `requestPermission` 1 回 → `subscribe` → `PUT` 200 でスイッチ ON
+4. もう一度押すと `DELETE` 200 と `unsubscribe` でスイッチ OFF
+5. 拒否に差し替えた別コンテキストでは、S23 を押したあとスイッチ無効 + 「通知がブロックされています」
 
 ---
 
