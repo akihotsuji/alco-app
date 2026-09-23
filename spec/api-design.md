@@ -891,6 +891,8 @@ DELETE: ノートとノート写真だけ消す（親記録は残す）。200 `{
 | リアクション | `GET /api/social/reaction-types`。`PUT` / `DELETE /api/social/posts/:id/reaction` |
 | 通知 | `GET /api/social/notifications`、`GET /unread-count`、`POST /read-all`、`PATCH /:id` |
 
+`GET /api/social/notifications/unread-count` は `{ count }`（0 以上の整数。セッションの userId 宛てで未読の通知数）。F2 の未読バッジとアプリアイコンのバッジ（[features/pwa.md](features/pwa.md) 6.2）が同じ値を使う。他人の件数は返さない。
+
 `POST /api/bottles/:id/consume` は既存 Bottle に `openingEventId` を足して返す。`POST /api/bottles` は任意 `registrationBatchId`。
 
 ---

@@ -511,7 +511,7 @@ export const socialNotificationsSchema = z
   })
   .strict();
 
-export const unreadCountSchema = z.object({ count: z.number().int() }).strict();
+export const unreadCountSchema = z.object({ count: z.number().int().nonnegative() }).strict();
 
 export const socialBlocksSchema = z
   .object({

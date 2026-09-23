@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useSessionBoot } from "@/client/hooks/use-session-boot.ts";
+import { clearAppBadge } from "@/client/lib/app-badge.ts";
 import { clearReloadGuard } from "@/client/lib/app-reload.ts";
 import { clearAssetRecoveryGuard } from "@/client/lib/asset-recovery.ts";
 import { authClient } from "@/client/lib/auth-client.ts";
@@ -17,6 +18,7 @@ export function RequireAuth() {
   useEffect(() => {
     if (boot.kind === "guest") {
       queryClient.clear();
+      void clearAppBadge();
     }
     if (boot.kind === "authenticated" || boot.kind === "guest") {
       clearReloadGuard();

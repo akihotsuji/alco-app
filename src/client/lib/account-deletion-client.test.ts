@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ACCOUNT_DELETION_PENDING_USER_KEY } from "@/shared/account-deletion.ts";
 import {
   CELLAR_PREF_KEYS,
@@ -66,5 +66,18 @@ describe("discardAccountScopedClientData", () => {
     expect(sessionStore.has(FRIEND_JOIN_TOKEN_KEY)).toBe(false);
     expect(sessionStore.has(FRIEND_OWN_INVITE_TOKEN_KEY)).toBe(false);
     expect(sessionStore.has("cellar.revision.abc")).toBe(false);
+  });
+
+  it("アイコンの未読バッジも消す", () => {
+    stubStorage("localStorage", store);
+    stubStorage("sessionStorage", sessionStore);
+    const clearAppBadge = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clearAppBadge", { configurable: true, value: clearAppBadge });
+    try {
+      discardAccountScopedClientData();
+      expect(clearAppBadge).toHaveBeenCalledTimes(1);
+    } finally {
+      Reflect.deleteProperty(navigator, "clearAppBadge");
+    }
   });
 });
