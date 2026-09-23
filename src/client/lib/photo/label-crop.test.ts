@@ -4,14 +4,36 @@ import { findLabelRect, luminanceFromRgba, rectToPixels } from "./label-crop.ts"
 const W = 100;
 const H = 150;
 
+type Label = {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+  paper: number;
+  /** 文字（横線）を何行おきに入れるか */
+  textEvery?: number;
+  /** 文字の輝度。既定は暗い文字 */
+  ink?: number;
+};
+
 type Scene = {
   background: number;
   glass: number;
-  label?: { top: number; bottom: number; left: number; right: number; paper: number };
+  label?: Omit<Label, "textEvery" | "ink">;
   /** ラベル上の文字（暗い横線）を何行おきに入れるか */
   textEvery?: number;
+  /** `label` の上に重ねて貼るラベル（裏面の輸入者シール・暗い地の本ラベルなど） */
+  labels?: Label[];
   neck?: boolean;
 };
+
+function paint(label: Label, x: number, y: number): number | null {
+  if (y < label.top || y > label.bottom || x < label.left || x > label.right) {
+    return null;
+  }
+  const text = label.textEvery && y % label.textEvery === 0 && x > label.left + 4;
+  return text ? (label.ink ?? 40) : label.paper;
+}
 
 /** 瓶（胴 x 30..69・y 40..145、首 x 44..55・y 5..39）の合成画像 */
 function scene(input: Scene) {
@@ -27,10 +49,12 @@ function scene(input: Scene) {
       const index = y * W + x;
       mask[index] = 255;
       luminance[index] = input.glass;
-      const label = input.label;
-      if (label && y >= label.top && y <= label.bottom && x >= label.left && x <= label.right) {
-        const text = input.textEvery && y % input.textEvery === 0 && x > label.left + 4;
-        luminance[index] = text ? 40 : label.paper;
+      const layers = [
+        ...(input.label ? [{ ...input.label, textEvery: input.textEvery }] : []),
+        ...(input.labels ?? []),
+      ];
+      for (const layer of layers) {
+        luminance[index] = paint(layer, x, y) ?? luminance[index] ?? 0;
       }
     }
   }
@@ -80,6 +104,60 @@ describe("findLabelRect", () => {
     const result = findLabelRect(withNeckLabel);
     expect(result?.source).toBe("label");
     expect(toPixels(result?.rect ?? { x: 0, y: 0, w: 0, h: 0 }).top).toBeGreaterThan(80);
+  });
+
+  it("白いシールの下に続く暗い地・白文字のラベルも含めて切り出す", () => {
+    const result = findLabelRect(
+      scene({
+        background: 225,
+        glass: 30,
+        labels: [
+          { top: 50, bottom: 68, left: 36, right: 63, paper: 235, textEvery: 5 },
+          { top: 70, bottom: 132, left: 32, right: 67, paper: 75, textEvery: 8, ink: 225 },
+        ],
+      }),
+    );
+    expect(result?.source).toBe("label");
+    const box = toPixels(result?.rect ?? { x: 0, y: 0, w: 0, h: 0 });
+    expect(box.top).toBeGreaterThanOrEqual(42);
+    expect(box.top).toBeLessThanOrEqual(50);
+    expect(box.bottom).toBeGreaterThanOrEqual(132);
+    expect(box.bottom).toBeLessThanOrEqual(140);
+    expect(box.left).toBeLessThanOrEqual(32);
+    expect(box.right).toBeGreaterThanOrEqual(67);
+  });
+
+  it("ガラスをはさんで離れて貼られた 2 枚のラベルを両方含める", () => {
+    const result = findLabelRect(
+      scene({
+        background: 225,
+        glass: 30,
+        labels: [
+          { top: 48, bottom: 70, left: 34, right: 65, paper: 235, textEvery: 6 },
+          { top: 95, bottom: 130, left: 30, right: 69, paper: 230, textEvery: 6 },
+        ],
+      }),
+    );
+    expect(result?.source).toBe("label");
+    const box = toPixels(result?.rect ?? { x: 0, y: 0, w: 0, h: 0 });
+    expect(box.top).toBeLessThanOrEqual(48);
+    expect(box.bottom).toBeGreaterThanOrEqual(130);
+    expect(box.bottom).toBeLessThanOrEqual(138);
+  });
+
+  it("中間の明るさのガラス（緑瓶など）では瓶全体でなく白いラベルだけを切り出す", () => {
+    const result = findLabelRect(
+      scene({
+        background: 225,
+        glass: 95,
+        label: { top: 85, bottom: 125, left: 30, right: 69, paper: 235 },
+        textEvery: 6,
+      }),
+    );
+    expect(result?.source).toBe("label");
+    const box = toPixels(result?.rect ?? { x: 0, y: 0, w: 0, h: 0 });
+    expect(box.top).toBeGreaterThanOrEqual(78);
+    expect(box.bottom).toBeLessThanOrEqual(131);
   });
 
   it("ラベルと瓶の明暗差が小さいときは瓶の外接矩形で代用する", () => {
