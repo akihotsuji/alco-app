@@ -8,6 +8,7 @@ import {
   SOCIAL_CONTENT_CACHE_CONTROL,
   SOCIAL_MESSAGES,
   socialPostSchema,
+  unreadCountSchema,
 } from "@/shared/social.ts";
 import { makeJpeg } from "../image-fixtures.ts";
 import {
@@ -133,6 +134,70 @@ describe("友達・近況 API の認可", () => {
     const res = await app.request("/api/social/me", { headers: { Cookie: unverified.cookie } });
     expect(res.status).toBe(403);
     expect(((await res.json()) as { error: string }).error).toBe("age_required");
+  });
+
+  it("未読数（アイコンのバッジ）は本人宛てだけ数え、他人の件数は出さない", async () => {
+    const { app } = await createTestApp();
+    const anon = await app.request("/api/social/notifications/unread-count");
+    expect(anon.status).toBe(401);
+
+    const unverified = await createUnverifiedTestUser(app, {
+      name: "young2",
+      email: "young2@example.com",
+      password: "password1",
+    });
+    const young = await app.request("/api/social/notifications/unread-count", {
+      headers: { Cookie: unverified.cookie },
+    });
+    expect(young.status).toBe(403);
+
+    const a = await user(app, "badge-a@example.com");
+    const b = await user(app, "badge-b@example.com");
+    const c = await user(app, "badge-c@example.com");
+    async function unread(cookie: string, query = "") {
+      const res = await app.request(`/api/social/notifications/unread-count${query}`, {
+        headers: { Cookie: cookie },
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Cache-Control")).toContain("no-store");
+      return unreadCountSchema.parse(await res.json()).count;
+    }
+
+    const token = await inviteToken(app, a.cookie);
+    const requested = await app.request("/api/friends/requests", {
+      method: "POST",
+      headers: jsonHeaders(b.cookie),
+      body: JSON.stringify({ token }),
+    });
+    expect(requested.status).toBe(201);
+    expect(await unread(a.cookie)).toBe(1);
+    expect(await unread(b.cookie)).toBe(0);
+    expect(await unread(c.cookie)).toBe(0);
+    expect(await unread(c.cookie, `?userId=${a.id}`)).toBe(0);
+
+    const crossRead = await app.request("/api/social/notifications/read-all", {
+      method: "POST",
+      headers: cookieHeaders(c.cookie),
+    });
+    expect(crossRead.status).toBe(200);
+    expect(await unread(a.cookie)).toBe(1);
+
+    const readAll = await app.request("/api/social/notifications/read-all", {
+      method: "POST",
+      headers: cookieHeaders(a.cookie),
+    });
+    expect(readAll.status).toBe(200);
+    expect(await unread(a.cookie)).toBe(0);
+
+    const requestId = ((await requested.json()) as { request: { id: string } }).request.id;
+    const accepted = await app.request(`/api/friends/requests/${requestId}/accept`, {
+      method: "POST",
+      headers: cookieHeaders(a.cookie),
+    });
+    expect(accepted.status).toBe(200);
+    expect(await unread(b.cookie)).toBe(1);
+    expect(await unread(a.cookie)).toBe(0);
+    expect(await unread(c.cookie)).toBe(0);
   });
 
   it("プロフィール行なし・友達0では個人保存でき、共有は conflict", async () => {
