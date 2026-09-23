@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { earlyFetchKey, takeEarlyFetch } from "./early-fetch.ts";
+import { settleEarlyFetch } from "./fetch-timeout.ts";
 
 describe("earlyFetchKey", () => {
   it("相対・絶対・Request を pathname + search に揃える", () => {
@@ -38,5 +39,30 @@ describe("takeEarlyFetch", () => {
     const response = await first;
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("early");
+  });
+
+  it("起動時の 401 は渡さず、ログイン後の live fetch に切り替えさせる", async () => {
+    const store = {
+      put() {},
+      take: () => Promise.resolve(new Response("{}", { status: 401 })),
+    };
+    const early = takeEarlyFetch("/api/me", undefined, store);
+    expect(early).toBeDefined();
+    if (!early) {
+      throw new Error("early");
+    }
+    const live = vi.fn(async () => new Response('{"id":"u1"}', { status: 200 }));
+    const response = await settleEarlyFetch(early, live, 1_000);
+    expect(live).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+  });
+
+  it("401 以外のエラー応答（403 など）はそのまま渡す", async () => {
+    const store = {
+      put() {},
+      take: () => Promise.resolve(new Response("{}", { status: 403 })),
+    };
+    const response = await takeEarlyFetch("/api/me", undefined, store);
+    expect(response?.status).toBe(403);
   });
 });
