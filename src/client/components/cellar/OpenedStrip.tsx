@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { BottleSilhouette } from "@/client/components/cellar/BottleSilhouette.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
+import { bottleTileVisual } from "@/client/lib/cellar-shelf.ts";
 import type { BottleItem } from "@/shared/bottles.ts";
 
 export const OPENED_STRIP_HEADING = "味わい中";
@@ -13,8 +14,24 @@ type OpenedStripProps = {
   className?: string;
 };
 
+function OpenedStripFace({ item }: { item: BottleItem }) {
+  const visual = bottleTileVisual(item.thumbPhotoId, item.thumbPhotoKind);
+  if (visual === "silhouette" || !item.thumbPhotoId) {
+    return <BottleSilhouette className="opened-strip-silhouette" drinkType={item.drinkType} />;
+  }
+  return (
+    <ContentPhoto
+      className={visual === "cutout" ? "opened-strip-img is-cutout" : "opened-strip-img is-photo"}
+      src={photoContentUrl(item.thumbPhotoId, "thumb")}
+      size={PHOTO_DISPLAY_SIZE.openedStrip}
+      loading="lazy"
+    />
+  );
+}
+
 /**
- * 味わい中のボトルを丸アイコンで横に並べる補助表示（bottle-tasting.md 2.1 C15 / 5.1 H14）。
+ * 味わい中のボトルを、棚と同じ立ちボトルで横に並べる補助表示（bottle-tasting.md 2.1 C15 / 5.1 H14）。
+ * 円で切るとコルクや肩だけが残るので、表面ラベルが見えるよう contain する。
  * 棚の陳列とは混ぜない。0 本なら何も出さない。写真に文字を重ねず、品名はアクセシブル名だけ
  */
 export function OpenedStrip({ items, enterId = null, className }: OpenedStripProps) {
@@ -36,16 +53,7 @@ export function OpenedStrip({ items, enterId = null, className }: OpenedStripPro
               aria-label={item.name}
               data-enter={item.id === enterId ? "1" : undefined}
             >
-              {item.thumbPhotoId ? (
-                <ContentPhoto
-                  className="opened-strip-img"
-                  src={photoContentUrl(item.thumbPhotoId, "thumb")}
-                  size={PHOTO_DISPLAY_SIZE.bottleTile}
-                  loading="lazy"
-                />
-              ) : (
-                <BottleSilhouette className="opened-strip-silhouette" drinkType={item.drinkType} />
-              )}
+              <OpenedStripFace item={item} />
             </Link>
           </li>
         ))}

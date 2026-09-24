@@ -5088,17 +5088,17 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   animation: bottle-place var(--dur-enter) var(--ease-out) both;
 }
 
-/* 味わい中（bottle-tasting.md 2.1 C15 / 5.1 H14）。棚とは別の補助表示。丸アイコンだけを横に並べる */
+/* 味わい中（bottle-tasting.md 2.1 C15 / 5.1 H14）。棚とは別の補助表示。立ちボトルを横に並べる */
 .opened-strip {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-3);
   min-width: 0;
 }
 
 .opened-strip-heading {
   flex: none;
-  margin: 0;
+  margin: 0 0 10px;
   font-size: 13px;
   font-weight: 600;
   color: var(--muted);
@@ -5127,13 +5127,12 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 
 .opened-strip-item {
   display: grid;
-  place-items: center;
+  place-items: end center;
   width: var(--tap-min);
-  height: var(--tap-min);
+  height: 66px;
   overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  box-shadow: var(--shadow-outset-sm);
+  border-radius: var(--radius);
+  background: transparent;
 }
 
 .opened-strip-item:focus-visible {
@@ -5145,17 +5144,22 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   animation: bottle-place var(--dur-enter) var(--ease-out) both;
 }
 
-.opened-strip-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 55%;
+.opened-strip-img,
+.opened-strip-silhouette {
+  width: var(--tap-min);
+  height: 66px;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.opened-strip-img.is-photo {
+  border-radius: 8px;
 }
 
 .opened-strip-silhouette {
-  width: 60%;
-  height: 80%;
+  color: var(--muted);
 }
+
 .bottle-tile-frame {
   position: relative;
   display: flex;

@@ -45,7 +45,7 @@ test("開栓 → 味わい中で 2 日目の記録 → 飲み切りで貯蔵庫�
   await expect(page.getByRole("button", { name: "開栓を取り消す" })).toBeVisible();
   await shot(page, "tasting_detail_opened");
 
-  // セラー: 上部の丸アイコンに出て、ヘッダーの本数は未開栓 + 味わい中
+  // セラー: 上部の味わい中列に出て、ヘッダーの本数は未開栓 + 味わい中
   await page.goto("/cellar");
   const strip = page.getByRole("region", { name: /味わい中 1本/ });
   await expect(strip).toBeVisible();
@@ -53,7 +53,7 @@ test("開栓 → 味わい中で 2 日目の記録 → 飲み切りで貯蔵庫�
   await expect(page.getByText("2 本")).toBeVisible();
   await shot(page, "tasting_cellar_strip");
 
-  // ホーム: 今週の下に同じ丸アイコン。タップでボトル詳細
+  // ホーム: 今週の下に同じ味わい中列。タップでボトル詳細
   await page.goto("/");
   const homeStrip = page.getByRole("region", { name: /味わい中 1本/ });
   await expect(homeStrip).toBeVisible();
