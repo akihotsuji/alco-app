@@ -5088,6 +5088,74 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   animation: bottle-place var(--dur-enter) var(--ease-out) both;
 }
 
+/* 味わい中（bottle-tasting.md 2.1 C15 / 5.1 H14）。棚とは別の補助表示。丸アイコンだけを横に並べる */
+.opened-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.opened-strip-heading {
+  flex: none;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.opened-strip-list {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-1) var(--space-1) var(--space-2);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.opened-strip-list::-webkit-scrollbar {
+  display: none;
+}
+
+.opened-strip-list > li {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.opened-strip-item {
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-outset-sm);
+}
+
+.opened-strip-item:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.opened-strip-item[data-enter="1"] {
+  animation: bottle-place var(--dur-enter) var(--ease-out) both;
+}
+
+.opened-strip-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 55%;
+}
+
+.opened-strip-silhouette {
+  width: 60%;
+  height: 80%;
+}
 .bottle-tile-frame {
   position: relative;
   display: flex;
@@ -5650,6 +5718,30 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
 }
 
 .bottle-picker-list {
+  flex: none;
+  max-height: none;
+  overflow: visible;
+}
+
+/* 記録のボトル選択（bottle-tasting.md 4 章）。味わい中 → セラー → 貯蔵庫を 1 つのスクロール枠に */
+.bottle-picker-groups {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--space-3);
+  min-height: 0;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.bottle-picker-groups .bottle-picker-group-title {
+  margin: 0 0 var(--space-1);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.bottle-picker-list {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -5728,7 +5820,8 @@ html[data-reduce-motion="1"] .cellar-empty[data-enter="1"] .empty-state-mascot,
 html[data-reduce-motion="1"] .cellar-empty[data-enter="1"] .empty-action,
 html[data-reduce-motion="1"] .skeleton-fade,
 html[data-reduce-motion="1"] .log-row-enter,
-html[data-reduce-motion="1"] .bottle-tile[data-enter="1"] {
+html[data-reduce-motion="1"] .bottle-tile[data-enter="1"],
+html[data-reduce-motion="1"] .opened-strip-item[data-enter="1"] {
   animation-name: fade-in !important;
   animation-duration: var(--dur-toast-out) !important;
   animation-delay: initial !important;
@@ -6681,6 +6774,30 @@ html[data-reduce-motion="1"] .guide-fan-item {
 .bottle-hero-empty-label {
   color: var(--muted);
   font-size: var(--text-note);
+}
+
+/* 味わい中・貯蔵庫の詳細（bottle-tasting.md 3.2 / 3.3）。2 つの操作を横に並べる */
+.bottle-detail-action-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.bottle-undo-open {
+  align-self: center;
+  min-height: var(--tap-min);
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.bottle-status-detail {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .bottle-detail-actions {

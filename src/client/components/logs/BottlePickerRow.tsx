@@ -13,9 +13,13 @@ import { useBottle, useBottles } from "@/client/hooks/use-bottles.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
 import { vintageLabel } from "@/client/lib/bottle-form.ts";
-import { pickerBottlesQueryEnabled, pickerRowClassName } from "@/client/lib/bottle-picker.ts";
+import {
+  groupPickerBottles,
+  pickerBottlesQueryEnabled,
+  pickerRowClassName,
+} from "@/client/lib/bottle-picker.ts";
 import { cellarDisplayName } from "@/client/lib/cellar-share.ts";
-import { type BottleStatus, DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
+import { type BottleState, DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
 
 function useDebounced(value: string, ms: number) {
   const [debounced, setDebounced] = useState(value);
@@ -30,7 +34,7 @@ export type PickedBottle = {
   id: string;
   name: string;
   drinkType: DrinkType;
-  status: BottleStatus;
+  status: BottleState;
   vintage: number | null;
   producer: string | null;
   origin: string | null;
@@ -87,10 +91,16 @@ export function BottlePickerRow({
   const qDebounced = useDebounced(q.trim(), 300);
   const searched = qDebounced.length > 0;
   const { items: cellars } = useCellarSelection();
+  const listEnabled = pickerBottlesQueryEnabled(open, qDebounced, requireSearch);
   const list = useBottles(
     { view: "all", scope: "accessible", ...(searched ? { q: qDebounced } : {}) },
-    pickerBottlesQueryEnabled(open, qDebounced, requireSearch),
+    listEnabled,
   );
+  const openedList = useBottles(
+    { view: "opened", scope: "accessible", ...(searched ? { q: qDebounced } : {}) },
+    listEnabled,
+  );
+  const groups = groupPickerBottles(openedList.data?.items ?? [], list.data?.items ?? []);
 
   const optional = placement === "optional";
   const displayName = valueLabel ?? bottleName;
@@ -158,7 +168,9 @@ export function BottlePickerRow({
           }}
         >
           <DialogTitle>ボトル</DialogTitle>
-          <DialogDescription className="visually-hidden">セラーと貯蔵庫から選ぶ</DialogDescription>
+          <DialogDescription className="visually-hidden">
+            味わい中・セラー・貯蔵庫から選ぶ
+          </DialogDescription>
           <Input
             aria-label="ボトルを検索"
             value={q}
@@ -179,57 +191,66 @@ export function BottlePickerRow({
           </button>
           {list.isError ? <p className="bottle-picker-error">読み込めませんでした</p> : null}
           {requireSearch && !searched ? <p className="bottle-picker-empty">品名で検索</p> : null}
-          {list.isSuccess && list.data.items.length === 0 ? (
+          {list.isSuccess && groups.length === 0 ? (
             <p className="bottle-picker-empty">該当するボトルがありません</p>
           ) : null}
-          <ul className="bottle-picker-list">
-            {(list.data?.items ?? []).map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={pickerRowClassName(item.id === bottleId, item.status === "consumed")}
-                  onClick={() => {
-                    onSelect({
-                      id: item.id,
-                      name: item.name,
-                      drinkType: item.drinkType,
-                      status: item.status,
-                      vintage: item.vintage,
-                      producer: item.producer,
-                      origin: item.origin,
-                      variety: item.variety,
-                      thumbPhotoId: item.thumbPhotoId,
-                    });
-                    setOpen(false);
-                    setQ("");
-                  }}
-                >
-                  {item.thumbPhotoId ? (
-                    <ContentPhoto
-                      className="bottle-picker-thumb"
-                      src={photoContentUrl(item.thumbPhotoId, "thumb")}
-                      size={PHOTO_DISPLAY_SIZE.bottlePicker}
-                    />
-                  ) : (
-                    <span className="bottle-picker-thumb is-empty" aria-hidden />
-                  )}
-                  <span className="bottle-picker-copy">
-                    <strong>{item.name}</strong>
-                    <span>
-                      {[
-                        cellarForPicker(cellars, item.cellarId),
-                        DRINK_TYPE_LABELS[item.drinkType],
-                        vintageLabel(item.vintage),
-                        item.status === "consumed" ? "貯蔵庫" : null,
-                      ]
-                        .filter((value): value is string => Boolean(value))
-                        .join(" ・ ")}
-                    </span>
-                  </span>
-                </button>
-              </li>
+          <div className="bottle-picker-groups">
+            {groups.map((group) => (
+              <section className="bottle-picker-group" key={group.key}>
+                <h3 className="bottle-picker-group-title">{group.label}</h3>
+                <ul className="bottle-picker-list">
+                  {group.items.map((item) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        className={pickerRowClassName(
+                          item.id === bottleId,
+                          item.status === "consumed",
+                        )}
+                        onClick={() => {
+                          onSelect({
+                            id: item.id,
+                            name: item.name,
+                            drinkType: item.drinkType,
+                            status: item.status,
+                            vintage: item.vintage,
+                            producer: item.producer,
+                            origin: item.origin,
+                            variety: item.variety,
+                            thumbPhotoId: item.thumbPhotoId,
+                          });
+                          setOpen(false);
+                          setQ("");
+                        }}
+                      >
+                        {item.thumbPhotoId ? (
+                          <ContentPhoto
+                            className="bottle-picker-thumb"
+                            src={photoContentUrl(item.thumbPhotoId, "thumb")}
+                            size={PHOTO_DISPLAY_SIZE.bottlePicker}
+                          />
+                        ) : (
+                          <span className="bottle-picker-thumb is-empty" aria-hidden />
+                        )}
+                        <span className="bottle-picker-copy">
+                          <strong>{item.name}</strong>
+                          <span>
+                            {[
+                              cellarForPicker(cellars, item.cellarId),
+                              DRINK_TYPE_LABELS[item.drinkType],
+                              vintageLabel(item.vintage),
+                            ]
+                              .filter((value): value is string => Boolean(value))
+                              .join(" ・ ")}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         </DialogContent>
       </DialogRoot>
     </section>

@@ -11,7 +11,7 @@ import { vintageLabel } from "@/client/lib/bottle-form.ts";
 import { bottleTileVisual } from "@/client/lib/cellar-shelf.ts";
 import { cn } from "@/client/lib/utils.ts";
 import type { BottleItem } from "@/shared/bottles.ts";
-import { formatConsumedEventBadge } from "@/shared/tokyo-date.ts";
+import { formatFinishedEventBadge } from "@/shared/tokyo-date.ts";
 
 export type BottleTileMode = "cellar" | "archived";
 export type BottleTileSize = "one" | "type";
@@ -59,8 +59,10 @@ export function BottleTileFace({
             />
           </>
         )}
-        {mode === "archived" && item.consumedOn ? (
-          <span className="bottle-tile-date">{formatConsumedEventBadge(item.consumedOn)}</span>
+        {mode === "archived" && item.finishedOn ? (
+          <span className="bottle-tile-date">
+            {formatFinishedEventBadge(item.finishedOn, item.openedOn)}
+          </span>
         ) : null}
         {showPressShield ? <span className="bottle-tile-press-shield" aria-hidden /> : null}
       </span>

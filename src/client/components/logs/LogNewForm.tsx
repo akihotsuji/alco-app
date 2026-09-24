@@ -28,7 +28,8 @@ import { VolumeField } from "@/client/components/logs/VolumeField.tsx";
 import { CompactPhotoField } from "@/client/components/photo/CompactPhotoField.tsx";
 import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
 import { Input } from "@/client/components/ui/input.tsx";
-import { useBottle } from "@/client/hooks/use-bottles.ts";
+import { Switch } from "@/client/components/ui/switch.tsx";
+import { useBottle, useBottleActionAfterLog } from "@/client/hooks/use-bottles.ts";
 import { useCreateDrinkLog } from "@/client/hooks/use-drink-logs.ts";
 import { useDrinkPhotoRecognition } from "@/client/hooks/use-drink-recognition.ts";
 import { useNotePhotos } from "@/client/hooks/use-note-photos.ts";
@@ -50,6 +51,8 @@ import { drinkLogUndoState, isPhotoHandoff } from "@/client/lib/history-state.ts
 import {
   applyDrinkType,
   applySelectedBottle,
+  BOTTLE_LOG_ACTION_LABELS,
+  bottleActionAfterLog,
   canSubmitLogForm,
   clearSelectedBottle,
   describeSaveFailure,
@@ -70,6 +73,7 @@ import { parseFormOrigin } from "@/client/lib/opened-followup.ts";
 import { capturedAtToDrunkAt, shouldKeepQueryDrunkAt } from "@/client/lib/photo/captured-at.ts";
 import { recognizeJpegForForm } from "@/client/lib/photo-recognize-offer.ts";
 import { getRecordLocationPref } from "@/client/lib/preferences.ts";
+import type { BottleState } from "@/shared/constants.ts";
 import { DRINK_LOG_MESSAGES, DRINK_NAME_MAX_LENGTH } from "@/shared/drink-logs.ts";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 import { SOCIAL_COPY } from "@/shared/social.ts";
@@ -98,6 +102,7 @@ export function LogNewForm() {
     inheritOwnedPhoto,
   } = usePhotoEdit();
   const create = useCreateDrinkLog();
+  const runBottleActionAfterLog = useBottleActionAfterLog();
   const share = useShareIntent();
   const { showToast } = useToast();
   const openingEventId = searchParams.get("openingEventId");
@@ -121,6 +126,9 @@ export function LogNewForm() {
   const pendingLeave = useRef<(() => void) | null>(null);
   const savedRef = useRef(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  /** 選んだボトルの状態と「このボトルを飲み切った」（bottle-tasting.md 4 章 N8c / N8d） */
+  const [bottleStatus, setBottleStatus] = useState<BottleState | null>(null);
+  const [finishOnSave, setFinishOnSave] = useState(false);
   const [aiMarks, setAiMarks] = useState<Set<string>>(new Set());
   const touchedRef = useRef<DrinkRecognizeTouched>({
     drinkName: false,
@@ -259,6 +267,7 @@ export function LogNewForm() {
       if (!bottle) {
         return;
       }
+      setBottleStatus(bottle.status);
       setState((current) => {
         const preserveEdits = !fromBottle || shouldPreserveBottlePrefill(current, initial);
         const next = applySelectedBottle(current, bottle, { preserveEdits });
@@ -312,6 +321,23 @@ export function LogNewForm() {
         haptic("success");
         releaseAttachment("log");
         notePhotos.releaseLocal();
+        const bottleAction = bottleActionAfterLog(
+          state.bottleId ? bottleStatus : null,
+          finishOnSave,
+        );
+        const bottleStep =
+          bottleAction && state.bottleId
+            ? runBottleActionAfterLog(state.bottleId, bottleAction).then((ok) => {
+                if (!ok) {
+                  showToast({
+                    message:
+                      bottleAction === "finish"
+                        ? BOTTLE_LOG_ACTION_LABELS.finishFailed
+                        : BOTTLE_LOG_ACTION_LABELS.openFailed,
+                  });
+                }
+              })
+            : Promise.resolve();
         const source =
           openingEventId && queryBottleId
             ? {
@@ -320,7 +346,7 @@ export function LogNewForm() {
                 drinkLogId: log.id,
               }
             : { kind: "drink_log" as const, drinkLogId: log.id };
-        void share.shareIfNeeded(source).then((status) => {
+        void Promise.all([bottleStep, share.shareIfNeeded(source)]).then(([, status]) => {
           if (status === "failed") {
             showToast({ message: SOCIAL_COPY.shareFailedAfterSave });
           }
@@ -452,6 +478,8 @@ export function LogNewForm() {
         bottleName={state.bottleName}
         error={visibleErrors.bottleId}
         onSelect={(bottle) => {
+          setBottleStatus(bottle?.status ?? null);
+          setFinishOnSave(false);
           setState((current) => {
             if (!bottle) {
               return clearSelectedBottle(current);
@@ -469,6 +497,21 @@ export function LogNewForm() {
           setFormError(null);
         }}
       />
+      {state.bottleId && bottleStatus === "opened" ? (
+        <div className="settings-row bottle-log-finish">
+          <span className="settings-row-main">
+            <span>{BOTTLE_LOG_ACTION_LABELS.finishSwitch}</span>
+            <Switch
+              label={BOTTLE_LOG_ACTION_LABELS.finishSwitch}
+              checked={finishOnSave}
+              onChange={setFinishOnSave}
+            />
+          </span>
+        </div>
+      ) : null}
+      {state.bottleId && bottleStatus === "sealed" ? (
+        <p className="field-hint bottle-log-open-note">{BOTTLE_LOG_ACTION_LABELS.openNote}</p>
+      ) : null}
       <IdentityFields
         idPrefix="log"
         values={{

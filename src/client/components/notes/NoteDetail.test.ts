@@ -32,8 +32,7 @@ describe("NoteDetail 4 欄とボトル行", () => {
   });
 
   it("ボトルがあるときだけセラー / 貯蔵庫の行を出し、他人は not-found", () => {
-    expect(detail).toContain("セラーのボトル");
-    expect(detail).toContain("貯蔵庫のボトル");
+    expect(detail).toContain("{bottlePlaceLabel(note.bottle.status)}のボトル");
     expect(detail).toContain("/cellar/");
     expect(detail).toContain("note.bottle.id");
     expect(detail).toContain("<NotFoundPage");

@@ -205,6 +205,8 @@ export const CELLAR_ACTIVITY_LABELS: Record<string, string> = {
   bottle_photo_changed: "写真を変更",
   bottle_consumed: "開栓",
   bottle_restored: "開栓を取消",
+  bottle_finished: "飲み切り",
+  bottle_reopened: "味わい中に戻す",
   bottle_moved_in: "ボトルを移動",
   bottle_moved_out: "ボトルを移動",
   bottle_deleted: "ボトルを削除",

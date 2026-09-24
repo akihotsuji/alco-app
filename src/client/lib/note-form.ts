@@ -1,6 +1,6 @@
 import { isApiClientError } from "@/client/lib/api.ts";
 import { vintageSchema } from "@/shared/bottles.ts";
-import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
+import type { BottleState, DrinkType } from "@/shared/constants.ts";
 import type { DrinkLog } from "@/shared/drink-logs.ts";
 import {
   IDENTITY_MESSAGES,
@@ -22,7 +22,7 @@ import { tokyoToday } from "@/shared/tokyo-date.ts";
 export type NoteFormState = {
   bottleId: string | null;
   bottleName: string | null;
-  bottleStatus: BottleStatus | null;
+  bottleStatus: BottleState | null;
   drinkName: string;
   drinkType: DrinkType | null;
   vintage: string;
@@ -97,7 +97,7 @@ export function applySelectedBottle(
     id: string;
     name: string;
     drinkType: DrinkType;
-    status: BottleStatus;
+    status: BottleState;
     vintage?: number | null;
     producer?: string | null;
     origin?: string | null;
@@ -184,8 +184,16 @@ export function noteDetailOpen(state: NoteFormState): boolean {
   );
 }
 
-export function bottleRowLabel(name: string, status: BottleStatus | null): string {
-  return `${name}（${status === "consumed" ? "貯蔵庫" : "セラー"}）`;
+/** ボトルの置き場。味わい中はセラー上部、飲み切りは貯蔵庫（bottle-tasting.md 1 章） */
+export function bottlePlaceLabel(status: BottleState | null): string {
+  if (status === "consumed") {
+    return "貯蔵庫";
+  }
+  return status === "opened" ? "味わい中" : "セラー";
+}
+
+export function bottleRowLabel(name: string, status: BottleState | null): string {
+  return `${name}（${bottlePlaceLabel(status)}）`;
 }
 
 export function validateNoteForm(

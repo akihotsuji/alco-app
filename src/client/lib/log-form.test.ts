@@ -5,6 +5,7 @@ import { ApiClientError } from "./api.ts";
 import {
   applyDrinkType,
   applySelectedBottle,
+  bottleActionAfterLog,
   canSubmitLogForm,
   describeSaveFailure,
   extraVolumeChips,
@@ -447,5 +448,16 @@ describe("describeSaveFailure", () => {
     expect(describeSaveFailure(new TypeError("failed to fetch"), true).formMessage).toBe(
       FORM_ERROR_MESSAGES.generic,
     );
+  });
+});
+
+describe("bottleActionAfterLog", () => {
+  it("未開栓は開栓、味わい中はスイッチ ON のときだけ飲み切り、貯蔵庫・未選択は何もしない", () => {
+    expect(bottleActionAfterLog("sealed", false)).toBe("open");
+    expect(bottleActionAfterLog("sealed", true)).toBe("open");
+    expect(bottleActionAfterLog("opened", false)).toBeNull();
+    expect(bottleActionAfterLog("opened", true)).toBe("finish");
+    expect(bottleActionAfterLog("consumed", true)).toBeNull();
+    expect(bottleActionAfterLog(null, true)).toBeNull();
   });
 });

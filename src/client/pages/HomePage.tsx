@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { OpenedStrip } from "@/client/components/cellar/OpenedStrip.tsx";
 import { CardSkeleton } from "@/client/components/feedback/LoadingSkeleton.tsx";
 import { QueryError } from "@/client/components/feedback/QueryError.tsx";
 import { useFirstRunGuide } from "@/client/components/guide/first-run-guide-context.tsx";
@@ -19,6 +20,8 @@ import { queryKeys } from "@/client/lib/query-keys.ts";
 import { prefetchPointerProps } from "@/client/lib/route-chunks.ts";
 import { formatHomeDateLabel, tokyoToday } from "@/shared/tokyo-date.ts";
 
+const HOME_OPENED_LIMIT = 12;
+
 export function HomePage() {
   const today = tokyoToday();
   const [searchParams] = useSearchParams();
@@ -33,6 +36,12 @@ export function HomePage() {
     (myDrinks.data?.items.length ?? 0) === 0;
   const extraEnabled = guide.status === "unset" && homeReady && logsEmpty;
   const bottles = useBottles({ view: "all", limit: 1 }, extraEnabled);
+  // H14: 参加しているすべてのセラーの味わい中。取得中・失敗は節ごと出さない
+  const openedBottles = useBottles({
+    view: "opened",
+    scope: "accessible",
+    limit: HOME_OPENED_LIMIT,
+  });
   const notes = useQuery({
     queryKey: queryKeys.tastingNotesList({ limit: 1 }),
     queryFn: () => getTastingNotes({ limit: 1 }),
@@ -144,6 +153,7 @@ export function HomePage() {
       {weekSummary.data ? (
         <HomeWeekStrip today={today} days={weekSummary.data.days} todayFilling={todayFilling} />
       ) : null}
+      <OpenedStrip className="home-opened" items={openedBottles.data?.items ?? []} />
       <div className="home-mydrinks">
         <div className="home-mydrinks-head">
           <h2 className="section-title">マイドリンク</h2>

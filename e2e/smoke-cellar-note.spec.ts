@@ -30,6 +30,8 @@ test("ボトルを登録してから記録でノートを残し、詳細がボ�
   await page.getByRole("button", { name: "セラーのボトルと関連付ける" }).click();
   await expect(page.getByRole("heading", { name: "ボトル" })).toBeVisible();
   await page.getByRole("button", { name: new RegExp(BOTTLE_NAME) }).click();
+  // 未開栓のボトルで記録すると、保存後に開栓して味わい中になる（bottle-tasting.md N8d）
+  await expect(page.getByText("保存すると開栓して味わい中になります")).toBeVisible();
 
   await page.getByRole("button", { name: "テイスティングを残す" }).click();
   await page.getByRole("radio", { name: "評価 4" }).click();
@@ -46,6 +48,6 @@ test("ボトルを登録してから記録でノートを残し、詳細がボ�
   await page.getByRole("link", { name: new RegExp(BOTTLE_NAME) }).click();
   await expect(page.getByRole("heading", { name: BOTTLE_NAME, level: 2 })).toBeVisible();
   await expect(page.getByText("Googleで調べる")).toBeVisible();
-  await expect(page.getByText("セラーのボトル")).toBeVisible();
-  await expect(page.getByRole("link", { name: "セラーのボトル" })).toBeVisible();
+  await expect(page.getByText("味わい中のボトル")).toBeVisible();
+  await expect(page.getByRole("link", { name: /味わい中のボトル/ })).toBeVisible();
 });

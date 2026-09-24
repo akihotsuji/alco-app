@@ -6,6 +6,7 @@ import { BottleManageList } from "@/client/components/cellar/BottleManageList.ts
 import { CellarSwitcher } from "@/client/components/cellar/CellarSwitcher.tsx";
 import { CellarToolbar } from "@/client/components/cellar/CellarToolbar.tsx";
 import { LoadMoreSentinel } from "@/client/components/cellar/LoadMoreSentinel.tsx";
+import { OpenedStrip } from "@/client/components/cellar/OpenedStrip.tsx";
 import { Shelf, ShelfSkeleton, TypeShelfHeading } from "@/client/components/cellar/Shelf.tsx";
 import { useAnimatedNumber } from "@/client/components/feedback/AnimatedNumber.tsx";
 import { shouldPlayEmptyEnter } from "@/client/components/feedback/EmptyState.tsx";
@@ -26,7 +27,6 @@ import {
 } from "@/client/hooks/use-bottles.ts";
 import { useCellarListView } from "@/client/hooks/use-cellar-list-view.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
-import { useReducedMotion } from "@/client/hooks/use-reduced-motion.ts";
 import { useShelfColumns } from "@/client/hooks/use-shelf-columns.ts";
 import {
   bottlesQueryCellarId,
@@ -62,6 +62,9 @@ import { cn } from "@/client/lib/utils.ts";
 import type { BottleItem, BottlesResponse, CountsByType } from "@/shared/bottles.ts";
 import { emptyCountsByType, formatBottleCount } from "@/shared/bottles.ts";
 import { DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
+
+/** 味わい中は数本の想定。はみ出したら横スクロール（bottle-tasting.md 2.1 C15b） */
+const OPENED_STRIP_LIMIT = 30;
 
 function flattenPages(pages: { items: BottleItem[] }[] | undefined): BottleItem[] {
   return pages?.flatMap((page) => page.items) ?? [];
@@ -151,7 +154,6 @@ export function CellarList() {
   const filters = useBottleListFilters();
   const { view, setView } = useCellarListView();
   const columns = useShelfColumns();
-  const reduceMotion = useReducedMotion();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const guide = useFirstRunGuide();
@@ -169,10 +171,10 @@ export function CellarList() {
   const left = visit?.event.kind === "left" ? visit.event : null;
   const placed = visit?.event.kind === "placed" ? visit.event : null;
   const showUndo = visit?.event.kind === "left";
-  const [headerSeed, setHeaderSeed] = useState<number | undefined>(undefined);
   const [highlightRow, setHighlightRow] = useState<number | null>(null);
   const [highlightType, setHighlightType] = useState<DrinkType | null>(null);
   const [enterId, setEnterId] = useState<string | null>(null);
+  const [openedEnterId, setOpenedEnterId] = useState<string | null>(null);
 
   const { selected, storedId, isPending: cellarsPending } = useCellarSelection();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -200,14 +202,29 @@ export function CellarList() {
     view === "type",
   );
 
+  const openedQuery = useBottles(
+    {
+      view: "opened",
+      limit: OPENED_STRIP_LIMIT,
+      ...(filters.q ? { q: filters.q } : {}),
+      ...(filters.drinkType ? { drinkType: filters.drinkType } : {}),
+      ...(cellarId ? { cellarId } : {}),
+    },
+    Boolean(cellarId) || !cellarsPending,
+  );
+  const openedItems = openedQuery.data?.items ?? [];
+
   const oneItems = flattenPages(oneQuery.data?.pages);
   const oneTotal = oneQuery.data?.pages[0]?.totalCount;
   const typeTotal = typeMeta.data?.totalCount;
   const countsByType: CountsByType | undefined =
     view === "type" ? typeMeta.data?.countsByType : oneQuery.data?.pages[0]?.countsByType;
   const actualCount = view === "type" ? typeTotal : oneTotal;
-  const headerTarget =
-    headerSeed !== undefined ? headerSeed : actualCount === undefined ? undefined : actualCount;
+  const openedCount =
+    view === "type" ? typeMeta.data?.openedCount : oneQuery.data?.pages[0]?.openedCount;
+  // ヘッダー「セラー N 本」は手元のボトル（未開栓 + 味わい中）。棚・種類見出しは未開栓だけ
+  const onHandCount = actualCount === undefined ? undefined : actualCount + (openedCount ?? 0);
+  const headerTarget = onHandCount;
   const animatedCount = useAnimatedNumber(headerTarget);
   const bottlesPending = view === "type" ? typeMeta.isPending : oneQuery.isPending;
   const bottlesError = view === "type" ? typeMeta.isError : oneQuery.isError;
@@ -264,26 +281,15 @@ export function CellarList() {
       const rank = rankByCreatedAtDesc(oneItems, left);
       setHighlightRow(shelfRowIndex(rank, shelfColumns(window.innerWidth)));
     }
-    if (reduceMotion) {
-      setHeaderSeed(undefined);
-    } else {
-      setHeaderSeed(actualCount + 1);
-      const frame = requestAnimationFrame(() => setHeaderSeed(undefined));
-      const clearHighlight = window.setTimeout(() => {
-        setHighlightRow(null);
-        setHighlightType(null);
-      }, MOTION_MS.open);
-      return () => {
-        cancelAnimationFrame(frame);
-        window.clearTimeout(clearHighlight);
-      };
-    }
+    // 開栓しても手元のボトルは減らないので本数は数えない。味わい中の列に加わる（M-10 / M-39）
+    setOpenedEnterId(left.bottleId);
     const clearHighlight = window.setTimeout(() => {
       setHighlightRow(null);
       setHighlightType(null);
+      setOpenedEnterId(null);
     }, MOTION_MS.open);
     return () => window.clearTimeout(clearHighlight);
-  }, [actualCount, left, oneItems, reduceMotion, view]);
+  }, [actualCount, left, oneItems, view]);
 
   useEffect(() => {
     const sourceItems = view === "type" ? (typeMeta.data?.items ?? []) : oneItems;
@@ -369,6 +375,7 @@ export function CellarList() {
   const filtersActive = filteredOut;
   return (
     <div className="cellar-list">
+      <OpenedStrip items={openedItems} enterId={openedEnterId} />
       {/* 空でも畳み表示は残す。共有セラーの切替・作成の入口が消えないようにする */}
       <div className="cellar-filter-disclosure">
         <button

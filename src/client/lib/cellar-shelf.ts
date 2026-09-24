@@ -297,11 +297,12 @@ export type ArchiveMonthGroup = {
   items: BottleItem[];
 };
 
+/** 貯蔵庫の月見出し。飲み切り日の月で区切る */
 export function groupBottlesByConsumedMonth(items: readonly BottleItem[]): ArchiveMonthGroup[] {
   const groups: ArchiveMonthGroup[] = [];
   const indexByKey = new Map<string, number>();
   for (const item of items) {
-    const consumedOn = item.consumedOn;
+    const consumedOn = item.finishedOn;
     if (!consumedOn || !parseCalendarDate(consumedOn)) {
       continue;
     }

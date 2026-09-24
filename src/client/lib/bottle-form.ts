@@ -23,7 +23,12 @@ import {
 } from "@/shared/bottles.ts";
 import type { DrinkType } from "@/shared/constants.ts";
 import { originInputError } from "@/shared/identity.ts";
-import { formatLongJapaneseDate, parseCalendarDate, tokyoToday } from "@/shared/tokyo-date.ts";
+import {
+  formatLongJapaneseDate,
+  formatMonthDay,
+  parseCalendarDate,
+  tokyoToday,
+} from "@/shared/tokyo-date.ts";
 
 export const DEFAULT_BOTTLE_DRINK_TYPE: DrinkType = "wine_red";
 
@@ -543,17 +548,37 @@ export function formatBottleDisplayDate(value: string): string {
   return formatLongJapaneseDate(value);
 }
 
-export function bottleStatusPill(input: { status: Bottle["status"]; consumedOn: string | null }): {
+/** 詳細 T0c の状態。「味わい中」は状態の名前にだけ使う（bottle-tasting.md 1 章 文言の決まり） */
+export function bottleStatusPill(input: {
+  status: Bottle["status"];
+  openedOn: string | null;
+  finishedOn: string | null;
+}): {
   label: string;
   consumed: boolean;
+  /** 飲み切りのときの補助行「9月22日に開栓」 */
+  detail: string | null;
 } {
-  if (input.status === "consumed" && input.consumedOn) {
+  if (input.status === "consumed" && input.finishedOn) {
     return {
-      label: `開栓（${formatBottleDisplayDate(input.consumedOn)}）`,
+      label: `飲み切り（${formatBottleDisplayDate(input.finishedOn)}）`,
       consumed: true,
+      detail:
+        input.openedOn && input.openedOn !== input.finishedOn
+          ? `${formatMonthDay(input.openedOn)}に開栓`
+          : null,
     };
   }
-  return { label: "未開栓", consumed: false };
+  if (input.status === "opened") {
+    return {
+      label: input.openedOn
+        ? `味わい中（${formatBottleDisplayDate(input.openedOn)}に開栓）`
+        : "味わい中",
+      consumed: false,
+      detail: null,
+    };
+  }
+  return { label: "未開栓", consumed: false, detail: null };
 }
 
 export function isUuid(value: string): boolean {

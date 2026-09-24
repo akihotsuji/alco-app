@@ -41,6 +41,10 @@ function item(partial: Partial<BottleItem> & Pick<BottleItem, "id" | "name">): B
     storage: null,
     memo: null,
     status: "consumed",
+    openedAt: "2026-09-05T00:00:00.000Z",
+    openedOn: "2026-09-05",
+    finishedAt: "2026-09-05T00:00:00.000Z",
+    finishedOn: "2026-09-05",
     consumedAt: "2026-09-05T00:00:00.000Z",
     consumedOn: "2026-09-05",
     thumbPhotoId: null,
@@ -289,11 +293,11 @@ describe("rankByCreatedAtDesc", () => {
 });
 
 describe("groupBottlesByConsumedMonth", () => {
-  it("consumedOn の月で区切り、出現順（降順の items）を保つ", () => {
+  it("飲み切り日の月で区切り、出現順（降順の items）を保つ。開栓日の月では区切らない", () => {
     const items = [
-      item({ id: "1", name: "9月新しい", consumedOn: "2026-09-05" }),
-      item({ id: "2", name: "9月古い", consumedOn: "2026-09-01" }),
-      item({ id: "3", name: "8月", consumedOn: "2026-08-20" }),
+      item({ id: "1", name: "9月新しい", consumedOn: "2026-08-30", finishedOn: "2026-09-05" }),
+      item({ id: "2", name: "9月古い", consumedOn: "2026-09-01", finishedOn: "2026-09-01" }),
+      item({ id: "3", name: "8月", consumedOn: "2026-08-20", finishedOn: "2026-08-20" }),
     ];
     const groups = groupBottlesByConsumedMonth(items);
     expect(groups.map((group) => group.label)).toEqual(["2026年9月", "2026年8月"]);
@@ -301,10 +305,13 @@ describe("groupBottlesByConsumedMonth", () => {
     expect(groups[1]?.items.map((row) => row.name)).toEqual(["8月"]);
   });
 
-  it("不正な開栓日は落とす", () => {
-    expect(groupBottlesByConsumedMonth([item({ id: "1", name: "欠", consumedOn: null })])).toEqual(
+  it("飲み切り日が無い・不正なものは落とす", () => {
+    expect(groupBottlesByConsumedMonth([item({ id: "1", name: "欠", finishedOn: null })])).toEqual(
       [],
     );
+    expect(
+      groupBottlesByConsumedMonth([item({ id: "2", name: "壊", finishedOn: "2026-13-40" })]),
+    ).toEqual([]);
   });
 });
 

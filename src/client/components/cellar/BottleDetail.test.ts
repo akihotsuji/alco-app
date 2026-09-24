@@ -13,11 +13,12 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).toContain("bottleStatusPill(bottle)");
     expect(source).toContain("bottle-status is-consumed");
     expect(source).toContain("{statusPill.label}");
-    expect(bottleStatusPill({ status: "sealed", consumedOn: null }).label).toBe("未開栓");
-    expect(bottleStatusPill({ status: "consumed", consumedOn: "2026-09-05" })).toEqual({
-      label: "開栓（2026年9月5日）",
-      consumed: true,
-    });
+    expect(bottleStatusPill({ status: "sealed", openedOn: null, finishedOn: null }).label).toBe(
+      "未開栓",
+    );
+    expect(
+      bottleStatusPill({ status: "opened", openedOn: "2026-09-05", finishedOn: null }).label,
+    ).toBe("味わい中（2026年9月5日に開栓）");
     expect(source).toContain("bottlePropLayout");
     expect(source).toContain("displayBottleDate");
     expect(source).toContain("displayBottlePrice");
@@ -27,11 +28,18 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).not.toContain('"NV"');
   });
 
-  it("棚は開栓する、貯蔵庫は記録とテイスティングノートの入口と開栓の取り消し", () => {
+  it("未開栓は開栓する、味わい中は記録と飲み切り、貯蔵庫は記録と味わい中に戻す", () => {
     expect(source).toContain("開栓する");
     expect(source).toContain("飲んだ量を記録");
+    expect(source).toContain("飲み切った");
+    expect(source).toContain("味わい中に戻す");
     expect(source).not.toContain("テイスティングノートを書く");
-    expect(source).toContain("開栓の記録を取り消す");
+    // 旧「開栓の記録を取り消す」（貯蔵庫 → 棚）はやめ、記録が 0 件の味わい中だけ「開栓を取り消す」
+    expect(source).not.toContain("開栓の記録を取り消す");
+    expect(source).toContain("開栓を取り消す");
+    expect(source).toContain("const canUndoOpen = opened && logs.length === 0;");
+    expect(source).toContain("TOAST_MESSAGES.finished");
+    expect(source).toContain("onReopen(result)");
     expect(source).toContain("更新中…");
     expect(source).not.toContain("セラーに戻す");
     expect(source).not.toContain("開栓中");
