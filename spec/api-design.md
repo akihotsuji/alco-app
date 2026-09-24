@@ -42,9 +42,10 @@ Phase 1-05 の成果物（2026-09-05 に 1-07 で改訂）。Hono が公開す�
 
 | 項目 | 決定 | 根拠 |
 |---|---|---|
-| 開栓 | **`POST /api/bottles/:id/consume`**。ボトルを `consumed`（貯蔵庫）にする。**記録は作らない**。パス名は 1-07 のまま | [screen-designs/04-cellar.md](screen-designs/04-cellar.md) 「開栓する」（2026-09-06） |
-| 復元 | **`POST /api/bottles/:id/restore`** を追加。`consumed → sealed`。undo と「開栓の記録を取り消す」 | 同上 |
-| 棚 / 貯蔵庫 | `GET /api/bottles` に **`view=cellar \| archive \| all`**（既定 `cellar`）。`archive` は `consumedAt` 降順 | 棚と貯蔵庫の分離 |
+| 開栓 | **`POST /api/bottles/:id/open`**（2026-09-24。旧 `consume` は互換で同じ動き）。ボトルを味わい中にする。**記録は作らない** | [features/bottle-tasting.md](features/bottle-tasting.md) |
+| 飲み切り | **`POST /api/bottles/:id/finish`**（味わい中 → 貯蔵庫）と **`POST /api/bottles/:id/reopen`**（貯蔵庫 → 味わい中）を追加（2026-09-24） | 同上 |
+| 復元 | **`POST /api/bottles/:id/restore`**。味わい中 → 未開栓（開栓を取り消す・undo）。古い端末のため貯蔵庫 → 未開栓も受ける | [screen-designs/04-cellar.md](screen-designs/04-cellar.md) |
+| 棚 / 味わい中 / 貯蔵庫 | `GET /api/bottles` に **`view=cellar \| opened \| archive \| all`**（既定 `cellar`）。`opened` は開栓日時の降順、`archive` は飲み切り日時の降順 | 棚と貯蔵庫の分離（`opened` は 2026-09-24） |
 | 本数展開 | `POST /api/bottles` に **`count`（1〜12）**。N 行を作り `{ items: Bottle[] }` を返す。`quantity` フィールドは廃止 | 1 行 = 1 本 |
 | 記録とボトル | drink-log に **`bottleId`**（任意）。`GET /api/drink-logs?bottleId=` で絞り込み（期間必須は維持しない: `bottleId` 指定時は期間省略可、最大 100 件） | ボトル詳細の記録節 |
 | 写真の紐付け | 作成 API（drink-logs / bottles / tasting-notes）が **`photoIds: string[]`** を受け取り、同一トランザクションで紐付ける。PATCH でも可 | 「使う」直後の先アップロード → 保存で紐付け |
@@ -274,8 +275,11 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 | GET | `/api/bottles/:id` | 必須 | 詳細（写真メタ含む） |
 | PATCH | `/api/bottles/:id` | 必須 | 部分更新（状態は変えない） |
 | DELETE | `/api/bottles/:id` | 必須 | 削除（写真 CASCADE、ノート・記録は残す） |
-| POST | `/api/bottles/:id/consume` | 必須 | 開栓 → 貯蔵庫。記録は作らない |
-| POST | `/api/bottles/:id/restore` | 必須 | 貯蔵庫 → 棚（undo / 開栓の記録を取り消す） |
+| POST | `/api/bottles/:id/open` | 必須 | 開栓 → 味わい中。記録は作らない |
+| POST | `/api/bottles/:id/consume` | 必須 | 互換（古い端末）。`open` と同じ |
+| POST | `/api/bottles/:id/finish` | 必須 | 飲み切り（味わい中 → 貯蔵庫） |
+| POST | `/api/bottles/:id/reopen` | 必須 | 味わい中に戻す（貯蔵庫 → 味わい中） |
+| POST | `/api/bottles/:id/restore` | 必須 | 開栓を取り消す（味わい中 → 棚。互換で貯蔵庫 → 棚も） |
 | POST | `/api/bottles/recognize` | 必須 | ラベル写真から候補フィールド。保存しない |
 | GET | `/api/tasting-notes` | 必須 | ノート一覧（タブ用） |
 | GET | `/api/tasting-notes/:id` | 必須 | 詳細（写真メタ含む。読み取り） |
@@ -624,15 +628,15 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 ### 4.5 bottles
 
-**共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。代わりに `cellarId` / `version` / `createdByName` / `updatedByName`。日付は `purchasedOn` / `storedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`consumedAt`（ISO \| null）。`storedOn` は保管日で `purchasedOn` とは別項目。`priceJpy` は整数円または null。`status` は `sealed` \| `consumed`。`quantity` は無い（1 行 = 1 本）。`openedOn` は持たない。認可は対象セラーの有効メンバー。
+**共通オブジェクト:** data-model 6.3 の TS 名。`userId` なし。代わりに `cellarId` / `version` / `createdByName` / `updatedByName`。日付は `purchasedOn` / `storedOn` / `openedOn` / `finishedOn` / `consumedOn`（`YYYY-MM-DD` \| null）、`openedAt` / `finishedAt` / `consumedAt`（ISO \| null）。`openedAt` / `openedOn` は開栓日時 / 開栓日、`finishedAt` / `finishedOn` は飲み切り日時 / 飲み切り日。`consumedAt` / `consumedOn` は古い端末のため開栓日時 / 開栓日と同じ値を返す。`storedOn` は保管日で `purchasedOn` とは別項目。`priceJpy` は整数円または null。`status` は `sealed`（未開栓）\| `opened`（味わい中）\| `consumed`（飲み切り・貯蔵庫）。`quantity` は無い（1 行 = 1 本）。認可は対象セラーの有効メンバー。
 
-詳細・作成応答に `photos`（4.7 のメタ配列、最大 2。`sortOrder` 昇順で `[0]` = 表面、`[1]` = 裏面）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ヘッダーの「12 本」、ゴースト見出しの本数）。`group=type` のときだけ任意フィールド `typeShelves`（種類ごとの先頭 `limit` 本と各棚の `nextCursor`）を付ける。
+詳細・作成応答に `photos`（4.7 のメタ配列、最大 2。`sortOrder` 昇順で `[0]` = 表面、`[1]` = 裏面）を含める。一覧は `thumbPhotoId`（無ければ null）と `thumbPhotoKind`（`photo` / `cutout` / null）だけにする。一覧応答にはフィルタ前の在庫数 `totalCount`（`view` 内の総数）と、種類ごと表示用の `countsByType`（`{ wine: 6, whisky: 3, ... }`。`view` 内）を含める（ゴースト見出しの本数）。`view=cellar` のときだけ `openedCount`（同じセラーの味わい中の本数。フィルタ前）を付け、ヘッダーの「12 本」は `totalCount + openedCount` にする。`group=type` のときだけ任意フィールド `typeShelves`（種類ごとの先頭 `limit` 本と各棚の `nextCursor`）を付ける。
 
 #### GET /api/bottles
 
 | クエリ | 説明 |
 |---|---|
-| `view` | `cellar`（既定。`sealed`。`drinkType` ありは `sortOrder` 昇順、なしは `createdAt` 降順）\| `archive`（`consumed`、`consumedAt` 降順）\| `all`（ピッカー用。`createdAt` 降順） |
+| `view` | `cellar`（既定。`sealed`。`drinkType` ありは `sortOrder` 昇順、なしは `createdAt` 降順）\| `opened`（味わい中。`openedAt` 降順）\| `archive`（飲み切り。`finishedAt` 降順）\| `all`（ピッカー用。`createdAt` 降順） |
 | `q` | 品名・生産者・品種の部分一致。最大 100 文字。空は未指定と同じ |
 | `drinkType` | 12 種のいずれか |
 | `group` | `type` のみ。`view=cellar` 専用。`drinkType` / `cursor` と同時指定不可。種類ごとの先頭 `limit` 本を `typeShelves` に載せる。トップレベル `nextCursor` は `null`。`items` は全棚プレビューの連結 |
@@ -640,7 +644,7 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 | `cellarId` | 指定したらそのセラー。省略かつ `scope` なしは **個人セラーのみ**（旧クライアント互換。共有ボトルは返さない） |
 | `scope` | `personal`（個人のみ）\| `accessible`（個人 + 参加中の共有。ピッカー用） |
 
-ノート・記録のボトルピッカーは `view=all&scope=accessible&q=` を使う（貯蔵庫の本も選べる。保存先名を行に出す）。
+ノート・記録のボトルピッカーは `view=all&scope=accessible&q=` を使う（貯蔵庫の本も選べる。保存先名を行に出す）。記録のピッカーは加えて `view=opened&scope=accessible&q=` を取り、味わい中 → セラー → 貯蔵庫の順に出す。ホームの味わい中は `view=opened&scope=accessible&limit=12`。
 
 #### POST /api/bottles
 
@@ -666,25 +670,27 @@ PATCH は部分更新。削除は物理削除。過去ログの `myDrinkId` は 
 
 #### GET / PATCH / DELETE /api/bottles/:id
 
-PATCH は部分更新。`status` / `consumedAt` / `consumedOn` / `sortOrder` は受け取らない（開栓は 4.5.1、戻しは 4.5.2、並びは 4.5 の `PUT /order`）。`drinkType` を変えたら新しい種類の先頭へ置く。`photoIds` は差し替え（配列全体 `[表面, 裏面?]`。紐付け済みの自分の写真は残し、外れた写真は削除、添字を `sortOrder` に書き直す）。**送らない場合は写真を変えない。空配列 `[]` は写真をすべて外して削除する。** 共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
+PATCH は部分更新。`status` / `consumedAt` / `consumedOn` / `finishedAt` / `finishedOn` / `sortOrder` は受け取らない（開栓・飲み切りは 4.5.1、戻しは 4.5.2、並びは 4.5 の `PUT /order`）。`drinkType` を変えたら新しい種類の先頭へ置く。`photoIds` は差し替え（配列全体 `[表面, 裏面?]`。紐付け済みの自分の写真は残し、外れた写真は削除、添字を `sortOrder` に書き直す）。**送らない場合は写真を変えない。空配列 `[]` は写真をすべて外して削除する。** 共有ボトルは `expectedVersion` 必須。不一致は 409 `conflict`（`reason=version`、`current` に最新ボトル）。`operationKey` で再試行する。
 
 DELETE: ボトル写真は CASCADE（R2 も消す）。ノートの `bottleId` と記録の `bottleId` は SET NULL。本体は残る。貯蔵庫の本も削除できる。
 
-#### 4.5.1 POST /api/bottles/:id/consume
+#### 4.5.1 POST /api/bottles/:id/open（開栓）/ finish（飲み切り）/ reopen（味わい中に戻す）
 
-画面の「開栓する」。空オブジェクト可。任意で `expectedVersion` / `operationKey`。`log` は受け取らない。共有ボトルは `expectedVersion` 必須。すでに開栓済みは 409 `conflict`。
+正本は [features/bottle-tasting.md](features/bottle-tasting.md) 7 章。3 つとも空オブジェクト可。任意で `expectedVersion` / `operationKey`。`log` は受け取らない。共有ボトルは `expectedVersion` 必須。drink-log は作らない。
 
-サーバー:
+| パス | 前の状態 | 後の状態 | 更新する列 |
+|---|---|---|---|
+| `open`（旧 `consume` も同じ） | 未開栓 | 味わい中 | `status = consumed`、`consumedAt` / `consumedOn` = いま、`finishedAt` / `finishedOn` = null。開栓イベント（友達への共有用）を作る |
+| `finish` | 味わい中 | 飲み切り | `finishedAt`（サーバー現在時刻）/ `finishedOn`（JST 日） |
+| `reopen` | 飲み切り | 味わい中 | `finishedAt` / `finishedOn` = null（開栓日は残す） |
 
-1. メンバーのボトルで `status === "sealed"` を確認。非メンバー・不明は 404
-2. `status = consumed`、`consumedAt`（サーバー現在時刻）、`consumedOn`（JST 日）を更新
-3. drink-log は作らない
+非メンバー・不明・状態が合わないときは 404。共有セラーで開栓済みのボトルに `open` したときだけ 409 `conflict`（`current` に最新ボトル）。
 
 成功: 200 `Bottle`。
 
 #### 4.5.2 POST /api/bottles/:id/restore
 
-空オブジェクト可。任意で `expectedVersion` / `operationKey`。メンバーのボトルで `status === "consumed"` のとき、`sealed` に戻し、`consumedAt` / `consumedOn` を null にし、その種類の先頭へ置く。それ以外は 404。**紐付いている記録は消さない**。共有は `expectedVersion` 必須。
+開栓を取り消す。空オブジェクト可。任意で `expectedVersion` / `operationKey`。メンバーのボトルで `status === "consumed"`（味わい中。古い端末のため飲み切りも受ける）のとき、`sealed` に戻し、`consumedAt` / `consumedOn` / `finishedAt` / `finishedOn` を null にし、その種類の先頭へ置き、開栓イベントを取り消す。それ以外は 404。**紐付いている記録は消さない**。共有は `expectedVersion` 必須。
 
 成功: 200 `Bottle`。
 
@@ -1000,15 +1006,15 @@ src/server/
 | 画面 ID | 主に使う API |
 |---|---|
 | auth-login / auth-signup | `/api/auth/*` |
-| home | `GET /api/drink-logs/summary?period=day\|week`、`GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
+| home | `GET /api/drink-logs/summary?period=day\|week`、`GET /api/bottles?view=opened&scope=accessible&limit=12`（味わい中）、`GET /api/my-drinks`、`POST /api/my-drinks/:id/log` |
 | log-day | `GET /api/drink-logs?date=`、`POST /api/my-drinks/:id/log`、DELETE（undo） |
 | log-new / log-edit | POST / PATCH `/api/drink-logs`（`photoIds`, `bottleId`, 任意 `tastingNote`）、`POST /api/photos`、`GET /api/bottles?view=all&q=` |
 | mydrink-list / mydrink-new | `/api/my-drinks` |
 | summary-week / summary-month | `GET /api/drink-logs/summary?period=week\|month` |
-| bottle-list（棚） | `GET /api/bottles?view=cellar`、`PUT /api/bottles/order`（`bottle-type-grid`） |
+| bottle-list（棚） | `GET /api/bottles?view=cellar`、`GET /api/bottles?view=opened`（味わい中の列）、`PUT /api/bottles/order`（`bottle-type-grid`） |
 | bottle-archive（貯蔵庫） | `GET /api/bottles?view=archive` |
 | bottle-new / bottle-edit | `POST /api/bottles`（`count`, `photoIds`）、PATCH、`POST /api/photos`、`POST /api/bottles/recognize`（bottle-new のみ） |
-| bottle-detail | `GET /api/bottles/:id`、`POST /api/bottles/:id/consume`（開栓）、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
+| bottle-detail | `GET /api/bottles/:id`、`POST /api/bottles/:id/open`（開栓）、`finish`、`reopen`、`GET /api/tasting-notes?bottleId=&limit=3`、`GET /api/drink-logs?bottleId=&limit=3`、`POST /api/bottles/:id/restore` |
 | note-list / note-detail | `GET /api/tasting-notes`、`GET /api/tasting-notes/:id`。編集は `log-edit` |
 | photo-edit | `POST /api/photos`（未紐付け）、`DELETE /api/photos/:id`（破棄） |
 | settings | `GET /api/me`、Better Auth ログアウト / 表示名、`POST /api/me/account-deletion`、`POST /api/feedback`、`GET /api/social/me`、`GET /api/social/preferences` |

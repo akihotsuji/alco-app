@@ -32,7 +32,7 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | ノートの銘柄 | **スナップショット必須**（`drink_name` / `drink_type`）+ 任意の `bottle_id` | ボトル改名後も当時の記録を残す |
 | ボトル削除時のノート | **`bottle_id` を SET NULL**。ノートは残す | テイスティング履歴を消さない |
 | 削除方針 | アプリエンティティは **物理削除** | 個人アプリ。監査用論理削除は不要 |
-| 開栓日 | `consumed_on`（JST 日。`consumed` のとき必須） | 2026-09-06。棚に残す開栓済みは持たないため `opened_on` は廃止 |
+| 開栓日 | `consumed_on`（JST 日。`consumed` のとき必須） | 2026-09-06。`opened_on` は持たない。飲み切り日は `finished_on`（2026-09-24。[bottle-tasting.md](features/bottle-tasting.md)） |
 | `user_id` + `id` 複合 PK | **採用しない**。PK は `id`、アクセスは必ず `id AND user_id` | FK を単純に保つ。認可は API |
 
 ### 1-07 改訂（2026-09-05。2026-09-06 承認）
@@ -42,8 +42,9 @@ Phase 1-04 の成果物（2026-09-05 に 1-07 で改訂）。Phase 2-01（Drizzl
 | 項目 | 決定 | 根拠 |
 |---|---|---|
 | 1 行 = 1 本 | `bottles.quantity` を **廃止**。登録時の本数 N は API が **N 行に展開**（上限 12） | 棚に N 本並ぶ。消費は常に 1 本（[04-cellar.md](screen-designs/04-cellar.md)） |
-| ボトルステータス | `sealed` / **`consumed`**（`finished` を改名。`opened` は 2026-09-06 に廃止）。`consumed` = 貯蔵庫（開栓後） | 棚に残す開栓済みは不要 |
-| 開栓日時 | `consumed_at`（UTC ms）と `consumed_on`（JST 日、サーバー算出）。「開栓する」でセット。復元で両方 NULL | 貯蔵庫の月見出し・undo |
+| ボトルステータス | `sealed` / **`consumed`**（DB は 2 値）。`consumed` = 開栓済み。2026-09-24 から飲み切り日 `finished_at` の有無で **味わい中**（NULL）と **貯蔵庫**（あり）に分ける。API は `sealed` / `opened` / `consumed` の 3 状態 | 3 値の CHECK にすると `bottles` の作り直しで写真が CASCADE で消えるため列の追加で表す（[bottle-tasting.md](features/bottle-tasting.md) 6 章） |
+| 開栓日時 | `consumed_at`（UTC ms）と `consumed_on`（JST 日、サーバー算出）。「開栓する」でセット。開栓を取り消すと両方 NULL | 味わい中の並び・undo |
+| 飲み切り日時 | `finished_at`（UTC ms）と `finished_on`（JST 日、サーバー算出）。「飲み切った」でセット。「味わい中に戻す」・開栓を取り消すで NULL | 貯蔵庫の並び・月見出し（2026-09-24） |
 | 記録とボトル | `drink_logs.bottle_id`（任意、SET NULL）。`log-new` の「ボトル」行で手動。`drink_name` にボトル名をスナップショット。開栓では記録を作らない | 何を飲んだかを残す |
 | 記録の写真 | `photos.drink_log_id`（任意、CASCADE）。1 記録につき **1 枚** | 写真を撮って記録する UX |
 | 写真の所有者 | `bottle_id` / `tasting_note_id` / `drink_log_id` は **最大 1 つ**（CHECK）。3 つとも NULL は未紐付け | 排他を 3 way に拡張 |
@@ -321,9 +322,9 @@ erDiagram
 | DB 値 | 表示 | 画面 | 初期値 |
 |---|---|---|---|
 | `sealed` | 未開栓 | 棚 | 新規登録のデフォルト |
-| `consumed` | 開栓（貯蔵庫） | 貯蔵庫 | 「開栓する」で `consumed_at` = 今、`consumed_on` = その JST 日 |
+| `consumed` | 開栓済み（`finished_at` NULL = 味わい中 / あり = 飲み切り・貯蔵庫） | 味わい中の列 / 貯蔵庫 | 「開栓する」で `consumed_at` = 今、`consumed_on` = その JST 日。「飲み切った」で `finished_at` / `finished_on` |
 
-遷移: `sealed → consumed`（開栓）、`consumed → sealed`（復元。`consumed_at` / `consumed_on` は NULL に戻す）。DB は 2 値のみ許可する。詳細は [screen-designs/04-cellar.md](screen-designs/04-cellar.md)。
+遷移: `sealed → consumed`（開栓。味わい中）、味わい中 → 飲み切り（`finished_*` をセット）、飲み切り → 味わい中（`finished_*` を NULL）、`consumed → sealed`（開栓を取り消す。`consumed_*` / `finished_*` を NULL に戻す）。DB は 2 値のみ許可する。詳細は [screen-designs/04-cellar.md](screen-designs/04-cellar.md)。
 
 ### 5.5 評価（rating_x10）
 
@@ -438,10 +439,12 @@ erDiagram
 | storedOn | stored_on | text | YES | `YYYY-MM-DD` | 保管日（JST）。`created_at` とは別列。新規作成で省略時は撮影日（無ければサーバーの JST 当日）。既存行は NULL のまま（一括補完しない） |
 | storage | storage | text | YES | ≦100 | 保管場所。新規作成で省略時は「自宅セラー」。既存行の空欄は補完しない |
 | memo | memo | text | YES | ≦2000 | メモ |
-| status | status | text | NO | CHECK enum, default `sealed` | 未開栓（棚） / 開栓（貯蔵庫） |
+| status | status | text | NO | CHECK enum, default `sealed` | 未開栓（棚） / 開栓済み（味わい中・貯蔵庫） |
 | sortOrder | sort_order | integer | NO | default 0 | 小さいほど先。意味があるのは `sealed`。範囲は `(cellar_id, drink_type)`。種類グリッドの任意順。新規・復元・種類変更は先頭 |
 | consumedAt | consumed_at | integer | YES | | 開栓日時（UTC ms）。`consumed` のとき必須、それ以外 NULL |
-| consumedOn | consumed_on | text | YES | `YYYY-MM-DD` | 開栓日（JST）。`consumed_at` からサーバー算出。貯蔵庫の月見出し |
+| consumedOn | consumed_on | text | YES | `YYYY-MM-DD` | 開栓日（JST）。`consumed_at` からサーバー算出 |
+| finishedAt | finished_at | integer | YES | | 飲み切り日時（UTC ms）。NULL なら味わい中（`consumed` のときだけ意味を持つ）。0016 で追加。既存の `consumed` は `consumed_at` を写して飲み切り扱い |
+| finishedOn | finished_on | text | YES | `YYYY-MM-DD` | 飲み切り日（JST）。`finished_at` からサーバー算出。貯蔵庫の月見出し |
 | createdAt | created_at | integer | NO | | |
 | updatedAt | updated_at | integer | NO | | |
 
@@ -764,7 +767,8 @@ R2 put 前に永続化する。削除と遅延 put の競合を防ぐ。
 | `my_drinks_user_sort_idx` | my_drinks | `user_id`, `sort_order` | 1 タップ一覧 |
 | `bottles_cellar_status_idx` | bottles | `cellar_id`, `status` | 棚 / 貯蔵庫の切替、状態絞り込み |
 | `bottles_cellar_type_idx` | bottles | `cellar_id`, `drink_type` | 種類絞り込み |
-| `bottles_cellar_consumed_idx` | bottles | `cellar_id`, `consumed_at` | 貯蔵庫の並び（降順） |
+| `bottles_cellar_consumed_idx` | bottles | `cellar_id`, `consumed_at` | 味わい中の並び（開栓日時の降順） |
+| `bottles_cellar_finished_idx` | bottles | `cellar_id`, `finished_at` | 貯蔵庫の並び（飲み切り日時の降順） |
 | `bottles_cellar_type_sort_idx` | bottles | `cellar_id`, `drink_type`, `status`, `sort_order` | 種類ごとの棚順 |
 | `cellars_owner_idx` | cellars | `owner_user_id` | 所有確認 |
 | `cellar_members_user_idx` | cellar_members | `user_id` | 参加セラー解決 |
