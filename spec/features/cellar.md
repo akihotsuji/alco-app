@@ -48,7 +48,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | ボトル | `bottles` の 1 行。**1 行 = 1 本**。`quantity` 列は無い |
 | 本数 `count` | 登録時だけ送る API 入力（1〜12）。同じ属性・同じ写真元で **N 行**を作る。列には残さない |
 | 棚（セラー） | `status = sealed` の在庫。`/cellar`。状態フィルタは持たない |
-| 味わい中 | `status = consumed` かつ `finished_at` なし。セラー上部とホームに丸アイコンで出す。API の `status = opened` |
+| 味わい中 | `status = consumed` かつ `finished_at` なし。セラー上部とホームに立ちボトルで出す。API の `status = opened` |
 | 貯蔵庫 | `status = consumed` かつ `finished_at` あり（飲み切り）。`/cellar/archive`。月見出しは `finishedOn` の JST 月 |
 | 開栓 | `POST /api/bottles/:id/open`（旧 `consume` も同じ）。未開栓 → 味わい中。`consumedAt` = サーバー現在、`consumedOn` = その JST 日。**記録は作らない** |
 | 飲み切り | `POST /api/bottles/:id/finish`。味わい中 → 貯蔵庫。`finishedAt` / `finishedOn` をセット。戻すのは `reopen` |
@@ -139,7 +139,7 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 | 空（在庫 0） | 棚板 1 本 + キャラ `surprised` 96px +「ボトルはまだありません。撮って 1 本目を並べましょう」+ Button 主「ボトルを追加」。初回だけ M-26 / M-27 / M-28 |
 | フィルタ結果 0 | 棚板 1 本 +「該当するボトルがありません」+ Chip「フィルタを解除」（キャラなし） |
 | エラー | 「読み込めませんでした」+ 再試行 |
-| 直前操作あり | 対象の段の棚板ハイライト（M-32 / M-12 / M-10）。開栓後は味わい中の列に丸アイコンが加わる（M-39。本数は数えない）。復元で戻ったタイルは M-11。対象は `history.state`、再生後に消す |
+| 直前操作あり | 対象の段の棚板ハイライト（M-32 / M-12 / M-10）。開栓後は味わい中の列に立ちボトルが加わる（M-39。本数は数えない）。復元で戻ったタイルは M-11。対象は `history.state`、再生後に消す |
 
 ### 3.2 `bottle-archive` 貯蔵庫（`/cellar/archive?q=&drinkType=`）
 
@@ -255,10 +255,10 @@ Phase 4-01 の成果物。セラー管理（棚・貯蔵庫・追加・詳細・
 
 開栓の到着演出（[motion-design.md](../motion-design.md) 9 章。「少し凝った」）:
 
-- `/cellar` で M-10: 抜けた段の棚板ハイライト、味わい中の列に丸アイコンが加わる（M-39）、トースト。本数は変わらない。隣は再描画で詰まる（FLIP しない）
+- `/cellar` で M-10: 抜けた段の棚板ハイライト、味わい中の列に立ちボトルが加わる（M-39）、トースト。本数は変わらない。隣は再描画で詰まる（FLIP しない）
 - undo 成功: タイルが上 6px から置かれる（M-11）+ 棚板ハイライト（M-32）
 - 段は `history.state.left = { bottleId, createdAt }` から `createdAt` 降順の順位（3 列。480px 以上は 4 列）
-- reduced motion: 丸アイコンとトーストの不透明度だけ
+- reduced motion: 味わい中のアイコンとトーストの不透明度だけ
 - 4-03 より前（4-02）は T3 を **出さない**（disabled にしない）
 
 | 状態 | 表示 |
