@@ -10,6 +10,7 @@ import { useTastingNote } from "@/client/hooks/use-tasting-notes.ts";
 import { isApiClientError } from "@/client/lib/api.ts";
 import { isUuid } from "@/client/lib/bottle-form.ts";
 import { formatGrams } from "@/client/lib/log-form.ts";
+import { bottlePlaceLabel } from "@/client/lib/note-form.ts";
 import { NotFoundPage } from "@/client/pages/NotFoundPage.tsx";
 import { IDENTITY_FIELD_LABELS } from "@/shared/identity.ts";
 import { formatRatingX10, type TastingNote } from "@/shared/tasting-notes.ts";
@@ -74,9 +75,7 @@ function NoteDetailBody({ note }: { note: TastingNote }) {
       </p>
       {note.bottle ? (
         <Link className="form-row note-bottle-link" to={`/cellar/${note.bottle.id}`}>
-          <span className="form-row-label">
-            {note.bottle.status === "consumed" ? "貯蔵庫のボトル" : "セラーのボトル"}
-          </span>
+          <span className="form-row-label">{bottlePlaceLabel(note.bottle.status)}のボトル</span>
           <span className="form-row-value">{note.bottle.name}</span>
           <ChevronRight size={20} className="form-row-chevron" aria-hidden />
         </Link>

@@ -16,8 +16,10 @@ import {
   consumeBottle,
   createBottles,
   deleteBottle,
+  finishBottle,
   getOwnBottle,
   listBottles,
+  reopenBottle,
   reorderBottles,
   restoreBottle,
   updateBottle,
@@ -38,163 +40,214 @@ export type BottleRouteDeps = {
  * `recognize` / `order` は `/:id` より先。`consume` / `restore` は `/:id` 配下。
  */
 export function createBottlesRoute(deps: BottleRouteDeps) {
-  return new Hono<AppEnv>()
-    .get("/", validate("query", bottlesQuerySchema), async (c) => {
-      const user = c.get("user");
-      const query = c.req.valid("query");
-      const result = await listBottles({
-        db: deps.getDb(c),
-        userId: user.id,
-        query,
-      });
-      return c.json(result);
-    })
-    .post("/", validate("json", createBottleSchema), async (c) => {
-      const user = c.get("user");
-      const body = c.req.valid("json");
-      const created = await createBottles({
-        db: deps.getDb(c),
-        bucket: deps.getBucket(c),
-        userId: user.id,
-        body,
-      });
-      return c.json(created, 201);
-    })
-    .post("/recognize", async (c) => {
-      const user = c.get("user");
-      let form: FormData;
-      try {
-        form = await c.req.formData();
-      } catch {
-        throw new ApiError("validation_error", {
-          fields: { "": [MALFORMED_REQUEST_MESSAGE] },
-        });
-      }
-
-      const file = form.get("file");
-      if (!(file instanceof File)) {
-        throw new ApiError("validation_error", {
-          fields: { file: ["画像ファイルを指定してください"] },
-        });
-      }
-      if (file.size > PHOTO_MAX_BYTES) {
-        throw new ApiError("payload_too_large");
-      }
-
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      if (bytes.byteLength > PHOTO_MAX_BYTES) {
-        throw new ApiError("payload_too_large");
-      }
-
-      // 裏面は任意。あれば表面と同じサイズ上限で受け、MIME / 長辺の検証はサービス側で表面と同じく行う。
-      const back = form.get("back");
-      let backBytes: Uint8Array | undefined;
-      if (back !== null) {
-        if (!(back instanceof File)) {
-          throw new ApiError("validation_error", {
-            fields: { back: ["画像ファイルを指定してください"] },
-          });
-        }
-        if (back.size > PHOTO_MAX_BYTES) {
-          throw new ApiError("payload_too_large");
-        }
-        backBytes = new Uint8Array(await back.arrayBuffer());
-        if (backBytes.byteLength > PHOTO_MAX_BYTES) {
-          throw new ApiError("payload_too_large");
-        }
-      }
-
-      const result = await recognizeBottleLabel({
-        db: deps.getDb(c),
-        userId: user.id,
-        bytes,
-        backBytes,
-        recognizer: deps.getLabelRecognizer(c),
-        timeoutMs: deps.recognizeTimeoutMs,
-      });
-      return c.json(result);
-    })
-    .put("/order", validate("json", reorderBottlesSchema), async (c) => {
-      const user = c.get("user");
-      const body = c.req.valid("json");
-      const result = await reorderBottles({
-        db: deps.getDb(c),
-        userId: user.id,
-        body,
-      });
-      return c.json(result);
-    })
-    .get("/:id", validate("param", bottleIdParamSchema), async (c) => {
-      const user = c.get("user");
-      const { id } = c.req.valid("param");
-      const bottle = await getOwnBottle(deps.getDb(c), user.id, id);
-      return c.json(bottle);
-    })
-    .post(
-      "/:id/consume",
-      validate("param", bottleIdParamSchema),
-      validateJsonAllowingEmpty(bottleMutationBodySchema),
-      async (c) => {
+  return (
+    new Hono<AppEnv>()
+      .get("/", validate("query", bottlesQuerySchema), async (c) => {
         const user = c.get("user");
-        const { id } = c.req.valid("param");
-        const bottle = await consumeBottle({
+        const query = c.req.valid("query");
+        const result = await listBottles({
           db: deps.getDb(c),
           userId: user.id,
-          bottleId: id,
-          body: validJson(c),
+          query,
         });
-        return c.json(bottle);
-      },
-    )
-    .post(
-      "/:id/restore",
-      validate("param", bottleIdParamSchema),
-      validateJsonAllowingEmpty(bottleMutationBodySchema),
-      async (c) => {
+        return c.json(result);
+      })
+      .post("/", validate("json", createBottleSchema), async (c) => {
         const user = c.get("user");
-        const { id } = c.req.valid("param");
-        const bottle = await restoreBottle({
-          db: deps.getDb(c),
-          userId: user.id,
-          bottleId: id,
-          body: validJson(c),
-        });
-        return c.json(bottle);
-      },
-    )
-    .patch(
-      "/:id",
-      validate("param", bottleIdParamSchema),
-      validate("json", updateBottleSchema),
-      async (c) => {
-        const user = c.get("user");
-        const { id } = c.req.valid("param");
         const body = c.req.valid("json");
-        const bottle = await updateBottle({
+        const created = await createBottles({
           db: deps.getDb(c),
           bucket: deps.getBucket(c),
           userId: user.id,
-          bottleId: id,
           body,
         });
-        return c.json(bottle);
-      },
-    )
-    .delete(
-      "/:id",
-      validate("param", bottleIdParamSchema),
-      validateJsonAllowingEmpty(bottleMutationBodySchema),
-      async (c) => {
+        return c.json(created, 201);
+      })
+      .post("/recognize", async (c) => {
+        const user = c.get("user");
+        let form: FormData;
+        try {
+          form = await c.req.formData();
+        } catch {
+          throw new ApiError("validation_error", {
+            fields: { "": [MALFORMED_REQUEST_MESSAGE] },
+          });
+        }
+
+        const file = form.get("file");
+        if (!(file instanceof File)) {
+          throw new ApiError("validation_error", {
+            fields: { file: ["画像ファイルを指定してください"] },
+          });
+        }
+        if (file.size > PHOTO_MAX_BYTES) {
+          throw new ApiError("payload_too_large");
+        }
+
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        if (bytes.byteLength > PHOTO_MAX_BYTES) {
+          throw new ApiError("payload_too_large");
+        }
+
+        // 裏面は任意。あれば表面と同じサイズ上限で受け、MIME / 長辺の検証はサービス側で表面と同じく行う。
+        const back = form.get("back");
+        let backBytes: Uint8Array | undefined;
+        if (back !== null) {
+          if (!(back instanceof File)) {
+            throw new ApiError("validation_error", {
+              fields: { back: ["画像ファイルを指定してください"] },
+            });
+          }
+          if (back.size > PHOTO_MAX_BYTES) {
+            throw new ApiError("payload_too_large");
+          }
+          backBytes = new Uint8Array(await back.arrayBuffer());
+          if (backBytes.byteLength > PHOTO_MAX_BYTES) {
+            throw new ApiError("payload_too_large");
+          }
+        }
+
+        const result = await recognizeBottleLabel({
+          db: deps.getDb(c),
+          userId: user.id,
+          bytes,
+          backBytes,
+          recognizer: deps.getLabelRecognizer(c),
+          timeoutMs: deps.recognizeTimeoutMs,
+        });
+        return c.json(result);
+      })
+      .put("/order", validate("json", reorderBottlesSchema), async (c) => {
+        const user = c.get("user");
+        const body = c.req.valid("json");
+        const result = await reorderBottles({
+          db: deps.getDb(c),
+          userId: user.id,
+          body,
+        });
+        return c.json(result);
+      })
+      .get("/:id", validate("param", bottleIdParamSchema), async (c) => {
         const user = c.get("user");
         const { id } = c.req.valid("param");
-        await deleteBottle({
-          db: deps.getDb(c),
-          bucket: deps.getBucket(c),
-          userId: user.id,
-          bottleId: id,
-          body: validJson(c),
-        });
-        return c.json({ ok: true });
-      },
-    );
+        const bottle = await getOwnBottle(deps.getDb(c), user.id, id);
+        return c.json(bottle);
+      })
+      .post(
+        "/:id/open",
+        validate("param", bottleIdParamSchema),
+        validateJsonAllowingEmpty(bottleMutationBodySchema),
+        async (c) => {
+          const user = c.get("user");
+          const { id } = c.req.valid("param");
+          const bottle = await consumeBottle({
+            db: deps.getDb(c),
+            userId: user.id,
+            bottleId: id,
+            body: validJson(c),
+          });
+          return c.json(bottle);
+        },
+      )
+      // 古い端末（PWA のキャッシュ）の「開栓する」。`open` と同じ動き（bottle-tasting.md 7 章）
+      .post(
+        "/:id/consume",
+        validate("param", bottleIdParamSchema),
+        validateJsonAllowingEmpty(bottleMutationBodySchema),
+        async (c) => {
+          const user = c.get("user");
+          const { id } = c.req.valid("param");
+          const bottle = await consumeBottle({
+            db: deps.getDb(c),
+            userId: user.id,
+            bottleId: id,
+            body: validJson(c),
+          });
+          return c.json(bottle);
+        },
+      )
+      .post(
+        "/:id/finish",
+        validate("param", bottleIdParamSchema),
+        validateJsonAllowingEmpty(bottleMutationBodySchema),
+        async (c) => {
+          const user = c.get("user");
+          const { id } = c.req.valid("param");
+          const bottle = await finishBottle({
+            db: deps.getDb(c),
+            userId: user.id,
+            bottleId: id,
+            body: validJson(c),
+          });
+          return c.json(bottle);
+        },
+      )
+      .post(
+        "/:id/reopen",
+        validate("param", bottleIdParamSchema),
+        validateJsonAllowingEmpty(bottleMutationBodySchema),
+        async (c) => {
+          const user = c.get("user");
+          const { id } = c.req.valid("param");
+          const bottle = await reopenBottle({
+            db: deps.getDb(c),
+            userId: user.id,
+            bottleId: id,
+            body: validJson(c),
+          });
+          return c.json(bottle);
+        },
+      )
+      .post(
+        "/:id/restore",
+        validate("param", bottleIdParamSchema),
+        validateJsonAllowingEmpty(bottleMutationBodySchema),
+        async (c) => {
+          const user = c.get("user");
+          const { id } = c.req.valid("param");
+          const bottle = await restoreBottle({
+            db: deps.getDb(c),
+            userId: user.id,
+            bottleId: id,
+            body: validJson(c),
+          });
+          return c.json(bottle);
+        },
+      )
+      .patch(
+        "/:id",
+        validate("param", bottleIdParamSchema),
+        validate("json", updateBottleSchema),
+        async (c) => {
+          const user = c.get("user");
+          const { id } = c.req.valid("param");
+          const body = c.req.valid("json");
+          const bottle = await updateBottle({
+            db: deps.getDb(c),
+            bucket: deps.getBucket(c),
+            userId: user.id,
+            bottleId: id,
+            body,
+          });
+          return c.json(bottle);
+        },
+      )
+      .delete(
+        "/:id",
+        validate("param", bottleIdParamSchema),
+        validateJsonAllowingEmpty(bottleMutationBodySchema),
+        async (c) => {
+          const user = c.get("user");
+          const { id } = c.req.valid("param");
+          await deleteBottle({
+            db: deps.getDb(c),
+            bucket: deps.getBucket(c),
+            userId: user.id,
+            bottleId: id,
+            body: validJson(c),
+          });
+          return c.json({ ok: true });
+        },
+      )
+  );
 }

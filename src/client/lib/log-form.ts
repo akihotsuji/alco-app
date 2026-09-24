@@ -6,7 +6,7 @@ import {
   displayAlcoholGrams,
   volumeChipsFor,
 } from "@/shared/alcohol.ts";
-import { DEFAULT_DRINK_TYPE, type DrinkType } from "@/shared/constants.ts";
+import { type BottleState, DEFAULT_DRINK_TYPE, type DrinkType } from "@/shared/constants.ts";
 import {
   abvPercentSchema,
   type CreateDrinkLogInput,
@@ -226,6 +226,30 @@ export function shouldPreserveBottlePrefill(state: LogFormState, initial: LogFor
 
 export function clearSelectedBottle(state: LogFormState): LogFormState {
   return { ...state, bottleId: null, bottleName: null };
+}
+
+export const BOTTLE_LOG_ACTION_LABELS = {
+  finishSwitch: "このボトルを飲み切った",
+  openNote: "保存すると開栓して味わい中になります",
+  finishFailed: "記録は保存しました。飲み切りにできませんでした",
+  openFailed: "記録は保存しました。開栓できませんでした",
+} as const;
+
+/**
+ * 記録の保存に成功したあと、選んだボトルに対して行う操作（bottle-tasting.md 4 章 N8c / N8d）。
+ * 未開栓なら開栓、味わい中でスイッチ ON なら飲み切り。貯蔵庫・未選択は何もしない
+ */
+export function bottleActionAfterLog(
+  status: BottleState | null,
+  finishOnSave: boolean,
+): "open" | "finish" | null {
+  if (status === "sealed") {
+    return "open";
+  }
+  if (status === "opened" && finishOnSave) {
+    return "finish";
+  }
+  return null;
 }
 
 /** N4 のチップ列。種類の量 + ボトル量 375 / 750 / 1500 */

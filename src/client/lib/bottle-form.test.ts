@@ -188,17 +188,32 @@ describe("dirty / helpers", () => {
     expect(bottlePropLayout("メモ（参加者に共有）")).toBe("memo");
     expect(bottlePropLayout("価格")).toBe("inline");
     expect(bottlePropLayout("購入日")).toBe("inline");
-    expect(bottleStatusPill({ status: "sealed", consumedOn: null })).toEqual({
+    expect(bottleStatusPill({ status: "sealed", openedOn: null, finishedOn: null })).toEqual({
       label: "未開栓",
       consumed: false,
+      detail: null,
     });
-    expect(bottleStatusPill({ status: "consumed", consumedOn: "2026-09-05" })).toEqual({
-      label: "開栓（2026年9月5日）",
+    expect(
+      bottleStatusPill({ status: "opened", openedOn: "2026-09-22", finishedOn: null }),
+    ).toEqual({
+      label: "味わい中（2026年9月22日に開栓）",
+      consumed: false,
+      detail: null,
+    });
+    expect(
+      bottleStatusPill({ status: "consumed", openedOn: "2026-09-22", finishedOn: "2026-09-24" }),
+    ).toEqual({
+      label: "飲み切り（2026年9月24日）",
       consumed: true,
+      detail: "9月22日に開栓",
     });
-    expect(bottleStatusPill({ status: "consumed", consumedOn: null })).toEqual({
-      label: "未開栓",
-      consumed: false,
+    // 移行前のボトルは開栓日と飲み切り日が同じなので補助行を出さない
+    expect(
+      bottleStatusPill({ status: "consumed", openedOn: "2026-09-05", finishedOn: "2026-09-05" }),
+    ).toEqual({
+      label: "飲み切り（2026年9月5日）",
+      consumed: true,
+      detail: null,
     });
     expect(formatPriceJpy(3800)).toBe("¥3,800");
     expect(formatPriceJpy(0)).toBe("¥0");
@@ -239,6 +254,10 @@ describe("dirty / helpers", () => {
       storage: null,
       memo: null,
       status: "sealed",
+      openedAt: null,
+      openedOn: null,
+      finishedAt: null,
+      finishedOn: null,
       consumedAt: null,
       consumedOn: null,
       thumbPhotoId: null,

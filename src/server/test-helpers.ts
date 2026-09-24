@@ -397,6 +397,9 @@ export async function seedOwnedBottle(
     status?: BottleStatus;
     consumedAt?: Date | null;
     consumedOn?: string | null;
+    /** 飲み切り日時。未指定かつ status=consumed なら味わい中 */
+    finishedAt?: Date | null;
+    finishedOn?: string | null;
     producer?: string | null;
     origin?: string | null;
     variety?: string | null;
@@ -416,6 +419,8 @@ export async function seedOwnedBottle(
     status: input.status ?? "sealed",
     consumedAt: input.consumedAt ?? null,
     consumedOn: input.consumedOn ?? null,
+    finishedAt: input.finishedAt ?? null,
+    finishedOn: input.finishedOn ?? null,
     producer: input.producer ?? null,
     origin: input.origin ?? null,
     variety: input.variety ?? null,

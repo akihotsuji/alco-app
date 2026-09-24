@@ -158,8 +158,9 @@ describe("bottlesQuerySchema", () => {
     expect(bottlesQuerySchema.safeParse({ group: "shelf" }).success).toBe(false);
   });
 
-  it("不正な view / 長すぎる q はエラー", () => {
-    const view = bottlesQuerySchema.safeParse({ view: "opened" });
+  it("不正な view / 長すぎる q はエラー。味わい中の view=opened は受ける", () => {
+    expect(bottlesQuerySchema.safeParse({ view: "opened" }).success).toBe(true);
+    const view = bottlesQuerySchema.safeParse({ view: "finished" });
     expect(view.success).toBe(false);
     const q = bottlesQuerySchema.safeParse({ q: "x".repeat(101) });
     expect(q.success).toBe(false);

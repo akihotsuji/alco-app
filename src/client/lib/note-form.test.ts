@@ -148,6 +148,7 @@ describe("toCreateTastingNoteBody / toUpdateTastingNoteBody", () => {
   it("ボトル行は棚と貯蔵庫でラベルが違う", () => {
     expect(bottleRowLabel("棚の赤", "sealed")).toBe("棚の赤（セラー）");
     expect(bottleRowLabel("開栓した赤", "consumed")).toBe("開栓した赤（貯蔵庫）");
+    expect(bottleRowLabel("味わい中の赤", "opened")).toBe("味わい中の赤（味わい中）");
     expect(bottleRowLabel("不明", null)).toBe("不明（セラー）");
   });
 

@@ -28,6 +28,7 @@
 | [features/ai-recognition.md](features/ai-recognition.md) | 酒記録の AI 補完（Gemini 3.7 Flash / プロファイル切替 / 根拠 / 検索） | 実装中（2026-09-09） |
 | [ai-handoff-prompt.md](ai-handoff-prompt.md) | AI補完統一・引き継ぎ・破棄混入の実装指示（再確認済み。承認済み仕様そのものではない） | 2026-09-10 |
 | [features/cellar.md](features/cellar.md) | セラー（棚・貯蔵庫・追加・詳細・開栓・復元・切り抜き・ラベル読み取り）の画面項目・バリデーション・API・エッジケース | 承認済み（4-01） |
+| [features/bottle-tasting.md](features/bottle-tasting.md) | 味わい中（開栓したボトルを数日かけて記録。セラー上部・ホームの丸アイコン、飲み切り、貯蔵庫の意味の変更） | 承認済み・実装済み（2026-09-24。#190） |
 | [features/tasting-note.md](features/tasting-note.md) | テイスティングノート（撮って評価と一言・写真グリッド・セラー連携）の画面項目・バリデーション・API・エッジケース | 承認済み（5-01 #46）。5-02 CRUD 実装済み |
 | [features/drink-search.md](features/drink-search.md) | 品名からの Google 検索導線（セラー・記録・ノート） | 実装 |
 | [features/pwa.md](features/pwa.md) | PWA（manifest・スタンドアロン・アイコン生成・SW は API を NetworkOnly） | 6-01（2026-09-08） |

@@ -7,10 +7,12 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { type ApiClient, api, unwrap } from "@/client/lib/api.ts";
-import { markCellarLocalWrite } from "@/client/lib/cellar-share.ts";
+import { markCellarLocalWrite, newOperationKey } from "@/client/lib/cellar-share.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import type {
+  Bottle,
   BottleGroup,
   BottleMutationBody,
   BottlesResponse,
@@ -66,10 +68,22 @@ export function deleteBottle(id: string, body: BottleMutationBody = {}, client: 
   return unwrap(client.api.bottles[":id"].$delete({ param: { id }, json: body }));
 }
 
-export function consumeBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
-  return unwrap(client.api.bottles[":id"].consume.$post({ param: { id }, json: body }));
+/** 開栓する: 未開栓 → 味わい中 */
+export function openBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
+  return unwrap(client.api.bottles[":id"].open.$post({ param: { id }, json: body }));
 }
 
+/** 飲み切った: 味わい中 → 貯蔵庫 */
+export function finishBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
+  return unwrap(client.api.bottles[":id"].finish.$post({ param: { id }, json: body }));
+}
+
+/** 味わい中に戻す: 貯蔵庫 → 味わい中 */
+export function reopenBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
+  return unwrap(client.api.bottles[":id"].reopen.$post({ param: { id }, json: body }));
+}
+
+/** 開栓を取り消す: 味わい中 → 未開栓 */
 export function restoreBottle(id: string, body: BottleMutationBody = {}, client: ApiClient = api) {
   return unwrap(client.api.bottles[":id"].restore.$post({ param: { id }, json: body }));
 }
@@ -192,11 +206,10 @@ export function useDeleteBottle() {
   });
 }
 
-export function useConsumeBottle() {
+function useBottleTransition(run: (id: string, body?: BottleMutationBody) => Promise<Bottle>) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) =>
-      consumeBottle(id, body),
+    mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) => run(id, body),
     onSuccess: () => {
       markCellarLocalWrite();
       void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
@@ -205,17 +218,48 @@ export function useConsumeBottle() {
   });
 }
 
-export function useRestoreBottle() {
+/**
+ * 記録の保存後に選んだボトルを開栓 / 飲み切りにする（bottle-tasting.md 4 章 N8c / N8d）。
+ * 共有セラーは expectedVersion が必須なので、直前に最新の版を取る。失敗は false（記録は残す）
+ */
+export function useBottleActionAfterLog() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, body }: { id: string; body?: BottleMutationBody }) =>
-      restoreBottle(id, body),
-    onSuccess: () => {
-      markCellarLocalWrite();
-      void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
+  return useCallback(
+    async (id: string, action: "open" | "finish"): Promise<boolean> => {
+      try {
+        const current = await getBottle(id);
+        const body = { expectedVersion: current.version, operationKey: newOperationKey() };
+        if (action === "open") {
+          await openBottle(id, body);
+        } else {
+          await finishBottle(id, body);
+        }
+        markCellarLocalWrite();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.bottles });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.cellars });
+        return true;
+      } catch {
+        return false;
+      }
     },
-  });
+    [queryClient],
+  );
+}
+
+export function useOpenBottle() {
+  return useBottleTransition(openBottle);
+}
+
+export function useFinishBottle() {
+  return useBottleTransition(finishBottle);
+}
+
+export function useReopenBottle() {
+  return useBottleTransition(reopenBottle);
+}
+
+export function useRestoreBottle() {
+  return useBottleTransition(restoreBottle);
 }
 
 export function useReorderBottles() {

@@ -319,5 +319,5 @@ export const CELLAR_COPY = {
   alreadyConsumed: "すでに開栓されています",
   saveDestinationShared: "参加者全員に表示されます",
   archiveLead:
-    "開栓したボトルが日付順に並びます。未開栓のボトルはセラーで管理します。開栓と飲み終わりは同じ状態です。",
+    "飲み切ったボトルが日付順に並びます。開栓したボトルはセラーの上の「味わい中」にあります。",
 } as const;

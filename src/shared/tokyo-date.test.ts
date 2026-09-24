@@ -4,6 +4,7 @@ import {
   addCalendarMonths,
   addCalendarYears,
   formatConsumedEventBadge,
+  formatFinishedEventBadge,
   formatHomeDateLabel,
   formatLongJapaneseDate,
   formatMonthDay,
@@ -95,6 +96,9 @@ describe("format labels", () => {
     expect(formatYearMonth("2026-08-01")).toBe("2026年8月");
     expect(formatLongJapaneseDate("2026-08-01")).toBe("2026年8月1日");
     expect(formatConsumedEventBadge("2026-09-05")).toBe("開栓 9/5");
+    expect(formatFinishedEventBadge("2026-09-24", "2026-09-22")).toBe("飲み切り 9/24");
+    // 移行前のボトルは開栓日 = 飲み切り日なので 1 つにまとめる
+    expect(formatFinishedEventBadge("2026-09-05", "2026-09-05")).toBe("開栓・飲み切り 9/5");
     expect(formatTastedOnLabel("2026-09-05", new Date("2026-09-04T15:00:00.000Z"))).toBe("今日");
     expect(formatTastedOnLabel("2026-08-01", new Date("2026-09-04T15:00:00.000Z"))).toBe("8月1日");
     expect(formatTastedOnLabel("2025-12-31", new Date("2026-09-04T15:00:00.000Z"))).toBe(

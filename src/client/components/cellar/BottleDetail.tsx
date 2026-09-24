@@ -8,8 +8,13 @@ import { useToast } from "@/client/components/feedback/ToastProvider.tsx";
 import { DrinkSearchLink } from "@/client/components/form/DrinkSearchLink.tsx";
 import { ContentPhoto, PHOTO_DISPLAY_SIZE } from "@/client/components/photo/ContentPhoto.tsx";
 import { PhotoViewer } from "@/client/components/photo/PhotoViewer.tsx";
-import { Button } from "@/client/components/ui/button.tsx";
-import { useConsumeBottle, useRestoreBottle } from "@/client/hooks/use-bottles.ts";
+import { Button, buttonVariants } from "@/client/components/ui/button.tsx";
+import {
+  useFinishBottle,
+  useOpenBottle,
+  useReopenBottle,
+  useRestoreBottle,
+} from "@/client/hooks/use-bottles.ts";
 import { useCellarSelection } from "@/client/hooks/use-cellar-selection.ts";
 import { useCellarSync } from "@/client/hooks/use-cellar-sync.ts";
 import { photoContentUrl } from "@/client/hooks/use-photos.ts";
@@ -57,8 +62,10 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const [actionError, setActionError] = useState<string | null>(null);
   const [consumeState, setConsumeState] = useState<MotionState>("idle");
   const [followupOpen, setFollowupOpen] = useState(() => shouldShowOpenedFollowup(bottle.id));
-  const consume = useConsumeBottle();
+  const consume = useOpenBottle();
   const restore = useRestoreBottle();
+  const finish = useFinishBottle();
+  const reopen = useReopenBottle();
   const share = useShareIntent();
   const opening = useOpeningSource(bottle.id);
   const { items } = useCellarSelection();
@@ -71,8 +78,11 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
   const backPhoto = bottle.photos[1];
   const lightboxPhoto = lightbox === "back" ? backPhoto : lightbox === "front" ? photo : undefined;
   const archived = bottle.status === "consumed";
+  const opened = bottle.status === "opened";
   const statusPill = bottleStatusPill(bottle);
-  const pending = consume.isPending || restore.isPending;
+  const pending = consume.isPending || restore.isPending || finish.isPending || reopen.isPending;
+  // 押し間違いの救済だけ。記録を付けたあとは取り消させない（bottle-tasting.md 3.2 T10）
+  const canUndoOpen = opened && logs.length === 0;
   const vintage = vintageLabel(bottle.vintage);
   const summary = [DRINK_TYPE_LABELS[bottle.drinkType], vintage].filter((value): value is string =>
     Boolean(value),
@@ -186,6 +196,51 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
     );
   }
 
+  function onReopen(target: { id: string; version: number }) {
+    setActionError(null);
+    reopen.mutate(
+      {
+        id: target.id,
+        body: { expectedVersion: target.version, operationKey: newOperationKey() },
+      },
+      {
+        onSuccess: () => {
+          haptic("success");
+          showToast({ message: TOAST_MESSAGES.reopened, cheer: true });
+        },
+        onError: () => {
+          setActionError(failureMessage());
+        },
+      },
+    );
+  }
+
+  function onFinish() {
+    if (pending) {
+      return;
+    }
+    setActionError(null);
+    finish.mutate(
+      {
+        id: bottle.id,
+        body: { expectedVersion: bottle.version, operationKey: newOperationKey() },
+      },
+      {
+        onSuccess: (result) => {
+          haptic("success");
+          showToast({
+            message: TOAST_MESSAGES.finished,
+            cheer: true,
+            action: { label: "取り消す", onSelect: () => onReopen(result) },
+          });
+        },
+        onError: () => {
+          setActionError(failureMessage());
+        },
+      },
+    );
+  }
+
   const heroClass = photo?.kind === "cutout" ? "bottle-hero bottle-hero-cutout" : "bottle-hero";
   const heroImage = photo ? (
     <ContentPhoto
@@ -225,6 +280,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             {statusPill.label}
           </span>
         </div>
+        {statusPill.detail ? <p className="bottle-status-detail">{statusPill.detail}</p> : null}
       </div>
       <div className={backPhoto ? "bottle-detail-photos has-back" : "bottle-detail-photos"}>
         {photo ? (
@@ -318,14 +374,34 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
         </section>
       ) : null}
       <div className="bottle-detail-actions">
-        {archived ? (
-          <div className="bottle-followup-actions">
+        {opened ? (
+          <div className="bottle-detail-action-pair">
             <Link
-              className="bottle-followup-row"
+              className={buttonVariants()}
               to={logCreateHref({ bottleId: bottle.id, from: "detail" })}
             >
               飲んだ量を記録
             </Link>
+            <Button type="button" variant="secondary" disabled={pending} onClick={onFinish}>
+              {finish.isPending ? "更新中…" : "飲み切った"}
+            </Button>
+          </div>
+        ) : archived ? (
+          <div className="bottle-detail-action-pair">
+            <Link
+              className={buttonVariants({ variant: "secondary" })}
+              to={logCreateHref({ bottleId: bottle.id, from: "detail" })}
+            >
+              飲んだ量を記録
+            </Link>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              onClick={() => onReopen(bottle)}
+            >
+              {reopen.isPending ? "更新中…" : "味わい中に戻す"}
+            </Button>
           </div>
         ) : (
           <Button
@@ -337,10 +413,15 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             {consume.isPending ? "更新中…" : "開栓する"}
           </Button>
         )}
-        {archived ? (
-          <Button type="button" variant="secondary" disabled={pending} onClick={onRestore}>
-            {restore.isPending ? "更新中…" : "開栓の記録を取り消す"}
-          </Button>
+        {canUndoOpen ? (
+          <button
+            type="button"
+            className="header-text-link bottle-undo-open"
+            disabled={pending}
+            onClick={onRestore}
+          >
+            {restore.isPending ? "更新中…" : "開栓を取り消す"}
+          </button>
         ) : null}
         {actionError ? (
           <p className="field-error" role="alert">

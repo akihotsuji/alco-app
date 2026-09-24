@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BOTTLE_LIST_SCOPES, operationKeySchema } from "./cellars.ts";
-import { BOTTLE_STATUSES, DRINK_TYPES, type DrinkType, PHOTO_KINDS } from "./constants.ts";
+import { BOTTLE_STATES, DRINK_TYPES, type DrinkType, PHOTO_KINDS } from "./constants.ts";
 import { drinkTypeSchema } from "./drink-logs.ts";
 import {
   IDENTITY_FIELD_LABELS,
@@ -38,7 +38,8 @@ export const BOTTLE_SEARCH_MAX_LENGTH = 100;
 /** 種類内の並び替えで一度に送れる本数。在庫の実数を超えなければ足りる。 */
 export const BOTTLE_ORDER_MAX = 1000;
 
-export const BOTTLE_VIEWS = ["cellar", "archive", "all"] as const;
+/** cellar = 未開栓 / opened = 味わい中 / archive = 飲み切り（貯蔵庫） / all = 3 状態すべて */
+export const BOTTLE_VIEWS = ["cellar", "opened", "archive", "all"] as const;
 export type BottleView = (typeof BOTTLE_VIEWS)[number];
 
 export const BOTTLE_GROUPS = ["type"] as const;
@@ -272,7 +273,7 @@ export const bottleMutationBodySchema = z
   .strict();
 export type BottleMutationBody = z.infer<typeof bottleMutationBodySchema>;
 
-export const bottleStatusSchema = z.enum(BOTTLE_STATUSES);
+export const bottleStatusSchema = z.enum(BOTTLE_STATES);
 
 export const bottleItemSchema = z
   .object({
@@ -290,6 +291,11 @@ export const bottleItemSchema = z
     storage: z.string().nullable(),
     memo: z.string().nullable(),
     status: bottleStatusSchema,
+    /** 開栓日時・開栓日。古い端末の互換のため `consumed*` にも同じ値を残す */
+    openedAt: z.string().nullable(),
+    openedOn: z.string().nullable(),
+    finishedAt: z.string().nullable(),
+    finishedOn: z.string().nullable(),
     consumedAt: z.string().nullable(),
     consumedOn: z.string().nullable(),
     thumbPhotoId: z.string().nullable(),
@@ -335,6 +341,8 @@ export const bottlesResponseSchema = z
     totalCount: z.number().int().min(0),
     countsByType: countsByTypeSchema,
     typeShelves: z.array(bottleTypeShelfSchema).optional(),
+    /** `view=cellar` のときだけ。同じセラーの味わい中の本数（ヘッダー「セラー N 本」に足す） */
+    openedCount: z.number().int().min(0).optional(),
   })
   .strict();
 

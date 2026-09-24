@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
 import { drinkLogs, photos, tastingNotes } from "@/db/schema.ts";
 import { escapeLike } from "@/shared/bottles.ts";
-import type { BottleStatus, DrinkType } from "@/shared/constants.ts";
+import type { BottleState, DrinkType } from "@/shared/constants.ts";
 import {
   type DrinkLogTastingNoteInput,
   normalizeNoteText,
@@ -28,7 +28,7 @@ import { deletePhotoR2Objects } from "./r2-delete.ts";
 type NoteRow = typeof tastingNotes.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
 type DrinkLogRow = typeof drinkLogs.$inferSelect;
-type BottleSnap = { id: string; name: string; drinkType: DrinkType; status: BottleStatus };
+type BottleSnap = { id: string; name: string; drinkType: DrinkType; status: BottleState };
 
 function toIso(value: Date | number): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();

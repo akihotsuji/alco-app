@@ -79,12 +79,28 @@ export function normalizeRecognizedDrinkType(raw: string): DrinkType | null {
   return DRINK_TYPE_ALIASES[value] ?? DRINK_TYPE_LABEL_ALIASES[value] ?? null;
 }
 
-/** sealed = 未開栓（棚） / consumed = 開栓（貯蔵庫） */
+/**
+ * DB の `bottles.status`。sealed = 未開栓 / consumed = 開栓済み（味わい中・飲み切りの両方）。
+ * 3 値にすると CHECK の変更で bottles の作り直しになり、子の写真が CASCADE で消えるため 2 値のまま。
+ * 飲み切りは `finished_at` の有無で分ける（spec/features/bottle-tasting.md 6 章）
+ */
 export const BOTTLE_STATUSES = ["sealed", "consumed"] as const;
 
 export type BottleStatus = (typeof BOTTLE_STATUSES)[number];
 
 export const DEFAULT_BOTTLE_STATUS: BottleStatus = "sealed";
+
+/** API・画面の状態。sealed = 未開栓 / opened = 味わい中 / consumed = 飲み切り（貯蔵庫） */
+export const BOTTLE_STATES = ["sealed", "opened", "consumed"] as const;
+
+export type BottleState = (typeof BOTTLE_STATES)[number];
+
+export function bottleStateOf(status: BottleStatus, finishedAt: unknown): BottleState {
+  if (status === "sealed") {
+    return "sealed";
+  }
+  return finishedAt ? "consumed" : "opened";
+}
 
 /** photo = 長方形 JPEG / cutout = 背景除去済み透過 WebP（セラーのみ） */
 export const PHOTO_KINDS = ["photo", "cutout"] as const;
@@ -307,6 +323,8 @@ export const CELLAR_ACTIVITY_ACTIONS = [
   "bottle_photo_changed",
   "bottle_consumed",
   "bottle_restored",
+  "bottle_finished",
+  "bottle_reopened",
   "bottle_moved_in",
   "bottle_moved_out",
   "bottle_deleted",
