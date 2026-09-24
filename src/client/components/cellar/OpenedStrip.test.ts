@@ -10,20 +10,28 @@ const home = readFileSync(join(here, "../../pages/HomePage.tsx"), "utf8");
 const logForm = readFileSync(join(here, "../logs/LogNewForm.tsx"), "utf8");
 const css = readFileSync(join(here, "../../styles.css"), "utf8");
 
-describe("味わい中の丸アイコン（bottle-tasting.md C15 / H14）", () => {
+describe("味わい中の立ちボトル（bottle-tasting.md C15 / H14）", () => {
   it("0 本なら何も出さない。写真に文字を重ねず、品名はアクセシブル名だけ。タップで詳細", () => {
     expect(strip).toContain("if (items.length === 0) {\n    return null;");
     expect(strip).toContain("aria-label={item.name}");
     expect(strip).toMatch(/to=\{`\/cellar\/\$\{item\.id\}`\}/);
     expect(strip).toContain('export const OPENED_STRIP_HEADING = "味わい中"');
+    expect(strip).toContain("bottleTileVisual");
+    expect(strip).toContain("PHOTO_DISPLAY_SIZE.openedStrip");
     expect(strip).not.toContain("<Mascot");
     expect(strip).not.toContain("{item.name}</");
   });
 
-  it("丸 44px・cover。加わった 1 本だけ M-39。動きを減らす設定ではフェードだけ", () => {
+  it("44×66・contain。円で切らず、棚と同じ立ちボトル。加わった 1 本だけ M-39", () => {
     expect(css).toMatch(/\.opened-strip-item \{[^}]*width: var\(--tap-min\);/);
-    expect(css).toMatch(/\.opened-strip-item \{[^}]*border-radius: var\(--radius-pill\);/);
-    expect(css).toMatch(/\.opened-strip-img \{[^}]*object-fit: cover;/);
+    expect(css).toMatch(/\.opened-strip-item \{[^}]*height: 66px;/);
+    expect(css).toMatch(
+      /\.opened-strip-img,\n\.opened-strip-silhouette \{[^}]*object-fit: contain;/,
+    );
+    expect(css).toMatch(
+      /\.opened-strip-img,\n\.opened-strip-silhouette \{[^}]*object-position: bottom center;/,
+    );
+    expect(css).not.toContain("object-position: center 55%");
     expect(css).toContain(
       '.opened-strip-item[data-enter="1"] {\n  animation: bottle-place var(--dur-enter) var(--ease-out) both;',
     );

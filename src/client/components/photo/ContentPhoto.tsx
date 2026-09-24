@@ -9,6 +9,7 @@ export const PHOTO_DISPLAY_SIZE = {
   logTile: { width: 96, height: 120 },
   bottleTile: { width: 100, height: 150 },
   bottlePicker: { width: 40, height: 60 },
+  openedStrip: { width: 44, height: 66 },
   bottleHero: { width: 160, height: 240 },
   bottleHeroPhoto: { width: 160, height: 300 },
   noteCard: { width: 160, height: 200 },
