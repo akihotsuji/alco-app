@@ -96,6 +96,7 @@ async function fields(res: Response) {
   return body.fields ?? {};
 }
 
+/** 貯蔵庫（飲み切り）のボトル。開栓日と同じ日に飲み切ったものとして置く */
 async function seedConsumed(
   ctx: Ctx,
   id: string,
@@ -112,6 +113,8 @@ async function seedConsumed(
     status: "consumed",
     consumedAt,
     consumedOn,
+    finishedAt: consumedAt,
+    finishedOn: consumedOn,
   });
 }
 
@@ -510,7 +513,7 @@ describe("GET /api/bottles", () => {
   it("不正な view / cursor は 400", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
-    const view = await getBottles(ctx.app, a.cookie, "view=opened");
+    const view = await getBottles(ctx.app, a.cookie, "view=finished");
     expect(view.status).toBe(400);
     expect((await fields(view)).view).toEqual([BOTTLE_MESSAGES.view]);
     const cursor = await getBottles(ctx.app, a.cookie, "cursor=not-a-cursor");
@@ -910,7 +913,7 @@ describe("POST /api/bottles/:id/consume", () => {
     expect(await res.json()).toEqual({ error: "unauthorized" });
   });
 
-  it("sealed を consumed にし、記録は作らない。ボディなしでも通る", async () => {
+  it("sealed を味わい中にし、記録は作らない。ボディなしでも通る（古い端末の互換）", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
     const id = await createOwnedBottle(ctx.app, a.cookie);
@@ -921,11 +924,13 @@ describe("POST /api/bottles/:id/consume", () => {
     const res = await consumeBottleReq(ctx.app, a.cookie, id);
     expect(res.status).toBe(200);
     const body = bottleSchema.parse(await res.json());
-    expect(body.status).toBe("consumed");
+    expect(body.status).toBe("opened");
+    expect(body.openedOn).toBe(tokyoToday());
     expect(body.consumedOn).toBe(tokyoToday());
-    expect(body.consumedAt).toBeTruthy();
-    const consumedMs = new Date(body.consumedAt ?? "").getTime();
-    expect(consumedMs).toBeGreaterThanOrEqual(nowBefore);
+    expect(body.finishedAt).toBeNull();
+    expect(body.openedAt).toBeTruthy();
+    const openedMs = new Date(body.openedAt ?? "").getTime();
+    expect(openedMs).toBeGreaterThanOrEqual(nowBefore);
     expect(JSON.stringify(body)).not.toContain("userId");
 
     const logsAfter = await ctx.db.select().from(drinkLogs).where(eq(drinkLogs.userId, a.userId));
@@ -934,10 +939,15 @@ describe("POST /api/bottles/:id/consume", () => {
     const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
     expect(cellar.items).toHaveLength(0);
     expect(cellar.totalCount).toBe(0);
+    expect(cellar.openedCount).toBe(1);
+    const opened = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=opened")).json(),
+    );
+    expect(opened.items.map((item) => item.id)).toEqual([id]);
     const archive = bottlesResponseSchema.parse(
       await (await getBottles(ctx.app, a.cookie, "view=archive")).json(),
     );
-    expect(archive.items.map((item) => item.id)).toEqual([id]);
+    expect(archive.items).toHaveLength(0);
   });
 
   it("他人・不在・すでに consumed は同じ 404。記録は作らない", async () => {
@@ -987,7 +997,7 @@ describe("POST /api/bottles/:id/consume", () => {
     );
   });
 
-  it("N 本のうち 1 本だけ貯蔵庫へ移る", async () => {
+  it("N 本のうち 1 本だけ味わい中へ移る", async () => {
     const ctx = await createTestApp();
     const a = await session(ctx.app, "a@example.com");
     const created = createBottlesResponseSchema.parse(
@@ -997,11 +1007,12 @@ describe("POST /api/bottles/:id/consume", () => {
     expect((await consumeBottleReq(ctx.app, a.cookie, first)).status).toBe(200);
     const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
     expect(cellar.totalCount).toBe(2);
+    expect(cellar.openedCount).toBe(1);
     expect(cellar.items.map((item) => item.id)).not.toContain(first);
-    const archive = bottlesResponseSchema.parse(
-      await (await getBottles(ctx.app, a.cookie, "view=archive")).json(),
+    const opened = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=opened")).json(),
     );
-    expect(archive.items.map((item) => item.id)).toEqual([first]);
+    expect(opened.items.map((item) => item.id)).toEqual([first]);
   });
 });
 
@@ -1081,6 +1092,222 @@ describe("POST /api/bottles/:id/restore", () => {
     expect(
       bottleSchema.parse(await (await getBottle(ctx.app, a.cookie, consumedId)).json()).status,
     ).toBe("consumed");
+  });
+});
+
+function transitionReq(
+  app: Ctx["app"],
+  cookie: string,
+  id: string,
+  action: "open" | "finish" | "reopen",
+) {
+  return app.request(`/api/bottles/${id}/${action}`, {
+    method: "POST",
+    headers: { Cookie: cookie, "Content-Type": "application/json" },
+    body: "{}",
+  });
+}
+
+async function stateOf(app: Ctx["app"], cookie: string, id: string) {
+  return bottleSchema.parse(await (await getBottle(app, cookie, id)).json());
+}
+
+describe("味わい中（open / finish / reopen）", () => {
+  it("未認証は 401", async () => {
+    const { app } = await createTestApp();
+    for (const action of ["open", "finish", "reopen"] as const) {
+      expect((await transitionReq(app, "", MISSING, action)).status).toBe(401);
+    }
+  });
+
+  it("開栓 → 飲み切り → 味わい中に戻す → 開栓を取り消す。記録は作らない・消さない", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+
+    const opened = bottleSchema.parse(
+      await (await transitionReq(ctx.app, a.cookie, id, "open")).json(),
+    );
+    expect(opened.status).toBe("opened");
+    expect(opened.openedOn).toBe(tokyoToday());
+
+    const logRes = await ctx.app.request("/api/drink-logs", {
+      method: "POST",
+      headers: { Cookie: a.cookie, "Content-Type": "application/json" },
+      body: JSON.stringify({ drinkType: "wine", volumeMl: 125, abvPercent: 12, bottleId: id }),
+    });
+    expect(logRes.status).toBe(201);
+
+    const finishRes = await transitionReq(ctx.app, a.cookie, id, "finish");
+    expect(finishRes.status).toBe(200);
+    const finished = bottleSchema.parse(await finishRes.json());
+    expect(finished.status).toBe("consumed");
+    expect(finished.finishedOn).toBe(tokyoToday());
+    expect(finished.openedOn).toBe(opened.openedOn);
+    const archive = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=archive")).json(),
+    );
+    expect(archive.items.map((item) => item.id)).toEqual([id]);
+    const openedList = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=opened")).json(),
+    );
+    expect(openedList.items).toHaveLength(0);
+
+    const reopened = bottleSchema.parse(
+      await (await transitionReq(ctx.app, a.cookie, id, "reopen")).json(),
+    );
+    expect(reopened.status).toBe("opened");
+    expect(reopened.finishedAt).toBeNull();
+    expect(reopened.openedOn).toBe(opened.openedOn);
+
+    const restored = bottleSchema.parse(
+      await (await restoreBottleReq(ctx.app, a.cookie, id, {})).json(),
+    );
+    expect(restored.status).toBe("sealed");
+    expect(restored.openedAt).toBeNull();
+    expect(restored.finishedAt).toBeNull();
+
+    const logs = await ctx.db.select().from(drinkLogs).where(eq(drinkLogs.userId, a.userId));
+    expect(logs).toHaveLength(1);
+    expect(logs[0]?.bottleId).toBe(id);
+  });
+
+  it("状態が合わない操作は 404 で状態は変わらない。開栓済みの open は 404", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+    expect((await transitionReq(ctx.app, a.cookie, id, "finish")).status).toBe(404);
+    expect((await transitionReq(ctx.app, a.cookie, id, "reopen")).status).toBe(404);
+    expect((await stateOf(ctx.app, a.cookie, id)).status).toBe("sealed");
+
+    expect((await transitionReq(ctx.app, a.cookie, id, "open")).status).toBe(200);
+    expect((await transitionReq(ctx.app, a.cookie, id, "open")).status).toBe(404);
+    expect((await transitionReq(ctx.app, a.cookie, id, "reopen")).status).toBe(404);
+    expect((await stateOf(ctx.app, a.cookie, id)).status).toBe("opened");
+
+    expect((await transitionReq(ctx.app, a.cookie, id, "finish")).status).toBe(200);
+    expect((await transitionReq(ctx.app, a.cookie, id, "finish")).status).toBe(404);
+    expect((await stateOf(ctx.app, a.cookie, id)).status).toBe("consumed");
+  });
+
+  it("他人・不在のボトルは同じ 404。他人の状態は変わらない", async () => {
+    const ctx = await createTestApp();
+    const [a, b] = await createTestUserPair(ctx.app, [
+      { name: "A", email: "a@example.com", password: "password1" },
+      { name: "B", email: "b@example.com", password: "password1" },
+    ]);
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+    const other = await transitionReq(ctx.app, b.cookie, id, "open");
+    const missing = await transitionReq(ctx.app, a.cookie, MISSING, "open");
+    expect(other.status).toBe(404);
+    expect(await other.json()).toEqual(await missing.json());
+    expect((await stateOf(ctx.app, a.cookie, id)).status).toBe("sealed");
+
+    expect((await transitionReq(ctx.app, a.cookie, id, "open")).status).toBe(200);
+    expect((await transitionReq(ctx.app, b.cookie, id, "finish")).status).toBe(404);
+    expect((await stateOf(ctx.app, a.cookie, id)).status).toBe("opened");
+    expect((await transitionReq(ctx.app, a.cookie, id, "finish")).status).toBe(200);
+    expect((await transitionReq(ctx.app, b.cookie, id, "reopen")).status).toBe(404);
+    expect((await stateOf(ctx.app, a.cookie, id)).status).toBe("consumed");
+  });
+
+  it("味わい中は開栓日の新しい順、貯蔵庫は飲み切り日の新しい順。棚の本数に味わい中を足せる", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    await postBottle(ctx.app, a.cookie, BASE);
+    await seedOwnedBottle(ctx.db, {
+      id: "11111111-1111-4111-8111-111111111111",
+      userId: a.userId,
+      name: "古い味わい中",
+      status: "consumed",
+      consumedAt: new Date("2026-09-01T00:00:00.000Z"),
+      consumedOn: "2026-09-01",
+    });
+    await seedOwnedBottle(ctx.db, {
+      id: "22222222-2222-4222-8222-222222222222",
+      userId: a.userId,
+      name: "新しい味わい中",
+      status: "consumed",
+      consumedAt: new Date("2026-09-10T00:00:00.000Z"),
+      consumedOn: "2026-09-10",
+    });
+    await seedOwnedBottle(ctx.db, {
+      id: "33333333-3333-4333-8333-333333333333",
+      userId: a.userId,
+      name: "先に開けて後で飲み切り",
+      status: "consumed",
+      consumedAt: new Date("2026-08-01T00:00:00.000Z"),
+      consumedOn: "2026-08-01",
+      finishedAt: new Date("2026-09-20T00:00:00.000Z"),
+      finishedOn: "2026-09-20",
+    });
+    await seedOwnedBottle(ctx.db, {
+      id: "44444444-4444-4444-8444-444444444444",
+      userId: a.userId,
+      name: "後に開けて先に飲み切り",
+      status: "consumed",
+      consumedAt: new Date("2026-09-05T00:00:00.000Z"),
+      consumedOn: "2026-09-05",
+      finishedAt: new Date("2026-09-06T00:00:00.000Z"),
+      finishedOn: "2026-09-06",
+    });
+
+    const opened = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=opened")).json(),
+    );
+    expect(opened.items.map((item) => item.name)).toEqual(["新しい味わい中", "古い味わい中"]);
+    expect(opened.items.every((item) => item.status === "opened")).toBe(true);
+
+    const archive = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=archive")).json(),
+    );
+    expect(archive.items.map((item) => item.name)).toEqual([
+      "先に開けて後で飲み切り",
+      "後に開けて先に飲み切り",
+    ]);
+
+    const page = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=opened&limit=1")).json(),
+    );
+    expect(page.items.map((item) => item.name)).toEqual(["新しい味わい中"]);
+    const next = bottlesResponseSchema.parse(
+      await (
+        await getBottles(ctx.app, a.cookie, `view=opened&limit=1&cursor=${page.nextCursor ?? ""}`)
+      ).json(),
+    );
+    expect(next.items.map((item) => item.name)).toEqual(["古い味わい中"]);
+
+    const cellar = bottlesResponseSchema.parse(await (await getBottles(ctx.app, a.cookie)).json());
+    expect(cellar.totalCount).toBe(1);
+    expect(cellar.openedCount).toBe(2);
+    const grouped = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "group=type&limit=12")).json(),
+    );
+    expect(grouped.openedCount).toBe(2);
+    const archiveCount = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=archive")).json(),
+    );
+    expect(archiveCount.openedCount).toBeUndefined();
+
+    const all = bottlesResponseSchema.parse(
+      await (await getBottles(ctx.app, a.cookie, "view=all")).json(),
+    );
+    expect(new Set(all.items.map((item) => item.status))).toEqual(
+      new Set(["sealed", "opened", "consumed"]),
+    );
+  });
+
+  it("古い端末の restore は飲み切りのボトルも未開栓に戻せる", async () => {
+    const ctx = await createTestApp();
+    const a = await session(ctx.app, "a@example.com");
+    const id = await createOwnedBottle(ctx.app, a.cookie);
+    expect((await transitionReq(ctx.app, a.cookie, id, "open")).status).toBe(200);
+    expect((await transitionReq(ctx.app, a.cookie, id, "finish")).status).toBe(200);
+    const restored = bottleSchema.parse(
+      await (await restoreBottleReq(ctx.app, a.cookie, id, {})).json(),
+    );
+    expect(restored.status).toBe("sealed");
+    expect(restored.finishedAt).toBeNull();
   });
 });
 

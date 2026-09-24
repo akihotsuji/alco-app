@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  BOTTLE_STATUSES,
+  BOTTLE_STATES,
   DRINK_TYPE_LABELS,
   DRINK_TYPES,
   type DrinkType,
@@ -240,7 +240,7 @@ export const tastingNoteBottleSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    status: z.enum(BOTTLE_STATUSES),
+    status: z.enum(BOTTLE_STATES),
   })
   .nullable();
 

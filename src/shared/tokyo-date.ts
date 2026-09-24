@@ -141,9 +141,20 @@ export function formatShortMonthDay(date: string): string {
   return `${parsed.month}/${parsed.day}`;
 }
 
-/** 貯蔵庫バッジ。consumedOn は開栓日。飲み終わり日とは別状態を作らない */
+/** 開栓日だけのバッジ（例: 開栓 9/5） */
 export function formatConsumedEventBadge(date: string): string {
   return `開栓 ${formatShortMonthDay(date)}`;
+}
+
+/**
+ * 貯蔵庫バッジ。飲み切り日を出す。開栓日と同じ日（移行前のボトルを含む）は 1 つにまとめる
+ * （spec/features/bottle-tasting.md 6 章）
+ */
+export function formatFinishedEventBadge(finishedOn: string, openedOn: string | null): string {
+  if (openedOn === finishedOn) {
+    return `開栓・飲み切り ${formatShortMonthDay(finishedOn)}`;
+  }
+  return `飲み切り ${formatShortMonthDay(finishedOn)}`;
 }
 
 /** 今日は「今日」、同年は月日、過去年は年月日 */

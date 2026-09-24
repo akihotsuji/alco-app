@@ -457,6 +457,68 @@ describe("0013_tasting_notes_drink_log_id", () => {
   });
 });
 
+describe("0016_bottle_finished_at", () => {
+  it("既存の開栓済みは飲み切り扱いで残し、開栓日・写真・履歴は消さない（D1 相当）", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    applyThrough(db, "0016_bottle_finished_at");
+    insertUser(db, "u1");
+    insertBottle(db, "b-sealed", "u1");
+    insertBottle(db, "b-opened", "u1");
+    db.prepare(
+      "UPDATE bottles SET status = 'consumed', consumed_at = ?, consumed_on = '2026-09-05' WHERE id = 'b-opened'",
+    ).run(NOW);
+    insertPhoto(db, "p-opened", "u1", { bottleId: "b-opened" });
+    const cellarId = (
+      db.prepare("SELECT cellar_id AS id FROM bottles WHERE id = 'b-opened'").get() as {
+        id: string;
+      }
+    ).id;
+    db.prepare(
+      "INSERT INTO cellar_activity (id, cellar_id, actor_user_id, action, bottle_id, bottle_name, created_at) VALUES ('a1', ?, 'u1', 'bottle_consumed', 'b-opened', 'b', ?)",
+    ).run(cellarId, NOW);
+    applyMigrationAsD1(db, "0016_bottle_finished_at");
+
+    const rows = db
+      .prepare(
+        "SELECT id, status, consumed_at, consumed_on, finished_at, finished_on FROM bottles ORDER BY id",
+      )
+      .all() as {
+      id: string;
+      status: string;
+      consumed_at: number | null;
+      consumed_on: string | null;
+      finished_at: number | null;
+      finished_on: string | null;
+    }[];
+    expect(rows).toEqual([
+      {
+        id: "b-opened",
+        status: "consumed",
+        consumed_at: NOW,
+        consumed_on: "2026-09-05",
+        finished_at: NOW,
+        finished_on: "2026-09-05",
+      },
+      {
+        id: "b-sealed",
+        status: "sealed",
+        consumed_at: null,
+        consumed_on: null,
+        finished_at: null,
+        finished_on: null,
+      },
+    ]);
+    expect(photoIds(db)).toEqual(["p-opened"]);
+    expect(count(db, "cellar_activity")).toBe(1);
+    db.prepare(
+      "INSERT INTO cellar_activity (id, cellar_id, actor_user_id, action, bottle_id, bottle_name, created_at) VALUES ('a2', ?, 'u1', 'bottle_finished', 'b-opened', 'b', ?)",
+    ).run(cellarId, NOW);
+    expect(count(db, "cellar_activity")).toBe(2);
+    db.close();
+  });
+});
+
 describe("Drizzle スキーマとマイグレーションの同期", () => {
   const tables: SQLiteTable[] = [];
   for (const exported of Object.values<unknown>(schema)) {

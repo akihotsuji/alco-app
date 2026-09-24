@@ -238,9 +238,12 @@ export const bottles = sqliteTable(
     status: text("status", { enum: BOTTLE_STATUSES }).notNull().default(DEFAULT_BOTTLE_STATUS),
     // 小さいほど先。意味があるのは sealed。範囲は (cellar_id, drink_type)
     sortOrder: integer("sort_order").notNull().default(0),
-    // consumed のとき必須、それ以外 NULL。consumed_on は consumed_at から JST でサーバー算出
+    // 開栓日時。consumed（味わい中・飲み切り）のとき必須、sealed は NULL。consumed_on は JST でサーバー算出
     consumedAt: integer("consumed_at", { mode: "timestamp_ms" }),
     consumedOn: text("consumed_on"),
+    // 飲み切り日時。NULL なら味わい中（consumed のときだけ意味を持つ）
+    finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
+    finishedOn: text("finished_on"),
     registrationBatchId: text("registration_batch_id"),
     ...timestampColumns(),
   },
@@ -249,6 +252,7 @@ export const bottles = sqliteTable(
     index("bottles_registration_batch_idx").on(table.registrationBatchId),
     index("bottles_cellar_type_idx").on(table.cellarId, table.drinkType),
     index("bottles_cellar_consumed_idx").on(table.cellarId, table.consumedAt),
+    index("bottles_cellar_finished_idx").on(table.cellarId, table.finishedAt),
     index("bottles_cellar_type_sort_idx").on(
       table.cellarId,
       table.drinkType,

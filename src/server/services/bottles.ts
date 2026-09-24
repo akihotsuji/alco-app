@@ -1,4 +1,16 @@
-import { and, asc, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { z } from "zod";
 import type { AppBatchDb } from "@/db/index.ts";
@@ -22,8 +34,8 @@ import {
   type UpdateBottleInput,
 } from "@/shared/bottles.ts";
 import { CELLAR_COPY } from "@/shared/cellars.ts";
-import type { BottleStatus, DrinkType, PhotoKind } from "@/shared/constants.ts";
-import { DEFAULT_BOTTLE_STATUS, DRINK_TYPES } from "@/shared/constants.ts";
+import type { BottleState, DrinkType, PhotoKind } from "@/shared/constants.ts";
+import { bottleStateOf, DEFAULT_BOTTLE_STATUS, DRINK_TYPES } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 import { ApiError } from "../errors.ts";
 import { takeLimitPlusOne } from "../lib/keyset-page.ts";
@@ -114,7 +126,11 @@ export function toBottle(
     storedOn: row.storedOn,
     storage: row.storage,
     memo: row.memo,
-    status: row.status,
+    status: bottleStateOf(row.status, row.finishedAt),
+    openedAt: toIso(row.consumedAt),
+    openedOn: row.consumedOn,
+    finishedAt: toIso(row.finishedAt),
+    finishedOn: row.finishedOn,
     consumedAt: toIso(row.consumedAt),
     consumedOn: row.consumedOn,
     thumbPhotoId: thumb.thumbPhotoId,
@@ -155,9 +171,21 @@ function usesTypeSort(query: Pick<BottlesQuery, "view" | "drinkType">): boolean 
   return query.view === "cellar" && Boolean(query.drinkType);
 }
 
+/** 日時で降順に並べる一覧の列。archive = 飲み切り日時、opened = 開栓日時 */
+function listTimeColumn(view: BottleView) {
+  if (view === "archive") {
+    return bottles.finishedAt;
+  }
+  if (view === "opened") {
+    return bottles.consumedAt;
+  }
+  return null;
+}
+
 function listOrderBy(query: Pick<BottlesQuery, "view" | "drinkType">) {
-  if (query.view === "archive") {
-    return [desc(sql`coalesce(${bottles.consumedAt}, 0)`), desc(bottles.id)] as const;
+  const timeColumn = listTimeColumn(query.view);
+  if (timeColumn) {
+    return [desc(sql`coalesce(${timeColumn}, 0)`), desc(bottles.id)] as const;
   }
   if (usesTypeSort(query)) {
     return [asc(bottles.sortOrder), asc(bottles.id)] as const;
@@ -166,10 +194,18 @@ function listOrderBy(query: Pick<BottlesQuery, "view" | "drinkType">) {
 }
 
 function listCursorAt(
-  row: { createdAt: Date; consumedAt: Date | null; sortOrder: number },
+  row: {
+    createdAt: Date;
+    consumedAt: Date | null;
+    finishedAt: Date | null;
+    sortOrder: number;
+  },
   query: Pick<BottlesQuery, "view" | "drinkType">,
 ): number {
   if (query.view === "archive") {
+    return row.finishedAt?.getTime() ?? 0;
+  }
+  if (query.view === "opened") {
     return row.consumedAt?.getTime() ?? 0;
   }
   if (usesTypeSort(query)) {
@@ -203,12 +239,19 @@ function decodeCursor(cursor: string): z.infer<typeof bottleCursorSchema> {
   }
 }
 
-function viewStatus(view: BottleView): "sealed" | "consumed" | null {
+function openedCondition(): SQL {
+  return sql`(${bottles.status} = 'consumed' and ${bottles.finishedAt} is null)`;
+}
+
+function viewCondition(view: BottleView): SQL | null {
   if (view === "cellar") {
-    return "sealed";
+    return eq(bottles.status, "sealed");
+  }
+  if (view === "opened") {
+    return openedCondition();
   }
   if (view === "archive") {
-    return "consumed";
+    return sql`(${bottles.status} = 'consumed' and ${bottles.finishedAt} is not null)`;
   }
   return null;
 }
@@ -490,6 +533,8 @@ export async function createBottles(input: {
     status: DEFAULT_BOTTLE_STATUS,
     consumedAt: null,
     consumedOn: null,
+    finishedAt: null,
+    finishedOn: null,
     registrationBatchId,
     createdAt: now,
     updatedAt: now,
@@ -659,7 +704,7 @@ export type OwnBottleSnap = {
   id: string;
   name: string;
   drinkType: DrinkType;
-  status: BottleStatus;
+  status: BottleState;
   producer: string | null;
   origin: string | null;
   variety: string | null;
@@ -677,7 +722,7 @@ export async function requireOwnBottle(
     id: row.id,
     name: row.name,
     drinkType: row.drinkType,
-    status: row.status,
+    status: bottleStateOf(row.status, row.finishedAt),
     producer: row.producer,
     origin: row.origin,
     variety: row.variety,
@@ -716,10 +761,10 @@ export async function listBottles(input: {
 }): Promise<BottlesResponse> {
   const { db, userId, query } = input;
   const scopeCondition = await listScopeCondition(db, userId, query);
-  const status = viewStatus(query.view);
+  const stateCondition = viewCondition(query.view);
   const viewConditions = [scopeCondition];
-  if (status) {
-    viewConditions.push(eq(bottles.status, status));
+  if (stateCondition) {
+    viewConditions.push(stateCondition);
   }
 
   const itemConditions = [...viewConditions];
@@ -741,6 +786,7 @@ export async function listBottles(input: {
         id: bottles.id,
         createdAt: bottles.createdAt,
         consumedAt: bottles.consumedAt,
+        finishedAt: bottles.finishedAt,
         sortOrder: bottles.sortOrder,
       })
       .from(bottles)
@@ -748,9 +794,10 @@ export async function listBottles(input: {
     if (!anchor || listCursorAt(anchor, query) !== cursor.at) {
       throw cursorError();
     }
-    if (query.view === "archive") {
+    const timeColumn = listTimeColumn(query.view);
+    if (timeColumn) {
       itemConditions.push(
-        sql`(coalesce(${bottles.consumedAt}, 0) < ${cursor.at} or (coalesce(${bottles.consumedAt}, 0) = ${cursor.at} and ${bottles.id} < ${cursor.id}))`,
+        sql`(coalesce(${timeColumn}, 0) < ${cursor.at} or (coalesce(${timeColumn}, 0) = ${cursor.at} and ${bottles.id} < ${cursor.id}))`,
       );
     } else if (usesTypeSort(query)) {
       itemConditions.push(
@@ -773,9 +820,22 @@ export async function listBottles(input: {
     .from(bottles)
     .where(and(...viewConditions))
     .groupBy(bottles.drinkType);
+  // ヘッダー「セラー N 本」は未開栓 + 味わい中（手元のボトル）。未開栓の totalCount と同じくフィルタ前で数える
+  const openedCountQuery =
+    query.view === "cellar"
+      ? db
+          .select({ n: count() })
+          .from(bottles)
+          .where(and(scopeCondition, openedCondition()))
+          .then((rows) => Number(rows[0]?.n ?? 0))
+      : Promise.resolve(undefined);
 
   if (query.group === "type") {
-    const [totalRow, typeRows] = await Promise.all([countQuery, typeCountQuery]);
+    const [totalRow, typeRows, openedCount] = await Promise.all([
+      countQuery,
+      typeCountQuery,
+      openedCountQuery,
+    ]);
     const countsByType: CountsByType = emptyCountsByType();
     for (const row of typeRows) {
       countsByType[row.drinkType] += Number(row.n);
@@ -828,12 +888,14 @@ export async function listBottles(input: {
       totalCount: Number(totalRow?.n ?? 0),
       countsByType,
       typeShelves,
+      ...(openedCount === undefined ? {} : { openedCount }),
     };
   }
 
-  const [totalRow, typeRows, fetched] = await Promise.all([
+  const [totalRow, typeRows, openedCount, fetched] = await Promise.all([
     countQuery,
     typeCountQuery,
+    openedCountQuery,
     db
       .select()
       .from(bottles)
@@ -865,6 +927,7 @@ export async function listBottles(input: {
     nextCursor: hasMore && last ? encodeCursor(last, query) : null,
     totalCount: Number(totalRow?.n ?? 0),
     countsByType,
+    ...(openedCount === undefined ? {} : { openedCount }),
   };
 }
 
@@ -1111,6 +1174,8 @@ export async function consumeBottle(input: {
           status: "consumed",
           consumedAt: now,
           consumedOn: tokyoToday(now),
+          finishedAt: null,
+          finishedOn: null,
           updatedBy: userId,
           version: current.version + 1,
           updatedAt: now,
@@ -1216,6 +1281,8 @@ export async function restoreBottle(input: {
           status: "sealed",
           consumedAt: null,
           consumedOn: null,
+          finishedAt: null,
+          finishedOn: null,
           sortOrder,
           updatedBy: userId,
           version: current.version + 1,
@@ -1254,6 +1321,130 @@ export async function restoreBottle(input: {
   }
   await cancelOpeningEvent(db, bottleId, now);
   return result;
+}
+
+type OpenedTransition = "finish" | "reopen";
+
+/**
+ * 味わい中 ↔ 飲み切り（spec/features/bottle-tasting.md 7 章）。どちらも status は consumed のまま、
+ * `finished_*` だけを付け外しする。状態が合わない・非メンバー・不明は 404（開栓・取り消しと同じ規則）
+ */
+async function transitionOpenedBottle(input: {
+  db: AppBatchDb;
+  userId: string;
+  bottleId: string;
+  body?: BottleMutationBody;
+  now?: Date;
+  transition: OpenedTransition;
+}): Promise<Bottle> {
+  const { db, userId, bottleId, transition } = input;
+  const body = input.body ?? {};
+  const now = input.now ?? new Date();
+  const finishing = transition === "finish";
+  const current = await loadCurrentForWrite(db, userId, bottleId);
+  assertSharedVersion(current.cellarKind, body.expectedVersion);
+  const currentState = bottleStateOf(current.status, current.finishedAt);
+  if (currentState !== (finishing ? "opened" : "consumed")) {
+    throw new ApiError("not_found");
+  }
+  if (body.expectedVersion !== undefined && body.expectedVersion !== current.version) {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
+  }
+
+  const requestHash = await hashRequestBody({ action: transition, bottleId, ...body });
+  if (body.operationKey) {
+    const cached = await readIdempotentResult<Bottle>(db, {
+      actorUserId: userId,
+      cellarId: current.cellarId,
+      operationKey: body.operationKey,
+      requestHash,
+    });
+    if (cached) {
+      return cached;
+    }
+  }
+
+  const conditions = [
+    eq(bottles.id, bottleId),
+    eq(bottles.cellarId, current.cellarId),
+    eq(bottles.status, "consumed"),
+    finishing ? isNull(bottles.finishedAt) : isNotNull(bottles.finishedAt),
+    membershipSql(userId),
+  ];
+  if (body.expectedVersion !== undefined) {
+    conditions.push(eq(bottles.version, body.expectedVersion));
+  }
+
+  const [photoMap, nameMap, [updatedRows]] = await Promise.all([
+    photosForBottles(db, [bottleId]),
+    displayNamesById(db, [current.createdBy, userId]),
+    db.batch([
+      db
+        .update(bottles)
+        .set({
+          finishedAt: finishing ? now : null,
+          finishedOn: finishing ? tokyoToday(now) : null,
+          updatedBy: userId,
+          version: current.version + 1,
+          updatedAt: now,
+        })
+        .where(and(...conditions))
+        .returning(),
+      bumpCellarRevision(db, current.cellarId, now),
+      recordActivity(db, {
+        cellarId: current.cellarId,
+        actorUserId: userId,
+        action: finishing ? "bottle_finished" : "bottle_reopened",
+        bottleId,
+        bottleName: current.name,
+        now,
+      }),
+    ]),
+  ]);
+
+  const after = updatedRows[0];
+  if (
+    !after ||
+    bottleStateOf(after.status, after.finishedAt) !== (finishing ? "consumed" : "opened")
+  ) {
+    throw versionConflict(await getOwnBottle(db, userId, bottleId));
+  }
+  const result = toBottle(after, photoMap.get(bottleId) ?? [], namesFromMap(after, nameMap));
+  if (body.operationKey) {
+    await db.batch([
+      idempotencyInsert(db, {
+        actorUserId: userId,
+        cellarId: current.cellarId,
+        operationKey: body.operationKey,
+        requestHash,
+        result,
+        now,
+      }),
+    ]);
+  }
+  return result;
+}
+
+/** 飲み切った: 味わい中 → 貯蔵庫 */
+export function finishBottle(input: {
+  db: AppBatchDb;
+  userId: string;
+  bottleId: string;
+  body?: BottleMutationBody;
+  now?: Date;
+}): Promise<Bottle> {
+  return transitionOpenedBottle({ ...input, transition: "finish" });
+}
+
+/** 味わい中に戻す: 貯蔵庫 → 味わい中 */
+export function reopenBottle(input: {
+  db: AppBatchDb;
+  userId: string;
+  bottleId: string;
+  body?: BottleMutationBody;
+  now?: Date;
+}): Promise<Bottle> {
+  return transitionOpenedBottle({ ...input, transition: "reopen" });
 }
 
 export async function reorderBottles(input: {
