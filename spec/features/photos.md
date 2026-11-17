@@ -47,7 +47,7 @@
 - レスポンスに `r2Key` / `userId` を出さない
 - 配信: `GET /api/photos/:id/content`
   - クエリ `variant=thumb` は長辺 400px の派生（棚 100×150・ノートカード 160×200 の 2x）。`kind=photo` は JPEG、`kind=cutout` は PNG（アルファを残す）。省略時は保存原本。不正な `variant` は 400
-  - 一覧（棚タイル・日別行・ボトルピッカー・ノートカード）だけ `?variant=thumb`。詳細ヒーロー・ライトボックス・編集・複製（`copy-owned-photo`）は原本
+  - 一覧（棚タイル・日別行・ボトルピッカー・ノートカード）、ボトル詳細の裏ラベル小サムネ（64×96）、ボトル詳細ヒーローの下敷き（原本が出るまで。[performance.md](performance.md) 4 章）は `?variant=thumb`。詳細ヒーロー本体・ライトボックス・編集・複製（`copy-owned-photo`）は原本
   - `Cache-Control: private, no-cache`。端末保存は可。表示のたびに認可後再検証する。削除・権限喪失のあと本文を再検証なしで出さない。1 年 immutable には戻さない。既存レスポンスへの遡及はしない
   - ETag は原本 `"{photoId}"`、サムネ `"{photoId}:thumb"`。`If-None-Match` が一致すれば **認可の後に** 304（本文なし。R2 を読まない）。他人・不明は一致しても 404
   - 派生の R2 キーは `{photoId}.thumb.jpg` / `{photoId}.thumb.png`。**端末が作って `POST /api/photos` の `thumb` パートで原本と一緒に送る**（`uploadPhoto` → `makeUploadThumb`。Canvas で長辺 400、`photo` は JPEG 0.75、`cutout` は透過 PNG）。Worker は magic bytes と寸法ヘッダだけ見て保存し、画像をデコードしない（無料枠の CPU 10ms/起動を超えるとアップロードが 503 になるため。2026-09-23）。派生が無い写真（旧クライアント・検査に通らない）は `thumb` でも原本を返す。複製（`duplicatePhotoObject`）は派生も R2 でコピーする。有料の画像 CDN / Cloudflare Images は使わない
