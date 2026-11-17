@@ -10,6 +10,7 @@ describe("createEndSessionHandler", () => {
       refreshSession,
       clearBadge: vi.fn(),
       clearPush: vi.fn(),
+      clearPersisted: vi.fn(),
     });
 
     await endSession();
@@ -25,6 +26,7 @@ describe("createEndSessionHandler", () => {
       refreshSession,
       clearBadge: vi.fn(),
       clearPush: vi.fn(),
+      clearPersisted: vi.fn(),
     });
 
     await endSession();
@@ -41,6 +43,7 @@ describe("createEndSessionHandler", () => {
       refreshSession,
       clearBadge: vi.fn(),
       clearPush: vi.fn(),
+      clearPersisted: vi.fn(),
     });
 
     await expect(endSession()).resolves.toBeUndefined();
@@ -61,6 +64,7 @@ describe("createEndSessionHandler", () => {
       refreshSession: vi.fn(),
       clearBadge: vi.fn(),
       clearPush: vi.fn(),
+      clearPersisted: vi.fn(),
     });
 
     const first = endSession();
@@ -90,6 +94,7 @@ describe("createEndSessionHandler", () => {
       refreshSession: vi.fn(),
       clearBadge,
       clearPush: vi.fn(),
+      clearPersisted: vi.fn(),
     });
 
     await endSession();
@@ -106,6 +111,7 @@ describe("createEndSessionHandler", () => {
       refreshSession: vi.fn(),
       clearBadge,
       clearPush: vi.fn(),
+      clearPersisted: vi.fn(),
     });
 
     await endSession();
@@ -124,8 +130,27 @@ describe("createEndSessionHandler", () => {
       clearPush: vi.fn(() => {
         order.push("clearPush");
       }),
+      clearPersisted: vi.fn(),
     });
     await endSession();
     expect(order).toEqual(["clearPush", "signOut"]);
+  });
+
+  it("サインアウトの前に端末の一覧保存を消す", async () => {
+    const order: string[] = [];
+    const endSession = createEndSessionHandler({
+      signOut: vi.fn(async () => {
+        order.push("signOut");
+        return { error: null };
+      }),
+      refreshSession: vi.fn(),
+      clearBadge: vi.fn(),
+      clearPush: vi.fn(),
+      clearPersisted: vi.fn(() => {
+        order.push("clearPersisted");
+      }),
+    });
+    await endSession();
+    expect(order).toEqual(["clearPersisted", "signOut"]);
   });
 });

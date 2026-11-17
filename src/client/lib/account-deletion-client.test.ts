@@ -8,6 +8,7 @@ import {
 } from "@/shared/constants.ts";
 import { discardAccountScopedClientData } from "./account-deletion-client.ts";
 import { JOIN_TOKEN_STORAGE_KEY } from "./cellar-share.ts";
+import { QUERY_PERSIST_STORAGE_KEY } from "./query-persist.ts";
 import { FRIEND_JOIN_TOKEN_KEY, FRIEND_OWN_INVITE_TOKEN_KEY } from "./social-invite.ts";
 
 const store = new Map<string, string>();
@@ -44,6 +45,7 @@ describe("discardAccountScopedClientData", () => {
     store.set(GUIDE_PREF_KEY, JSON.stringify({ userId: "u1", status: "completed" }));
     store.set(UI_PREF_KEYS.theme, "dark");
     store.set(CELLAR_PREF_KEYS.selectedId, "cellar-1");
+    store.set(QUERY_PERSIST_STORAGE_KEY, '{"userId":"u1"}');
     sessionStore.set(PHOTO_CUTOUT_DIAG_KEY, "{}");
     sessionStore.set("opened.followup.b1", "pending");
     sessionStore.set("cellar.shelfEvent", "{}");
@@ -57,6 +59,7 @@ describe("discardAccountScopedClientData", () => {
 
     expect(store.has(GUIDE_PREF_KEY)).toBe(false);
     expect(store.has(CELLAR_PREF_KEYS.selectedId)).toBe(false);
+    expect(store.has(QUERY_PERSIST_STORAGE_KEY)).toBe(false);
     expect(store.get(UI_PREF_KEYS.theme)).toBe("dark");
     expect(sessionStore.has(PHOTO_CUTOUT_DIAG_KEY)).toBe(false);
     expect(sessionStore.has("opened.followup.b1")).toBe(false);

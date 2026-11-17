@@ -112,7 +112,7 @@ alco-app/
 |---|---|
 | RPC クライアント | `src/client/lib/api.ts` の `api`（`hc<AppType>("/")`）。**1 箇所**。`AppType` は `src/server/index.ts` から **型だけ** import（`import type`。サーバー実装をバンドルしない） |
 | base URL | 相対 `/`（`api.api.me.$get()` → `/api/me`）。SPA と API は同一 Worker・同一オリジンなので CORS なし |
-| Cookie | `init: { credentials: "include" }`。トークンを localStorage / メモリに持たない（Cookie は httpOnly） |
+| Cookie | `init: { credentials: "include" }`。トークンを localStorage / メモリに持たない（Cookie は httpOnly）。一覧 JSON の端末保存はトークンを含まない（[features/performance.md](features/performance.md) 6.6） |
 | 応答の解き方 | `unwrap(api.api.xxx.$get())`。2xx は JSON（RPC の型）、非 2xx は `ApiClientError { status, code, fields? }`。`code` は `src/shared/api-error.ts` の `API_ERROR_CODES` で `safeParse`。本文が共通形式でないときは 401 → `unauthorized`、それ以外 → `internal_error` |
 | Query Provider | `src/client/lib/query-provider.tsx`（`QueryClientProvider`）。`App` の最外。QueryClient は `createQueryClient()`（`src/client/lib/query-client.ts`） |
 | `staleTime` | **30 秒**（個人アプリ。タブ復帰・再マウントで叩き直さない）。mutation 後は `invalidateQueries` で取り直す |
