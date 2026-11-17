@@ -111,13 +111,14 @@ pnpm exec wrangler d1 migrations apply alco-app-dev --remote --env dev
 `src/db/auth-schema.ts` は Better Auth CLI の出力。プラグイン追加や Better Auth のメジャーアップデートで列が増えたら CLI で再生成し、差分を drizzle-kit で forward migration にする。
 
 ```powershell
-pnpm dlx auth@1.7.2 generate --config src/server/auth.cli.ts --output src/db/auth-schema.ts -y
+pnpm dlx auth@1.7.25 generate --config src/server/auth.cli.ts --output src/db/auth-schema.ts -y
 pnpm format
 pnpm db:generate --name better_auth_update
 ```
 
-- ランタイムの `better-auth` と同じバージョンの `auth` CLI を使う。`@better-auth/cli@latest`（1.4.21）は `account.issuer` を出さず、1.7.2 のサインアップが失敗する
+- ランタイムの `better-auth` と同じバージョンの `auth` CLI を使う。`auth@latest` ではなく、その版を明示する
 - 2-01 は CLI 1.4.21 で生成。2-02 で `auth@1.7.2` により `account.issuer` と unique index を追加し、`0001_better_auth_account_issuer` で forward した（`0000_init` は書き換えない）
+- Better Auth 1.7.3 以降は `account.issuer` を書かない。1.7.0–1.7.2 の DB は unique index を落としてから列を落とす（SQLite は NOT NULL を外せない）。`0017_better_auth_drop_account_issuer` がそれ。生成 SQL が `account` の作り直し（`__new_account` + DROP）なら、行を残す `DROP INDEX` と `ALTER TABLE ... DROP COLUMN` に置き換える
 - 生成物の列を手で減らさない。`account.password` はアプリから SELECT しない
 - `usePlural` は使わない（テーブル名はライブラリ既定の単数形）
 - `rateLimit.storage: "database"` は `rate_limit` テーブルを生成する。2-01 / 2-02 では使わない（レート制限はメモリ）

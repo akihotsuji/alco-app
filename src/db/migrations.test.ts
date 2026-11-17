@@ -272,6 +272,40 @@ describe("マイグレーション（src/db/migrations）", () => {
     db.close();
   });
 
+  it("0017 は既存の account 行を残して issuer と unique index だけ落とす", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    applyThrough(db, "0017_better_auth_drop_account_issuer");
+    insertUser(db, "u1");
+    db.prepare(
+      `INSERT INTO account (id, issuer, account_id, provider_id, user_id, password, created_at, updated_at)
+       VALUES ('a1', 'https://accounts.google.com', 'google-u1', 'google', 'u1', 'hash', ?, ?)`,
+    ).run(NOW, NOW);
+    applyMigrationAsD1(db, "0017_better_auth_drop_account_issuer");
+    const cols = db.prepare("PRAGMA table_info('account')").all() as { name: string }[];
+    expect(cols.map((c) => c.name)).not.toContain("issuer");
+    const indexes = db.prepare("PRAGMA index_list('account')").all() as { name: string }[];
+    expect(indexes.map((i) => i.name)).not.toContain("account_issuer_accountId_uidx");
+    expect(indexes.map((i) => i.name)).toContain("account_userId_idx");
+    const row = db
+      .prepare("SELECT id, account_id, provider_id, user_id, password FROM account WHERE id = 'a1'")
+      .get() as {
+      id: string;
+      account_id: string;
+      provider_id: string;
+      user_id: string;
+      password: string;
+    };
+    expect(row).toEqual({
+      id: "a1",
+      account_id: "google-u1",
+      provider_id: "google",
+      user_id: "u1",
+      password: "hash",
+    });
+    db.close();
+  });
+
   it("Auth 4 テーブル + アプリ / セラー / 削除処理テーブルが作成される", () => {
     const db = openMigratedDb();
     const rows = db

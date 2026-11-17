@@ -14,7 +14,7 @@ Better Auth の標準機能で認証する。独自 JWT や自前パスワード
 ## 2. 前提条件
 
 - 2-01 の `0000_init` に Auth 4 テーブル（`user` / `session` / `account` / `verification`）とアプリ 6 テーブルがある
-- Auth スキーマは CLI 生成物を正とする。2-01（CLI 1.4.21）には無い `account.issuer` は 2-02 で `auth@1.7.2` 再生成し、forward migration で足す。`rate_limit` は足さない
+- Auth スキーマは CLI 生成物を正とする。2-01（CLI 1.4.21）には無い `account.issuer` は 2-02 で `auth@1.7.2` 再生成し、forward migration で足した。Better Auth 1.7.3 以降はこの列を書かないため、依存更新で `0017_better_auth_drop_account_issuer` により列と unique index を落とした。`rate_limit` は足さない
 - `BETTER_AUTH_SECRET` を `.dev.vars` に置く（gitignore 済み）
 - 公開エンドポイント `/api/auth/*` を api-design に明記済みであること
 
@@ -115,7 +115,7 @@ Phase 8-03 の「招待制の解除」は発生しない。同タスクはパス
 
 ## 11. リスク・注意点
 
-- 2-01 の `0000_init` は書き換えない。Better Auth 1.7.2 が要求する `account.issuer` は forward migration で足す
+- 2-01 の `0000_init` は書き換えない。Better Auth 1.7.2 が要求した `account.issuer` は `0001` で足し、1.7.3 以降は書かないため `0017` で落とす
 - `rateLimit.storage: "database"` は `rate_limit` を生成し、2-01 の 10 テーブル検証が壊れる。レート制限はメモリのまま有効
 - Workers での Better Auth 設定ミス（baseURL、trustedOrigins）
 - 招待制を後から足すと Auth 設定と仕様が再び分岐する。必要になったら Phase 8 で別途決める
