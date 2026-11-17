@@ -14,13 +14,12 @@ import { useBottles } from "@/client/hooks/use-bottles.ts";
 import { useDrinkLogSummary } from "@/client/hooks/use-drink-log-summary.ts";
 import { useMyDrinks } from "@/client/hooks/use-my-drinks.ts";
 import { getTastingNotes } from "@/client/hooks/use-tasting-notes.ts";
+import { HOME_OPENED_LIMIT } from "@/client/lib/cellar-shelf.ts";
 import { parseMascotPreview, resolveMascotPresence } from "@/client/lib/mascot-presence.ts";
 import { MOTION_MS } from "@/client/lib/motion.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import { prefetchPointerProps } from "@/client/lib/route-chunks.ts";
 import { formatHomeDateLabel, tokyoToday } from "@/shared/tokyo-date.ts";
-
-const HOME_OPENED_LIMIT = 12;
 
 export function HomePage() {
   const today = tokyoToday();

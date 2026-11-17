@@ -7,7 +7,13 @@ import { drinkLogSummaryQueryOptions } from "@/client/hooks/use-drink-log-summar
 import { myDrinksQueryOptions } from "@/client/hooks/use-my-drinks.ts";
 import { socialFeedQueryOptions, socialUnreadQueryOptions } from "@/client/hooks/use-social.ts";
 import { readSelectedCellarId, usableStoredCellarId } from "@/client/lib/cellar-share.ts";
-import { SHELF_TYPE_PAGE_LIMIT, shelfColumns, shelfPageLimit } from "@/client/lib/cellar-shelf.ts";
+import {
+  HOME_OPENED_LIMIT,
+  OPENED_STRIP_LIMIT,
+  SHELF_TYPE_PAGE_LIMIT,
+  shelfColumns,
+  shelfPageLimit,
+} from "@/client/lib/cellar-shelf.ts";
 import { getCellarListViewPref } from "@/client/lib/preferences.ts";
 import type { CellarListView } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
@@ -74,12 +80,25 @@ export function tabPrefetchEntries(input: TabPrefetchInput): TabPrefetchEntry[] 
     });
     return infinite(shelf, (qc) => qc.prefetchInfiniteQuery(shelf));
   })();
+  // 味わい中（H14 / C15）は取得中に節ごと出さない。一覧より遅れると下が押し下がるので一緒に取る
+  const homeOpened = bottlesQueryOptions({
+    view: "opened",
+    scope: "accessible",
+    limit: HOME_OPENED_LIMIT,
+  });
+  const cellarOpened = bottlesQueryOptions({
+    view: "opened",
+    limit: OPENED_STRIP_LIMIT,
+    ...(cellarId ? { cellarId } : {}),
+  });
   return [
     single(day, (qc) => qc.prefetchQuery(day)),
     single(week, (qc) => qc.prefetchQuery(week)),
     single(myDrinks, (qc) => qc.prefetchQuery(myDrinks)),
+    single(homeOpened, (qc) => qc.prefetchQuery(homeOpened)),
     single(cellars, (qc) => qc.prefetchQuery(cellars)),
     cellar,
+    single(cellarOpened, (qc) => qc.prefetchQuery(cellarOpened)),
     infinite(feed, (qc) => qc.prefetchInfiniteQuery(feed)),
     single(unread, (qc) => qc.prefetchQuery(unread)),
   ];

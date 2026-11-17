@@ -34,6 +34,7 @@ import {
   usableStoredCellarId,
 } from "@/client/lib/cellar-share.ts";
 import {
+  OPENED_STRIP_LIMIT,
   rankByCreatedAtDesc,
   SHELF_TYPE_PAGE_LIMIT,
   shelfColumns,
@@ -62,9 +63,6 @@ import { cn } from "@/client/lib/utils.ts";
 import type { BottleItem, BottlesResponse, CountsByType } from "@/shared/bottles.ts";
 import { emptyCountsByType, formatBottleCount } from "@/shared/bottles.ts";
 import { DRINK_TYPE_LABELS, type DrinkType } from "@/shared/constants.ts";
-
-/** 味わい中は数本の想定。はみ出したら横スクロール（bottle-tasting.md 2.1 C15b） */
-const OPENED_STRIP_LIMIT = 30;
 
 function flattenPages(pages: { items: BottleItem[] }[] | undefined): BottleItem[] {
   return pages?.flatMap((page) => page.items) ?? [];

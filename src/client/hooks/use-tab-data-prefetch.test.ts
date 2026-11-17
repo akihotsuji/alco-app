@@ -4,7 +4,11 @@ import { cellarsQueryOptions } from "@/client/hooks/use-cellars.ts";
 import { drinkLogSummaryQueryOptions } from "@/client/hooks/use-drink-log-summary.ts";
 import { myDrinksQueryOptions } from "@/client/hooks/use-my-drinks.ts";
 import { socialFeedQueryOptions, socialUnreadQueryOptions } from "@/client/hooks/use-social.ts";
-import { SHELF_TYPE_PAGE_LIMIT } from "@/client/lib/cellar-shelf.ts";
+import {
+  HOME_OPENED_LIMIT,
+  OPENED_STRIP_LIMIT,
+  SHELF_TYPE_PAGE_LIMIT,
+} from "@/client/lib/cellar-shelf.ts";
 import { createQueryClient } from "@/client/lib/query-client.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import {
@@ -17,15 +21,20 @@ import {
 const TODAY = "2026-09-10";
 
 describe("tabPrefetchEntries", () => {
-  it("ホーム（日・週サマリー・マイドリンク）、セラー、友達フィードの初期一覧を対象にする", () => {
+  it("ホーム（日・週サマリー・マイドリンク・味わい中）、セラー（棚・味わい中の列）、友達フィードの初期一覧を対象にする", () => {
     const entries = tabPrefetchEntries({ cellarView: "list", viewportWidth: 390, today: TODAY });
     expect(entries.map((e) => e.queryKey)).toEqual([
       drinkLogSummaryQueryOptions("day", TODAY).queryKey,
       drinkLogSummaryQueryOptions("week", TODAY).queryKey,
       myDrinksQueryOptions().queryKey,
+      // HomePage の H14 と同じ query
+      bottlesQueryOptions({ view: "opened", scope: "accessible", limit: HOME_OPENED_LIMIT })
+        .queryKey,
       cellarsQueryOptions().queryKey,
       // 1 本ずつ表示は 3 列 × 2 行分（CellarList と同じ limit）
       bottlesInfiniteQueryOptions({ view: "cellar", limit: 6 }).queryKey,
+      // CellarList の C15 と同じ query
+      bottlesQueryOptions({ view: "opened", limit: OPENED_STRIP_LIMIT }).queryKey,
       socialFeedQueryOptions().queryKey,
       socialUnreadQueryOptions().queryKey,
     ]);
@@ -34,7 +43,9 @@ describe("tabPrefetchEntries", () => {
       "query",
       "query",
       "query",
+      "query",
       "infinite",
+      "query",
       "infinite",
       "query",
     ]);
@@ -42,14 +53,14 @@ describe("tabPrefetchEntries", () => {
 
   it("広い画面では 4 列 × 2 行分を先読みする", () => {
     const entries = tabPrefetchEntries({ cellarView: "list", viewportWidth: 480, today: TODAY });
-    expect(entries[4]?.queryKey).toEqual(
+    expect(entries[5]?.queryKey).toEqual(
       bottlesInfiniteQueryOptions({ view: "cellar", limit: 8 }).queryKey,
     );
   });
 
   it("種類ごと表示のときは group=type の単発 query を先読みする", () => {
     const entries = tabPrefetchEntries({ cellarView: "type", viewportWidth: 390, today: TODAY });
-    expect(entries[4]).toMatchObject({
+    expect(entries[5]).toMatchObject({
       kind: "query",
       queryKey: bottlesQueryOptions({
         view: "cellar",
@@ -59,7 +70,7 @@ describe("tabPrefetchEntries", () => {
     });
   });
 
-  it("保存済み cellarId をボトル先読みに載せる", () => {
+  it("保存済み cellarId をボトル先読みと味わい中の列に載せる（ホームの味わい中には付けない）", () => {
     const cellarId = "11111111-1111-4111-8111-111111111111";
     const one = tabPrefetchEntries({
       cellarView: "list",
@@ -67,8 +78,15 @@ describe("tabPrefetchEntries", () => {
       today: TODAY,
       cellarId,
     });
-    expect(one[4]?.queryKey).toEqual(
+    expect(one[5]?.queryKey).toEqual(
       bottlesInfiniteQueryOptions({ view: "cellar", limit: 6, cellarId }).queryKey,
+    );
+    expect(one[6]?.queryKey).toEqual(
+      bottlesQueryOptions({ view: "opened", limit: OPENED_STRIP_LIMIT, cellarId }).queryKey,
+    );
+    expect(one[3]?.queryKey).toEqual(
+      bottlesQueryOptions({ view: "opened", scope: "accessible", limit: HOME_OPENED_LIMIT })
+        .queryKey,
     );
     const type = tabPrefetchEntries({
       cellarView: "type",
@@ -76,7 +94,7 @@ describe("tabPrefetchEntries", () => {
       today: TODAY,
       cellarId,
     });
-    expect(type[4]?.queryKey).toEqual(
+    expect(type[5]?.queryKey).toEqual(
       bottlesQueryOptions({
         view: "cellar",
         group: "type",
@@ -90,8 +108,19 @@ describe("tabPrefetchEntries", () => {
     const entries = tabPrefetchEntries({ cellarView: "list", viewportWidth: 390, today: TODAY });
     expect(entries[0]?.queryKey).toEqual(queryKeys.drinkLogSummary("day", TODAY));
     expect(entries[2]?.queryKey).toEqual(queryKeys.myDrinks);
-    expect(entries[3]?.queryKey).toEqual(queryKeys.cellarsList);
-    expect(entries[4]?.queryKey).toEqual(
+    expect(entries[3]?.queryKey).toEqual(
+      queryKeys.bottlesList({
+        view: "opened",
+        q: undefined,
+        drinkType: undefined,
+        group: undefined,
+        cellarId: undefined,
+        scope: "accessible",
+        limit: 12,
+      }),
+    );
+    expect(entries[4]?.queryKey).toEqual(queryKeys.cellarsList);
+    expect(entries[5]?.queryKey).toEqual(
       queryKeys.bottlesList({
         view: "cellar",
         q: undefined,
@@ -100,8 +129,19 @@ describe("tabPrefetchEntries", () => {
         limit: 6,
       }),
     );
-    expect(entries[5]?.queryKey).toEqual(queryKeys.socialFeed);
-    expect(entries[6]?.queryKey).toEqual(queryKeys.socialUnread);
+    expect(entries[6]?.queryKey).toEqual(
+      queryKeys.bottlesList({
+        view: "opened",
+        q: undefined,
+        drinkType: undefined,
+        group: undefined,
+        cellarId: undefined,
+        scope: undefined,
+        limit: 30,
+      }),
+    );
+    expect(entries[7]?.queryKey).toEqual(queryKeys.socialFeed);
+    expect(entries[8]?.queryKey).toEqual(queryKeys.socialUnread);
   });
 });
 
@@ -116,7 +156,7 @@ describe("prefetchTabData", () => {
 
     prefetchTabData(queryClient, entries);
 
-    expect(prefetchQuery).toHaveBeenCalledTimes(5);
+    expect(prefetchQuery).toHaveBeenCalledTimes(7);
     expect(prefetchInfiniteQuery).toHaveBeenCalledTimes(2);
   });
 
@@ -135,7 +175,7 @@ describe("prefetchTabData", () => {
 
     prefetchTabData(queryClient, entries);
 
-    expect(prefetchQuery).toHaveBeenCalledTimes(4);
+    expect(prefetchQuery).toHaveBeenCalledTimes(6);
     expect(prefetchInfiniteQuery).toHaveBeenCalledTimes(1);
   });
 });

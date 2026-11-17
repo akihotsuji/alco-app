@@ -53,6 +53,8 @@ const SHELF_WIDE_MIN_PX = 480;
 const SHELF_COLUMNS_NARROW = 3;
 const SHELF_COLUMNS_WIDE = 4;
 const SHELF_TYPE_PAGE_LIMIT = 12;
+const OPENED_STRIP_LIMIT = 30;
+const HOME_OPENED_LIMIT = 12;
 const CELLAR_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TASTING_NOTES_LIST_LIMIT = 50;
 const SOCIAL_FEED_LIMIT = 20;
@@ -62,6 +64,7 @@ export function homeDataPaths(today: string): readonly string[] {
     `/api/drink-logs/summary?period=day&date=${today}`,
     `/api/drink-logs/summary?period=week&date=${today}`,
     "/api/my-drinks?limit=30",
+    `/api/bottles?view=opened&limit=${HOME_OPENED_LIMIT}&scope=accessible`,
   ];
 }
 
@@ -98,6 +101,15 @@ function cellarBottlesPath(
   return `/api/bottles?${query}`;
 }
 
+/** 味わい中の列（C15）。棚より遅れて届くと下の棚が 1 段押し下がるので、棚と同時に取る */
+function cellarOpenedPath(cellarId?: string): string {
+  const query = new URLSearchParams({ view: "opened", limit: String(OPENED_STRIP_LIMIT) });
+  if (cellarId) {
+    query.set("cellarId", cellarId);
+  }
+  return `/api/bottles?${query}`;
+}
+
 /** セラー一覧（`/cellar`）が最初に投げる GET。絞り込み中はボトルを先読みしない（hooks の debounce と食い違う） */
 export function cellarDataPaths(input: CellarBootInput): readonly string[] {
   const cellarId = bootCellarId(input.storedCellarId);
@@ -116,7 +128,11 @@ export function cellarDataPaths(input: CellarBootInput): readonly string[] {
           : input.storedView === "list" || input.storedView === "one"
             ? "list"
             : DEFAULT_CELLAR_LIST_VIEW;
-  return [CELLARS_PATH, cellarBottlesPath(view, input.viewportWidth, cellarId)];
+  return [
+    CELLARS_PATH,
+    cellarBottlesPath(view, input.viewportWidth, cellarId),
+    cellarOpenedPath(cellarId),
+  ];
 }
 
 /** ノート一覧（`/notes`）が最初に投げる GET。絞り込み・ボトル別は先読みしない */
