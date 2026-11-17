@@ -5436,6 +5436,32 @@ html[data-reduce-motion="1"] .note-photo-strip-scroller {
   border-radius: 8px;
 }
 
+/*
+  ヒーローの下敷き（performance.md 4 章 / M-29）。一覧で表示済みのサムネを原本と同じ枠・同じ
+  object-fit で重ね、原本の 0 → 1 が終わってから隠す（切り抜きの縁を二重に見せない）。動かさない。
+*/
+.bottle-hero-underlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/*
+  visibility の補間は「途中はずっと visible、終わりで hidden」。原本のフェードと同じ長さだけ
+  待ってから消える。reduced motion は一括指定（6.8）で長さがほぼ 0 になり、待たずに隠れる。
+*/
+.bottle-hero-underlay[data-covered] {
+  visibility: hidden;
+  transition: visibility var(--dur-state) var(--ease-out);
+}
+
+.bottle-hero-underlay + .bottle-hero-img {
+  position: relative;
+}
+
 .bottle-status-row {
   display: flex;
   flex-wrap: wrap;

@@ -12,6 +12,10 @@ export const SHELF_COLUMNS_NARROW = 3;
 export const SHELF_COLUMNS_WIDE = 4;
 export const SHELF_WIDE_MIN_PX = 480;
 export const SHELF_TYPE_PAGE_LIMIT = 12;
+/** セラーの味わい中の列（C15）が 1 回で取る本数。数本の想定で、はみ出したら横スクロール（bottle-tasting.md 2.1 C15b） */
+export const OPENED_STRIP_LIMIT = 30;
+/** ホームの味わい中（H14）が 1 回で取る本数 */
+export const HOME_OPENED_LIMIT = 12;
 export const SHELF_TYPE_TILE_PX = 72;
 export const SHELF_TYPE_GAP_PX = 22;
 export const TYPE_GRID_COLUMNS = 4;

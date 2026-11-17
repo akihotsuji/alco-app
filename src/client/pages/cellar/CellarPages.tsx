@@ -1,5 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { BottleBatchForm } from "@/client/components/cellar/BottleBatchForm.tsx";
 import { BottleConflictDialog } from "@/client/components/cellar/BottleConflictDialog.tsx";
@@ -38,6 +39,7 @@ import {
   describeBottleSaveFailure,
   isUuid,
 } from "@/client/lib/bottle-form.ts";
+import { findBottleInListCache } from "@/client/lib/bottle-list-cache.ts";
 import { newOperationKey, parseConflictBottle } from "@/client/lib/cellar-share.ts";
 import { groupBottlesByConsumedMonth } from "@/client/lib/cellar-shelf.ts";
 import type { MotionState } from "@/client/lib/motion.ts";
@@ -154,12 +156,16 @@ export function BottleDetailPage() {
 }
 
 function LoadedBottleDetail({ bottleId }: { bottleId: string }) {
+  const queryClient = useQueryClient();
   const query = useBottle(bottleId);
   const logs = useDrinkLogsByBottle(bottleId);
   const notes = useTastingNotesByBottle(bottleId);
-  if (query.isPending) {
-    return <DetailSkeleton />;
-  }
+  // 開いた時点の一覧キャッシュの 1 件（performance.md 4b）。待ちの途中で一覧が変わっても差し替えない
+  const listItem = useMemo(
+    () => findBottleInListCache(queryClient, bottleId),
+    [queryClient, bottleId],
+  );
+  const bottle = query.data ?? (query.isPending ? listItem : undefined);
   if (query.isError) {
     return isApiClientError(query.error) && query.error.code === "not_found" ? (
       <NotFoundPage />
@@ -167,9 +173,15 @@ function LoadedBottleDetail({ bottleId }: { bottleId: string }) {
       <QueryError onRetry={() => query.refetch()} retrying={query.isFetching} />
     );
   }
+  if (!bottle) {
+    return <DetailSkeleton />;
+  }
+  // 仮表示と本データで同じ位置の同じコンポーネントにする（届いたとき組み直さない）
   return (
     <BottleDetail
-      bottle={query.data}
+      bottle={bottle}
+      photos={query.data ? query.data.photos : null}
+      thumbUnderlay={Boolean(listItem)}
       logs={logs.data?.items ?? []}
       notes={notes.data?.items ?? []}
       notesTotalCount={notes.data?.totalCount ?? 0}
