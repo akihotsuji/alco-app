@@ -121,7 +121,7 @@
 | 対象 | 戦略 | 理由 |
 |---|---|---|
 | ビルドした静的ファイル（HTML / JS / CSS / アイコン） | precache | スタンドアロン起動と再訪 |
-| `/api/*`（認証・写真本文を含む） | **NetworkOnly** | セッション付き JSON / 認可付き画像を SW キャッシュしない |
+| `/api/*`（認証・写真本文を含む） | **NetworkOnly** | セッション付き JSON / 認可付き画像を SW キャッシュしない。再表示用の一覧 JSON は SW ではなく `localStorage`（[performance.md](performance.md) 6.6。最大 24 時間。写真本文は含まない） |
 | `/models/**` | precache **しない** | 4.5MB の ONNX。既存の Cache API が担う |
 | 存在しない `/assets/*`（古いハッシュの JS / CSS） | **404**（HTML にしない） | Workers の SPA fallback が `index.html` を返すと、`nosniff` でスクリプト実行が拒否され空画面になる |
 

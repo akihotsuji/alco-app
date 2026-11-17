@@ -232,7 +232,7 @@ alcohol_g = volume_ml × abv_percent / 100 × 0.8
 - 8-05: Turnstile のため `script-src` / `frame-src` / `connect-src` に `https://challenges.cloudflare.com` を足す。`'unsafe-inline'` は足さない。API 応答の CSP（`default-src 'none'`）は変えない
 - `Permissions-Policy` の `geolocation=(self)` は飲酒記録の新規フォームが現在地を 1 回取るため（[register-identity.md](features/register-identity.md) 4）。`geolocation=()` だとブラウザが Geolocation API を拒否する。マイクは使わないので `microphone=()` のまま
 - Vite 開発サーバー（`pnpm dev`）では `_headers` は適用されない（React Fast Refresh がインラインスクリプトを使うため、適用すると開発が止まる）。CSP の確認は `pnpm build` → `wrangler dev --env dev` で行う
-- 6-01: Service Worker（`/sw.js`）は静的アセット。`_headers` で `Cache-Control: no-cache`。`/api/*` は Workbox の NetworkOnly（セッション JSON と認可付き写真を SW キャッシュしない）。登録はバンドル JS の `navigator.serviceWorker.register` で、`script-src` に `'unsafe-inline'` は足さない。詳細は [features/pwa.md](features/pwa.md)
+- 6-01: Service Worker（`/sw.js`）は静的アセット。`_headers` で `Cache-Control: no-cache`。`/api/*` は Workbox の NetworkOnly（セッション JSON と認可付き写真を SW キャッシュしない）。一覧 JSON の端末保存は SW ではなく `localStorage`（[features/performance.md](features/performance.md) 6.6）。登録はバンドル JS の `navigator.serviceWorker.register` で、`script-src` に `'unsafe-inline'` は足さない。詳細は [features/pwa.md](features/pwa.md)
 
 ### 2.11 入力検証
 

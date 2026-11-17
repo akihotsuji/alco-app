@@ -11,7 +11,7 @@ function allTexts(document: typeof TERMS_DOCUMENT): string[] {
 
 describe("法務文書", () => {
   it("版が現行と一致し、酒類と国外移転を含む", () => {
-    expect(LEGAL_VERSION).toBe("2026-09-23");
+    expect(LEGAL_VERSION).toBe("2026-11-17");
     expect(TERMS_DOCUMENT.version).toBe(LEGAL_VERSION);
     expect(PRIVACY_DOCUMENT.version).toBe(LEGAL_VERSION);
     const terms = allTexts(TERMS_DOCUMENT).join("\n");
@@ -43,6 +43,9 @@ describe("法務文書", () => {
     expect(privacy).toContain("Google検索");
     expect(privacy).toContain("退会したメンバー");
     expect(privacy).toContain("サービスワーカー");
+    expect(privacy).toContain("localStorage");
+    expect(privacy).toContain("最大24時間");
+    expect(privacy).toContain("写真の実体、メールアドレス、セッション、友達の情報は保存しません");
     expect(privacy).not.toContain("他ユーザーには見せない");
     expect(privacy).not.toContain("<script");
     expect(privacy).not.toContain("spec/");

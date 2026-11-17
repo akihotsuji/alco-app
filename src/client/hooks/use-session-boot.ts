@@ -37,10 +37,13 @@ export function useSessionBoot() {
     void session.refetch();
   }
 
+  const userId = session.data?.user.id;
+
   return {
     kind,
     variant: authBootVariant(kind),
     retry,
     retrying: session.isRefetching,
+    userId: typeof userId === "string" && userId.length > 0 ? userId : undefined,
   };
 }

@@ -7,8 +7,10 @@ import { clearReloadGuard } from "@/client/lib/app-reload.ts";
 import { clearAssetRecoveryGuard } from "@/client/lib/asset-recovery.ts";
 import { authClient } from "@/client/lib/auth-client.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
+import { clearPersistedQueries } from "@/client/lib/query-persist.ts";
 import { AuthBoot } from "./AuthBoot.tsx";
 import { loginPathFor } from "./login-path.ts";
+import { PersistedQueries } from "./PersistedQueries.tsx";
 
 export function RequireAuth() {
   const boot = useSessionBoot();
@@ -18,6 +20,7 @@ export function RequireAuth() {
   useEffect(() => {
     if (boot.kind === "guest") {
       queryClient.clear();
+      clearPersistedQueries();
       void clearAppBadge();
     }
     if (boot.kind === "authenticated" || boot.kind === "guest") {
@@ -46,7 +49,13 @@ export function RequireAuth() {
   }
   return (
     <Suspense fallback={<AuthBoot />}>
-      <Outlet />
+      {boot.userId ? (
+        <PersistedQueries key={boot.userId} userId={boot.userId}>
+          <Outlet />
+        </PersistedQueries>
+      ) : (
+        <Outlet />
+      )}
     </Suspense>
   );
 }

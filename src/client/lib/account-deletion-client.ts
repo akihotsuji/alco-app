@@ -1,5 +1,6 @@
 import { clearAppBadge } from "@/client/lib/app-badge.ts";
 import { JOIN_TOKEN_STORAGE_KEY } from "@/client/lib/cellar-share.ts";
+import { clearPersistedQueries } from "@/client/lib/query-persist.ts";
 import {
   FRIEND_JOIN_TOKEN_KEY,
   FRIEND_JOIN_URL_KEY,
@@ -32,6 +33,7 @@ function removeMatchingKeys(storage: Storage, shouldRemove: (key: string) => boo
 
 /** アカウントに紐づく下書き・ガイド進捗・切り抜き診断・アイコンの未読バッジ・端末のプッシュ購読だけ捨てる。テーマ等は残す。 */
 export function discardAccountScopedClientData(): void {
+  clearPersistedQueries();
   void clearAppBadge();
   void clearDevicePushSubscription();
   try {

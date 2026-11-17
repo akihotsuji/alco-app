@@ -15,6 +15,7 @@ import {
   shelfPageLimit,
 } from "@/client/lib/cellar-shelf.ts";
 import { getCellarListViewPref } from "@/client/lib/preferences.ts";
+import { QUERY_STALE_TIME_MS } from "@/client/lib/query-client.ts";
 import type { CellarListView } from "@/shared/constants.ts";
 import { tokyoToday } from "@/shared/tokyo-date.ts";
 
@@ -24,7 +25,8 @@ import { tokyoToday } from "@/shared/tokyo-date.ts";
  * キャッシュが当たり、スケルトンを経ずに一覧が出る（`spec/features/performance.md`）。
  *
  * - フィルタ付き（検索・種類・評価）の一覧は先読みしない。初期表示で必ず使うものだけ
- * - すでにキャッシュがある query は触らない（画面が取得中のものと二重に走らせない）
+ * - 取得中、またはまだ新しい成功キャッシュは触らない（画面の取得と二重に走らせない）
+ * - 期限切れ・無効化済み（端末から戻した一覧を含む）は取り直す
  */
 export type TabPrefetchEntry = {
   kind: "query" | "infinite";
@@ -104,9 +106,27 @@ export function tabPrefetchEntries(input: TabPrefetchInput): TabPrefetchEntry[] 
   ];
 }
 
+/** 取得中、または staleTime 内の成功キャッシュは先読みしない */
+export function shouldSkipTabPrefetch(
+  state:
+    | { status: string; fetchStatus: string; isInvalidated: boolean; dataUpdatedAt: number }
+    | undefined,
+  now = Date.now(),
+): boolean {
+  if (!state || state.fetchStatus === "fetching") {
+    return state !== undefined;
+  }
+  return (
+    state.status === "success" &&
+    !state.isInvalidated &&
+    now - state.dataUpdatedAt < QUERY_STALE_TIME_MS
+  );
+}
+
 export function prefetchTabData(queryClient: QueryClient, entries: TabPrefetchEntry[]): void {
+  const now = Date.now();
   for (const entry of entries) {
-    if (queryClient.getQueryState(entry.queryKey) !== undefined) {
+    if (shouldSkipTabPrefetch(queryClient.getQueryState(entry.queryKey), now)) {
       continue;
     }
     void entry.prefetch(queryClient);

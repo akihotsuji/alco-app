@@ -1,5 +1,6 @@
 import { clearAppBadge } from "@/client/lib/app-badge.ts";
 import { authClient } from "@/client/lib/auth-client.ts";
+import { clearPersistedQueries } from "@/client/lib/query-persist.ts";
 import { clearFriendSessionArtifacts } from "@/client/lib/social-invite.ts";
 import { clearDevicePushSubscription } from "@/client/lib/web-push.ts";
 
@@ -12,12 +13,15 @@ export type EndSessionDeps = {
   clearBadge: () => void;
   /** この端末のプッシュ購読を解除する（待たない）。サーバー行はセッション削除の CASCADE で消える。 */
   clearPush: () => void;
+  /** 端末に保存した一覧を消す。サインアウトが失敗しても残さない。 */
+  clearPersisted: () => void;
 };
 
 /**
  * セッションを終わらせる。明示的なログアウトと、API が 401 を返したとき（サーバー側で既に
- * 失効）の両方で使う。ここでは画面遷移もキャッシュ削除もしない。セッション store が空になると
- * `RequireAuth` が query キャッシュを捨てて `/login` へ送る（経路を 1 本にして競合を避ける）。
+ * 失効）の両方で使う。ここでは画面遷移もメモリ上の query キャッシュ削除もしない。端末の一覧保存
+ * だけ先に消す。セッション store が空になると `RequireAuth` が query キャッシュを捨てて
+ * `/login` へ送る（経路を 1 本にして競合を避ける）。
  * 同時に複数の query が 401 になっても signOut は 1 回だけ走る。
  */
 export function createEndSessionHandler(deps: EndSessionDeps): () => Promise<void> {
@@ -25,6 +29,7 @@ export function createEndSessionHandler(deps: EndSessionDeps): () => Promise<voi
 
   const run = async () => {
     clearFriendSessionArtifacts();
+    deps.clearPersisted();
     deps.clearBadge();
     deps.clearPush();
     const result = await deps.signOut().catch((error: unknown) => ({ error }));
@@ -48,4 +53,5 @@ export const endSession = createEndSessionHandler({
   refreshSession: () => authClient.$store.notify("$sessionSignal"),
   clearBadge: () => void clearAppBadge(),
   clearPush: () => void clearDevicePushSubscription(),
+  clearPersisted: () => clearPersistedQueries(),
 });

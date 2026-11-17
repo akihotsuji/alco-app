@@ -9,11 +9,12 @@ import {
   OPENED_STRIP_LIMIT,
   SHELF_TYPE_PAGE_LIMIT,
 } from "@/client/lib/cellar-shelf.ts";
-import { createQueryClient } from "@/client/lib/query-client.ts";
+import { createQueryClient, QUERY_STALE_TIME_MS } from "@/client/lib/query-client.ts";
 import { queryKeys } from "@/client/lib/query-keys.ts";
 import {
   prefetchTabData,
   scheduleIdle,
+  shouldSkipTabPrefetch,
   TAB_PREFETCH_DELAY_MS,
   tabPrefetchEntries,
 } from "./use-tab-data-prefetch.ts";
@@ -177,6 +178,46 @@ describe("prefetchTabData", () => {
 
     expect(prefetchQuery).toHaveBeenCalledTimes(6);
     expect(prefetchInfiniteQuery).toHaveBeenCalledTimes(1);
+  });
+
+  it("期限切れの一覧は取り直す", () => {
+    const queryClient = createQueryClient();
+    const prefetchQuery = vi.spyOn(queryClient, "prefetchQuery").mockResolvedValue(undefined);
+    queryClient.setQueryData(
+      myDrinksQueryOptions().queryKey,
+      { items: [], nextCursor: null },
+      { updatedAt: Date.now() - QUERY_STALE_TIME_MS - 1 },
+    );
+    prefetchTabData(
+      queryClient,
+      tabPrefetchEntries({ cellarView: "list", viewportWidth: 390, today: TODAY }),
+    );
+    expect(prefetchQuery).toHaveBeenCalledTimes(7);
+  });
+});
+
+describe("shouldSkipTabPrefetch", () => {
+  it("取得中と新しい成功は飛ばし、無効化と未取得は取る", () => {
+    const now = 10_000;
+    expect(shouldSkipTabPrefetch(undefined, now)).toBe(false);
+    expect(
+      shouldSkipTabPrefetch(
+        { status: "success", fetchStatus: "fetching", isInvalidated: false, dataUpdatedAt: now },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      shouldSkipTabPrefetch(
+        { status: "success", fetchStatus: "idle", isInvalidated: false, dataUpdatedAt: now },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      shouldSkipTabPrefetch(
+        { status: "success", fetchStatus: "idle", isInvalidated: true, dataUpdatedAt: now },
+        now,
+      ),
+    ).toBe(false);
   });
 });
 
