@@ -2,7 +2,7 @@
 
 実装: 2026-09-11。画面は [screen-designs/10-account-deletion.md](../screen-designs/10-account-deletion.md) と [06-settings.md](../screen-designs/06-settings.md) S16、[01-auth.md](../screen-designs/01-auth.md) A9。API は [api-design.md](../api-design.md) 4.2.2。データは [data-model.md](../data-model.md) 6.9〜6.12。
 
-調査対象 main: `4d6df3c9efa0c1e63b350e74678560d9c7e8c6d6`。Better Auth は lockfile の 1.7.2。
+調査対象 main: `4d6df3c9efa0c1e63b350e74678560d9c7e8c6d6`。調査時点の Better Auth は 1.7.2。依存監査の更新で 1.7.25 に上げ、`account.issuer` は 0017 で削除した。削除処理が使う `verifyPassword` / `getSession({ disableCookieCache })` / `signOut` は変えていない。
 
 ## 1. 目的
 
@@ -160,5 +160,5 @@ R2 put 前に `photo_object_reservations` へ `r2_key` と `user_id` を永続�
 - [d1-backup.md](d1-backup.md)
 - [legal.md](../legal.md)
 - [operations.md](../operations.md)
-- Better Auth 1.7.2 `verifyPassword` / `getSession({ disableCookieCache })` / `signOut`
+- Better Auth 1.7.25 `verifyPassword` / `getSession({ disableCookieCache })` / `signOut`
 - Cloudflare D1 `batch`
