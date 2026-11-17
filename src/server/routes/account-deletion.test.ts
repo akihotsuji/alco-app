@@ -46,7 +46,6 @@ async function makeGoogleOnly(db: Awaited<ReturnType<typeof createTestApp>>["db"
     .where(and(eq(account.userId, userId), eq(account.providerId, "credential")));
   await db.insert(account).values({
     id: crypto.randomUUID(),
-    issuer: "https://accounts.google.com",
     accountId: `google-${userId}`,
     providerId: "google",
     userId,

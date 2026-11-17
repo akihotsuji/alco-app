@@ -84,7 +84,7 @@ Auth コアの列はライブラリ版に従う。以下は実装時の参照用
 |---|---|---|
 | `user` | id, name, email, emailVerified, image, createdAt, updatedAt | アプリ全テーブルの `user_id` FK |
 | `session` | セッショントークン、期限、userId | 参照しない（Better Auth が管理） |
-| `account` | 認証手段。credential 時は password ハッシュを含む | **参照・ログ出力禁止** |
+| `account` | 認証手段。credential 時は password ハッシュを含む。識別は `providerId` + `accountId`（Better Auth 1.7.3 以降）。1.7.0–1.7.2 が要求した `issuer` と unique index `account_issuer_accountId_uidx` は 0017 で落とす | **参照・ログ出力禁止** |
 | `verification` | メール検証・リセット用の短命レコード | アプリからは参照しない。8-03 のパスワードリセットは Better Auth が `reset-password:` 識別子で使う |
 
 Phase 2 の推奨:
