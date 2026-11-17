@@ -305,7 +305,7 @@ export function BottleDetail({ bottle, logs, notes, notesTotalCount }: BottleDet
             <span className="photo-thumb bottle-back-thumb-frame">
               <ContentPhoto
                 className="photo-thumb-img"
-                src={photoContentUrl(backPhoto.id)}
+                src={photoContentUrl(backPhoto.id, "thumb")}
                 size={PHOTO_DISPLAY_SIZE.bottleTile}
                 loading="lazy"
               />

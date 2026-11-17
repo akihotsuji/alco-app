@@ -92,6 +92,11 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).not.toContain("bottle-lightbox");
   });
 
+  it("裏ラベルの小サムネはサムネ画像、全画面は原本を取る", () => {
+    expect(source).toContain('src={photoContentUrl(backPhoto.id, "thumb")}');
+    expect(source).toContain('src={lightboxPhoto ? photoContentUrl(lightboxPhoto.id) : ""}');
+  });
+
   it("表面写真の下にガラス棚板や傍線を置かない", () => {
     expect(source).not.toContain("bottle-hero-shelf");
     expect(source).not.toContain("shelf-board");
