@@ -97,6 +97,56 @@ describe("BottleDetail 状態バッジ", () => {
     expect(source).toContain('src={lightboxPhoto ? photoContentUrl(lightboxPhoto.id) : ""}');
   });
 
+  it("ヒーローは一覧サムネを下敷きにし、原本が出終えてから隠す（写真は動かさない）", () => {
+    expect(source).toContain("{thumbUnderlay ? (");
+    expect(source).toContain('src={photoContentUrl(photo.id, "thumb")}');
+    expect(source).toContain('data-covered={heroState === "loaded" ? "" : undefined}');
+    expect(source).toContain("onStateChange={setHeroState}");
+    const underlay = css.slice(css.indexOf(".bottle-hero-underlay {"));
+    const covered = underlay.slice(
+      underlay.indexOf(".bottle-hero-underlay[data-covered] {"),
+      underlay.indexOf(".bottle-hero-underlay + .bottle-hero-img"),
+    );
+    expect(covered).toContain("visibility: hidden;");
+    // 原本のフェードと同じ長さ・同じトークンで待ってから隠す。その場の秒数・transform は書かない
+    expect(covered).toContain("transition: visibility var(--dur-state) var(--ease-out);");
+    expect(underlay.slice(0, underlay.indexOf("}"))).not.toContain("transform");
+  });
+
+  it("仮表示（一覧の 1 件で描く間）は状態を変える操作を受け付けない", () => {
+    expect(source).toContain("const provisional = photos === null;");
+    expect(source).toContain("const locked = pending || provisional;");
+    // 開栓・取り消し・飲み切りは関数の入口でも止める（無効ボタンに頼り切らない）
+    expect(source.match(/if \(locked\) \{\n {6}return;/g)).toHaveLength(3);
+    expect(source).toContain("if (provisional) {\n      return;");
+    expect(source).toContain("disabled={locked}");
+    expect(source).not.toContain("disabled={pending}");
+    // 「飲んだ量を記録」はリンクではなく無効ボタンで同じ位置に出す
+    expect(
+      source.match(/\{provisional \? \(\n\s+<Button type="button"[^>]* disabled>/g),
+    ).toHaveLength(2);
+    expect(source).toContain("{canUndoOpen && !provisional ? (");
+    expect(source).toContain("open={followupOpen && !provisional}");
+    expect(source).toContain("useCellarSync(provisional ? undefined : bottle.cellarId);");
+    // 裏ラベルは一覧に無いので仮表示では出さない
+    expect(source).toContain("const backPhoto = provisional ? undefined : photos[1];");
+  });
+
+  it("詳細ページは一覧キャッシュの 1 件を仮表示に使い、詳細の query には書き込まない", () => {
+    const page = readFileSync(join(here, "../../pages/cellar/CellarPages.tsx"), "utf8");
+    expect(page).toContain("findBottleInListCache(queryClient, bottleId)");
+    expect(page).toContain(
+      "const bottle = query.data ?? (query.isPending ? listItem : undefined);",
+    );
+    expect(page).toContain("photos={query.data ? query.data.photos : null}");
+    expect(page).toContain("thumbUnderlay={Boolean(listItem)}");
+    const hook = readFileSync(join(here, "../../hooks/use-bottles.ts"), "utf8");
+    const useBottle = hook.slice(hook.indexOf("export function useBottle("));
+    expect(useBottle.slice(0, useBottle.indexOf("\n}\n"))).not.toMatch(
+      /placeholderData|initialData/,
+    );
+  });
+
   it("表面写真の下にガラス棚板や傍線を置かない", () => {
     expect(source).not.toContain("bottle-hero-shelf");
     expect(source).not.toContain("shelf-board");
